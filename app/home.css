@@ -848,10 +848,12 @@ a:focus-visible {
 
 .product h2{
   font-weight: bold;
+  color: black;
 }
 
 .company h2{
   font-weight: bold;
+  color: black;
 }
 
 .product ul{
