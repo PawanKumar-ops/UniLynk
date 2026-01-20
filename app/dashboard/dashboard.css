@@ -1,0 +1,357 @@
+body{
+  background-color: #ffffff;
+}
+
+.homebody{
+  display: flex;
+}
+
+
+/*================================== Menu=================================== */
+
+header{
+  display: flex;
+  flex-direction: column;
+}
+
+.menu{
+  display: flex;
+  flex-direction: column;
+  align-items: end;
+  padding: 10px;
+  position: fixed;
+  padding-right: 30px;
+  width: 29%;
+  height: 100vh;
+  border-right: 1px solid rgb(230, 230, 230);
+  background-color: #ffffff;
+}
+
+.profile{
+  margin: 10px 0;
+  width: 270px;
+  height: 360px;
+  border-radius: 28px;
+  border: 1px solid rgb(214, 214, 214);
+}
+
+.profback{
+  margin-top: 3.5%;
+  height: 37%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profback img{
+  width: 94%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 23px;
+}
+
+.profpic{
+  border: 4px solid #ffffff;
+  height: 90px;
+  width: 90px;
+  position: relative;
+  bottom: 43px;
+  border-radius: 200px;
+  left: 25px;
+}
+
+.profpic img{
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  border-radius: 200px;
+}
+
+.profinfo{
+  padding: 0 25px;
+}
+
+.username{
+  margin-top: -37px;
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.branch{
+  font-size: 13px;
+  color: gray;
+}
+
+.year{
+  font-size: 15px;
+  color: gray;
+}
+
+.post{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.post button{
+  width: 90%;
+  background-color: grey;
+  color: #ffffff;
+  height: 40px;
+  margin-top: 35px;
+  border-radius: 23px;
+  transition: .3s;
+}
+
+.post button:hover{
+  background-color: #111;
+  transform: scale(1.02);
+}
+
+.logo{
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-right: 0px;
+}
+
+.logo img{
+    height: 42px;
+}
+
+.dashboard{
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 20px 0;
+}
+
+.dashbutton{
+  width: 270px;
+  padding: 14px;
+  border-radius: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  gap: 10px;
+}
+
+.dashbutton img{
+  color: grey;
+}
+
+.dashbutton:hover{
+  background-color: rgb(243, 243, 243);
+}
+
+.gethelp{
+  color: red;
+  background-color: #fff2f2;
+}
+
+.gethelp:hover{
+  background-color: #fee7e7;
+}
+
+/*========================== Feed starts here ============================*/
+
+main{
+  margin-left: 29%;
+  width: 71%;
+  display: flex;
+}
+
+.feed{
+  width: 56%;
+  height: 100vh;
+}
+
+.fhead{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 50px;
+  background-color: #fff;
+}
+
+
+
+
+
+
+
+
+.pricing-toggle {
+  background: #f3f3f3;
+  padding: 4px;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.toggle-track {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.toggle-btn {
+  padding: 6px 16px;
+  font-size: 14px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #888;
+  z-index: 2;
+}
+
+.toggle-btn.active {
+  color: #000;
+  font-weight: 500;
+}
+
+.toggle-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  background: #fff;
+  border-radius: 999px;
+  transition: transform 0.3s ease;
+  z-index: 1;
+}
+
+/* Optional: move background manually */
+.toggle-track.right .toggle-bg {
+  transform: translateX(100%);
+}
+
+
+
+
+
+
+
+
+/* ==========================Chat start here============================= */
+.msgsidebarmain{
+  width: 325px;
+  margin: 10px 30px;
+  position: fixed;
+}
+
+.msgsearchbar{
+  width: 100%;
+  display: flex;
+  height: 44px;
+  align-items: center;
+  border: 1px solid rgb(221, 221, 221);
+  border-radius: 15px;
+  padding: 0 10px;
+  gap: 7px;
+}
+
+.msgsidebar{
+  height: 100vh;
+  border-left: 1px solid rgb(230, 230, 230);
+  display: flex;
+  width: 44%;
+}
+
+.searchicon{
+  width: 16px;
+  height: 16px;
+}
+
+.searchinput{
+  height: 44px;
+  width: 300px;
+  outline: none;
+}
+
+.searchinput:focus {
+  border: none; /* removes border when clicked/focused */ 
+  outline: none; /* removes focus outline */ 
+}
+
+.msgbuttons{
+  display: flex;
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.msgbutton{
+  display: flex;
+  gap: 5px;
+  border: 1px solid rgb(221, 221, 221);
+  padding: 5px 12px;
+  border-radius: 10px;
+  color: grey;
+}
+
+.msgbutton img{
+  width: 17px;
+}
+
+.clublogo{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: fit-content;
+  border-radius: 7px;
+  padding: 2px;
+  max-width: 54px;
+  background-color: #f2f2f2;
+  transition: background-color 0.3s ease;
+}
+
+.clublogo img{
+  max-height: 50px;
+  max-width: 50px;
+}
+
+.clublogo:hover{
+  background-color: #dfdfdf;
+}
+
+
+.clubname{
+  font-size: 25px;
+  margin-bottom: -3px;
+  color: gray;
+}
+
+.chatheader{
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.allchats{
+  width: 100%;
+  height: 452px;
+  overflow: scroll;
+}
+
+.userchat{
+  width: 100%;
+  height: 60px;
+  background-color: #ffffff;
+  border: 1px solid grey;
+}
+
+.userprofilepic img{
+  max-width: 50px;
+  height: 50px;
+  /* max-height: 50px; */
+  border-radius: 200px;
+  border: 1px solid black;
+}
+
+.userchat{
+  display: flex;
+  flex-direction: row;
+}

@@ -19,6 +19,13 @@
   }
 }
 
+hr{
+  border: none;
+  height: 1px;
+  background-color: rgb(219, 219, 219);
+  width: 100%;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

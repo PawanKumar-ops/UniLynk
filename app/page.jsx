@@ -19,7 +19,7 @@ export default function Home() {
 
           <ul className="navlinks">
             <Link href="./chat"><li className="feature navlink"> Feature</li></Link>
-            <li className="about navlink">About</li>
+            <Link href="./dashboard"><li className="about navlink">About</li></Link>
             <li className="support navlink">Support</li>
             <li className="contactus navlink">Contact Us</li>
           </ul>
