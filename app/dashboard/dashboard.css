@@ -1,0 +1,513 @@
+body {
+  background-color: #ffffff;
+  margin: 0;
+  padding: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.homebody {
+  display: flex;
+}
+
+/* ================================== Menu =================================== */
+
+header {
+  display: flex;
+  flex-direction: column;
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  align-items: end;
+  padding: 10px;
+  position: fixed;
+  padding-right: 30px;
+  width: 29%;
+  height: 100vh;
+  border-right: 1px solid rgb(230, 230, 230);
+  background-color: #ffffff;
+  z-index: 10;
+}
+
+.profile {
+  margin: 10px 0;
+  width: 270px;
+  height: 360px;
+  border-radius: 28px;
+  border: 1px solid rgb(214, 214, 214);
+}
+
+.profback {
+  margin-top: 3.5%;
+  height: 37%;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.profback img {
+  width: 94%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 23px;
+}
+
+.profpic {
+  border: 4px solid #ffffff;
+  height: 90px;
+  width: 90px;
+  position: relative;
+  bottom: 43px;
+  border-radius: 200px;
+  left: 25px;
+}
+
+.profpic img {
+  height: 100%;
+  width: 100%;
+  object-fit: cover;
+  border-radius: 200px;
+}
+
+.profinfo {
+  padding: 0 25px;
+}
+
+.username {
+  margin-top: -37px;
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.branch {
+  font-size: 13px;
+  color: gray;
+}
+
+.year {
+  font-size: 15px;
+  color: gray;
+}
+
+.post {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.post button {
+  width: 90%;
+  background-color: grey;
+  color: #ffffff;
+  height: 40px;
+  margin-top: 35px;
+  border-radius: 23px;
+  transition: 0.3s;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.post button:hover {
+  background-color: #111;
+  transform: scale(1.02);
+}
+
+.logo {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-right: 0px;
+}
+
+.logo img {
+  height: 42px;
+  object-fit: contain;
+}
+
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 20px 0;
+}
+
+.dashbutton {
+  width: 270px;
+  padding: 14px;
+  border-radius: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: start;
+  gap: 10px;
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 16px;
+  text-align: left;
+}
+
+.dashbutton img {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+.dashbutton:hover {
+  background-color: rgb(243, 243, 243);
+}
+
+.gethelp {
+  color: red;
+  background-color: #fff2f2;
+}
+
+.gethelp:hover {
+  background-color: #fee7e7;
+}
+
+/* ========================== Feed starts here ============================ */
+
+main {
+  margin-left: 29%;
+  width: 71%;
+  display: flex;
+}
+
+.feed {
+  width: 56%;
+  height: 100vh;
+}
+
+.fhead {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 50px;
+  background-color: #fff;
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+/* ====================== Top For you/Club button =========================== */
+
+.pricing-toggle {
+  background: #f3f3f3;
+  padding: 4px;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.toggle-track {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.toggle-btn {
+  padding: 6px 16px;
+  font-size: 14px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #888;
+  z-index: 2;
+  position: relative;
+}
+
+.toggle-btn.active {
+  color: #000;
+  font-weight: 500;
+}
+
+.toggle-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  background: #fff;
+  border-radius: 999px;
+  transition: transform 0.3s ease;
+  z-index: 1;
+}
+
+.toggle-track.right .toggle-bg {
+  transform: translateX(100%);
+}
+
+/* ==========================Chat start here============================= */
+
+.msgsidebar {
+  height: 100vh;
+  border-left: 1px solid rgb(230, 230, 230);
+  display: flex;
+  width: 44%;
+  overflow: hidden;
+  position: relative;
+}
+
+.msgsidebarmain {
+  width: 325px;
+  margin: 10px 30px;
+  position: fixed;
+}
+
+.msgsearchbar {
+  width: 325px;
+  display: flex;
+  height: 44px;
+  align-items: center;
+  border: 1px solid rgb(221, 221, 221);
+  border-radius: 15px;
+  padding: 0 10px;
+  gap: 7px;
+  box-sizing: border-box;
+}
+
+.searchicon {
+  width: 16px;
+  height: 16px;
+  color: #888;
+  flex-shrink: 0;
+  min-width: 16px;
+}
+
+.searchinput {
+  flex: 1;
+  min-width: 0;
+  height: 32px;
+  outline: none !important;
+  border: none !important;
+  font-size: 14px;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  line-height: 32px;
+}
+
+.searchinput:focus {
+  outline: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.searchinput::placeholder {
+  color: #999;
+}
+
+.mt-4 {
+  margin-top: 16px;
+}
+
+.mb-4 {
+  margin-bottom: 16px;
+}
+
+.msgbuttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.msgbutton {
+  display: flex;
+  gap: 5px;
+  border: 1px solid rgb(221, 221, 221);
+  padding: 5px 12px;
+  border-radius: 10px;
+  color: grey;
+  background-color: transparent;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  font-size: 14px;
+}
+
+.msgbutton:hover {
+  background-color: rgb(243, 243, 243);
+}
+
+.msgbutton img {
+  width: 17px;
+  height: 17px;
+}
+
+.clublogo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: fit-content;
+  border-radius: 7px;
+  padding: 2px;
+  max-width: 54px;
+  background-color: #f2f2f2;
+  transition: background-color 0.3s ease;
+}
+
+.clublogo img {
+  max-height: 50px;
+  max-width: 50px;
+  object-fit: contain;
+}
+
+.clublogo:hover {
+  background-color: #dfdfdf;
+}
+
+.clubname {
+  font-size: 25px;
+  margin-bottom: -3px;
+  color: gray;
+}
+
+.chatheader {
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.chat {
+  width: 100%;
+}
+
+.allchats {
+  width: 100%;
+  height: 452px;
+  /* overflow-y: auto; */
+}
+
+.userchat {
+  width: 100%;
+  height: 60px;
+  background-color: #ffffff;
+  border: 1px solid grey;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 5px;
+}
+
+.userprofilepic img {
+  max-width: 50px;
+  height: 50px;
+  border-radius: 200px;
+  border: 1px solid black;
+  object-fit: cover;
+}
+
+.msges {
+  background-color: #f5f5f5;
+  width: 100%;
+  height: 475px;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+  align-items: center;
+}
+
+.msgbar {
+  width: 96%;
+  height: 40px;
+  background-color: #fff;
+  border-radius: 999px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 10px;
+  box-shadow:  0 1px 3px rgba(0, 0, 0, 0.10);
+}
+
+.arrow-up {
+  background-color: grey;
+  border-radius: 999px;
+  padding: 4px;
+  margin: 2px;
+  margin-right: 4px;
+}
+
+.msgbar input {
+  width: 80%;
+  margin: 0 10px;
+  padding-left: 8px;
+  height: 34px;
+  border: none;
+  outline: none;
+  background-color: transparent;
+}
+
+.msgbar input:focus{
+  border: none;
+  outline: none;
+  box-shadow: none;
+}
+
+
+
+
+
+
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .menu {
+    width: 35%;
+  }
+
+  main {
+    margin-left: 35%;
+    width: 65%;
+  }
+
+  .feed {
+    width: 50%;
+  }
+
+  .msgsidebar {
+    width: 50%;
+  }
+}
+
+@media (max-width: 768px) {
+  .homebody {
+    flex-direction: column;
+  }
+
+  .menu {
+    width: 100%;
+    position: relative;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid rgb(230, 230, 230);
+  }
+
+  main {
+    margin-left: 0;
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .feed {
+    width: 100%;
+  }
+
+  .msgsidebar {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid rgb(230, 230, 230);
+  }
+
+  .msgsidebarmain {
+    position: relative;
+    width: calc(100% - 60px);
+  }
+}
