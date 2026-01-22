@@ -1,0 +1,318 @@
+.loginsec {
+  box-sizing: border-box;
+  font-family: 'Inter', sans-serif;
+  display: flex;
+  justify-content: right;
+  margin: 15px;
+  margin-right: 120px;
+  gap: 45px;
+}
+
+.card {
+  min-width: 440px;
+  height: 640px;
+  padding-left: 24px;
+  padding-right: 24px;
+  padding-bottom: 28px;
+  padding-top: 28px;
+  background: #fff;
+  border-radius: 20px;
+  padding: 28px 24px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .3);
+  transition: .4s;
+}
+
+.card:hover {
+  transform: scale(1.01) translateY(-2px);
+  box-shadow: 0 35px 80px rgba(0, 0, 0, .35)
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 8px;
+  color: #000;
+  font-size: 22px;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+
+.subtitle {
+  text-align: center;
+  color: #666;
+  margin-bottom: 28px;
+  font-size: 14px;
+}
+
+.social-btn {
+  width: 100%;
+  height: 52px;
+  background: #000;
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-size: 15px;
+  cursor: pointer;
+  margin-bottom: 14px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  transition: transform .25s, box-shadow .25s;
+}
+
+.social-btn svg {
+  position: absolute;
+  left: 24px;
+  top: 50%;
+  transform: translateY(-50%) scale(1);
+  transition: all .25s ease;
+}
+
+.signgithub{
+  margin-left: -4px;
+  left: 20px;
+  width: 30px;
+}
+
+.social-btn span {
+  transition: opacity .2s ease;
+}
+
+.social-btn:hover {
+  transform: scale(1.06);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, .35);
+}
+
+.social-btn:hover svg {
+  left: 50%;
+  transform: translate(-50%, -50%) scale(1.4);
+}
+
+.social-btn:hover span {
+  opacity: 0;
+}
+
+.divider {
+  position: relative;
+  text-align: center;
+  margin: 24px 0;
+  font-size: 13px;
+  color: #999;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 45%;
+  height: 1px;
+  background: #ddd;
+}
+
+.divider::before {
+  left: 0;
+}
+
+.divider::after {
+  right: 0;
+}
+
+label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #000
+}
+
+input {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid #e0e0e0;
+  background: #f6f6f6;
+  margin: 8px 0 20px;
+  font-size: 14px;
+  color: #000;
+}
+
+
+input:focus {
+  outline: none;
+  background: #fff;
+  border-color: #000;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, .15);
+}
+
+.terms {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  margin-bottom: 22px;
+  color: #555;
+}
+
+.terms input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.terms span {
+  line-height: 1.4
+}
+
+.terms a {
+  font-weight: 600;
+  color: #000;
+  text-decoration: none;
+}
+
+.terms a:hover {
+  text-decoration: underline;
+}
+
+.remember-forgot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 22px;
+  font-size: 13px;
+}
+
+.remember-me {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #555;
+}
+
+.remember-me input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  cursor: pointer;
+}
+
+.remember-me span {
+  line-height: 1.4;
+}
+
+.forgot-password {
+  color: #000;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.forgot-password:hover {
+  text-decoration: underline;
+}
+
+.submit-btn {
+  width: 100%;
+  height: 52px;
+  border-radius: 14px;
+  border: none;
+  background: #999;
+  color: #fff;
+  font-size: 15px;
+  cursor: not-allowed;
+  box-shadow: none;
+  transition: .3s;
+}
+
+.submit-btn.active {
+  background: #000;
+  cursor: pointer;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .4)
+}
+
+.submit-btn.active:hover {
+  transform: scale(1.06)
+}
+
+.footer {
+  text-align: center;
+  margin-top: 18px;
+  font-size: 14px;
+  color: #666
+}
+
+.footer a {
+  font-weight: 600;
+  color: #000;
+  text-decoration: none
+}
+
+.footer a:hover {
+  text-decoration: underline
+}
+
+/* Mobile tap optimization */
+button {
+  touch-action: manipulation;
+}
+
+/* Better keyboard accessibility */
+button:focus-visible,
+input:focus-visible,
+a:focus-visible {
+  outline: 3px solid #000;
+  outline-offset: 2px;
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.input-icon {
+  position: relative;
+  height: 46px;
+  margin: 8px 0 20px;
+}
+
+
+.input-icon .icon {
+  position: absolute;
+  left: 14px;
+  top: 0;
+  bottom: 0;
+  margin: auto 0;
+  width: 18px;
+  height: 18px;
+  color: #999;
+  pointer-events: none;
+}
+
+
+.input-icon .icon path,
+.input-icon .icon rect,
+.input-icon .icon polyline {
+  vector-effect: non-scaling-stroke;
+  stroke-width: 1.8;
+}
+
+
+.input-icon input {
+  height: 46px;
+  padding-left: 42px;
+  margin: 0;
+}
+
+
+
+.input-icon input:focus+.icon,
+.input-icon input:focus~.icon {
+  color: #000;
+}

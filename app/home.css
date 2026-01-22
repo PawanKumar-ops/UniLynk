@@ -69,7 +69,7 @@ nav {
 
 /* -------------------Loginsec------------------------ */
 
-.loginsec {
+/* .loginsec {
   box-sizing: border-box;
   font-family: 'Inter', sans-serif;
   display: flex;
@@ -140,6 +140,12 @@ h1 {
   top: 50%;
   transform: translateY(-50%) scale(1);
   transition: all .25s ease;
+}
+
+.signgithub{
+  margin-left: -4px;
+  left: 20px;
+  width: 30px;
 }
 
 .social-btn span {
@@ -320,12 +326,12 @@ input:focus {
   text-decoration: underline
 }
 
-/* Mobile tap optimization */
+
 button {
   touch-action: manipulation;
 }
 
-/* Better keyboard accessibility */
+
 button:focus-visible,
 input:focus-visible,
 a:focus-visible {
@@ -333,7 +339,7 @@ a:focus-visible {
   outline-offset: 2px;
 }
 
-/* Respect reduced motion */
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation: none !important;
@@ -380,7 +386,7 @@ a:focus-visible {
 .input-icon input:focus+.icon,
 .input-icon input:focus~.icon {
   color: #000;
-}
+} */
 
 .aboutsec {
   width: 100%;
