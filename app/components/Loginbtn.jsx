@@ -36,10 +36,20 @@ const Loginbtn = () => {
   }
 
 
-  const handleSubmit = (e) => {
-    console.log(user);
+  const handleLogin = async () => {
+    const res = await fetch("/api/auth/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email: user.email,
+        password: user.password,
+      }),
+    });
 
-  }
+    const data = await res.text();
+    console.log(data);
+  };
+
 
 
   const handleCheckboxChange = (e) => {
@@ -115,7 +125,7 @@ const Loginbtn = () => {
               <path d="M8 10V7a4 4 0 0 1 8 0v3" stroke="currentColor" fill="none" />
             </svg>
             <input
-            name='password'
+              name='password'
               id="signin-password"
               type="password"
               placeholder="Enter your password"
@@ -225,7 +235,7 @@ const Loginbtn = () => {
             type='submit'
             className={`submit-btn ${isTermsChecked ? 'active' : ''}`}
             id="createBtn"
-            onClick={handleSubmit}
+            onClick={handleLogin}
             disabled={!isTermsChecked}
           >
             Create Account
