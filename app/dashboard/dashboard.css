@@ -221,6 +221,7 @@ main {
   color: #888;
   z-index: 2;
   position: relative;
+  transition: color 0.3s ease;
 }
 
 .toggle-btn.active {
@@ -236,29 +237,38 @@ main {
   height: 100%;
   background: #fff;
   border-radius: 999px;
-  transition: transform 0.3s ease;
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   z-index: 1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .toggle-track.right .toggle-bg {
   transform: translateX(100%);
 }
 
+
 /* ==========================Chat start here============================= */
 
 .msgsidebar {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 31.24%;
   height: 100vh;
   border-left: 1px solid rgb(230, 230, 230);
+  background-color: #ffffff;
   display: flex;
-  width: 44%;
   overflow: hidden;
-  position: relative;
+  z-index: 5;
 }
 
 .msgsidebarmain {
   width: 325px;
-  margin: 10px 30px;
-  position: fixed;
+  margin: 10px auto;
+  margin-left: 30px;
+  height: 100%;
+  overflow-y: hidden;
+  overflow-x: hidden;
 }
 
 .msgsearchbar {
@@ -271,6 +281,12 @@ main {
   padding: 0 10px;
   gap: 7px;
   box-sizing: border-box;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.msgsearchbar:focus-within {
+  border-color: rgb(180, 180, 180);
+  box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
 }
 
 .searchicon {
@@ -279,6 +295,11 @@ main {
   color: #888;
   flex-shrink: 0;
   min-width: 16px;
+  transition: color 0.3s ease;
+}
+
+.msgsearchbar:focus-within .searchicon {
+  color: #555;
 }
 
 .searchinput {
@@ -327,12 +348,18 @@ main {
   color: grey;
   background-color: transparent;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: all 0.3s ease;
   font-size: 14px;
 }
 
 .msgbutton:hover {
   background-color: rgb(243, 243, 243);
+  border-color: rgb(200, 200, 200);
+  transform: translateY(-1px);
+}
+
+.msgbutton:active {
+  transform: translateY(0);
 }
 
 .msgbutton img {
@@ -350,6 +377,7 @@ main {
   max-width: 54px;
   background-color: #f2f2f2;
   transition: background-color 0.3s ease;
+  cursor: pointer;
 }
 
 .clublogo img {
@@ -385,6 +413,23 @@ main {
   /* overflow-y: auto; */
 }
 
+.allchats::-webkit-scrollbar {
+  width: 6px;
+}
+
+.allchats::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.allchats::-webkit-scrollbar-thumb {
+  background: #d0d0d0;
+  border-radius: 3px;
+}
+
+.allchats::-webkit-scrollbar-thumb:hover {
+  background: #b0b0b0;
+}
+
 .userchat {
   width: 100%;
   height: 60px;
@@ -394,6 +439,11 @@ main {
   flex-direction: row;
   align-items: center;
   padding: 5px;
+  transition: background-color 0.2s ease;
+}
+
+.userchat:hover {
+  background-color: #fafafa;
 }
 
 .userprofilepic img {
@@ -416,15 +466,21 @@ main {
 }
 
 .msgbar {
-  width: 96%;
+  width: 312px;
   height: 40px;
   background-color: #fff;
   border-radius: 999px;
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 10px;
-  box-shadow:  0 1px 3px rgba(0, 0, 0, 0.10);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.10);
+  transition: box-shadow 0.3s ease;
+  margin: 10px 0;
+  margin-bottom: 15px;
+}
+
+.msgbar:focus-within {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .arrow-up {
@@ -433,6 +489,17 @@ main {
   padding: 4px;
   margin: 2px;
   margin-right: 4px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.arrow-up:hover {
+  background-color: #555;
+  transform: scale(1.05);
+}
+
+.arrow-up:active {
+  transform: scale(0.95);
 }
 
 .msgbar input {
@@ -445,17 +512,21 @@ main {
   background-color: transparent;
 }
 
-.msgbar input:focus{
+.msgbar input:focus {
   border: none;
   outline: none;
   box-shadow: none;
 }
 
-
-
-
-
-
+.msgbar button {
+  border: none;
+  background: transparent;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
 
 /* Responsive adjustments */
 @media (max-width: 1200px) {
@@ -473,7 +544,7 @@ main {
   }
 
   .msgsidebar {
-    width: 50%;
+    width: 32.5%;
   }
 }
 
@@ -501,6 +572,7 @@ main {
   }
 
   .msgsidebar {
+    position: relative;
     width: 100%;
     border-left: none;
     border-top: 1px solid rgb(230, 230, 230);

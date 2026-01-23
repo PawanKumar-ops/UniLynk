@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { useEffect } from 'react';
 import Link from 'next/link';
 import { useSession, signIn, signOut } from "next-auth/react"
-import "./Loginbtn.css"
+import "./Logincard.css"
 
 
 
