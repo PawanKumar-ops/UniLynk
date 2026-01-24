@@ -1,0 +1,184 @@
+header {
+    display: flex;
+    flex-direction: column;
+}
+
+.menuhead {
+    display: flex;
+    gap: 120px;
+}
+
+.settings {
+    width: 30px;
+    height: 30px;
+    will-change: transform;
+    border-radius: 8px;
+    background-color: #f2f2f2;
+}
+
+.settings:hover {
+    background-color: #dfdfdf;
+}
+
+.settings img {
+    min-width: 30px;
+    height: 30px;
+    transition: all 0.3s ease;
+}
+
+.settings img:hover {
+    transform: rotate(40deg);
+}
+
+.menu {
+    display: flex;
+    flex-direction: column;
+    align-items: end;
+    padding: 10px;
+    position: fixed;
+    padding-right: 30px;
+    width: 29%;
+    height: 100vh;
+    border-right: 1px solid rgb(230, 230, 230);
+    background-color: #ffffff;
+    z-index: 10;
+}
+
+.profile {
+    margin: 10px 0;
+    width: 270px;
+    height: 360px;
+    border-radius: 28px;
+    border: 1px solid rgb(214, 214, 214);
+}
+
+.profback {
+    margin-top: 3.5%;
+    height: 37%;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.profback img {
+    width: 94%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 23px;
+}
+
+.profpic {
+    border: 4px solid #ffffff;
+    height: 90px;
+    width: 90px;
+    position: relative;
+    bottom: 43px;
+    border-radius: 200px;
+    left: 25px;
+}
+
+.profpic img {
+    height: 100%;
+    width: 100%;
+    object-fit: cover;
+    border-radius: 200px;
+}
+
+.profinfo {
+    padding: 0 25px;
+}
+
+.username {
+    margin-top: -37px;
+    font-size: 24px;
+    font-weight: 500;
+}
+
+.branch {
+    font-size: 13px;
+    color: gray;
+}
+
+.year {
+    font-size: 15px;
+    color: gray;
+}
+
+.post {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.post button {
+    width: 90%;
+    background-color: grey;
+    color: #ffffff;
+    height: 40px;
+    margin-top: 35px;
+    border-radius: 23px;
+    transition: 0.3s;
+    border: none;
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.post button:hover {
+    background-color: #111;
+    transform: scale(1.02);
+}
+
+.logo {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    margin-right: 0px;
+}
+
+.logo img {
+    height: 42px;
+    object-fit: contain;
+}
+
+.dashboard {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin: 20px 0;
+}
+
+.dashbutton {
+    width: 270px;
+    padding: 14px;
+    border-radius: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: start;
+    gap: 10px;
+    background-color: transparent;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    font-size: 16px;
+    text-align: left;
+}
+
+.dashbutton img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+}
+
+.dashbutton:hover {
+    background-color: rgb(243, 243, 243);
+}
+
+.gethelp {
+    color: red;
+    background-color: #fff2f2;
+}
+
+.gethelp:hover {
+    background-color: #fee7e7;
+}
