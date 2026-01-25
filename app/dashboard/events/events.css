@@ -88,6 +88,13 @@
     color: #999;
 }
 
+.eventscontainercont{
+    background-color: #f5f8fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
 .eventscontainer {
     max-width: 1070px;
     display: flex;
@@ -159,6 +166,7 @@
 .clubname {
     color: grey;
     font-size: 14px;
+    max-height: 21px;
 }
 
 .eventinfo {

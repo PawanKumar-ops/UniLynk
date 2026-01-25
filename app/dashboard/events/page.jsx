@@ -1,3 +1,5 @@
+"use client"
+
 import React from 'react'
 import "./events.css"
 
@@ -25,25 +27,25 @@ const Eventspage = () => {
           </div>
         </div>
 
+        <div className="eventscontainercont">
+          <div className="eventscontainer">
 
-        <div className="eventscontainer">
-
-{/*-------------------------- Event card------------------------------- */}
-          <div className="event">
+            {/*-------------------------- Event card------------------------------- */}
+            <div className="event">
 
 
 
-            <div className="eventimginfo">
-              <div className="eventpic">
-                <img src="/dashboard/events.svg" alt="" />
+              <div className="eventimginfo">
+                <div className="eventpic">
+                  <img src="/dashboard/events.svg" alt="" />
+                </div>
+                <div className="eventdef">
+                  <div className="genre">Exhibition</div>
+                  <p className='eventname'>Annual Photography Exhibition</p>
+                  <p className='clubname'>Photography Club</p>
+                </div>
               </div>
-              <div className="eventdef">
-                <div className="genre">Exhibition</div>
-                <p className='eventname'>Annual Photography Exhibition</p>
-                <p className='clubname'>Photography Club</p>
-              </div>
-            </div>
-            
+
               <ul className='eventinfo'>
                 <li className="date">
                   <img src="/eventsicons/Events.svg" alt="" />Jan 25, 2026</li>
@@ -60,26 +62,26 @@ const Eventspage = () => {
                 <button className='apply'>Apply</button>
               </div>
 
-          </div>
-
-
-          {/*--------------------------------------------------------------------------- */}
-          
-          <div className="event">
-
-
-
-            <div className="eventimginfo">
-              <div className="eventpic">
-                <img src="/dashboard/events.svg" alt="" />
-              </div>
-              <div className="eventdef">
-                <div className="genre">Exhibition</div>
-                <p className='eventname'>Annual Photography Exhibition</p>
-                <p className='clubname'>Photography Club</p>
-              </div>
             </div>
-            
+
+
+            {/*--------------------------------------------------------------------------- */}
+
+            <div className="event">
+
+
+
+              <div className="eventimginfo">
+                <div className="eventpic">
+                  <img src="/dashboard/events.svg" alt="" />
+                </div>
+                <div className="eventdef">
+                  <div className="genre">Exhibition</div>
+                  <p className='eventname'>Annual Photography Exhibition</p>
+                  <p className='clubname'>Photography Club</p>
+                </div>
+              </div>
+
               <ul className='eventinfo'>
                 <li className="date">
                   <img src="/eventsicons/Events.svg" alt="" />Jan 25, 2026</li>
@@ -96,23 +98,23 @@ const Eventspage = () => {
                 <button className='apply'>Apply</button>
               </div>
 
-          </div>
-
-          <div className="event">
-
-
-
-            <div className="eventimginfo">
-              <div className="eventpic">
-                <img src="/dashboard/events.svg" alt="" />
-              </div>
-              <div className="eventdef">
-                <div className="genre">Exhibition</div>
-                <p className='eventname'>Annual Photography Exhibition</p>
-                <p className='clubname'>Photography Club</p>
-              </div>
             </div>
-            
+
+            <div className="event">
+
+
+
+              <div className="eventimginfo">
+                <div className="eventpic">
+                  <img src="/dashboard/events.svg" alt="" />
+                </div>
+                <div className="eventdef">
+                  <div className="genre">Exhibition</div>
+                  <p className='eventname'>Annual Photography Exhibition</p>
+                  <p className='clubname'>Photography Club</p>
+                </div>
+              </div>
+
               <ul className='eventinfo'>
                 <li className="date">
                   <img src="/eventsicons/Events.svg" alt="" />Jan 25, 2026</li>
@@ -129,23 +131,23 @@ const Eventspage = () => {
                 <button className='apply'>Apply</button>
               </div>
 
-          </div>
-
-          <div className="event">
-
-
-
-            <div className="eventimginfo">
-              <div className="eventpic">
-                <img src="/dashboard/events.svg" alt="" />
-              </div>
-              <div className="eventdef">
-                <div className="genre">Exhibition</div>
-                <p className='eventname'>Annual Photography Exhibition</p>
-                <p className='clubname'>Photography Club</p>
-              </div>
             </div>
-            
+
+            <div className="event">
+
+
+
+              <div className="eventimginfo">
+                <div className="eventpic">
+                  <img src="/dashboard/events.svg" alt="" />
+                </div>
+                <div className="eventdef">
+                  <div className="genre">Exhibition</div>
+                  <p className='eventname'>Annual Photography Exhibition</p>
+                  <p className='clubname'>Photography Club</p>
+                </div>
+              </div>
+
               <ul className='eventinfo'>
                 <li className="date">
                   <img src="/eventsicons/Events.svg" alt="" />Jan 25, 2026</li>
@@ -162,23 +164,23 @@ const Eventspage = () => {
                 <button className='apply'>Apply</button>
               </div>
 
-          </div>
-
-          <div className="event">
-
-
-
-            <div className="eventimginfo">
-              <div className="eventpic">
-                <img src="/dashboard/events.svg" alt="" />
-              </div>
-              <div className="eventdef">
-                <div className="genre">Exhibition</div>
-                <p className='eventname'>Annual Photography Exhibition</p>
-                <p className='clubname'>Photography Club</p>
-              </div>
             </div>
-            
+
+            <div className="event">
+
+
+
+              <div className="eventimginfo">
+                <div className="eventpic">
+                  <img src="/dashboard/events.svg" alt="" />
+                </div>
+                <div className="eventdef">
+                  <div className="genre">Exhibition</div>
+                  <p className='eventname'>Annual Photography Exhibition</p>
+                  <p className='clubname'>Photography Club</p>
+                </div>
+              </div>
+
               <ul className='eventinfo'>
                 <li className="date">
                   <img src="/eventsicons/Events.svg" alt="" />Jan 25, 2026</li>
@@ -195,23 +197,23 @@ const Eventspage = () => {
                 <button className='apply'>Apply</button>
               </div>
 
-          </div>
-
-          <div className="event">
-
-
-
-            <div className="eventimginfo">
-              <div className="eventpic">
-                <img src="/dashboard/events.svg" alt="" />
-              </div>
-              <div className="eventdef">
-                <div className="genre">Exhibition</div>
-                <p className='eventname'>Annual Photography Exhibition</p>
-                <p className='clubname'>Photography Club</p>
-              </div>
             </div>
-            
+
+            <div className="event">
+
+
+
+              <div className="eventimginfo">
+                <div className="eventpic">
+                  <img src="/dashboard/events.svg" alt="" />
+                </div>
+                <div className="eventdef">
+                  <div className="genre">Exhibition</div>
+                  <p className='eventname'>Annual Photography Exhibition</p>
+                  <div className='clubname'>Photography Club</div>
+                </div>
+              </div>
+
               <ul className='eventinfo'>
                 <li className="date">
                   <img src="/eventsicons/Events.svg" alt="" />Jan 25, 2026</li>
@@ -228,14 +230,14 @@ const Eventspage = () => {
                 <button className='apply'>Apply</button>
               </div>
 
+            </div>
+
+
+
+
           </div>
-
-          
-
 
         </div>
-
-
       </div>
     </div>
   )

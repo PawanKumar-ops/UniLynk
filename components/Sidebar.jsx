@@ -40,10 +40,12 @@ const Sidebar = () => {
               </button>
             </Link>
 
+            <Link href='/dashboard/gethelp'>
             <button className="dashbutton gethelp">
               <img src="/dashboard/GetHelp.svg" alt="Get Help icon" />
               Get Help
             </button>
+            </Link>
 
             <div className="profile">
               <div className="profback">
