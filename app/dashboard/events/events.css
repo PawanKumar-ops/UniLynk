@@ -23,7 +23,7 @@
 
 .myeventstext {
     font-size: 25px;
-
+    color: #000;
 }
 
 .eventsnum {
@@ -46,6 +46,7 @@
     border: 1px solid #ddd;
     border-radius: 10px;
     background-color: #fff;
+    color: #000;
 }
 
 .filterevent:hover {
@@ -161,6 +162,7 @@
     font-size: large;
     font-weight: bold;
     margin: 8px 0 6px 0;
+    color: #000;
 }
 
 .clubname {
@@ -202,6 +204,10 @@
     padding: 5px 10px;
     border-radius: 10px;
     transition: all 0.2s ease;
+}
+
+.apply{
+    color: #000;
 }
 
 .viewdetails {

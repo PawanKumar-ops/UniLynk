@@ -19,6 +19,7 @@
 .gh-support {
     font-size: 30px;
     margin: 11px 0;
+    color: #000;
 }
 
 .ghheadtext {
@@ -83,6 +84,7 @@
 
 .emailus{
     font-weight: bold;
+    color: #000;
 }
 
 .emailtop p{
@@ -124,6 +126,7 @@
 }
 
 .guide{
+    color: #000;
     border: 1px rgb(230, 230, 230);
     width: fit-content;
     padding: 14px;
@@ -263,6 +266,7 @@
 }
 
 .faq{
+    color: #000;
     font-size: 20px;
     margin-bottom: 4px;
 }
@@ -320,6 +324,10 @@
     justify-content: space-between;
 }
 
+.faqans div{
+    color: #000;
+}
+
 .faqans p{
     font-size: 15px;
     color: grey;
@@ -345,6 +353,7 @@
 }
 
 .protipshead{
+    color: #000;
     display: flex;
     gap: 8px;
     font-weight: bold;
