@@ -24,7 +24,7 @@ export async function POST(req) {
 
     const normalizedEmail = email.trim().toLowerCase();
 
-    // ⛔ prevent spam (60s cooldown)
+
     const lastOtp = await OTP.findOne({ email: normalizedEmail, purpose })
       .sort({ createdAt: -1 });
 

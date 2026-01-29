@@ -74,6 +74,9 @@
 
 .otpinput{
   border: 2px solid rgb(200, 200, 200);
+  display: flex;
+  justify-content: center;
+  align-items: center;
   border-radius: 0px;
   height: 56px;
   width: 48px;
