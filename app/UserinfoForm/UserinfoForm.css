@@ -7,9 +7,8 @@
 }
 
 .userdetailcard{
-    height: 600px;
+    height: 615px;
     width: 800px;
-    /* border: 1px solid black; */
     border-radius: 20px;
     background-color: #fff;
     overflow: hidden;
@@ -53,6 +52,7 @@
 }
 
 .plus{
+    color: #000;
     position: relative;
     top: 56px;
     right: 20px;
@@ -72,6 +72,7 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
+    align-items: start;
 }
 
 .unilynk{
@@ -95,6 +96,7 @@
     display: flex;
     align-items: center;
     gap: 7px;
+    color: #000;
 }
 
 .detailsicon{
@@ -135,6 +137,7 @@ input:focus{
     border: 2px solid black;
     transition: all 0.1s ease;
     margin-bottom: 16px;
+    color: #000;
 }
 
 .branch-yearinput:focus{
@@ -156,6 +159,10 @@ input:focus{
     overflow-y: auto;
     scrollbar-width: none;
     resize: none;
+}
+
+.skillsinput::placeholder{
+    color: grey;
 }
 
 .skillsinput:focus{
