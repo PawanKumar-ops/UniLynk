@@ -3,6 +3,7 @@ import { useState } from 'react';
 import Link from "next/link";
 import "./home.css"
 import Loginbtn from '../components/Logincard';
+import { useSession } from "next-auth/react";
 
 
 export default function Home() {
@@ -17,7 +18,7 @@ export default function Home() {
           <ul className="navlinks">
             <Link href="./UserinfoForm"><li className="feature navlink"> Feature</li></Link>
             <Link href="./dashboard"><li className="about navlink">About</li></Link>
-            <li className="support navlink">Support</li>
+            <Link href="./UserinfoForm"><li className="support navlink">Support</li></Link>
             <li className="contactus navlink">Contact Us</li>
           </ul>
 

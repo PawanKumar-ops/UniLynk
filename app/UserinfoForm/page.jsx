@@ -2,9 +2,25 @@
 
 import React from 'react'
 import './UserinfoForm.css'
+import { useState } from "react";
+import { submit } from './submition';
+
 
 const page = () => {
+  const [names, setNames] = useState("");
+  const [branch, setBranch] = useState("");
+  const [year, setYear] = useState("");
+  const [skill, setSkill] = useState("");
+ 
+
+
+
+
   return (
+
+
+
+
     <div className="userinfoformbody">
       <form className='userdetailcard'>
         <div className="detailhead">
@@ -24,13 +40,16 @@ const page = () => {
         <div className="detailmain">
           <div className="name">
             <div className="detailslabel"> <img className='detailsicon' src="./Userprofile/name.svg" alt="" />NAME</div>
-            <input className='nameinput' type="text" placeholder='Your full name' />
+            <input className='nameinput' type="text"
+              value={names}
+              onChange={(e) => setNames(e.target.value)} />
           </div>
 
           <div className="branch-year">
             <div className="branch">
               <div className="detailslabel"><img className='detailsicon' src="./Userprofile/Suitcase.svg" alt="" />BRANCH</div>
-              <select required className='branch-yearinput' name="branch" id="">
+              <select required className='branch-yearinput' name="branch" id="" value={branch}
+                onChange={(e) => setBranch(e.target.value)}>
                 <option value="Select">Select</option>
                 <option value="PIE">Production and Industrial Engineering</option>
                 <option value="CSE">Computer Science and Engineering</option>
@@ -51,7 +70,7 @@ const page = () => {
             </div>
             <div className="year">
               <div className="detailslabel"><img className='detailsicon' src="./Userprofile/book.svg" alt="" />YEAR</div>
-              <select required className='branch-yearinput' name="year" id="">
+              <select required className='branch-yearinput' name="year" id="" value={year} onChange={(e) => setYear(e.target.value)}>
                 <option value="select">Select</option>
                 <option value="1">First</option>
                 <option value="2">Second</option>
@@ -64,17 +83,17 @@ const page = () => {
 
           <div className="skills">
             <div className="detailslabel"> <img className='detailsicon' src="./Userprofile/name.svg" alt="" />SKILLS</div>
-            <textarea className='skillsinput' placeholder='JavaScript, Python, React...' ></textarea>
+            <textarea className='skillsinput' placeholder='JavaScript, Python, React...' value={skill} onChange={(e) => setSkill(e.target.value)} ></textarea>
           </div>
 
-        <button id='submitusr'>SUBMIT PROFILE</button>
+          <button id='submitusr' onClick={ ()=> {submit(names,branch,year,skill); saveName(names);}}>SUBMIT PROFILE</button>
 
-        <hr className='mt-6 mb-2'/>
+          <hr className='mt-6 mb-2' />
 
-        <div className="pwdbyunilynk">
-          <div className="pwd">POWERED BY</div>
-          <div className="unilynkt">UNILYNK</div>
-        </div>
+          <div className="pwdbyunilynk">
+            <div className="pwd">POWERED BY</div>
+            <div className="unilynkt">UNILYNK</div>
+          </div>
 
         </div>
       </form>
