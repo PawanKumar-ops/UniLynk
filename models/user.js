@@ -7,9 +7,7 @@ const UserSchema = new mongoose.Schema({
     required: function () {
       return this.provider === "credentials";
     },
-    default: null
-  },
-  image: String,
+   image: String,
 
 
   provider: String,
