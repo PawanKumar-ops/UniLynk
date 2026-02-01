@@ -1,8 +1,16 @@
 import mongoose from "mongoose";
 
 const UserSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
+ email: { type: String, unique: true },
+   password: {
+      type: String,
+      required: function () {
+        return this.provider === "credentials";
+      },
+      default: null
+    },
+   image: String,
+
 
 
   name: String,
