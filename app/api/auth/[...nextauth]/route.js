@@ -42,6 +42,7 @@ export const authOptions = {
           image: user.image,
           provider: account.provider,
         });
+          return "/UserinfoForm";
       }
 
       return true;
