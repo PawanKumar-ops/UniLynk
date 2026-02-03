@@ -171,7 +171,7 @@ useEffect(() => {
         <div className="form-builder-header-inner">
           <div className="form-builder-header-content">
             <div className="form-builder-header-left">
-              <Link href="/dashboard/events" className="btn-back">
+              <Link href="/dashboard/events/yourform" className="btn-back">
                 <ArrowLeft />
               </Link>
               <div>

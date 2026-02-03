@@ -1,0 +1,140 @@
+.eventshead {
+    height: 110px;
+    min-width: 100%;
+    background-color: #fcfcff;
+    border-bottom: 1px solid rgb(230, 230, 230);
+    display: flex;
+    justify-content: space-between;
+    padding: 20px 32px;
+    min-height: 110px;
+    align-items: center;
+    padding-right: 150px;
+}
+
+
+
+
+.events-toggle {
+  background: #f3f3f3;
+  padding: 4px;
+  border-radius: 999px;
+  width: fit-content;
+}
+
+.event-track {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.event-btn {
+  padding: 6px 16px;
+  font-size: 14px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #888;
+  z-index: 2;
+  position: relative;
+}
+
+.event-btn.active {
+  color: #000;
+  font-weight: 500;
+}
+
+.event-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  background: #fff;
+  border-radius: 999px;
+  transition: transform 0.3s ease;
+  z-index: 1;
+}
+
+.event-track.right .event-bg {
+  transform: translateX(100%);
+}
+
+
+
+
+
+
+
+.eventstextcont {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.myeventstext {
+    font-size: 25px;
+    color: #000;
+}
+
+.eventsnum {
+    color: grey;
+}
+
+.search-filter {
+    display: flex;
+    gap: 20px;
+}
+
+.filterevent {
+    width: 120px;
+    border: 1px solid black;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 7px;
+    padding: 0 13px;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    background-color: #fff;
+    color: #000;
+}
+
+.filterevent:hover {
+    background-color: #f5f5f5;
+}
+
+.filterevent img {
+    height: 18px;
+    width: 18px;
+}
+
+
+.eventssearchcont {
+    background-color: white;
+    height: fit-content;
+    width: 300px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid #ddd;
+    padding: 0 8px;
+    border-radius: 10px;
+    gap: 8px;
+}
+
+.eventssearchcont input {
+    width: 95%;
+    background: transparent;
+    border: none;
+    outline: none;
+    height: 40px;
+    font-size: 16px;
+}
+
+.eventssearchcont img {
+    width: 18px;
+}
+
+.searchevents::placeholder {
+    color: #999;
+}
