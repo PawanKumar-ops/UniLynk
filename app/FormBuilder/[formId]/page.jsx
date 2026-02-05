@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from 'react';
-// import { Link, useParams, useNavigate } from 'react-router';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import {
@@ -40,43 +39,75 @@ const questionTypes = [
 ];
 
 export default function FormBuilder() {
-  const { formId } = useParams();
-  const [formData, setFormData] = useState(null);
-
-useEffect(() => {
-  if (!formId) return;
-
-  const saved = localStorage.getItem(`unilynk-form-${formId}`);
-  if (saved) {
-    setFormData(JSON.parse(saved));
-  } else {
-    const initialForm = {
-    id: formId,
+  const params = useParams();
+  // FIXED: Added mounted state to prevent hydration errors
+  const [mounted, setMounted] = useState(false);
+  // FIXED: Initialize with completely static structure to prevent hydration mismatch
+  const [formData, setFormData] = useState({
+    id: '',
     title: "Untitled Form",
     description: "",
     date: "",
     time: "",
     location: "",
     questions: [],
-  };
-    setFormData(initialForm);
-    saveForm(initialForm);
-  }
-}, [formId]);
+  });
 
+  // FIXED: Set mounted to true after component mounts to prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
+  // FIXED: Load form data only after component is mounted
+  useEffect(() => {
+    if (!mounted || !params?.formId) return;
 
-
-
+    const formId = params.formId;
+    const saved = localStorage.getItem(`unilynk-form-${formId}`);
+    
+    if (saved) {
+      try {
+        setFormData(JSON.parse(saved));
+      } catch (error) {
+        console.error('Error parsing saved form:', error);
+        // If there's an error, initialize with default form
+        const initialForm = {
+          id: formId,
+          title: "Untitled Form",
+          description: "",
+          date: "",
+          time: "",
+          location: "",
+          questions: [],
+        };
+        setFormData(initialForm);
+        saveForm(initialForm);
+      }
+    } else {
+      const initialForm = {
+        id: formId,
+        title: "Untitled Form",
+        description: "",
+        date: "",
+        time: "",
+        location: "",
+        questions: [],
+      };
+      setFormData(initialForm);
+      saveForm(initialForm);
+    }
+  }, [mounted, params?.formId]);
 
   const saveForm = (data) => {
-    localStorage.setItem(`unilynk-form-${data.id}`, JSON.stringify(data));
+    if (typeof window === 'undefined') return; // FIXED: Check for browser environment
     
+    localStorage.setItem(`unilynk-form-${data.id}`, JSON.stringify(data));
+
     // Update forms list
     const formsListStr = localStorage.getItem('unilynk-forms');
     const formsList = formsListStr ? JSON.parse(formsListStr) : [];
     const existingIndex = formsList.findIndex((f) => f.id === data.id);
-    
+
     const formSummary = {
       id: data.id,
       title: data.title,
@@ -162,7 +193,33 @@ useEffect(() => {
     }
   };
 
-  if (!formData) return null;
+  // FIXED: Don't render interactive content until mounted to prevent hydration mismatch
+  if (!mounted) {
+    // FIXED: Return simple static loading state
+    return (
+      <div className="form-builder-container">
+        <header className="form-builder-header">
+          <div className="form-builder-header-inner">
+            <div className="form-builder-header-content">
+              <div className="form-builder-header-left">
+                <div className="btn-back" style={{ border: '1px solid #e5e7eb' }}></div>
+                <div style={{ fontSize: '18px', fontWeight: 600 }}>Loading...</div>
+              </div>
+            </div>
+          </div>
+        </header>
+        <main className="form-builder-main">
+          <div className="form-header-card">
+            <div className="form-header-accent"></div>
+            <div style={{ fontSize: '30px', fontWeight: 600, color: '#9ca3af' }}>Loading form...</div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // FIXED: Get formId safely after mounted
+  const formId = params?.formId || formData.id;
 
   return (
     <div className="form-builder-container">
@@ -171,21 +228,25 @@ useEffect(() => {
         <div className="form-builder-header-inner">
           <div className="form-builder-header-content">
             <div className="form-builder-header-left">
-              <Link href="/dashboard/events/yourform" className="btn-back">
-                <ArrowLeft />
+              <Link href="/dashboard/events/yourform" className="btn-back" aria-label="Back">
+                <img className='w-2.5' src="/Postimg/backarrow.svg" alt="back" />
               </Link>
-              <div>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => updateForm({ title: e.target.value })}
-                  className="form-title-header-input"
-                />
-              </div>
+
+              <input
+                type="text"
+                value={formData.title}
+                onChange={(e) => updateForm({ title: e.target.value })}
+                className="form-title-header-input"
+                placeholder="Untitled form"
+              />
             </div>
-            <Link href={`/FormPreview/${formData.id}`} className="btn-preview-mode">
+
+            <Link
+              href={`/FormPreview/${formId}`}
+              className="btn-preview-mode"
+            >
               <Eye />
-              Preview
+              <span>Preview</span>
             </Link>
           </div>
         </div>
@@ -235,7 +296,7 @@ useEffect(() => {
               <option value="other">Other</option>
             </select>
           </div>
-          
+
           {/* Date, Time, Location Section */}
           <div className="event-details-section">
             <h3 className="event-details-title">Event Details (Optional)</h3>
@@ -301,6 +362,7 @@ useEffect(() => {
                   disabled={index === 0}
                   className="btn-move"
                   title="Move up"
+                  type="button"
                 >
                   <ChevronUp />
                 </button>
@@ -309,6 +371,7 @@ useEffect(() => {
                   disabled={index === formData.questions.length - 1}
                   className="btn-move"
                   title="Move down"
+                  type="button"
                 >
                   <ChevronDownIcon />
                 </button>
@@ -331,7 +394,7 @@ useEffect(() => {
               </div>
               <select
                 value={question.type}
-                onChange={(e) => updateQuestion(question.id, { 
+                onChange={(e) => updateQuestion(question.id, {
                   type: e.target.value,
                   options: ['multiple', 'checkbox', 'dropdown'].includes(e.target.value) ? ['Option 1'] : undefined
                 })}
@@ -368,6 +431,7 @@ useEffect(() => {
                     <button
                       onClick={() => deleteOption(question.id, optionIndex)}
                       className="btn-remove-option"
+                      type="button"
                     >
                       <Trash2 />
                     </button>
@@ -376,6 +440,7 @@ useEffect(() => {
                 <button
                   onClick={() => addOption(question.id)}
                   className="btn-add-option"
+                  type="button"
                 >
                   <Plus />
                   Add option
@@ -391,6 +456,7 @@ useEffect(() => {
                   placeholder="Short answer text"
                   className="preview-input-short"
                   disabled
+                  readOnly
                 />
               </div>
             )}
@@ -401,6 +467,7 @@ useEffect(() => {
                   className="preview-textarea"
                   rows={3}
                   disabled
+                  readOnly
                 />
               </div>
             )}
@@ -411,6 +478,7 @@ useEffect(() => {
                   placeholder="Email address"
                   className="preview-input-email"
                   disabled
+                  readOnly
                 />
               </div>
             )}
@@ -421,6 +489,7 @@ useEffect(() => {
                   placeholder="Phone number"
                   className="preview-input-phone"
                   disabled
+                  readOnly
                 />
               </div>
             )}
@@ -430,6 +499,7 @@ useEffect(() => {
                   type="date"
                   className="preview-input-date"
                   disabled
+                  readOnly
                 />
               </div>
             )}
@@ -439,6 +509,7 @@ useEffect(() => {
                   type="time"
                   className="preview-input-time"
                   disabled
+                  readOnly
                 />
               </div>
             )}
@@ -448,6 +519,7 @@ useEffect(() => {
               <button
                 onClick={() => deleteQuestion(question.id)}
                 className="btn-delete-question"
+                type="button"
               >
                 <Trash2 />
                 Delete
@@ -465,7 +537,7 @@ useEffect(() => {
         ))}
 
         {/* Add Question Button */}
-        <button onClick={addQuestion} className="btn-add-question">
+        <button onClick={addQuestion} className="btn-add-question" type="button">
           <Plus />
           Add Question
         </button>

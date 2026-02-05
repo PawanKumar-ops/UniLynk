@@ -66,11 +66,12 @@ export default function FormPreview() {
             <div className="success-icon">
               <CheckCircle2 />
             </div>
+            
             <h2 className="success-title">Response Submitted</h2>
             <p className="success-text">
               Thank you for completing the form. Your response has been recorded.
             </p>
-            <Link href="/dashboard/events" className="btn-back-home">
+            <Link href="/dashboard/events/yourform" className="btn-back-home">
               Back to Forms
             </Link>
           </div>
@@ -82,16 +83,16 @@ export default function FormPreview() {
   return (
     <div className="form-preview-container">
       {/* Header */}
-      <header className="form-preview-header">
+      {/* <header className="form-preview-header">
         <div className="form-preview-header-inner">
           {formData && (
   <Link href={`/FormBuilder/${formData.id}`} className="btn-back">
-    <ArrowLeft />
+    <img className='w-2.5' src="/Postimg/backarrow.svg" alt="back" />
   </Link>
 )}
 
         </div>
-      </header>
+      </header> */}
 
       {/* Form */}
       <main className="form-preview-main">

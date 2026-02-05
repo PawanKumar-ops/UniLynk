@@ -12,6 +12,8 @@ import Link from "next/link";
 import { useEffect } from "react";
 import { useState } from 'react';
 import "./yourform.css"
+import { createNewForm } from "@/lib/createNewForm";
+
 
 const page = () => {
 
@@ -26,22 +28,30 @@ const page = () => {
         }
     }, []);
 
-    const createNewForm = () => {
-        const newForm = {
-            id: Date.now().toString(),
-            title: "Untitled Form",
-            description: "",
-            createdAt: new Date().toISOString(),
-            questions: 0,
-        };
+    // const createNewForm = () => {
+    //     const newForm = {
+    //         id: Date.now().toString(),
+    //         title: "Untitled Form",
+    //         description: "",
+    //         createdAt: new Date().toISOString(),
+    //         questions: 0,
+    //     };
 
-        const updatedForms = [newForm, ...forms];
-        setForms(updatedForms);
-        localStorage.setItem(
-            "unilynk-forms",
-            JSON.stringify(updatedForms),
-        );
-    };
+    //     const updatedForms = [newForm, ...forms];
+    //     setForms(updatedForms);
+    //     localStorage.setItem(
+    //         "unilynk-forms",
+    //         JSON.stringify(updatedForms),
+    //     );
+    // };
+
+
+const handleCreate = () => {
+  const newForm = createNewForm();
+  setForms((prev) => [newForm, ...prev]);
+};
+
+
 
     const deleteForm = (id, e) => {
         e.preventDefault();
@@ -103,7 +113,7 @@ const page = () => {
                             Create your first form to get started
                         </p>
                         <button
-                            onClick={createNewForm}
+                            onClick={handleCreate}
                             className="btn-new-form"
                         >
                             <Plus />

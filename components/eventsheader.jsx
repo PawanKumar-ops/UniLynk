@@ -1,7 +1,9 @@
 "use client";
 
+import { Plus } from "lucide-react";
 import React, { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { createNewForm } from "@/lib/createNewForm";
 import "./eventsheader.css";
 
 const Eventsheader = () => {
@@ -12,22 +14,28 @@ const Eventsheader = () => {
   // sync button position with URL
   const isEvent = pathname === "/dashboard/events";
 
-  const createNewForm = () => {
-        const newForm = {
-            id: Date.now().toString(),
-            title: "Untitled Form",
-            description: "",
-            createdAt: new Date().toISOString(),
-            questions: 0,
-        };
+  // const createNewForm = () => {
+  //       const newForm = {
+  //           id: Date.now().toString(),
+  //           title: "Untitled Form",
+  //           description: "",
+  //           createdAt: new Date().toISOString(),
+  //           questions: 0,
+  //       };
 
-        const updatedForms = [newForm, ...forms];
-        setForms(updatedForms);
-        localStorage.setItem(
-            "unilynk-forms",
-            JSON.stringify(updatedForms),
-        );
-    };
+  //       const updatedForms = [newForm, ...forms];
+  //       setForms(updatedForms);
+  //       localStorage.setItem(
+  //           "unilynk-forms",
+  //           JSON.stringify(updatedForms),
+  //       );
+  //   };
+
+  const handleCreate = () => {
+    const newForm = createNewForm();
+    router.push(`/FormBuilder/${newForm.id}`);
+  };
+
 
   return (
     <div className="eventshead">
@@ -57,10 +65,14 @@ const Eventsheader = () => {
       </div>
 
       <div className="search-filter">
-        <button className="filterevent">
+        { isEvent? (<button className="filterevent">
           <img src="/eventsicons/filter.svg" alt="filter" />
           Filter
-        </button>
+        </button >):( 
+          <button className="filterevent" onClick={handleCreate}>
+            <Plus/> Form
+          </button>
+        )}
 
         <div className="eventssearchcont">
           <img src="/dashboard/Search.svg" alt="Search icon" />
