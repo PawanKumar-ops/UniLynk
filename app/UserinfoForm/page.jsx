@@ -40,12 +40,12 @@ export default function page() {
 
       const data = await res.json();
 
-      // 🔥 UPDATE USER STATE INSTEAD OF RELOADING
+      // UPDATE USER STATE INSTEAD OF RELOADING
       setUser((prev) => ({
         ...(prev || {}),
         img: data.url,
       }));
-      
+
     } catch (err) {
       console.error("Upload failed:", err);
       alert("Image upload failed");
@@ -104,7 +104,7 @@ export default function page() {
 
       setUser(data);
 
-      // 🔥 PREFILL FORM VALUES
+      //  PREFILL FORM VALUES
       setName(data.name || "");
       setBranch(data.branch || "");
       setYear(data.year || "");
@@ -122,7 +122,7 @@ export default function page() {
           <div className="userprofilepic">
             <div className={`defaultimg ${user?.img ? "has-img" : "no-img"}`} onClick={handleAvatarClick}>
               <img
-                key={user?.img} // 👈 forces re-render
+                key={user?.img} //  forces re-render
                 src={
                   user?.img
                     ? `${user.img}?t=${Date.now()}`

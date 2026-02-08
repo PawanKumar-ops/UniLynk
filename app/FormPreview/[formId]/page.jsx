@@ -160,7 +160,7 @@ export default function FormPreview() {
             <p className="success-text">
               Thank you for completing the form. Your response has been recorded.
             </p>
-            <Link href="/dashboard/events/events" className="btn-back-home">
+            <Link href="/dashboard/events" className="btn-back-home">
               Back to Forms
             </Link>
           </div>
@@ -385,7 +385,7 @@ export default function FormPreview() {
             className="btn-submit"
             disabled={alreadyApplied}
           >
-            {alreadyApplied ? "Applied" : "Apply"}
+            {alreadyApplied ? "Submitted" : "Submit"}
           </button>
         </form>
       </main>

@@ -25,7 +25,7 @@ const page = () => {
 
     useEffect(() => {
         const load = async () => {
-            const res = await fetch("/api/forms/public");
+            const res = await fetch("/api/forms/publics");
             const data = await res.json();
 
             const drafts = listDrafts();

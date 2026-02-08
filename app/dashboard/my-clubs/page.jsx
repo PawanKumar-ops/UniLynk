@@ -2,9 +2,11 @@
 
 import React from 'react'
 import "./my-clubs.css"
+import { useState } from 'react'
+import Notification from '@/components/Notification'
 
 const MyClubsPage = () => {
-
+const [isNotify, setIsNotify] = useState(false)
 
 
   return (
@@ -24,10 +26,13 @@ const MyClubsPage = () => {
         </div>
         <div className="aboutclub">
           <div className="clubname">Innovation Cell
+            <button onClick={() => setIsNotify(true)}>
             <div className="notify">
-              <img src="/myclubs/bell.svg" alt="" />
+              <img src="/myclubs/bell.svg" alt="notification" />
               3
             </div>
+            </button>
+             {isNotify && <Notification onClose={() => setIsNotify(false)}/>}
           </div>
           <ul>
             <li className='clubgenre'>Arts & Media</li>
@@ -40,7 +45,7 @@ const MyClubsPage = () => {
             <div className="lastpost">Last post 3h ago</div>
           </div>
           <div className="clubinfobtns">
-            <button className='open'>Open</button>
+            <button className='open' onClick={() => window.location.href= "/Club"}>Open</button>
             <button className='viewfeed'>View Feed</button>
             <button className='events'>Events</button>
           </div>

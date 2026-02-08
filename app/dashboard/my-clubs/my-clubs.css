@@ -152,6 +152,10 @@
     background-color: #000;
 }
 
+.open:hover{
+    background-color: #0f172a;
+}
+
 .exploremore{
     font-size: 18px;
     margin-bottom: 16px;

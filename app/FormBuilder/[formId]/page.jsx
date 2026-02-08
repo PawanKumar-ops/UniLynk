@@ -364,16 +364,16 @@ const saveChanges = async () => {
               className="form-genre-select"
             >
               <option value="">Select a category</option>
-              <option value="event">Event Registration</option>
-              <option value="survey">Survey</option>
-              <option value="feedback">Feedback</option>
-              <option value="contact">Contact Form</option>
-              <option value="rsvp">RSVP</option>
-              <option value="application">Application</option>
-              <option value="quiz">Quiz/Test</option>
-              <option value="order">Order Form</option>
-              <option value="booking">Booking/Reservation</option>
-              <option value="other">Other</option>
+              <option value="Event Registration">Event Registration</option>
+              <option value="Survey">Survey</option>
+              <option value="Feedback">Feedback</option>
+              <option value="Contact Form">Contact Form</option>
+              <option value="RSVP">RSVP</option>
+              <option value="Application">Application</option>
+              <option value="Quiz/Test">Quiz/Test</option>
+              <option value="Order Form">Order Form</option>
+              <option value="Booking/Reservation">Booking/Reservation</option>
+              <option value="Other">Other</option>
             </select>
           </div>
 

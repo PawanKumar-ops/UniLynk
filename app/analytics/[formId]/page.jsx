@@ -217,7 +217,7 @@ const Analyticspage = () => {
             </div>
 
 
-            
+
 
 
 
@@ -225,53 +225,53 @@ const Analyticspage = () => {
 
 
 
-            <div className="analytics-grid-right">
-              <div className=" piecard bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-                <div className="mb-6">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-1">Students Year Breakdown</h3>
-                  <p className="text-sm text-gray-600">Response by</p>
-                </div>
-                <ResponsiveContainer width="100%" height={240}>
-                  <PieChart>
-                    <Pie
-                      data={data}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={50}
-                      outerRadius={80}
-                      paddingAngle={2}
-                      dataKey="value"
-                    >
-                      {data.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'white',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '8px',
-                        fontSize: '12px'
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-                <div className="mt-4 space-y-3">
-                  {data.map((item, index) => (
-                    <div key={item.name} className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div
-                          className="w-3 h-3 rounded-full"
-                          style={{ backgroundColor: COLORS[index] }}
-                        />
-                        <span className="text-sm text-gray-700">{item.name}</span>
-                      </div>
-                      <span className="text-sm font-medium text-gray-900">{item.percentage}%</span>
+          <div className="analytics-grid-right">
+            <div className=" piecard bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+              <div className="mb-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-1">Students Year Breakdown</h3>
+                <p className="text-sm text-gray-600">Response by</p>
+              </div>
+              <ResponsiveContainer width="100%" height={240}>
+                <PieChart>
+                  <Pie
+                    data={data}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={50}
+                    outerRadius={80}
+                    paddingAngle={2}
+                    dataKey="value"
+                  >
+                    {data.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'white',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '8px',
+                      fontSize: '12px'
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="mt-4 space-y-3">
+                {data.map((item, index) => (
+                  <div key={item.name} className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: COLORS[index] }}
+                      />
+                      <span className="text-sm text-gray-700">{item.name}</span>
                     </div>
-                  ))}
-                </div>
+                    <span className="text-sm font-medium text-gray-900">{item.percentage}%</span>
+                  </div>
+                ))}
               </div>
             </div>
+          </div>
 
 
 

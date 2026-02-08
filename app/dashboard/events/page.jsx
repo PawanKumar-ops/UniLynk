@@ -12,13 +12,13 @@ const Eventspage = () => {
   useEffect(() => {
     const fetchEvents = async () => {
       try {
-        const res = await fetch("/api/forms/public");
+        const res = await fetch("/api/forms/publics");
         if (!res.ok) throw new Error("Failed to fetch events");
 
         const data = await res.json();
         setEvents(data);
 
-        // ⭐ Check applied status
+        //  Check applied status
         const appliedMap = {};
 
         await Promise.all(
@@ -62,7 +62,7 @@ const Eventspage = () => {
 
                 <div className="eventdef">
                   <div className="genre">
-                    {event.genre || "Exhibition"}
+                    {event.genre || "Other"}
                   </div>
 
                   <p className="eventname">
