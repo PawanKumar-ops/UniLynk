@@ -61,31 +61,76 @@ const page = () => {
     };
 
 
+    // const deleteForm = async (id, e) => {
+    //     e.preventDefault();
+    //     e.stopPropagation();
+
+
+    //     if (id.startsWith("draft_")) {
+    //         deleteDraft(id);
+
+    //         setForms((prev) => prev.filter((f) => f._id !== id));
+    //         return;
+    //     }
+
+
+    //     try {
+    //         const res = await fetch(`/api/forms/delete/${id}`, {
+    //             method: "DELETE",
+    //         });
+
+    //         if (!res.ok) throw new Error("Delete failed");
+
+    //         setForms((prev) => prev.filter((f) => f._id !== id));
+    //     } catch (err) {
+    //         console.error(err);
+    //     }
+    // };
+
+
+
+
+
+
+
     const deleteForm = async (id, e) => {
         e.preventDefault();
         e.stopPropagation();
 
-        // If draft → remove from localStorage
-        if (id.startsWith("draft_")) {
+        // 🟡 Draft or local-only form
+        if (!id || id.startsWith("draft_")) {
             deleteDraft(id);
-
             setForms((prev) => prev.filter((f) => f._id !== id));
             return;
         }
 
-        // If published → delete from MongoDB
+        // 🟢 MongoDB form
         try {
             const res = await fetch(`/api/forms/delete/${id}`, {
                 method: "DELETE",
             });
 
-            if (!res.ok) throw new Error("Delete failed");
+            const data = await res.json();
 
-            setForms((prev) => prev.filter((f) => f._id !== id));
+            if (!res.ok) {
+                alert("This form is not saved in database yet");
+                return;
+            }
+
+            setForms((prev) =>
+                prev.filter((f) => f._id.toString() !== id.toString())
+            );
         } catch (err) {
             console.error(err);
         }
     };
+
+
+
+
+
+
+
 
     const duplicateForm = (id, e) => {
         e.preventDefault();
@@ -116,8 +161,12 @@ const page = () => {
             <main className="home-main">
                 {forms.length === 0 ? (
                     <div className="home-empty-state">
-                        <div className="home-empty-icon">
-                            <FileText />
+                        <div className="empty-illustration">
+                            <div className="circle-bg">
+                                <div className="home-empty-icon">
+                                    <FileText />
+                                </div>
+                            </div>
                         </div>
                         <h2 className="home-empty-title">No forms yet</h2>
                         <p className="home-empty-text">

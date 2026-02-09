@@ -18,26 +18,24 @@ const FormSchema = new mongoose.Schema(
     time: String,
     location: String,
     questions: [QuestionSchema],
+
+    createdBy: String,
+
     isPublic: {
       type: Boolean,
       default: false,
     },
-    createdBy: String,
-    isPublic: {
-      type: Boolean,
-      default: false
-    },
+
     isPublished: {
       type: Boolean,
-      default: false
-    },
-    publishedAt: {
-      type: Date
+      default: false,
     },
 
+    publishedAt: Date,
   },
   { timestamps: true }
 );
 
+// 🔥 FORCE collection name to avoid mismatch
 export default mongoose.models.Form ||
-  mongoose.model("Form", FormSchema);
+  mongoose.model("Form", FormSchema, "forms");

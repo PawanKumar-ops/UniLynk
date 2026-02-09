@@ -49,7 +49,17 @@ const Eventspage = () => {
         <div className="eventscontainer">
 
           {events.length === 0 && (
-            <p>No Public Forms Available</p>
+            <div className="empty-state">
+              <div className="empty-illustration">
+                <div className="circle-bg">
+                  <div className="icon-center"><img src="/myclubs/calender.svg" alt="" /></div>
+                </div>
+              </div>
+
+              <h2>No Events Right Now</h2>
+              <p>The event calendar is currently clear. Check out our vibrant clubs and communities to stay connected with campus life.</p>
+
+            </div>
           )}
 
           {events.map((event) => (
@@ -100,11 +110,11 @@ const Eventspage = () => {
 
               <div className="applyevent">
 
-                
-                  <button className="viewdetails">
-                    View Details
-                  </button>
-              
+
+                <button className="viewdetails">
+                  View Details
+                </button>
+
 
                 {appliedEvents[event._id] ? (
 
