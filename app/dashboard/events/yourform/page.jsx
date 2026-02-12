@@ -17,15 +17,14 @@ import { createDraft, listDrafts, deleteDraft } from "@/lib/drafts";
 import { useRouter } from "next/navigation";
 
 
-const page = () => {
+const Page = () => {
 
-    const [isEvent, setIsEvent] = useState(true);
-    const [forms, setForms] = useState([]);
+      const [forms, setForms] = useState([]);
 
 
     useEffect(() => {
         const load = async () => {
-            const res = await fetch("/api/forms/publics");
+            const res = await fetch("/api/forms/mine", { cache: "no-store" });
             const data = await res.json();
 
             const drafts = listDrafts();
@@ -142,10 +141,11 @@ const page = () => {
 
         // Duplicate as NEW DRAFT
         const newDraft = {
+              ...createDraft(),
             ...formToDuplicate,
-            _id: `draft_${Date.now()}`,
+    
             title: `${formToDuplicate.title} (Copy)`,
-            createdAt: new Date().toISOString(),
+          
             isPublished: false,
         };
 
@@ -236,7 +236,7 @@ const page = () => {
                                             <span>{form.questions?.length || 0} questions</span>
 
                                             <span>
-                                                {new Date(form.createdAt || Date.now()).toLocaleDateString()}
+                                             {form.createdAt ? new Date(form.createdAt).toLocaleDateString() : "-"}
                                             </span>
                                         </div>
                                         <div className="form-card-footer">
@@ -280,4 +280,4 @@ const page = () => {
     )
 }
 
-export default page
+export default Page
