@@ -112,8 +112,12 @@ header {
     justify-content: center;
 }
 
-.viewprofilebtn {
+.userprofilelink{
     width: 90%;
+}
+
+.viewprofilebtn {
+    width: 100%;
     background-color: grey;
     color: #ffffff;
     height: 40px;

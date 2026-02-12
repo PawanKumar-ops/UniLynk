@@ -182,7 +182,6 @@
 .post-foot-iconcont{
   display: flex;
   align-items: center;
-  gap: 5px;
   font-size: 14px;
   color: #3e3e3e;
 }
