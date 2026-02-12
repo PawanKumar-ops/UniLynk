@@ -97,6 +97,7 @@
     border-radius: 10px;
     background-color: #fff;
     color: #000;
+     cursor: pointer;
 }
 
 .filterevent:hover {
@@ -135,6 +136,65 @@
     width: 18px;
 }
 
+.filter-wrap {
+    position: relative;
+}
+
+.filter-panel {
+    position: absolute;
+    top: 52px;
+    right: 0;
+    width: 280px;
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 12px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08);
+    z-index: 10;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.filter-panel label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+    color: #444;
+}
+
+.filter-panel select,
+.filter-panel input {
+    height: 36px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 0 10px;
+    outline: none;
+}
+
+.filter-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.filter-primary,
+.filter-secondary {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 7px 12px;
+    cursor: pointer;
+}
+
+.filter-primary {
+    background: #000;
+    color: #fff;
+}
+
+
+
 .searchevents::placeholder {
     color: #999;
+    
 }
