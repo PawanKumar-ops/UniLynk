@@ -71,6 +71,13 @@ export default function DashboardClient() {
 
                 <div className="post-content">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Ullam aspernatur nihil id deleniti sed hic, odio adipisci saepe nostrum sequi! Eaque, qui tempore pariatur aperiam omnis adipisci voluptatem vel facere, nisi sapiente aut harum quaerat. Esse, sunt accusamus consequatur, blanditiis beatae provident nesciunt ullam doloribus optio sapiente eius qui doloremque tempora vitae totam quasi inventore? Voluptate eius quos saepe dolores omnis assumenda odit obcaecati, ipsam reprehenderit atque sit ut ex sint placeat dolorum laboriosam? Unde est porro minima maxime repellendus alias corrupti commodi sed velit tempora quam illum natus, fugiat assumenda voluptatibus reiciendis asperiores cum pariatur. Culpa, delectus nisi! Tempore!</div>
 
+                {/* ===========================Post foot================================= */}
+                <div className="post-foot">
+                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/thumb.svg" alt="Like" /><span className='post-like-count'>230</span></div>
+                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/comment.svg" alt="Comment" /><span className='post-comment-count'>100</span></div>
+                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/share.svg" alt="Share" /><span className='post-share-count'>30</span></div>
+                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/bookmark.svg" alt="Share" /><span className='post-share-count'>30</span></div>
+                </div>
               </div>
 
             </div>
@@ -100,6 +107,12 @@ export default function DashboardClient() {
                     </div>
                   </div>
                 </div>
+                <div className="post-foot">
+                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/thumb.svg" alt="Like" /><span className='post-like-count'>230</span></div>
+                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/comment.svg" alt="Comment" /><span className='post-comment-count'>100</span></div>
+                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/share.svg" alt="Share" /><span className='post-share-count'>30</span></div>
+                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/bookmark.svg" alt="Share" /><span className='post-share-count'>30</span></div>
+                </div>
 
               </div>
 
@@ -125,66 +138,15 @@ export default function DashboardClient() {
                     <img src="Background.jpg" />
                     <img src="Background.jpg" />
                     <img src="Background.jpg" />
-                    
+
                   </div>
                 </div>
-
-              </div>
-
-            </div><div className="userpost">
-              <div className="post-left">
-                <div className="profilepic">
-                  <img className='profileimg' src={user.avatar} alt={user.name} />
+                <div className="post-foot">
+                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/thumb.svg" alt="Like" /><span className='post-like-count'>230</span></div>
+                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/comment.svg" alt="Comment" /><span className='post-comment-count'>100</span></div>
+                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/share.svg" alt="Share" /><span className='post-share-count'>30</span></div>
+                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/bookmark.svg" alt="Share" /><span className='post-share-count'>30</span></div>
                 </div>
-              </div>
-              <div className="post-right">
-                <div className="posth">
-                  <div className="posth-left">
-                    <div className="user-name">{user.name}</div>
-                    <div className="post-time"><ul><li className='post-timeli'>2h</li></ul></div>
-                  </div>
-                  <div className="posth-right"><button className='posth-right-btn'><EllipsisVertical /></button></div>
-                </div>
-
-                <div className="post-content">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Ullam aspernatur nihil id deleniti sed hic, odio adipisci saepe nostrum sequi! Eaque, qui tempore pariatur aperiam omnis adipisci voluptatem vel facere, nisi sapiente aut harum quaerat. Esse, sunt accusamus consequatur, blanditiis beatae provident nesciunt ullam doloribus optio sapiente eius qui doloremque tempora vitae totam quasi inventore? Voluptate eius quos saepe dolores omnis assumenda odit obcaecati, ipsam reprehenderit atque sit ut ex sint placeat dolorum laboriosam? Unde est porro minima maxime repellendus alias corrupti commodi sed velit tempora quam illum natus, fugiat assumenda voluptatibus reiciendis asperiores cum pariatur. Culpa, delectus nisi! Tempore!</div>
-
-              </div>
-
-            </div><div className="userpost">
-              <div className="post-left">
-                <div className="profilepic">
-                  <img className='profileimg' src={user.avatar} alt={user.name} />
-                </div>
-              </div>
-              <div className="post-right">
-                <div className="posth">
-                  <div className="posth-left">
-                    <div className="user-name">{user.name}</div>
-                    <div className="post-time"><ul><li className='post-timeli'>2h</li></ul></div>
-                  </div>
-                  <div className="posth-right"><button className='posth-right-btn'><EllipsisVertical /></button></div>
-                </div>
-
-                <div className="post-content">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Ullam aspernatur nihil id deleniti sed hic, odio adipisci saepe nostrum sequi! Eaque, qui tempore pariatur aperiam omnis adipisci voluptatem vel facere, nisi sapiente aut harum quaerat. Esse, sunt accusamus consequatur, blanditiis beatae provident nesciunt ullam doloribus optio sapiente eius qui doloremque tempora vitae totam quasi inventore? Voluptate eius quos saepe dolores omnis assumenda odit obcaecati, ipsam reprehenderit atque sit ut ex sint placeat dolorum laboriosam? Unde est porro minima maxime repellendus alias corrupti commodi sed velit tempora quam illum natus, fugiat assumenda voluptatibus reiciendis asperiores cum pariatur. Culpa, delectus nisi! Tempore!</div>
-
-              </div>
-
-            </div><div className="userpost">
-              <div className="post-left">
-                <div className="profilepic">
-                  <img className='profileimg' src={user.avatar} alt={user.name} />
-                </div>
-              </div>
-              <div className="post-right">
-                <div className="posth">
-                  <div className="posth-left">
-                    <div className="user-name">{user.name}</div>
-                    <div className="post-time"><ul><li className='post-timeli'>2h</li></ul></div>
-                  </div>
-                  <div className="posth-right"><button className='posth-right-btn'><EllipsisVertical /></button></div>
-                </div>
-
-                <div className="post-content">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Ullam aspernatur nihil id deleniti sed hic, odio adipisci saepe nostrum sequi! Eaque, qui tempore pariatur aperiam omnis adipisci voluptatem vel facere, nisi sapiente aut harum quaerat. Esse, sunt accusamus consequatur, blanditiis beatae provident nesciunt ullam doloribus optio sapiente eius qui doloremque tempora vitae totam quasi inventore? Voluptate eius quos saepe dolores omnis assumenda odit obcaecati, ipsam reprehenderit atque sit ut ex sint placeat dolorum laboriosam? Unde est porro minima maxime repellendus alias corrupti commodi sed velit tempora quam illum natus, fugiat assumenda voluptatibus reiciendis asperiores cum pariatur. Culpa, delectus nisi! Tempore!</div>
 
               </div>
 

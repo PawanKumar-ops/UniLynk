@@ -1,5 +1,4 @@
 .userposts {
-  margin-top: -50px;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -12,7 +11,7 @@
   width: 100%;
   height: fit-content;
   background-color: #fff;
-  border-top: 1px solid #e4eaec;
+  border-bottom: 1px solid #e4eaec;
   position: relative;
   contain: paint;
 }
@@ -163,8 +162,30 @@
 }
 
 
+.post-foot{
+  padding-top: 12px;
+  display: flex;
+  justify-content: space-between;
+}
 
+.post-foot-icon{
+  padding: 5px;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+}
 
+.post-foot-icon:hover{
+  background-color: #ececec;
+}
+
+.post-foot-iconcont{
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+  color: #3e3e3e;
+}
 
 
 
