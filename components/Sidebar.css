@@ -182,6 +182,12 @@ header {
     object-fit: contain;
 }
 
+.dashbutton svg{
+    width: 20px;
+    height: 20px;
+    color: grey;
+}
+
 .dashbutton:hover {
     background-color: #f5f8fa;
 }
@@ -261,7 +267,6 @@ header {
 .settings2 img:hover {
     transform: scale(3px);
 }
-
 
 
 

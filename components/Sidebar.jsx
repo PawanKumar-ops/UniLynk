@@ -8,6 +8,7 @@ import { useState } from "react";
 import { usePathname } from 'next/navigation';
 import { signOut, useSession } from 'next-auth/react';
 import SignOutModal from './SignOutModal';
+import { Mail } from 'lucide-react'
 
 const Sidebar = () => {
   const [settings, setSettings] = useState(true);
@@ -56,13 +57,13 @@ const Sidebar = () => {
                       Events
                     </button>
                   </Link>
-
-                  <Link href='/dashboard/gethelp' >
-                    <button className={`dashbutton gethelp ${isActive("/dashboard/gethelp") ? "active" : ""}`}>
-                      <img src="/dashboard/GetHelp.svg" alt="Get Help icon" />
-                      Get Help
+                  <Link className='eventlink' href='/dashboard/chat'>
+                    <button className={`dashbutton ${isActive("/dashboard/chat") ? "active" : ""}`}>
+                      <Mail />
+                      Chat
                     </button>
                   </Link>
+
 
                   <div className="profile">
                     <div className="profback">
@@ -103,7 +104,12 @@ const Sidebar = () => {
                 </div>
                 <div className="dashboardsettings">
                   <div className="options">
-
+                    <Link href='/dashboard/gethelp' >
+                    <button className={`dashbutton gethelp ${isActive("/dashboard/gethelp") ? "active" : ""}`}>
+                      <img src="/dashboard/GetHelp.svg" alt="Get Help icon" />
+                      Get Help
+                    </button>
+                  </Link>
                   </div>
 
 
