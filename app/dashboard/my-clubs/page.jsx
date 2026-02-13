@@ -25,7 +25,7 @@ const [isNotify, setIsNotify] = useState(false)
           <img src="/Defaultclublogo.svg" alt="" />
         </div>
         <div className="aboutclub">
-          <div className="clubname">Innovation Cell
+          <div className="club-name">Innovation Cell
             <button onClick={() => setIsNotify(true)}>
             <div className="notify">
               <img src="/myclubs/bell.svg" alt="notification" />

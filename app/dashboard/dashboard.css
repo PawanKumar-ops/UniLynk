@@ -205,8 +205,6 @@ body {
 
 .homebody {
   display: flex;
-  /* padding-left: 29%; */
-  /* margin-right: 20.76%; */
 }
 
 
@@ -214,7 +212,7 @@ body {
 
 .dashmain {
   margin-left: 0%;
-  width: 56%;
+  width: 57%;
   /* IMPORTANT */
   display: flex;
   flex-direction: column;

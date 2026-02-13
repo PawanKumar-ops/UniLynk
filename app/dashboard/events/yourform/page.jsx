@@ -7,6 +7,7 @@ import {
     Eye,
     Trash2,
     Copy,
+    ChartNoAxesCombined,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
@@ -261,7 +262,7 @@ const Page = () => {
                                                     className="btn-preview"
                                                     onClick={(e) => e.stopPropagation()}
                                                 >
-                                                    <Eye />
+                                                    <ChartNoAxesCombined />
                                                     View Analytics
                                                 </Link>
                                             ) : (
