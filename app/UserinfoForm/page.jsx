@@ -161,32 +161,37 @@ export default function UserinfoPage() {
               <select required className='branch-yearinput' name="branch" value={branch}
                 onChange={(e) => setBranch(e.target.value)}>
                 <option value="Select">Select</option>
-                <option value="PIE">Production and Industrial Engineering</option>
-                <option value="CSE">Computer Science and Engineering</option>
-                <option value="IT">Information Technology</option>
-                <option value="ME">Mechanical Engineering</option>
-                <option value="EE">Electrical Engineering</option>
-                <option value="ECE">Electronics and Communication Engineering</option>
-                <option value="CE">Civil Engineering</option>
-                <option value="MNC">Mathematics and Computing</option>
-                <option value="SET">SUSTAINABLE ENERGY TECHNOLOGIES</option>
-                <option value="RA">ROBOTICS & AUTOMATION</option>
-                <option value="VLSI">Microelectronics & VLSI Engineering</option>
-                <option value="IIoT">Industrial Internet of Things</option>
-                <option value="AIML">Artificial Intelligence and Machine Learning</option>
-                <option value="AIDS">Artificial Intelligence and Data Science</option>
-                <option value="Arch">	Architecture</option>
+                <option value="Production and Industrial Engineering">Production and Industrial Engineering(B.Tech)</option>
+                <option value="Computer Science and Engineering">Computer Science and Engineering(B.Tech)</option>
+                <option value="Computer Science and Engineering (5 Years, (Dual Degree))">Computer Science and Engineering(B.Tech & M.Tech)</option>
+                <option value="Information Technology">Information Technology(B.Tech)</option>
+                <option value="Mechanical Engineering">Mechanical Engineering(B.Tech)</option>
+                <option value="Mechanical Engineering (5 Years, (Dual Degree)) ">Mechanical Engineering(B.Tech & M.Tech)</option>
+                <option value="Electrical Engineering">Electrical Engineering(B.Tech)</option>
+                <option value="Electrical Engineering (5 Years, (Dual Degree))">Electrical Engineering(B.Tech & M.Tech)</option>
+                <option value="Electronics and Communication Engineering">Electronics and Communication Engineering(B.Tech)</option>
+                <option value="Electronics and Communication Engineering (5 Years, (Dual Degree))">Electronics and Communication Engineering(B.Tech & M.Tech)</option>
+                <option value="Civil Engineering">Civil Engineering(B.Tech)</option>
+                <option value="Civil Engineering (5 Years, (Dual Degree))">Civil Engineering(B.Tech & M.Tech)</option>
+                <option value="Mathematics and Computing">Mathematics and Computing(B.Tech)</option>
+                <option value="Sustainable Energy Technologies">SUSTAINABLE ENERGY TECHNOLOGIES(B.Tech)</option>
+                <option value="Robotics & Automation">ROBOTICS & AUTOMATION(B.Tech)</option>
+                <option value="Microelectronics & VLSI Engineering">Microelectronics & VLSI Engineering(B.Tech)</option>
+                <option value="Industrial Internet of Things">Industrial Internet of Things(B.Tech)</option>
+                <option value="Artificial Intelligence and Machine Learning">Artificial Intelligence and Machine Learning(B.Tech)</option>
+                <option value="Artificial Intelligence and Data Science">Artificial Intelligence and Data Science(B.Tech)</option>
+                <option value="Architecture">	Architecture</option>
               </select>
             </div>
             <div className="year">
               <div className="detailslabel"><img className='detailsicon' src="/Userprofile/book.svg" alt="" />YEAR</div>
               <select required className='branch-yearinput' name="year" id="" value={year} onChange={(e) => setYear(e.target.value)}>
                 <option value="select">Select</option>
-                <option value="1">First</option>
-                <option value="2">Second</option>
-                <option value="3">Third</option>
-                <option value="4">Fourth</option>
-                <option value="5">Fifth</option>
+                <option value="First Year">First</option>
+                <option value="Second Year">Second</option>
+                <option value="Third Year">Third</option>
+                <option value="Fourth Year">Fourth</option>
+                <option value="Fifth Year">Fifth</option>
               </select>
             </div>
           </div>

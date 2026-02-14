@@ -4,13 +4,14 @@ import React from 'react'
 import "./Sidebar.css"
 import Link from 'next/link'
 import Image from 'next/image'
+import { useSession } from 'next-auth/react'
 import { useState } from "react";
 import { usePathname } from 'next/navigation';
-import { signOut, useSession } from 'next-auth/react';
 import SignOutModal from './SignOutModal';
 import { Mail } from 'lucide-react'
 
 const Sidebar = () => {
+  const { data: session } = useSession()
   const [settings, setSettings] = useState(true);
   const [showSignOutModal, setSignoutModal] = useState(false)
   const pathname = usePathname();
@@ -70,12 +71,12 @@ const Sidebar = () => {
                       <img src="/Background.jpg" alt="Profile background" />
                     </div>
                     <div className="profpic">
-                      <img src="/Profilepic.png" alt="Profile picture" />
+                      <img src={session?.user?.image || '/Profilepic.png'} alt="Profile picture" />
                     </div>
                     <div className="profinfo">
-                      <h2 className="username">Pawan Kumar</h2>
-                      <div className="branch">Production and Industrial Engineering</div>
-                      <div className="year">1st Year</div>
+                      <h2 className="username">{session?.user?.name || 'User'}</h2>
+                      <div className="branch">{session?.user?.email || 'No email available'}</div>
+                      <div className="year">{session?.user?.year || '_'}</div>
                     </div>
                     <div className="post">
                      

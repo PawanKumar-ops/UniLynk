@@ -1,0 +1,42 @@
+.user-profile-page {
+  min-height: 100vh;
+  padding: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  color: #ffffff;
+}
+
+.user-profile-card {
+  width: min(540px, 100%);
+  background: rgba(16, 19, 35, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 2rem;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+.user-profile-image {
+  width: 92px;
+  height: 92px;
+  border-radius: 999px;
+  object-fit: cover;
+  border: 2px solid #ffffff22;
+  margin-bottom: 1rem;
+}
+
+.user-profile-card h1 {
+  margin: 0 0 1rem;
+  font-size: 1.6rem;
+}
+
+.user-profile-card p {
+  margin: 0.4rem 0;
+  color: #dadcf1;
+}
+
+.user-profile-meta {
+  margin-top: 1.4rem;
+  font-size: 0.88rem;
+  color: #a4aacd;
+}
