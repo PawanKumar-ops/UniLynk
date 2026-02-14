@@ -5,12 +5,16 @@ import "./userprofile.css"
 import Image from 'next/image'
 import { useState, useEffect } from 'react';
 import { useSession } from "next-auth/react";
+import { useMemo } from 'react';
 
 const Userprofile = () => {
 
     const { data: session, status } = useSession();
-    const [profile, setProfile] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [sessionUser, setSessionUser] = useState(null);
+    const [viewedProfile, setViewedProfile] = useState(null);
+
+    const [profileLoading, setProfileLoading] = useState(true);
+    const [searchLoading, setSearchLoading] = useState(false);
     const [error, setError] = useState("");
     const YEAR_OFFSET = {
         "First Year": 0,
@@ -21,32 +25,104 @@ const Userprofile = () => {
     };
 
 
+
+
+
+
+    const [searchTerm, setSearchTerm] = useState("");
+    const [results, setResults] = useState([]);
+    const [selectedItem, setSelectedItem] = useState(null);
+
     useEffect(() => {
-        if (status !== "authenticated") {
-            setLoading(false);
+        if (!searchTerm.trim()) {
+            setResults([]);
             return;
         }
 
+        const controller = new AbortController();
+        setSearchLoading(true);
+
+        const timer = setTimeout(async () => {
+            try {
+                const res = await fetch(
+                    `/api/users/search?q=${encodeURIComponent(searchTerm)}`,
+                    { signal: controller.signal }
+                );
+                const data = await res.json();
+                setResults(data.results || []);
+            } catch (err) {
+                if (err.name !== "AbortError") setResults([]);
+            } finally {
+                setSearchLoading(false);
+            }
+        }, 300);
+
+        return () => {
+            controller.abort();
+            clearTimeout(timer);
+        };
+    }, [searchTerm]);
+
+
+    const suggestions = useMemo(() => {
+        if (!searchTerm.trim()) return [];
+        return results;
+    }, [results, searchTerm]);
+
+    const handleSuggestionClick = async (item) => {
+        if (item.type !== "user") return;
+
+        try {
+            setProfileLoading(true);
+
+            const res = await fetch(`/api/users/${item.id}`);
+            const data = await res.json();
+
+            if (!res.ok) throw new Error(data.message);
+
+            setViewedProfile(data.user); //  switch profile
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setProfileLoading(false);
+            setSearchTerm("");
+            setResults([]);
+        }
+    };
+
+
+
+
+
+
+
+    useEffect(() => {
+        if (status !== "authenticated") return;
+
         const getUserProfile = async () => {
             try {
-                setLoading(true);
-                const response = await fetch("/api/user/me", { cache: "no-store" });
-                const data = await response.json();
+                setProfileLoading(true);
+                const res = await fetch("/api/user/me", { cache: "no-store" });
+                const data = await res.json();
 
-                if (!response.ok) {
-                    throw new Error(data.message || "Could not fetch user profile");
-                }
+                if (!res.ok) throw new Error(data.message);
 
-                setProfile(data.user);
-            } catch (fetchError) {
-                setError(fetchError.message);
+                setSessionUser(data.user);
+                setViewedProfile(data.user); // default profile
+            } catch (err) {
+                setError(err.message);
             } finally {
-                setLoading(false);
+                setProfileLoading(false);
             }
         };
 
         getUserProfile();
     }, [status]);
+
+    const isOwnProfile = useMemo(() => {
+        if (!sessionUser || !viewedProfile) return false;
+        return sessionUser._id === viewedProfile._id;
+    }, [sessionUser, viewedProfile]);
 
     const calculateSemesterFromYear = (year) => {
         if (!year) return "Not available";
@@ -110,7 +186,7 @@ const Userprofile = () => {
 
 
 
-    if (status === "loading" || loading) {
+    if (status === "loading" || profileLoading) {
         return <div className="user-profile-page">Loading profile...</div>;
     }
 
@@ -160,13 +236,47 @@ const Userprofile = () => {
             <main className="main-area">
                 {/* Top Bar */}
                 <header className="top-bar">
-                    <div className="search-box">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
-                        <input type="text" placeholder="Search students, clubs, events..." />
+                    <div className="search-wrapper">
+                        <div className="search-box">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
+                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+
+                            <input
+                                type="text"
+                                placeholder="Search students, clubs, events..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+
+                        {searchTerm.trim() && (
+                            <div className="profile-suggestions">
+                                {searchLoading ? (
+                                    <div className="suggestion-empty">Searching...</div>
+                                ) : results.length === 0 ? (
+                                    <div className="suggestion-empty">No users or clubs found.</div>
+                                ) : (
+                                    results.map((item) => (
+                                        <button
+                                            key={`${item.type}-${item.id}`}
+                                            className="suggestion-item"
+                                            onClick={() => handleSuggestionClick(item)}
+                                        >
+                                            <img src={item.image} alt={item.name} />
+                                            <div className="suggestion-text">
+                                                <strong>{item.name}</strong>
+                                                <span>{item.type === "club" ? "Club" : "User"}</span>
+                                            </div>
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                        )}
                     </div>
                 </header>
+
 
                 {/* Profile Content */}
                 <div className="profile-content">
@@ -177,35 +287,38 @@ const Userprofile = () => {
                                 <div className="profile-image-wrapper">
                                     <img
                                         className="profile-img"
-                                        src={profile?.img || session?.user?.image || "/Profilepic.png"}
-                                        alt={`${profile?.name || "User"} profile`}
+                                        src={viewedProfile?.img || "/Profilepic.png"}
+                                        alt={`${viewedProfile?.name || "User"} profile`}
                                     />
                                 </div>
                             </div>
 
                             <div className="hero-center">
                                 <div className="name-section">
-                                    <h1 className="profile-name">{profile?.name || session?.user?.name || "User"}</h1>
+                                    <h1 className="profile-name">{viewedProfile?.name}</h1>
 
                                 </div>
-                                <p className="profile-title"> {profile?.branch || session?.user?.branch || "Not available"}</p>
+                                <p className="profile-title">{viewedProfile?.branch || "Not available"}</p>
 
                             </div>
 
                             <div className="hero-right">
-                                <button className="action-btn primary-btn">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                                    </svg>
-                                    Connect
-                                </button>
-                                <button className="action-btn secondary-btn">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-                                    </svg>
-                                    Message
-                                </button>
+                                {isOwnProfile ? (
+                                    <button className="action-btn primary-btn">
+                                        ✏️ Edit Profile
+                                    </button>
+                                ) : (
+                                    <>
+                                        <button className="action-btn primary-btn">
+                                            ➕ Connect
+                                        </button>
+                                        <button className="action-btn secondary-btn">
+                                            Message
+                                        </button>
+                                    </>
+                                )}
                             </div>
+
                         </div>
                         <hr className='profilehr' />
                         <div className="social">
@@ -223,26 +336,26 @@ const Userprofile = () => {
                         <div className="academic-grid">
                             <div className="academic-item">
                                 <span className="academic-label">Course</span>
-                                <span className="academic-value">{profile?.branch || "Not available"}</span>
+                                <span className="academic-value">{viewedProfile?.branch || "Not available"}</span>
                             </div>
                             <div className="academic-item">
                                 <span className="academic-label">Branch</span>
-                                <span className="academic-value">{profile?.branch || "Not available"}</span>
+                                <span className="academic-value">{viewedProfile?.branch || "Not available"}</span>
                             </div>
                             <div className="academic-item">
                                 <span className="academic-label">Current Year</span>
-                                <span className="academic-value">{profile?.year}</span>
+                                <span className="academic-value">{viewedProfile?.year}</span>
                             </div>
                             <div className="academic-item">
                                 <span className="academic-label">Semester</span>
                                 <span className="academic-value">
-                                    {calculateSemesterFromYear(profile?.year)}
+                                    {calculateSemesterFromYear(viewedProfile?.year)}
                                 </span>
                             </div>
                             <div className="academic-item">
                                 <span className="academic-label">Batch</span>
                                 <span className="academic-value">
-                                    {calculateBatchFromBranchAndYear(profile?.branch, profile?.year)}
+                                    {calculateBatchFromBranchAndYear(viewedProfile?.branch, viewedProfile?.year)}
                                 </span>
                             </div>
                         </div>

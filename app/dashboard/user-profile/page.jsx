@@ -1,75 +1,115 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
-import { useSession } from "next-auth/react";
+import React, { useEffect, useMemo, useState } from "react";
 import "./user-profile.css";
 
-const UserProfilePage = () => {
-  const { data: session, status } = useSession();
-  const [profile, setProfile] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (status !== "authenticated") {
-      setLoading(false);
-      return;
-    }
-
-    const getUserProfile = async () => {
-      try {
-        setLoading(true);
-        const response = await fetch("/api/user/me", { cache: "no-store" });
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.message || "Could not fetch user profile");
-        }
-
-        setProfile(data.user);
-      } catch (fetchError) {
-        setError(fetchError.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    getUserProfile();
-  }, [status]);
-
-  if (status === "loading" || loading) {
-    return <div className="user-profile-page">Loading profile...</div>;
-  }
-
-  if (status !== "authenticated") {
-    return <div className="user-profile-page">Please log in to view your profile.</div>;
-  }
-
-  if (error) {
-    return <div className="user-profile-page">{error}</div>;
+function ProfileCard({ item }) {
+  if (!item) {
+    return (
+      <div className="profile-view-card empty-card">
+        <p>Search and select a user or club to view profile.</p>
+      </div>
+    );
   }
 
   return (
-    <div className="user-profile-page">
-      <div className="user-profile-card">
-        <img
-          className="user-profile-image"
-          src={profile?.image || "/Profilepic.png"}
-          alt={`${profile?.name || "User"} profile`}
-        />
-
-        <h1>{profile?.name || session?.user?.name || "User"}</h1>
-        <p><strong>Email:</strong> {profile?.email || session?.user?.email || "Not available"}</p>
-        <p><strong>Provider:</strong> {profile?.provider || "Unknown"}</p>
-
-        <div className="user-profile-meta">
-          <span>
-            Joined: {profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString() : "Unknown"}
-          </span>
-        </div>
+    <div className="profile-view-card">
+      <div className="profile-cover" />
+      <div className="profile-avatar-wrap">
+        <img src={item.image} alt={`${item.name} profile`} className="profile-avatar" />
+      </div>
+      <div className="profile-content">
+        <h2>{item.name}</h2>
+        <p className="profile-meta">{item.type === "club" ? "Club" : "User"}</p>
+        {item.type === "user" && item.email ? <p className="profile-email">{item.email}</p> : null}
       </div>
     </div>
   );
-};
+}
 
-export default UserProfilePage;
+export default function UserProfilePage() {
+  const [searchTerm, setSearchTerm] = useState("");
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(null);
+
+  useEffect(() => {
+    let ignore = false;
+
+    const timer = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const response = await fetch(`/api/users/search?q=${encodeURIComponent(searchTerm)}`);
+        const data = await response.json();
+
+        if (!ignore) {
+          const items = data.results || [];
+          setResults(items);
+          if (items.length > 0 && !searchTerm.trim()) {
+            setSelectedItem((prev) => prev || items[0]);
+          }
+        }
+      } catch {
+        if (!ignore) setResults([]);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    }, 250);
+
+    return () => {
+      ignore = true;
+      clearTimeout(timer);
+    };
+  }, [searchTerm]);
+
+  const suggestions = useMemo(() => {
+    if (!searchTerm.trim()) return [];
+    return results;
+  }, [results, searchTerm]);
+
+  const handleSuggestionClick = (item) => {
+    setSelectedItem(item);
+    setSearchTerm("");
+    setResults([]);
+  };
+
+  return (
+    <div className="userprofile-page">
+      <div className="profile-search-block">
+        <input
+          type="text"
+          className="profile-search-input"
+          placeholder="Search users/clubs by name or roll number"
+          value={searchTerm}
+          onChange={(event) => setSearchTerm(event.target.value)}
+        />
+
+        {searchTerm.trim() && (
+          <div className="profile-suggestions">
+            {loading ? (
+              <div className="suggestion-empty">Searching...</div>
+            ) : suggestions.length === 0 ? (
+              <div className="suggestion-empty">No users or clubs found.</div>
+            ) : (
+              suggestions.map((item) => (
+                <button
+                  key={`${item.type}-${item.id}`}
+                  className="suggestion-item"
+                  onClick={() => handleSuggestionClick(item)}
+                >
+                  <img src={item.image} alt={`${item.name} avatar`} />
+                  <div className="suggestion-text">
+                    <strong>{item.name}</strong>
+                    <span>{item.type === "club" ? "Club" : "User"}</span>
+                  </div>
+                </button>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+
+      <ProfileCard item={selectedItem} />
+    </div>
+  );
+}
