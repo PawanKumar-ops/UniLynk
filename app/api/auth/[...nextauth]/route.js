@@ -1,25 +1,37 @@
 import NextAuth from "next-auth";
 import GitHubProvider from "next-auth/providers/github";
 import GoogleProvider from "next-auth/providers/google";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/user";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 
+import { connectDB } from "@/lib/mongodb";
+import User from "@/models/user";
 
 export const authOptions = {
   trustHost: true,
+  secret: process.env.NEXTAUTH_SECRET,
+
+  session: {
+    strategy: "jwt",
+  },
 
   providers: [
+    // 🔹 Google OAuth
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      httpOptions: {
+        timeout: 10000, // prevents timeout issue
+      },
+    }),
+
+    // 🔹 GitHub OAuth
     GitHubProvider({
       clientId: process.env.GITHUB_ID,
       clientSecret: process.env.GITHUB_SECRET,
     }),
-    GoogleProvider({
-      clientId: process.env.GOOGLE_CLIENT_ID,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-    }),
 
+    // 🔹 Credentials (Email + Password)
     CredentialsProvider({
       name: "credentials",
       credentials: {
@@ -46,66 +58,50 @@ export const authOptions = {
           id: user._id.toString(),
           email: user.email,
           name: user.name || "",
+          image: user.img || "",
         };
       },
     }),
-
   ],
 
-  secret: process.env.NEXTAUTH_SECRET,
-
-  session: {
-    strategy: "jwt",
-  },
-
   callbacks: {
-    // 1️⃣ Ensure user exists
+    // 🔐 SIGN IN CALLBACK (MERGED LOGIC)
     async signIn({ user, account }) {
-      await connectDB();
+  try {
+    await connectDB();
 
-      if (!user?.email) return false;
+    if (!user?.email) return false;
 
-      const email = user.email.toLowerCase();
+    const email = user.email.toLowerCase().trim();
+    const nitDomain = "@nitkkr.ac.in";
 
-      await User.findOneAndUpdate(
-        { email },
-        {
-          email,
-          name: user.name || "",
-          img: user.image || "",
-          provider: account?.provider || "credentials",
-        },
-        { upsert: true, new: true }
-      );
+    const rollNumber = email.endsWith(nitDomain)
+      ? email.replace(nitDomain, "")
+      : null;
 
-      return true;
-    },
-
-    // 2️⃣ Decide WHERE to redirect
-    async redirect({ baseUrl }) {
-      return `${baseUrl}/redirect-handler`;
-    },
-
-
-    async jwt({ token, user }) {
-      if (user) {
-        token.email = user.email;
-        token.name = user.name;
-        token.image = user.image;
-        token.id = user.id || token.sub;
+    await User.findOneAndUpdate(
+      { email },
+      {
+        email,
+        name: user.name || "",
+        img: user.image || "",
+        provider: account?.provider || "credentials",
+        rollNumber, // ✅ ALWAYS set it
+      },
+      {
+        upsert: true,
+        new: true,
+        setDefaultsOnInsert: true,
       }
-      return token;
-    },
+    );
 
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.email = token.email;
-        session.user.name = token.name;
-        session.user.image = token.image;
-        session.user.id = token.id;
-      }
-      return session;
-    },
+    return true;
+  } catch (error) {
+    console.error("SIGN IN ERROR:", error);
+    return false;
+  }
+}
+
   },
 };
 

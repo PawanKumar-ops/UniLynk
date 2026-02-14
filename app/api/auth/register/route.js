@@ -31,10 +31,15 @@ export async function POST(req) {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const nitDomain = "@nitkkr.ac.in";
+    const rollNumber =
+      email.endsWith(nitDomain) ? email.slice(0, -nitDomain.length) : undefined;
+
     await User.create({
       email: normalizedEmail,
       password: hashedPassword,
       provider: "credentials",
+      ...(rollNumber ? { rollNumber } : {}),
     });
 
     return Response.json(

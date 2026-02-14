@@ -1,14 +1,15 @@
 import mongoose from "mongoose";
 
 const UserSchema = new mongoose.Schema({
- email: { type: String, unique: true, required: true },
-   password: {
-      type: String,
-      required: function () {
-        return this.provider === "credentials";
-      },
-      default: null
+  email: { type: String, unique: true, required: true },
+  password: {
+    type: String,
+    required: function () {
+      return this.provider === "credentials";
     },
+    default: null
+  },
+  rollNumber: String,
   img: String,
 
   provider: String,
@@ -19,7 +20,7 @@ const UserSchema = new mongoose.Schema({
   branch: String,
   skill: String,
 
-    profileCompleted: {
+  profileCompleted: {
     type: Boolean,
     default: false,
   },
