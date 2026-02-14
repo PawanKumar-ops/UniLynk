@@ -92,11 +92,11 @@
   background: #000000;
 }
 
-.icon-btn:hover svg {
+.editprofile-icon {
   color: #ffffff;
 }
 
-.icon-btn svg {
+.editprofile-icon {
   width: 20px;
   height: 20px;
   color: #000000;
