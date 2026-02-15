@@ -18,7 +18,11 @@ const UserSchema = new mongoose.Schema({
   name: String,
   year: String,
   branch: String,
-  skill: String,
+  skills: {
+    type: [String],
+    default: [],
+    index: true
+  },
 
   profileCompleted: {
     type: Boolean,

@@ -1,8 +1,13 @@
+.homebody {
+  height: 100%;
+  overflow: hidden;
+}
+
 .userposts {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
+  width: 100%;
+  margin-top: 50px;
 }
 
 .userpost {
@@ -212,38 +217,42 @@ body {
 /* ========================== Feed starts here ============================ */
 
 .dashmain {
-  margin-left: 0%;
   width: 57%;
-  /* IMPORTANT */
   display: flex;
   flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .feed {
+  flex: 1;
+  overflow-y: auto;
   width: 100%;
   height: 100vh;
 }
 
-.fhead {
+/* .fhead {
   display: flex;
   justify-content: center;
   align-items: center;
   width: 100%;
   height: 50px;
-
   top: 0;
   z-index: 10;
  
-}
+} */
 
 /* ====================== Top For you/Club button =========================== */
 
 .pricing-toggle {
+  position: fixed;
+  top: 10px;               
+  left: 50%;
+  transform: translateX(-50%);
   background: #f3f3f3;
   padding: 4px;
   border-radius: 999px;
-  width: fit-content;
-  position: fixed;
+  z-index: 20;
 }
 
 .toggle-track {

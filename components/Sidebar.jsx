@@ -58,7 +58,7 @@ const Sidebar = () => {
                       Events
                     </button>
                   </Link>
-                  <Link className='eventlink' href='/chat'>
+                  <Link className='eventlink' href='/dashboard/chat'>
                     <button className={`dashbutton ${isActive("/dashboard/chat") ? "active" : ""}`}>
                       <Mail />
                       Chat

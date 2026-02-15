@@ -9,7 +9,8 @@ export default function UserinfoPage() {
   const [name, setName] = useState("");
   const [branch, setBranch] = useState("");
   const [year, setYear] = useState("");
-  const [skill, setSkill] = useState("");
+  const [skills, setSkills] = useState([]);
+  const [skillInput, setSkillInput] = useState("");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [user, setUser] = useState(null);
@@ -17,6 +18,22 @@ export default function UserinfoPage() {
   const handleAvatarClick = () => {
     fileInputRef.current?.click();
   };
+
+  const addSkill = () => {
+    const value = skillInput.trim().toLowerCase();
+
+    if (!value) return;
+    if (skills.includes(value)) return;
+
+    setSkills([...skills, value]);
+    setSkillInput("");
+  };
+
+
+  const removeSkill = (index) => {
+    setSkills(skills.filter((_, i) => i !== index));
+  };
+
 
   const handleUpload = async (e) => {
     const file = e.target.files[0];
@@ -71,7 +88,7 @@ export default function UserinfoPage() {
           "Content-Type": "application/json",
         },
         credentials: "include", // REQUIRED for NextAuth
-        body: JSON.stringify({ name, branch, year, skill }),
+        body: JSON.stringify({ name, branch, year, skills }),
       });
 
       const data = await res.json();
@@ -108,7 +125,7 @@ export default function UserinfoPage() {
       setName(data.name || "");
       setBranch(data.branch || "");
       setYear(data.year || "");
-      setSkill(data.skill || "");
+      setSkills(data.skills || []);
     };
 
     fetchUser();
@@ -198,7 +215,31 @@ export default function UserinfoPage() {
 
           <div className="skills">
             <div className="detailslabel"> <img className='detailsicon' src="/Userprofile/name.svg" alt="" />SKILLS</div>
-            <textarea className='skillsinput' placeholder='JavaScript, Python, React...' value={skill} onChange={(e) => setSkill(e.target.value)} ></textarea>
+            {/* <textarea className='skillsinput' placeholder='JavaScript, Python, React...' value={skill} onChange={(e) => setSkill(e.target.value)} ></textarea> */}
+            <input
+              className="skillsinput"
+              placeholder="JavaScript, Python, React..."
+              value={skillInput}
+              onChange={(e) => setSkillInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === ",") {
+                  e.preventDefault();
+                  addSkill();
+                }
+              }}
+            />
+
+            <div className="skill-chips">
+              {skills.map((skill, index) => (
+                <span key={index} className="skill-chip">
+                  {skill}
+                  <button type="button" onClick={() => removeSkill(index)}>
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+
           </div>
 
           <button id="submitusr" type="submit" disabled={saving}>

@@ -26,26 +26,24 @@ export default function DashboardClient() {
 
       <main className='dashmain'>
 
-        <div className="fhead">
-
-          <div className="pricing-toggle">
-            <div className={`toggle-track ${!isAnnual ? "right" : ""}`}>
-              <div className="toggle-bg"></div>
-              <button
-                className={`toggle-btn ${isAnnual ? "active" : ""}`}
-                onClick={() => setIsAnnual(true)}
-              >
-                For You
-              </button>
-              <button
-                className={`toggle-btn ${!isAnnual ? "active" : ""}`}
-                onClick={() => setIsAnnual(false)}
-              >
-                Clubs
-              </button>
-            </div>
+        <div className="pricing-toggle">
+          <div className={`toggle-track ${!isAnnual ? "right" : ""}`}>
+            <div className="toggle-bg"></div>
+            <button
+              className={`toggle-btn ${isAnnual ? "active" : ""}`}
+              onClick={() => setIsAnnual(true)}
+            >
+              For You
+            </button>
+            <button
+              className={`toggle-btn ${!isAnnual ? "active" : ""}`}
+              onClick={() => setIsAnnual(false)}
+            >
+              Clubs
+            </button>
           </div>
         </div>
+
         <div className="feed">
 
 
