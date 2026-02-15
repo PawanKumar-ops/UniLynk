@@ -47,3 +47,57 @@ db.users.createIndex({ email: 1 })```
                                     Message
                                 </button>
                             </div>
+
+
+
+
+
+Loading bars==============
+<div className="flowing-bars">
+          {[...Array(5)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="bar"
+              animate={{
+                height: ["20%", "100%", "20%"],
+              }}
+              transition={{
+                duration: 1.2,
+                repeat: Infinity,
+                ease: "easeInOut",
+                delay: i * 0.15,
+              }}
+            />
+          ))}
+        </div>;
+        .flowing-bars {
+  display: flex;
+  gap: 12px;
+  height: 80px;
+  align-items: flex-end;
+}
+
+.bar {
+  width: 8px;
+  background-color: #000000;
+  border-radius: 9999px;
+}
+
+/* Loading text */
+.text-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+}
+
+.loading-text {
+  color: #000000;
+  font-size: 30px;
+  font-weight: 300;
+  letter-spacing: 0.4em;
+  text-transform: uppercase;
+  margin: 0;
+}
+============================================================
+

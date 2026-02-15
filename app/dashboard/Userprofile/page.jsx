@@ -3,6 +3,7 @@
 import React from 'react'
 import "./userprofile.css"
 import Image from 'next/image'
+import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react';
 import { useSession } from "next-auth/react";
 import { useMemo } from 'react';
@@ -187,7 +188,57 @@ const Userprofile = () => {
 
 
     if (status === "loading" || profileLoading) {
-        return <div className="user-profile-page">Loading profile...</div>;
+
+        return <div className="loadcont">
+            <div className="flowing-bars">
+                {[...Array(5)].map((_, i) => (
+                    <motion.div
+                        key={i}
+                        className="bar"
+                        animate={{
+                            height: ["20%", "100%", "20%"],
+                        }}
+                        transition={{
+                            duration: 1.2,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                            delay: i * 0.15,
+                        }}
+                    />
+                ))}
+            </div>
+            {/* Loading text with elegant animation */}
+            <div className="text-section">
+                <motion.h1
+                    className="loading-text"
+                    animate={{
+                        opacity: [0.3, 1, 0.3],
+                    }}
+                    transition={{
+                        duration: 2.5,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                    }}
+                >
+                    Loading
+                </motion.h1>
+
+                {/* Progress line */}
+                <div className="progress-container">
+                    <motion.div
+                        className="progress-bar"
+                        animate={{
+                            x: ["-100%", "100%"],
+                        }}
+                        transition={{
+                            duration: 1.5,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                        }}
+                    />
+                </div>
+            </div>
+        </div>;
     }
 
     if (status !== "authenticated") {
