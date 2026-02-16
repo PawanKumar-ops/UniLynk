@@ -12,7 +12,7 @@ export async function POST(req) {
       return Response.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const { name, branch, year, skill } = await req.json();
+    const { name, branch, year, skills } = await req.json();
 
     await User.findOneAndUpdate(
       { email: session.user.email },
@@ -20,8 +20,8 @@ export async function POST(req) {
         name,
         branch,
         year,
-        skill,
-        profileCompleted: true, //  IMPORTANT
+        skills,
+        profileCompleted: true, 
       }
     );
 

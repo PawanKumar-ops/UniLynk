@@ -7,6 +7,8 @@ import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react';
 import { useSession } from "next-auth/react";
 import { useMemo } from 'react';
+import { Icon } from "@iconify/react";
+import { getSkillIcon } from "@/lib/skillIcons";
 
 const Userprofile = () => {
 
@@ -403,7 +405,7 @@ const Userprofile = () => {
 
 
                     <div className="info-card academic-card">
-                        <h2 className="card-heading">Academic Information</h2>
+                        <h2 className="card-heading"><Icon icon="mdi:certificate-outline" width={30} />Academic Information</h2>
                         <div className="academic-grid">
                             <div className="academic-item">
                                 <span className="academic-label">Course</span>
@@ -435,18 +437,43 @@ const Userprofile = () => {
                     <div className="skills-card">
                         <h2 className="skillscard-heading"><Image src="/userprofile/htmltag.svg" alt='Skills' width={30} height={30} /> Skills</h2>
                         <div className="card-container">
-                            <div className="card">Card 1</div>
-                            <div className="card">Card 2</div>
-
-
+                            {viewedProfile?.skills?.map((skill, index) => (
+                                <div key={index} className="skill-card">
+                                    <Icon
+                                        icon={getSkillIcon(skill)}
+                                        width={50}
+                                        height={50}
+                                    />
+                                    <span>{skill}</span>
+                                </div>
+                            ))}
                         </div>
+
 
                     </div>
 
+                    <div className="clubs-card">
+                        <h2 className="skillscard-heading"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-users w-5 h-5" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg>
+                            Clubs</h2>
+                        <div className="card-container">
+                            <div className="skill-card">Card1</div>
+                        </div>
+                    </div>
 
+                    <div className="achievements-card">
+                        <h2 className="skillscard-heading"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" fill="none" viewBox="0 0 16 16" id="trophy">
+                            <path fill="#212121" d="M4 3C4 1.89543 4.89543 1 6 1H10C11.1046 1 12 1.89543 12 3H12.5C13.3284 3 14 3.67157 14 4.5V5.5C14 6.751 13.0806 7.78705 11.8813 7.97098C11.4867 9.55371 10.1493 10.7634 8.50003 10.969V12H10C11.1046 12 12 12.8954 12 14V14.5035C12 14.7796 11.7761 15.0035 11.5 15.0035H4.5C4.22386 15.0035 4 14.7796 4 14.5035V14C4 12.8954 4.89543 12 6 12H7.50003V10.9691C5.85083 10.7634 4.51341 9.55379 4.1187 7.97111C2.91915 7.78758 1.99707 6.75188 1.99707 5.5V4.5C1.99707 3.67157 2.66864 3 3.49707 3L4 3ZM11 3C11 2.44772 10.5523 2 10 2H6C5.44772 2 5 2.44772 5 3V7C5 8.65685 6.34315 10 8 10C9.63359 10 10.9622 8.69431 10.9992 7.0696L11 3ZM12 6.91441C12.5826 6.70826 13 6.15268 13 5.5V4.5C13 4.22386 12.7761 4 12.5 4H12V6.91441ZM4 4H3.49707C3.22093 4 2.99707 4.22386 2.99707 4.5V5.5C2.99707 6.15262 3.41604 6.70886 4 6.9148V4ZM5 14V14.0035H11V14C11 13.4477 10.5523 13 10 13H6C5.44772 13 5 13.4477 5 14Z"></path>
+                        </svg>
+                        Achievements</h2>
+                    <div className="card-container">
+                        <div className="skill-card">Card1</div>
+                    </div>
                 </div>
-            </main>
+
+
         </div>
+            </main >
+        </div >
     )
 }
 

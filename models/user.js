@@ -11,10 +11,7 @@ const UserSchema = new mongoose.Schema({
   },
   rollNumber: String,
   img: String,
-
   provider: String,
-
-
   name: String,
   year: String,
   branch: String,

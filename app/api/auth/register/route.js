@@ -5,7 +5,7 @@ import bcrypt from "bcrypt";
 
 export async function POST(req) {
   try {
-    const { email, password } = await req.json();
+    const { email, password, skills = [] } = await req.json();
 
     if (!email || !password) {
       return Response.json(
@@ -39,6 +39,11 @@ export async function POST(req) {
       email: normalizedEmail,
       password: hashedPassword,
       provider: "credentials",
+      skills: Array.isArray(skills)
+        ? skills
+          .map((skill) => (typeof skill === "string" ? skill.trim() : ""))
+          .filter(Boolean)
+        : [],
       ...(rollNumber ? { rollNumber } : {}),
     });
 

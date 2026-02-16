@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import "./UserinfoForm.css";
 
 export default function UserinfoPage() {
@@ -20,14 +21,18 @@ export default function UserinfoPage() {
   };
 
   const addSkill = () => {
-    const value = skillInput.trim().toLowerCase();
+  const value = skillInput.trim();
+  if (!value) return;
 
-    if (!value) return;
-    if (skills.includes(value)) return;
+  const formatted =
+    value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
 
-    setSkills([...skills, value]);
-    setSkillInput("");
-  };
+  if (skills.includes(formatted)) return;
+
+  setSkills([...skills, formatted]);
+  setSkillInput("");
+};
+
 
 
   const removeSkill = (index) => {
@@ -234,7 +239,7 @@ export default function UserinfoPage() {
                 <span key={index} className="skill-chip">
                   {skill}
                   <button type="button" onClick={() => removeSkill(index)}>
-                    ×
+                    <Image className="cross" src="/Postimg/cross.svg" alt="Cross" height={21} width={21}></Image>
                   </button>
                 </span>
               ))}
