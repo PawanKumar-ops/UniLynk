@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import "./UserinfoForm.css";
+import { SKILLS } from "@/lib/skillsList";
 
 export default function UserinfoPage() {
   const router = useRouter();
@@ -15,23 +16,48 @@ export default function UserinfoPage() {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [user, setUser] = useState(null);
+  const [skillSuggestions, setSkillSuggestions] = useState([]);
+
 
   const handleAvatarClick = () => {
     fileInputRef.current?.click();
   };
 
+  useEffect(() => {
+    if (!skillInput.trim()) {
+      setSkillSuggestions([]);
+      return;
+    }
+
+    const filtered = SKILLS.filter(
+      (skill) =>
+        skill.toLowerCase().includes(skillInput.toLowerCase()) &&
+        !skills.includes(skill)
+    ).slice(0, 6); // limit suggestions
+
+    setSkillSuggestions(filtered);
+  }, [skillInput, skills]);
+
+  const addSuggestedSkill = (skill) => {
+    if (skills.includes(skill)) return;
+    setSkills([...skills, skill]);
+    setSkillInput("");
+    setSkillSuggestions([]);
+  };
+
+
   const addSkill = () => {
-  const value = skillInput.trim();
-  if (!value) return;
+    const value = skillInput.trim();
+    if (!value) return;
 
-  const formatted =
-    value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
+    const formatted =
+      value.charAt(0).toUpperCase() + value.slice(1).toLowerCase();
 
-  if (skills.includes(formatted)) return;
+    if (skills.includes(formatted)) return;
 
-  setSkills([...skills, formatted]);
-  setSkillInput("");
-};
+    setSkills([...skills, formatted]);
+    setSkillInput("");
+  };
 
 
 
@@ -219,33 +245,54 @@ export default function UserinfoPage() {
           </div>
 
           <div className="skills">
-            <div className="detailslabel"> <img className='detailsicon' src="/Userprofile/name.svg" alt="" />SKILLS</div>
-            {/* <textarea className='skillsinput' placeholder='JavaScript, Python, React...' value={skill} onChange={(e) => setSkill(e.target.value)} ></textarea> */}
-            <input
-              className="skillsinput"
-              placeholder="JavaScript, Python, React..."
-              value={skillInput}
-              onChange={(e) => setSkillInput(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === ",") {
-                  e.preventDefault();
-                  addSkill();
-                }
-              }}
-            />
+            <div className="detailslabel">
+              <img className="detailsicon" src="/Userprofile/name.svg" alt="" />
+              SKILLS
+            </div>
 
+            <div className="skill-input-wrapper">
+              <input
+                className="skillsinput"
+                placeholder="Start typing a skill..."
+                value={skillInput}
+                onChange={(e) => setSkillInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === ",") {
+                    e.preventDefault();
+                    addSkill();
+                  }
+                }}
+              />
+
+              {/*  Floating Suggestions */}
+              {skillSuggestions.length > 0 && (
+                <div className="skill-fab">
+                  {skillSuggestions.map((skill) => (
+                    <button
+                      key={skill}
+                      type="button"
+                      className="skill-fab-item"
+                      onClick={() => addSuggestedSkill(skill)}
+                    >
+                      {skill}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Chips */}
             <div className="skill-chips">
               {skills.map((skill, index) => (
                 <span key={index} className="skill-chip">
                   {skill}
-                  <button type="button" onClick={() => removeSkill(index)}>
-                    <Image className="cross" src="/Postimg/cross.svg" alt="Cross" height={21} width={21}></Image>
-                  </button>
+                  <button type="button" onClick={() => removeSkill(index)}>×</button>
                 </span>
               ))}
             </div>
-
           </div>
+
+
 
           <button id="submitusr" type="submit" disabled={saving}>
             {saving ? "Saving..." : "SUBMIT PROFILE"}

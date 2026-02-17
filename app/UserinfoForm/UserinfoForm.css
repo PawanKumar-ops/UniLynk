@@ -255,6 +255,77 @@ input:focus {
 .profileinput {
     color: black;
 }
+
+.skill-suggestions {
+  background: white;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-top: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.skill-suggestion {
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.skill-suggestion:hover {
+  background: #f3f3f3;
+}
+
+.skill-input-wrapper {
+  position: relative;
+}
+
+/* Floating container */
+.skill-fab {
+  position: absolute;
+  top: calc(100% + 6px); /* 👈 JUST BELOW input */
+  left: 0;
+  width: 100%;
+  background: white;
+  border-radius: 14px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.15);
+  padding: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  z-index: 100;
+  animation: fabInDown 0.18s ease-out;
+}
+
+
+/* Individual suggestion */
+.skill-fab-item {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.2s, transform 0.1s;
+}
+
+.skill-fab-item:hover {
+  background: #e0e7ff;
+  transform: scale(1.05);
+}
+
+/* Animation */
+@keyframes fabInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+
+
 @media (max-width: 768px) {
   .userinfoformbody {
     align-items: flex-start;
