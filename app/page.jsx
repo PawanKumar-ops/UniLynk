@@ -11,14 +11,14 @@ export default function Home() {
 
   return (
     <>
-      <nav>
-        <div className="navbar">
-          <div className="logo"><img id="LOGO" src="ULynk.svg" alt="" /></div>
+      <nav className='homenav'>
+        <div className="homenavbar">
+          <div className="homenavlogo"><img id="LOGO" src="ULynk.svg" alt="" /></div>
 
-          <ul className="navlinks">
-            <Link href="./analytics"><li className="feature navlink"> Feature</li></Link>
-            <Link href="./dashboard"><li className="about navlink">About</li></Link>
-            <Link href="./UserinfoForm"><li className="support navlink">Support</li></Link>
+          <ul className="homenavlinks">
+            <Link href="./analytics"><li className="feature homenavlink"> Feature</li></Link>
+            <Link href="./dashboard"><li className="about homenavlink">About</li></Link>
+            <Link href="./UserinfoForm"><li className="support homenavlink">Support</li></Link>
             <li className="contactus navlink">Contact Us</li>
           </ul>
 

@@ -2,7 +2,7 @@ body{
   background-color: #ffffff;
 }
 
-.navbar {
+.homenavbar {
   display: flex;
   background-color: white;
   width: 1128px;
@@ -12,13 +12,13 @@ body{
   align-items: center;
 }
 
-nav {
+.homenav {
   display: flex;
   justify-content: center;
   width: 100%;
 }
 
-.navlinks {
+.homenavlinks {
   display: flex;
   justify-content: space-evenly;
   align-items: center;
@@ -26,7 +26,7 @@ nav {
   color: rgb(128, 128, 128);
 }
 
-.navlink:hover {
+.homenavlink:hover {
   color: black;
   cursor: pointer;
 }
@@ -35,6 +35,10 @@ nav {
   display: flex;
   color: #000;
   gap: 30px;
+}
+
+.homenavlogo{
+  width: fit-content;
 }
 
 #LOGO {
@@ -908,7 +912,7 @@ a:focus-visible {
     padding: 12px 20px;
   }
   
-  .navlinks {
+  .homenavlinks {
     display: none;
   }
   
