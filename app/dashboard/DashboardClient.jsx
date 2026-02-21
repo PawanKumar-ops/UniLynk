@@ -1,20 +1,61 @@
 "use client"
 
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import './dashboard.css';
 import { Search } from 'lucide-react';
 import PostFAB from '../../components/PostFAB';
 import Post from '../../components/Post';
 import { EllipsisVertical } from 'lucide-react';
 
+const formatRelativeTime = (dateString) => {
+  const date = new Date(dateString);
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return 'now';
+  const mins = Math.floor(seconds / 60);
+  if (mins < 60) return `${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d`;
+};
+
 
 export default function DashboardClient() {
   const [isAnnual, setIsAnnual] = useState(true);
   const [ispost, setIspost] = useState(false)
+  const [posts, setPosts] = useState([]);
+  const [loadingPosts, setLoadingPosts] = useState(false);
 
-  const user = {
-    avatar: 'https://akm-img-a-in.tosshub.com/sites/dailyo/story/embed/201809/painting_of_lord_kri_090118090030.jpg',
-    name: 'Pawan Kumar'
+  const selectedAudience = useMemo(() => (isAnnual ? "for-you" : "clubs"), [isAnnual]);
+
+  useEffect(() => {
+    const loadPosts = async () => {
+      setLoadingPosts(true);
+      try {
+        const res = await fetch(`/api/posts?audience=${selectedAudience}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "Failed to fetch posts");
+        setPosts(data.posts || []);
+      } catch (error) {
+        console.error(error);
+      } finally {
+        setLoadingPosts(false);
+      }
+    };
+
+    loadPosts();
+  }, [selectedAudience]);
+
+  const handlePosted = (createdPost) => {
+    if (!createdPost || createdPost.audience !== selectedAudience) return;
+    setPosts((prev) => [createdPost, ...prev]);
+  };
+
+  const getImageGridClass = (count) => {
+    if (count <= 1) return "image-grid count-1";
+    if (count === 2) return "image-grid count-2";
+    if (count === 3) return "image-grid count-3";
+    return "image-grid count-4";
   };
 
   return (
@@ -52,120 +93,75 @@ export default function DashboardClient() {
 
 
             {/*================== One Card of user post ====================*/}
-            <div className="userpost">
-              <div className="post-left">
-                <div className="profilepic">
-                  <img className='profileimg' src={user.avatar} alt={user.name} />
-                </div>
-              </div>
-              <div className="post-right">
-                <div className="posth">
-                  <div className="posth-left">
-                    <div className="user-name">{user.name}</div>
-                    <div className="post-time"><ul><li className='post-timeli'>2h</li></ul></div>
+            {loadingPosts && <div className="userpost"><div className="post-right">Loading posts...</div></div>}
+            {!loadingPosts && posts.length === 0 && <div className="userpost"><div className="post-right">No posts yet. Create one!</div></div>}
+
+            {!loadingPosts && posts.map((post) => (
+              <div className="userpost" key={post._id}>
+                <div className="post-left">
+                  <div className="profilepic">
+                    <img className='profileimg' src={post.authorImage || "/Profilepic.png"} alt={post.authorName || "User"} />
                   </div>
-                  <div className="posth-right"><button className='posth-right-btn'><EllipsisVertical /></button></div>
+
                 </div>
 
-                <div className="post-content">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Ullam aspernatur nihil id deleniti sed hic, odio adipisci saepe nostrum sequi! Eaque, qui tempore pariatur aperiam omnis adipisci voluptatem vel facere, nisi sapiente aut harum quaerat. Esse, sunt accusamus consequatur, blanditiis beatae provident nesciunt ullam doloribus optio sapiente eius qui doloremque tempora vitae totam quasi inventore? Voluptate eius quos saepe dolores omnis assumenda odit obcaecati, ipsam reprehenderit atque sit ut ex sint placeat dolorum laboriosam? Unde est porro minima maxime repellendus alias corrupti commodi sed velit tempora quam illum natus, fugiat assumenda voluptatibus reiciendis asperiores cum pariatur. Culpa, delectus nisi! Tempore!</div>
-
-                {/* ===========================Post foot================================= */}
-                <div className="post-foot">
-                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/thumb.svg" alt="Like" /><span className='post-like-count'>230</span></div>
-                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/comment.svg" alt="Comment" /><span className='post-comment-count'>100</span></div>
-                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/share.svg" alt="Share" /><span className='post-share-count'>30</span></div>
-                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/bookmark.svg" alt="Share" /><span className='post-share-count'>30</span></div>
-                </div>
-              </div>
-
-            </div>
-
-            {/*======================== Post card end here======================== */}
-
-            <div className="userpost">
-              <div className="post-left">
-                <div className="profilepic">
-                  <img className='profileimg' src={user.avatar} alt={user.name} />
-                </div>
-              </div>
-              <div className="post-right">
-                <div className="posth">
-                  <div className="posth-left">
-                    <div className="user-name">{user.name}</div>
-                    <div className="post-time"><ul><li className='post-timeli'>2h</li></ul></div>
-                  </div>
-                  <div className="posth-right"><button className='posth-right-btn'><EllipsisVertical /></button></div>
-                </div>
-
-                <div className="post-content">
-                  hey i am pawan
-                  <div className="image-post">
-                    <div className="image-grid count-1">
-                      <img src="Background.jpg" alt="" />
+                <div className="post-right">
+                  <div className="posth">
+                    <div className="posth-left">
+                      <div className="user-name">{post.authorName || "UniLynk User"}</div>
+                      <div className="post-time"><ul><li className='post-timeli'>{formatRelativeTime(post.createdAt)}</li></ul></div>
                     </div>
+                    <div className="posth-right"><button className='posth-right-btn'><EllipsisVertical /></button></div>
                   </div>
-                </div>
-                <div className="post-foot">
-                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/thumb.svg" alt="Like" /><span className='post-like-count'>230</span></div>
-                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/comment.svg" alt="Comment" /><span className='post-comment-count'>100</span></div>
-                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/share.svg" alt="Share" /><span className='post-share-count'>30</span></div>
-                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/bookmark.svg" alt="Share" /><span className='post-share-count'>30</span></div>
-                </div>
 
-              </div>
 
-            </div>
 
-            <div className="userpost">
-              <div className="post-left">
-                <div className="profilepic">
-                  <img className='profileimg' src={user.avatar} alt={user.name} />
-                </div>
-              </div>
-              <div className="post-right">
-                <div className="posth">
-                  <div className="posth-left">
-                    <div className="user-name">{user.name}</div>
-                    <div className="post-time"><ul><li className='post-timeli'>2h</li></ul></div>
+
+
+                  <div className="post-content">
+                    {post.content}
+                    {!!post.images?.length && (
+                      <div className="image-post">
+                        <div className={getImageGridClass(post.images.length)}>
+                          {post.images.map((imageUrl, idx) => (
+                            <img key={`${post._id}-${idx}`} src={imageUrl} alt="Post image" />
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <div className="posth-right"><button className='posth-right-btn'><EllipsisVertical /></button></div>
-                </div>
 
-                <div className="post-content">
-                  <div className="image-grid count-3">
-                    <img src="Background.jpg" />
-                    <img src="Background.jpg" />
-                    <img src="Background.jpg" />
+
+                  <div className="post-foot">
+                    <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/thumb.svg" alt="Like" /><span className='post-like-count'>0</span></div>
+                    <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/comment.svg" alt="Comment" /><span className='post-comment-count'>0</span></div>
+                    <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/share.svg" alt="Share" /><span className='post-share-count'>0</span></div>
+                    <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/bookmark.svg" alt="Share" /><span className='post-share-count'>0</span></div>
 
                   </div>
                 </div>
-                <div className="post-foot">
-                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/thumb.svg" alt="Like" /><span className='post-like-count'>230</span></div>
-                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/comment.svg" alt="Comment" /><span className='post-comment-count'>100</span></div>
-                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/share.svg" alt="Share" /><span className='post-share-count'>30</span></div>
-                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/bookmark.svg" alt="Share" /><span className='post-share-count'>30</span></div>
-                </div>
+
 
               </div>
 
-            </div>
 
 
 
 
 
+            ))}
           </div>
 
 
 
 
 
-          {ispost ? (<Post setIspost={setIspost} />) : (
+          {ispost ? (<Post setIspost={setIspost} audience={selectedAudience} onPosted={handlePosted} />) : (
             <PostFAB setIspost={setIspost} />)}
 
         </div>
 
-      </main>
+      </main >
       <div className="msgsidebar">
         <div className="msgsidebarmain">
           <div className="msgsearchbar">
@@ -222,6 +218,6 @@ export default function DashboardClient() {
           </div>
         </div>
       </div>
-    </div>
+    </div >
   );
 }

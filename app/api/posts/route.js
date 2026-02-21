@@ -22,10 +22,15 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
-    const { content, audience, authorName } = await req.json();
+    const { content, audience, authorName, authorImage, images = [] } = await req.json();
 
-    if (!content || !content.trim()) {
-      return new Response("Post content is required", { status: 400 });
+    const safeContent = content?.trim() || "";
+    const safeImages = Array.isArray(images)
+      ? images.filter((image) => typeof image === "string" && image.trim()).map((image) => image.trim()).slice(0, 4)
+      : [];
+
+    if (!safeContent && safeImages.length === 0) {
+      return new Response("Post content or image is required", { status: 400 });
     }
 
     const safeAudience = audience === "clubs" ? "clubs" : "for-you";
@@ -33,9 +38,11 @@ export async function POST(req) {
     await connectDB();
 
     const post = await Post.create({
-      content: content.trim(),
+      content: safeContent,
       audience: safeAudience,
       authorName: authorName?.trim() || "UniLynk User",
+      authorImage: authorImage?.trim() || "/Profilepic.png",
+      images: safeImages,
     });
 
     return Response.json({ post }, { status: 201 });
