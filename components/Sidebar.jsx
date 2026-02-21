@@ -3,20 +3,58 @@
 import React from 'react'
 import "./Sidebar.css"
 import Link from 'next/link'
-import Image from 'next/image'
 import { useSession } from 'next-auth/react'
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { usePathname } from 'next/navigation';
 import SignOutModal from './SignOutModal';
 import { Mail } from 'lucide-react'
+import ReliableImage from './ReliableImage';
 
 const Sidebar = () => {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const [settings, setSettings] = useState(true);
   const [showSignOutModal, setSignoutModal] = useState(false)
+  const [userProfile, setUserProfile] = useState(null);
   const pathname = usePathname();
 
   const isActive = (path) => pathname === path;
+
+  useEffect(() => {
+    if (status !== 'authenticated') return;
+
+    const loadProfile = async (attempt = 0) => {
+      try {
+        const res = await fetch('/api/user/me', { cache: 'no-store' });
+
+        if (!res.ok) {
+          if (attempt < 2) {
+            setTimeout(() => loadProfile(attempt + 1), 400);
+          }
+          return;
+        }
+
+        const data = await res.json();
+        if (data?.user) {
+          setUserProfile(data.user);
+        }
+      } catch (error) {
+        if (attempt < 2) {
+          setTimeout(() => loadProfile(attempt + 1), 400);
+          return;
+        }
+        console.error('Sidebar profile fetch failed:', error);
+      }
+    };
+
+    loadProfile();
+  }, [status]);
+
+  const sidebarUser = useMemo(() => ({
+    name: userProfile?.name || session?.user?.name || 'User',
+    email: userProfile?.email || session?.user?.email || 'No email available',
+    year: userProfile?.year || session?.user?.year || '_',
+    image: userProfile?.img || session?.user?.image || '/Profilepic.png',
+  }), [userProfile, session]);
 
 
 
@@ -71,12 +109,12 @@ const Sidebar = () => {
                       <img src="/Background.jpg" alt="Profile background" />
                     </div>
                     <div className="profpic">
-                      <img src={session?.user?.image || '/Profilepic.png'} alt="Profile picture" />
+                      <ReliableImage src={sidebarUser.image} fallbackSrc="/Profilepic.png" alt="Profile picture" loading="eager" decoding="async" />
                     </div>
                     <div className="profinfo">
-                      <h2 className="username">{session?.user?.name || 'User'}</h2>
-                      <div className="branch">{session?.user?.email || 'No email available'}</div>
-                      <div className="year">{session?.user?.year || '_'}</div>
+                      <h2 className="username">{sidebarUser.name}</h2>
+                      <div className="branch">{sidebarUser.email}</div>
+                      <div className="year">{sidebarUser.year}</div>
                     </div>
                     <div className="post">
 

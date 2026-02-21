@@ -4,10 +4,13 @@ import React from 'react'
 import Image from 'next/image'
 import "./Club.css"
 import { useState } from 'react'
+import Link from 'next/link'
+import AddMembersFab from '@/components/AddMembersFab'
 
 const Clubpage = () => {
     const tabs = ["About", "Past Activities", "Upcoming Events"];
     const [active, setActive] = useState(0);
+    const [showAddMembersFab, setAddMembersFab] = useState(false)
 
 
 
@@ -22,6 +25,17 @@ const Clubpage = () => {
             </div>
             <div className="clublogocont">
                 <div className="clublogo"><img src="Defaultclublogo.svg" alt="Clublogo" /></div>
+            </div>
+            <div className="club-edit-add-btncont">
+                <button className='club-edit-add-btn club-add-btn'
+                    onClick={() => setAddMembersFab(true)}>
+                    Add Members
+                </button>
+                {showAddMembersFab && (
+                   <AddMembersFab onClose={() => setAddMembersFab(false)} /> 
+                )}
+                
+                <button className='club-edit-add-btn club-edit-btn'>Edit Profile</button>
             </div>
             {/* ===================================Club Name====================================== */}
             <div className="clubmain">

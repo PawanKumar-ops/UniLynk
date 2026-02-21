@@ -7,6 +7,26 @@ import bcrypt from "bcryptjs";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/user";
 
+const hydrateTokenFromDb = async (token) => {
+  if (!token?.email) return token;
+
+  try {
+    await connectDB();
+    const dbUser = await User.findOne({ email: token.email }).lean();
+
+    if (dbUser) {
+      token.name = dbUser.name || token.name || "";
+      token.picture = dbUser.img || token.picture || "";
+      token.year = dbUser.year || token.year || "";
+    }
+  } catch (error) {
+    console.error("JWT HYDRATE ERROR:", error);
+  }
+
+  return token;
+};
+
+
 export const authOptions = {
   trustHost: true,
   secret: process.env.NEXTAUTH_SECRET,
@@ -65,7 +85,7 @@ export const authOptions = {
   ],
 
   callbacks: {
-    // 🔐 SIGN IN CALLBACK (MERGED LOGIC)
+    // SIGN IN CALLBACK (MERGED LOGIC)
     async signIn({ user, account }) {
   try {
     await connectDB();
@@ -73,34 +93,54 @@ export const authOptions = {
     if (!user?.email) return false;
 
     const email = user.email.toLowerCase().trim();
-    const nitDomain = "@nitkkr.ac.in";
+        const nitDomain = "@nitkkr.ac.in";
 
-    const rollNumber = email.endsWith(nitDomain)
-      ? email.replace(nitDomain, "")
-      : null;
+        const rollNumber = email.endsWith(nitDomain)
+          ? email.replace(nitDomain, "")
+          : null;
 
-    await User.findOneAndUpdate(
-      { email },
-      {
-        email,
-        name: user.name || "",
-        img: user.image || "",
-        provider: account?.provider || "credentials",
-        rollNumber, // ✅ ALWAYS set it
-      },
-      {
-        upsert: true,
-        new: true,
-        setDefaultsOnInsert: true,
+        await User.findOneAndUpdate(
+          { email },
+          {
+            email,
+            name: user.name || "",
+            img: user.image || "",
+            provider: account?.provider || "credentials",
+            rollNumber,
+          },
+          {
+            upsert: true,
+            new: true,
+            setDefaultsOnInsert: true,
+          }
+        );
+        return true;
+      } catch (error) {
+        console.error("SIGN IN ERROR:", error);
+        return false;
       }
-    );
+    },
 
-    return true;
-  } catch (error) {
-    console.error("SIGN IN ERROR:", error);
-    return false;
-  }
-}
+
+   async jwt({ token, trigger }) {
+      if (!token?.email) return token;
+
+    const shouldHydrate = trigger === "signIn" || !token.picture;
+      if (!shouldHydrate) return token;
+
+       return hydrateTokenFromDb(token);
+    },
+
+    async session({ session, token }) {
+      if (!session.user) session.user = {};
+
+      session.user.name = token.name || session.user.name || "";
+      session.user.email = token.email || session.user.email || "";
+      session.user.image = token.picture || session.user.image || "";
+      session.user.year = token.year || session.user.year || "";
+
+      return session;
+    },
 
   },
 };

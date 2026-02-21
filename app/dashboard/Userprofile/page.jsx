@@ -10,6 +10,7 @@ import { useMemo } from 'react';
 import { Icon } from "@iconify/react";
 import { getSkillIcon } from "@/lib/skillIcons";
 import ProfileEditModal from '@/components/ProfileEditModal'
+import ReliableImage from '@/components/ReliableImage'
 
 const Userprofile = () => {
 
@@ -352,10 +353,13 @@ const Userprofile = () => {
                         <div className="hero-grid">
                             <div className="hero-left">
                                 <div className="profile-image-wrapper">
-                                    <img
+                                    <ReliableImage
                                         className="profile-img"
-                                        src={viewedProfile?.img || "/Profilepic.png"}
+                                        src={viewedProfile?.img}
+                                        fallbackSrc="/Profilepic.png"
                                         alt={`${viewedProfile?.name || "User"} profile`}
+                                        loading="eager"
+                                        decoding="async"
                                     />
                                 </div>
                             </div>
