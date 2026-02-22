@@ -67,6 +67,7 @@ const Post = ({ setIspost, audience = "for-you", onPosted }) => {
                     images,
                     authorName: session?.user?.name,
                     authorImage: session?.user?.image,
+                    authorEmail: session?.user?.email,
                 }),
             });
             const data = await res.json();

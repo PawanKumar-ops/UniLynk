@@ -85,7 +85,7 @@
     gap: 20px;
 }
 
-.filterevent {
+.filterevent{
     width: 120px;
     border: 1px solid black;
     display: flex;
@@ -97,7 +97,8 @@
     border-radius: 10px;
     background-color: #fff;
     color: #000;
-     cursor: pointer;
+    cursor: pointer;
+    height: 41.6px;
 }
 
 .filterevent:hover {

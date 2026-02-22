@@ -24,7 +24,7 @@ export default function Home() {
 
           <ul className="navbuttons">
             <button id="login">Login</button>
-            <button id="joinasclub">Join as Club</button>
+            <Link href="./NewClubForm"><button id="joinasclub">Join as Club</button></Link>
           </ul>
 
         </div>

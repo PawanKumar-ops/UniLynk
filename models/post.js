@@ -17,9 +17,16 @@ const PostSchema = new mongoose.Schema(
       trim: true,
       default: "UniLynk User",
     },
+    authorEmail: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      index: true,
+      default: "",
+    },
     authorImage: {
       type: String,
-      default: "/Profilepic.png",
+      default: "",
     },
     images: {
       type: [String],

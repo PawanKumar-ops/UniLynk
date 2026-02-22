@@ -290,7 +290,7 @@ const Userprofile = () => {
             {/* Main Content Area */}
             <main className="main-area">
                 {/* Top Bar */}
-                <header className="top-bar">
+                <header className="userprofile-top-bar">
 
 
                     {!isOwnProfile && (
@@ -304,8 +304,8 @@ const Userprofile = () => {
 
 
 
-                    <div className="search-wrapper">
-                        <div className="search-box">
+                    <div className="userprofile-search-wrapper">
+                        <div className="userprofile-search-box">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
                                     d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />

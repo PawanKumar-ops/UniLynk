@@ -6,6 +6,7 @@ import { Search } from 'lucide-react';
 import PostFAB from '../../components/PostFAB';
 import Post from '../../components/Post';
 import { EllipsisVertical } from 'lucide-react';
+import ReliableImage from '../../components/ReliableImage';
 
 const formatRelativeTime = (dateString) => {
   const date = new Date(dateString);
@@ -19,6 +20,10 @@ const formatRelativeTime = (dateString) => {
   return `${days}d`;
 };
 
+const buildAvatarFallback = (name) => {
+  const safeName = (name || "UniLynk User").trim() || "UniLynk User";
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(safeName)}&background=random&color=fff&size=128&bold=true`;
+};
 
 export default function DashboardClient() {
   const [isAnnual, setIsAnnual] = useState(true);
@@ -100,7 +105,13 @@ export default function DashboardClient() {
               <div className="userpost" key={post._id}>
                 <div className="post-left">
                   <div className="profilepic">
-                    <img className='profileimg' src={post.authorImage || "/Profilepic.png"} alt={post.authorName || "User"} />
+                    <ReliableImage
+                      className='profileimg'
+                      src={post.authorImage}
+                      alt={post.authorName || "User"}
+                      fallbackSrc={buildAvatarFallback(post.authorName)}
+                      maxRetries={3}
+                    />
                   </div>
 
                 </div>

@@ -45,18 +45,23 @@
 .post-left{
   width: fit-content;
   height: 100%;
-  margin-right: 10px;
+  margin-right: 6px;
 }
 
 .profileimg{
   width: 40px;
   height: 40px;
+  object-fit: cover;
+  border-radius: 999px;
+  background: #f4f4f5;
 }
 
 .profilepic{
   border-radius: 999px;
   overflow: hidden;
   width: fit-content;
+  width: 40px;
+  height: 40px;
 }
 
 .post-right{
