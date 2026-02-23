@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
+import { Search } from "lucide-react";
 import "./chat.css";
+import Image from "next/image";
 
 export default function ChatPage() {
   const [users, setUsers] = useState([]);
@@ -14,6 +16,11 @@ export default function ChatPage() {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [error, setError] = useState("");
   const socketRef = useRef(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [activeFilter, setActiveFilter] = useState("all");
+
+
+
 
   const activeUser = useMemo(
     () => users.find((user) => user.id === activeUserId),
@@ -156,25 +163,96 @@ export default function ChatPage() {
       }
     };
   }, [currentUserId, activeUserId]);
-return(
+
+
+
+  const conversations = useMemo(
+    () =>
+      users.map((u) => {
+        const normalizedRole = (u.role || "")
+          .toLowerCase()
+          .trim();
+
+        let category = "direct";
+
+        if (normalizedRole === "student") category = "student";
+        else if (normalizedRole === "club") category = "club";
+
+        return {
+          id: u.id,
+          name: u.name,
+          avatar: u.name?.[0]?.toUpperCase(),
+          preview: u.lastMessage || u.email,
+          time: "",
+          unread: u.unreadCount || 0,
+          category,
+        };
+      }),
+    [users]
+  );
+
+  const filters = [
+    { label: "All Chats", value: "all" },
+    { label: "Clubs", value: "club" },
+    { label: "Students", value: "student" },
+  ];
+
+  const filteredConversations = useMemo(
+    () =>
+      conversations.filter((c) => {
+        const bySearch = c.name
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase());
+        const byFilter =
+          activeFilter === "all" || c.category === activeFilter;
+        return bySearch && byFilter;
+      }),
+    [conversations, searchTerm, activeFilter]
+  );
+
+
+
+  return (
     <div className="chat-page">
-      
+
 
       <main className="chat-main-panel">
         <header className="chat-main-header">
-          <h2>{activeUser ? `Chat with ${activeUser.name}` : "Select a user"}</h2>
+          {activeUser ? (
+            <div className="active-user-header">
+              <div className="active-user-avatar">
+                <Image
+                  src={activeUser.image || "/Profilepic.png"}
+                  alt={activeUser.name}
+                  width={46}
+                  height={46}
+                />
+              </div>
+
+              <div className="active-user-info">
+                <h2>{activeUser.name}</h2>
+                <p className="user-email">{activeUser.email}</p>
+              </div>
+            </div>
+          ) : (
+            <h2>Select a user</h2>
+          )}
         </header>
 
         <div className="chat-messages">
           {loadingMessages ? (
-            <p>Loading messages...</p>
+            <div className="chatloadani">
+              <div className="relative w-16 h-16">
+                <div className="absolute inset-0 rounded-full border-4 border-gray-200"></div>
+                <div className="absolute inset-0 rounded-full border-4 border-black border-t-transparent animate-spin"></div>
+              </div>
+            </div>
           ) : (
             messages.map((msg) => (
               <div
                 key={msg.id}
-                className={`chat-bubble ${
-                  msg.sender === currentUserId ? "chat-bubble-own" : ""
-                }`}
+                className={`chat-bubble ${msg.sender === currentUserId ? "chat-bubble-own" : ""
+                  }`}
               >
                 <p>{msg.text}</p>
                 <span>{new Date(msg.createdAt).toLocaleTimeString()}</span>
@@ -182,7 +260,12 @@ return(
             ))
           )}
           {!loadingMessages && messages.length === 0 && activeUserId && (
-            <p>Start the conversation.</p>
+            <div id="nochat-illuistration">
+              <img src="/Chat/nochatill.svg" alt="No chat right now" />
+              <h1 className="nochath">Start a New Conversation</h1>
+              <p className="nochatp">Your messages will appear here. Begin by sending a message to start the conversation.</p>
+
+            </div>
           )}
         </div>
 
@@ -201,28 +284,60 @@ return(
 
         {error && <p className="chat-error">{error}</p>}
       </main>
-      <aside className="chat-users-panel">
-        <h2>Users</h2>
-        {loadingUsers ? (
-          <p>Loading users...</p>
-        ) : (
-          <div className="chat-users-list">
-            {users.map((user) => (
+      <aside className="chat-list-panel">
+        <div className="chat-list-head">
+          <h3>Chats</h3>
+          <p>Students & clubs</p>
+        </div>
+
+        <div className="chat-searchbar">
+          <Search size={15} />
+          <input
+            placeholder="Search chats"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        <div className="chat-filters">
+          {filters.map((f) => (
+            <button
+              key={f.value}
+              className={activeFilter === f.value ? "active" : ""}
+              onClick={() => setActiveFilter(f.value)}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="chat-list-scroll">
+          {loadingUsers ? (
+            <div className="chat-empty">Loading users…</div>
+          ) : (
+            filteredConversations.map((chat) => (
               <button
-                key={user.id}
-                className={`chat-user-item ${
-                  activeUserId === user.id ? "chat-user-item-active" : ""
-                }`}
-                onClick={() => setActiveUserId(user.id)}
+                key={chat.id}
+                className={`chat-item ${chat.id === activeUserId ? "active" : ""
+                  }`}
+                onClick={() => setActiveUserId(chat.id)}
               >
-                <div className="chat-user-name">{user.name}</div>
-                <div className="chat-user-email">{user.email}</div>
+                <div className="chat-item-avatar">{chat.avatar}</div>
+                <div className="chat-item-content">
+                  <div className="chat-item-top">
+                    <h4>{chat.name}</h4>
+                    <span>{chat.time}</span>
+                  </div>
+                  <div className="chat-item-bottom">
+                    <p>{chat.preview}</p>
+                    {chat.unread > 0 && <em>{chat.unread}</em>}
+                  </div>
+                </div>
               </button>
-            ))}
-            {users.length === 0 && <p>No other users found.</p>}
-          </div>
-        )}
+            ))
+          )}
+        </div>
       </aside>
     </div>
-);
+  );
 }
