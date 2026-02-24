@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import "./UserinfoForm.css";
 import { SKILLS } from "@/lib/skillsList";
+import { X } from "lucide-react";
 
 export default function UserinfoPage() {
   const router = useRouter();
@@ -286,7 +286,7 @@ export default function UserinfoPage() {
               {skills.map((skill, index) => (
                 <span key={index} className="skill-chip">
                   {skill}
-                  <button type="button" onClick={() => removeSkill(index)}>×</button>
+                  <button type="button" onClick={() => removeSkill(index)}><X /></button>
                 </span>
               ))}
             </div>

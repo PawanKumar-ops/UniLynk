@@ -119,7 +119,7 @@ header {
 
 .viewprofilebtn {
     width: 100%;
-    background-color: grey;
+    background-color: #000;
     color: #ffffff;
     height: 40px;
     margin-top: 35px;
@@ -131,7 +131,7 @@ header {
 }
 
 .viewprofilebtn:hover {
-    background-color: #111;
+    background-color: #343434;
 }
 
 .logo {

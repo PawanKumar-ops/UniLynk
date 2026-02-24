@@ -200,11 +200,16 @@ input:focus {
     background-color: #fff;
     border: 1px solid rgb(230, 230, 230);
     height: fit-content;
-    padding: 4px 6px 4px 15px;
+    padding: 4px 10px 4px 15px;
     border-radius: 999px;
     display: flex;
     flex-direction: row;
     gap: 8px;
+}
+
+.skill-chip button svg{
+    width: 16px;
+    height: 16px;
 }
 
 .cross{

@@ -250,7 +250,12 @@ const Userprofile = () => {
     }
 
     if (error) {
-        return <div className="user-profile-page">{error}</div>;
+        return <div className="user-profile-page">
+            <div className="user-profile-errorpage">
+                <Image src="/Userprofile/Userprofileerrorpage.svg" alt='Error in page' width={338.767} height={350}/>
+                <h1 className="user-profile-error-msg">{error}</h1>
+            </div>
+        </div>;
     }
 
     // const profile = {

@@ -41,6 +41,29 @@
   z-index: 1;
 }
 
+.noposts-illuistration{
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 90vh;
+}
+
+.noposts-illuistration img{
+  margin-bottom: 2rem;
+}
+
+.noposts-illuistrationh{
+  font-size: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.noposts-illuistrationp{
+  width: 384px;
+  text-align: center;
+  color: grey;
+}
+
 
 .post-left{
   width: fit-content;

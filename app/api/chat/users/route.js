@@ -19,14 +19,14 @@ export async function GET() {
     }
 
     const users = await User.find({ _id: { $ne: currentUser._id } })
-      .select("name email image")
+      .select("name email img")
       .sort({ name: 1 });
 
     const mappedUsers = users.map((user) => ({
       id: user._id.toString(),
       name: user.name || user.email,
       email: user.email,
-      image: user.image || null,
+      image: user.img || null,
     }));
 
     return Response.json({

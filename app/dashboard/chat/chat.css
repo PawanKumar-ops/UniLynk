@@ -300,6 +300,13 @@
     font-size: 0.77rem;
     font-weight: 700;
     flex-shrink: 0;
+    overflow: hidden;
+}
+
+.chat-item-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .chat-item-content {

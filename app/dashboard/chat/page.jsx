@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { Search } from "lucide-react";
 import "./chat.css";
-import Image from "next/image";
+import ReliableImage from "@/components/ReliableImage";
 
 export default function ChatPage() {
   const [users, setUsers] = useState([]);
@@ -182,6 +182,7 @@ export default function ChatPage() {
           id: u.id,
           name: u.name,
           avatar: u.name?.[0]?.toUpperCase(),
+          image: u.image || "",
           preview: u.lastMessage || u.email,
           time: "",
           unread: u.unreadCount || 0,
@@ -221,8 +222,9 @@ export default function ChatPage() {
           {activeUser ? (
             <div className="active-user-header">
               <div className="active-user-avatar">
-                <Image
-                  src={activeUser.image || "/Profilepic.png"}
+                <ReliableImage
+                  src={activeUser.image}
+                  fallbackSrc="/Profilepic.png"
                   alt={activeUser.name}
                   width={46}
                   height={46}
@@ -322,7 +324,19 @@ export default function ChatPage() {
                   }`}
                 onClick={() => setActiveUserId(chat.id)}
               >
-                <div className="chat-item-avatar">{chat.avatar}</div>
+                <div className="chat-item-avatar">
+                  {chat.image ? (
+                    <ReliableImage
+                      src={chat.image}
+                      fallbackSrc="/Profilepic.png"
+                      alt={chat.name}
+                      width={38}
+                      height={38}
+                    />
+                  ) : (
+                    chat.avatar
+                  )}
+                </div>
                 <div className="chat-item-content">
                   <div className="chat-item-top">
                     <h4>{chat.name}</h4>

@@ -99,7 +99,11 @@ export default function DashboardClient() {
 
             {/*================== One Card of user post ====================*/}
             {loadingPosts && <div className="userpost"><div className="post-right">Loading posts...</div></div>}
-            {!loadingPosts && posts.length === 0 && <div className="userpost"><div className="post-right">No posts yet. Create one!</div></div>}
+            {!loadingPosts && posts.length === 0 && <div className="noposts-illuistration">
+              <img src="./dashboard/NoPosts.svg" alt="No Posts" />
+              <h1 className='noposts-illuistrationh'>No Posts Yet</h1>
+              <p className='noposts-illuistrationp'>It looks a little empty here. Check back later or be the first to create something amazing!</p>
+            </div>}
 
             {!loadingPosts && posts.map((post) => (
               <div className="userpost" key={post._id}>
