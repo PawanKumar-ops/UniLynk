@@ -130,21 +130,46 @@ export default function FormBuilder() {
     if (!formData) return;
 
     try {
-      let payload = {
-        ...formData,
-        isPublished: true
-      };
+      const isDraft = formData._id?.startsWith("draft_");
+      const isExistingMongoForm = Boolean(formData._id) && !isDraft;
+      let res;
 
-      // Remove draft id → Mongo creates real _id
-      if (payload._id?.startsWith("draft_")) {
-        delete payload._id;
+      if (isExistingMongoForm) {
+        const { _id, ...safeData } = formData;
+
+        const updateRes = await fetch("/api/forms/update", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            formId: _id,
+            formData: safeData,
+          }),
+        });
+
+        if (!updateRes.ok) throw new Error("Failed to save before publishing");
+
+        res = await fetch("/api/forms/publish", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ formId: _id }),
+        });
+      } else {
+        const payload = {
+          ...formData,
+          isPublished: true,
+        };
+
+       // Remove draft id → Mongo creates real _id
+        if (payload._id?.startsWith("draft_")) {
+          delete payload._id;
+        }
+
+        res = await fetch("/api/forms/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
       }
-
-      const res = await fetch("/api/forms/create", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
 
       if (!res.ok) throw new Error("Publish failed");
 

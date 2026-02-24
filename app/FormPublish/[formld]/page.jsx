@@ -4,38 +4,43 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function PublishFormPage() {
-  const { formId } = useParams();
+  const { formld } = useParams();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!formId) return;
+    if (!formld) return;
 
     const publishForm = async () => {
       try {
-        // STEP 1 — Get form data
-        const formRes = await fetch(`/api/forms/${formId}`);
+        // STEP 1 — Get latest form data
+        const formRes = await fetch(`/api/forms/${formld}`);
+        if (!formRes.ok) throw new Error("Failed to load form");
         const formData = await formRes.json();
 
         // STEP 2 — Save updated form content
-        await fetch("/api/forms/update", {
-          method: "POST",
+        const { _id, ...safeData } = formData;
+        const updateRes = await fetch("/api/forms/update", {
+          method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            formId,
-            data: formData
-          })
+            formId: _id || formld,
+            formData: safeData,
+          }),
         });
+
+        if (!updateRes.ok) throw new Error("Failed to update form");
 
         // STEP 3 — Publish form
-        await fetch("/api/forms/publish", {
+          const publishRes = await fetch("/api/forms/publish", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ formId })
+          body: JSON.stringify({ formId: _id || formld }),
         });
 
-        router.push("/dashboard/events");
+        if (!publishRes.ok) throw new Error("Failed to publish form");
 
+        router.push("/dashboard/events");
       } catch (error) {
         console.error(error);
       } finally {
@@ -45,7 +50,7 @@ export default function PublishFormPage() {
 
     publishForm();
 
-  }, [formId, router]);
+  }, [formld, router]);
 
   return (
     <div style={{ padding: "40px", textAlign: "center" }}>

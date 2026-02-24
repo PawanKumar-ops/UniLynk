@@ -3,6 +3,13 @@
   overflow: hidden;
 }
 
+.userpostsloadani{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 90vh;
+}
+
 .userposts {
   display: flex;
   flex-direction: column;

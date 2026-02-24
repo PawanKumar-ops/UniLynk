@@ -98,7 +98,12 @@ export default function DashboardClient() {
 
 
             {/*================== One Card of user post ====================*/}
-            {loadingPosts && <div className="userpost"><div className="post-right">Loading posts...</div></div>}
+            {loadingPosts && <div className="userpostsloadani">
+              <div className="relative w-12 h-12">
+                <div className="absolute inset-0 rounded-full border-3 border-gray-200"></div>
+                <div className="absolute inset-0 rounded-full border-3 border-black border-t-transparent animate-spin"></div>
+              </div>
+            </div>}
             {!loadingPosts && posts.length === 0 && <div className="noposts-illuistration">
               <img src="./dashboard/NoPosts.svg" alt="No Posts" />
               <h1 className='noposts-illuistrationh'>No Posts Yet</h1>

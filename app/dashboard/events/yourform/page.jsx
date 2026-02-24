@@ -20,23 +20,23 @@ import { useRouter } from "next/navigation";
 
 const Page = () => {
 
-      const [forms, setForms] = useState([]);
+    const [forms, setForms] = useState([]);
 
 
     useEffect(() => {
         const load = async () => {
             const res = await fetch("/api/forms/mine", { cache: "no-store" });
-                    const payload = await res.json();
+            const payload = await res.json();
 
             const savedForms = Array.isArray(payload)
                 ? payload
                 : Array.isArray(payload?.forms)
-                  ? payload.forms
-                  : [];
+                    ? payload.forms
+                    : [];
 
             const drafts = listDrafts();
 
-             setForms([...(drafts || []), ...savedForms]);
+            setForms([...(drafts || []), ...savedForms]);
         };
 
         load();
@@ -148,11 +148,11 @@ const Page = () => {
 
         // Duplicate as NEW DRAFT
         const newDraft = {
-              ...createDraft(),
+            ...createDraft(),
             ...formToDuplicate,
-    
+
             title: `${formToDuplicate.title} (Copy)`,
-          
+
             isPublished: false,
         };
 
@@ -168,7 +168,14 @@ const Page = () => {
             <main className="home-main">
                 {forms.length === 0 ? (
                     <div className="home-empty-state">
-                        <div className="empty-illustration">
+                        <div className="no-forms-ill">
+                            <img src="/eventsicons/NoFormsIll.svg" alt="No Forms" />
+
+                            <h2 className="no-forms-illh">No forms yet</h2>
+                            <p className="no-forms-illp">Create your first form to get started</p>
+
+                        </div>
+                        {/* <div className="empty-illustration">
                             <div className="circle-bg">
                                 <div className="home-empty-icon">
                                     <FileText />
@@ -178,7 +185,7 @@ const Page = () => {
                         <h2 className="home-empty-title">No forms yet</h2>
                         <p className="home-empty-text">
                             Create your first form to get started
-                        </p>
+                        </p> */}
                         <button
                             onClick={handleCreate}
                             className="btn-new-form"
@@ -243,7 +250,7 @@ const Page = () => {
                                             <span>{form.questions?.length || 0} questions</span>
 
                                             <span>
-                                             {form.createdAt ? new Date(form.createdAt).toLocaleDateString() : "-"}
+                                                {form.createdAt ? new Date(form.createdAt).toLocaleDateString() : "-"}
                                             </span>
                                         </div>
                                         <div className="form-card-footer">

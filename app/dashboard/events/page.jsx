@@ -107,10 +107,10 @@ const Eventspage = () => {
     <div className="my-eventsbody">
       {filteredEvents.length === 0 && (
         <div className="no-events-ill">
-          <img src="/eventsicons/NoEventsIll.svg" alt="" />
+          <img src="/eventsicons/NoEventsIll.svg" alt="No Events" />
 
-          <h2 className="no-events-illh">No matching events</h2>
-          <p className="no-events-illp">No events match the selected filters. Try changing category, club, or time range.</p>
+          <h2 className="no-events-illh">No Events Right Now</h2>
+          <p className="no-events-illp">The event calendar is currently clear. Check out our vibrant clubs and communities to stay connected with campus life.</p>
 
         </div>
       )}

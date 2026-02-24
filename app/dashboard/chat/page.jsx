@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import { Search } from "lucide-react";
+import { Paperclip } from "lucide-react";
 import "./chat.css";
 import ReliableImage from "@/components/ReliableImage";
 
@@ -244,9 +245,9 @@ export default function ChatPage() {
         <div className="chat-messages">
           {loadingMessages ? (
             <div className="chatloadani">
-              <div className="relative w-16 h-16">
-                <div className="absolute inset-0 rounded-full border-4 border-gray-200"></div>
-                <div className="absolute inset-0 rounded-full border-4 border-black border-t-transparent animate-spin"></div>
+              <div className="relative w-12 h-12">
+                <div className="absolute inset-0 rounded-full border-3 border-gray-200"></div>
+                <div className="absolute inset-0 rounded-full border-3 border-black border-t-transparent animate-spin"></div>
               </div>
             </div>
           ) : (
@@ -272,6 +273,9 @@ export default function ChatPage() {
         </div>
 
         <form className="chat-compose" onSubmit={sendMessage}>
+          <button className="chatmediabtn">
+            <Paperclip className="h-4 w-4" />
+          </button>
           <input
             type="text"
             placeholder="Type your message"
@@ -279,7 +283,7 @@ export default function ChatPage() {
             onChange={(event) => setMessageText(event.target.value)}
             disabled={!activeUserId}
           />
-          <button type="submit" disabled={!activeUserId || !messageText.trim()}>
+          <button className="chatsendbtn" type="submit" disabled={!activeUserId || !messageText.trim()}>
             Send
           </button>
         </form>
