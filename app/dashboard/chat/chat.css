@@ -297,11 +297,82 @@
 .chat-gif-picker {
   width: 380px;
   max-width: min(92vw, 380px);
+  height: 420px;
+
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
-.chat-gif-picker>div {
-  max-height: 360px;
-  overflow: auto;
+/* Giphy Search Bar */
+.giphy-picker-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  
+}
+
+.giphy-search{
+  position: sticky;
+  padding: 15px 10px;
+}
+
+.gif-search {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  padding: 10px 12px;
+  height: 40px;
+
+  border: 1px solid #d0d6de;
+  border-radius: 999px;
+  background-color: #f5f5f5;
+}
+
+.gif-search input {
+  width: 100%;
+  border: none;
+  outline: none;
+  font-size: 0.85rem;
+  background: transparent;
+  padding: 9.6px 12px;
+}
+
+.gif-search svg{
+  height: 15px;
+  width: 15px;
+  color: grey;
+}
+
+.giphy-grid{
+  width: fit-content;
+}
+
+.giphy-grid-scroll {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: none;
+  display: flex;
+  justify-content: center;
+}
+
+
+.chat-gif-picker-fallback {
+  max-width: 320px;
+  padding: 12px;
+  font-size: 0.82rem;
+  color: #4b5563;
+}
+
+.chat-gif-picker-fallback code {
+  background: #f3f4f6;
+  padding: 2px 4px;
+  border-radius: 4px;
 }
 
 .chat-hidden-input {
@@ -474,4 +545,12 @@
   color: gray;
   font-size: 0.82rem;
   padding: 20px 10px;
+}
+
+/* FIX emoji-picker-react search bar */
+.EmojiPickerReact .epr-search-container input {
+  box-sizing: border-box !important;
+
+  padding: 0 12px 0 36px !important;
+ 
 }

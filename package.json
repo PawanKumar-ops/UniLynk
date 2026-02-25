@@ -9,6 +9,8 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@giphy/js-fetch-api": "^5.7.0",
+    "@giphy/react-components": "^10.1.1",
     "@iconify/react": "^6.0.2",
     "async_hooks": "^1.0.0",
     "bcrypt": "^6.0.0",
@@ -17,7 +19,6 @@
     "date-fns": "^4.1.0",
     "emoji-picker-react": "^4.12.3",
     "framer-motion": "^12.29.2",
-    "gif-picker-react": "^1.4.0",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.562.0",
     "mongoose": "^9.1.5",

@@ -11,11 +11,60 @@ import {
   X,
 } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
-import GifPicker from "gif-picker-react";
 import "./chat.css";
 import ReliableImage from "@/components/ReliableImage";
+import { GiphyFetch } from "@giphy/js-fetch-api";
+import { Grid } from "@giphy/react-components";
 
-const TENOR_API_KEY = process.env.NEXT_PUBLIC_TENOR_API_KEY || "LIVDSRZULELA";
+const GIPHY_API_KEY = process.env.NEXT_PUBLIC_GIPHY_API_KEY || "";
+const gf = new GiphyFetch(GIPHY_API_KEY);
+
+function GiphyPicker({ onSelect }) {
+  const [query, setQuery] = useState("");
+
+  const fetchGifs = (offset) => {
+    if (query.trim()) {
+      return gf.search(query, { offset, limit: 20 });
+    }
+    return gf.trending({ offset, limit: 20 });
+  };
+
+  return (
+    <div className="giphy-picker-wrapper">
+      {/* 🔍 Search Bar */}
+      <div className="giphy-search">
+        <div className="gif-search">
+        <Search size={16} />
+        <input
+          type="text"
+          placeholder="Search GIFs"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+        />
+        </div>
+      </div>
+
+      {/*  GIF Grid */}
+      <div className="giphy-grid-scroll">
+      <Grid
+        width={340}
+        columns={2}
+        gutter={8}
+        fetchGifs={fetchGifs}
+        key={query} // 🔥 forces refresh when query changes
+        onGifClick={(gif, e) => {
+          e.preventDefault();
+          const videoUrl =
+            gif.images.original_mp4?.mp4 ||
+            gif.images.fixed_height?.mp4;
+
+          if (videoUrl) onSelect(videoUrl);
+        }}
+      />
+      </div>
+    </div>
+  );
+}
 
 export default function ChatPage() {
   const [users, setUsers] = useState([]);
@@ -159,22 +208,17 @@ export default function ChatPage() {
     setShowEmojiPicker(false);
   }
 
-  function handleGifSelect(gif) {
-    const gifUrl =
-      gif?.url ||
-      gif?.media_formats?.gif?.url ||
-      gif?.mediaFormats?.gif?.url ||
-      gif?.itemurl;
+  function handleGifSelect(mediaUrl) {
+  if (!mediaUrl) return;
 
-    if (!gifUrl) return;
+  sendSocketMessage({
+    text: mediaUrl,
+    messageType: "gif",
+  });
 
-    sendSocketMessage({
-      text: gifUrl,
-      messageType: "gif",
-    });
-    setShowGifPicker(false);
-    setShowAttachmentFab(false);
-  }
+  setShowGifPicker(false);
+  setShowAttachmentFab(false);
+}
 
   async function handleDocumentUpload(event) {
     const selectedFile = event.target.files?.[0];
@@ -364,7 +408,22 @@ export default function ChatPage() {
                 className={`chat-bubble ${msg.sender === currentUserId ? "chat-bubble-own" : ""}`}
               >
                 {msg.messageType === "gif" ? (
-                  <img className="chat-gif" src={msg.text} alt="GIF message" />
+                  msg.text.endsWith(".mp4") ? (
+                    <video
+                      src={msg.text}
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="chat-gif"
+                    />
+                  ) : (
+                    <img
+                      src={msg.text}
+                      alt="GIF"
+                      className="chat-gif"
+                    />
+                  )
                 ) : msg.messageType === "document" ? (
                   <a
                     href={msg.attachment?.url}
@@ -453,7 +512,7 @@ export default function ChatPage() {
 
             {showGifPicker && (
               <div className="chat-picker chat-gif-picker">
-                <GifPicker tenorApiKey={TENOR_API_KEY} onGifClick={handleGifSelect} />
+                <GiphyPicker onSelect={handleGifSelect} />
               </div>
             )}
 
@@ -481,7 +540,7 @@ export default function ChatPage() {
               </div>
             )}
             <input
-            className="chatcomposeinput"
+              className="chatcomposeinput"
               type="text"
               placeholder="Type your message"
               value={messageText}
