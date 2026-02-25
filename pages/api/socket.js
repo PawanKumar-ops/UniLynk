@@ -19,12 +19,24 @@ export default function handler(req, res) {
 
       socket.on("send-message", async (payload, callback) => {
         try {
-          const { senderId, receiverId, text } = payload || {};
+          const { senderId, receiverId, text, messageType = "text", attachment = null } = payload || {};
 
-          if (!senderId || !receiverId || !text?.trim()) {
+                    const normalizedType = ["text", "emoji", "gif", "document"].includes(messageType)
+            ? messageType
+            : "text";
+
+          const trimmedText = typeof text === "string" ? text.trim() : "";
+
+          if (!senderId || !receiverId || (!trimmedText && normalizedType !== "document")) {
             callback?.({ ok: false, error: "Invalid payload" });
             return;
           }
+
+          if (normalizedType === "document" && !attachment?.url) {
+            callback?.({ ok: false, error: "Document URL is required" });
+            return;
+          }
+
 
           if (socket.data.userId !== senderId) {
             callback?.({ ok: false, error: "Sender mismatch" });
@@ -46,12 +58,23 @@ export default function handler(req, res) {
           const message = await ChatMessage.create({
             sender: senderUser._id,
             receiver: receiverUser._id,
-            text: text.trim(),
+            text: trimmedText,
+            messageType: normalizedType,
+            attachment: attachment
+              ? {
+                  url: attachment.url || "",
+                  fileName: attachment.fileName || "",
+                  mimeType: attachment.mimeType || "",
+                  size: attachment.size || 0,
+                }
+              : undefined,
           });
 
           const formattedMessage = {
             id: message._id.toString(),
-            text: message.text,
+            text: message.text || "",
+            messageType: message.messageType || "text",
+            attachment: message.attachment || null,
             sender: message.sender.toString(),
             receiver: message.receiver.toString(),
             createdAt: message.createdAt,

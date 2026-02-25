@@ -41,7 +41,9 @@ export async function GET(req) {
 
     const formattedMessages = messages.map((msg) => ({
       id: msg._id.toString(),
-      text: msg.text,
+      text: msg.text || "",
+      messageType: msg.messageType || "text",
+      attachment: msg.attachment || null,
       sender: msg.sender.toString(),
       receiver: msg.receiver.toString(),
       createdAt: msg.createdAt,
@@ -61,27 +63,48 @@ export async function POST(req) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { receiverId, text } = await req.json();
+    const { receiverId, text, messageType = "text", attachment = null } = await req.json();
 
     if (!receiverId || !mongoose.Types.ObjectId.isValid(receiverId)) {
       return Response.json({ error: "Valid receiverId is required" }, { status: 400 });
     }
 
-    if (!text || !text.trim()) {
+    const normalizedType = ["text", "emoji", "gif", "document"].includes(messageType)
+      ? messageType
+      : "text";
+
+    const trimmedText = typeof text === "string" ? text.trim() : "";
+
+    if (!trimmedText && normalizedType !== "document") {
       return Response.json({ error: "Message text is required" }, { status: 400 });
+    }
+
+if (normalizedType === "document" && !attachment?.url) {
+      return Response.json({ error: "Attachment URL is required for documents" }, { status: 400 });
     }
 
     const message = await ChatMessage.create({
       sender: currentUser._id,
       receiver: receiverId,
-      text: text.trim(),
+      text: trimmedText,
+      messageType: normalizedType,
+      attachment: attachment
+        ? {
+            url: attachment.url || "",
+            fileName: attachment.fileName || "",
+            mimeType: attachment.mimeType || "",
+            size: attachment.size || 0,
+          }
+        : undefined,
     });
 
     return Response.json(
       {
         message: {
           id: message._id.toString(),
-          text: message.text,
+          text: message.text || "",
+          messageType: message.messageType || "text",
+          attachment: message.attachment || null,
           sender: message.sender.toString(),
           receiver: message.receiver.toString(),
           createdAt: message.createdAt,
