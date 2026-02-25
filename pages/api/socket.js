@@ -3,6 +3,17 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/user";
 import ChatMessage from "@/models/chatMessage";
 
+const ALLOWED_MESSAGE_TYPES = ["text", "emoji", "gif", "document", "media"];
+
+function normalizeAttachment(file) {
+  return {
+    url: file?.url || "",
+    fileName: file?.fileName || "",
+    mimeType: file?.mimeType || "",
+    size: file?.size || 0,
+  };
+}
+
 export default function handler(req, res) {
   if (!res.socket.server.io) {
     const io = new Server(res.socket.server, {
@@ -19,21 +30,37 @@ export default function handler(req, res) {
 
       socket.on("send-message", async (payload, callback) => {
         try {
-          const { senderId, receiverId, text, messageType = "text", attachment = null } = payload || {};
+          const {
+            senderId,
+            receiverId,
+            text,
+            messageType = "text",
+            attachment = null,
+            attachments = [],
+          } = payload || {};
 
-                    const normalizedType = ["text", "emoji", "gif", "document"].includes(messageType)
+          const normalizedType = ALLOWED_MESSAGE_TYPES.includes(messageType)
             ? messageType
             : "text";
 
           const trimmedText = typeof text === "string" ? text.trim() : "";
+          const normalizedAttachment = attachment ? normalizeAttachment(attachment) : null;
+          const normalizedAttachments = Array.isArray(attachments)
+            ? attachments.filter((item) => item?.url).map(normalizeAttachment)
+            : [];
 
-          if (!senderId || !receiverId || (!trimmedText && normalizedType !== "document")) {
+          if (!senderId || !receiverId || (!trimmedText && normalizedType === "text")) {
             callback?.({ ok: false, error: "Invalid payload" });
             return;
           }
 
-          if (normalizedType === "document" && !attachment?.url) {
+          if (normalizedType === "document" && !normalizedAttachment?.url) {
             callback?.({ ok: false, error: "Document URL is required" });
+            return;
+          }
+
+          if (normalizedType === "media" && !normalizedAttachments.length) {
+            callback?.({ ok: false, error: "At least one media file is required" });
             return;
           }
 
@@ -60,14 +87,8 @@ export default function handler(req, res) {
             receiver: receiverUser._id,
             text: trimmedText,
             messageType: normalizedType,
-            attachment: attachment
-              ? {
-                  url: attachment.url || "",
-                  fileName: attachment.fileName || "",
-                  mimeType: attachment.mimeType || "",
-                  size: attachment.size || 0,
-                }
-              : undefined,
+            attachment: normalizedAttachment || undefined,
+            attachments: normalizedType === "media" ? normalizedAttachments : undefined,
           });
 
           const formattedMessage = {
@@ -75,6 +96,7 @@ export default function handler(req, res) {
             text: message.text || "",
             messageType: message.messageType || "text",
             attachment: message.attachment || null,
+            attachments: message.attachments || [],
             sender: message.sender.toString(),
             receiver: message.receiver.toString(),
             createdAt: message.createdAt,

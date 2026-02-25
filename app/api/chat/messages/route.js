@@ -5,6 +5,17 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/user";
 import ChatMessage from "@/models/chatMessage";
 
+const ALLOWED_MESSAGE_TYPES = ["text", "emoji", "gif", "document", "media"];
+
+function normalizeAttachment(file) {
+  return {
+    url: file?.url || "",
+    fileName: file?.fileName || "",
+    mimeType: file?.mimeType || "",
+    size: file?.size || 0,
+  };
+}
+
 async function getCurrentUser() {
   const session = await getServerSession(authOptions);
 
@@ -44,6 +55,7 @@ export async function GET(req) {
       text: msg.text || "",
       messageType: msg.messageType || "text",
       attachment: msg.attachment || null,
+      attachments: msg.attachments || [],
       sender: msg.sender.toString(),
       receiver: msg.receiver.toString(),
       createdAt: msg.createdAt,
@@ -63,24 +75,38 @@ export async function POST(req) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { receiverId, text, messageType = "text", attachment = null } = await req.json();
+    const {
+      receiverId,
+      text,
+      messageType = "text",
+      attachment = null,
+      attachments = [],
+    } = await req.json();
 
     if (!receiverId || !mongoose.Types.ObjectId.isValid(receiverId)) {
       return Response.json({ error: "Valid receiverId is required" }, { status: 400 });
     }
 
-    const normalizedType = ["text", "emoji", "gif", "document"].includes(messageType)
+    const normalizedType = ALLOWED_MESSAGE_TYPES.includes(messageType)
       ? messageType
       : "text";
 
     const trimmedText = typeof text === "string" ? text.trim() : "";
+    const normalizedAttachment = attachment ? normalizeAttachment(attachment) : null;
+    const normalizedAttachments = Array.isArray(attachments)
+      ? attachments.filter((item) => item?.url).map(normalizeAttachment)
+      : [];
 
-    if (!trimmedText && normalizedType !== "document") {
+    if (!trimmedText && normalizedType === "text") {
       return Response.json({ error: "Message text is required" }, { status: 400 });
     }
 
-if (normalizedType === "document" && !attachment?.url) {
+    if (normalizedType === "document" && !normalizedAttachment?.url) {
       return Response.json({ error: "Attachment URL is required for documents" }, { status: 400 });
+    }
+
+    if (normalizedType === "media" && !normalizedAttachments.length) {
+      return Response.json({ error: "At least one media file is required" }, { status: 400 });
     }
 
     const message = await ChatMessage.create({
@@ -88,14 +114,8 @@ if (normalizedType === "document" && !attachment?.url) {
       receiver: receiverId,
       text: trimmedText,
       messageType: normalizedType,
-      attachment: attachment
-        ? {
-            url: attachment.url || "",
-            fileName: attachment.fileName || "",
-            mimeType: attachment.mimeType || "",
-            size: attachment.size || 0,
-          }
-        : undefined,
+      attachment: normalizedAttachment || undefined,
+      attachments: normalizedType === "media" ? normalizedAttachments : undefined,
     });
 
     return Response.json(
@@ -105,6 +125,7 @@ if (normalizedType === "document" && !attachment?.url) {
           text: message.text || "",
           messageType: message.messageType || "text",
           attachment: message.attachment || null,
+          attachments: message.attachments || [],
           sender: message.sender.toString(),
           receiver: message.receiver.toString(),
           createdAt: message.createdAt,

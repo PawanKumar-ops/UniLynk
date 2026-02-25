@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import {
   FileText,
+  Film,
   Image as ImageIcon,
   Paperclip,
   Search,
@@ -47,24 +48,31 @@ function GiphyPicker({ onSelect }) {
       {/*  GIF Grid */}
       <div className="giphy-grid-scroll">
       <Grid
-        width={340}
-        columns={2}
-        gutter={8}
-        fetchGifs={fetchGifs}
-        key={query} // 🔥 forces refresh when query changes
-        onGifClick={(gif, e) => {
-          e.preventDefault();
-          const videoUrl =
-            gif.images.original_mp4?.mp4 ||
-            gif.images.fixed_height?.mp4;
+          width={340}
+          columns={2}
+          gutter={8}
+          fetchGifs={fetchGifs}
+          key={query}
+          onGifClick={(gif, e) => {
+            e.preventDefault();
+            const videoUrl = gif.images.original_mp4?.mp4 || gif.images.fixed_height?.mp4;
 
-          if (videoUrl) onSelect(videoUrl);
-        }}
-      />
+            if (videoUrl) onSelect(videoUrl);
+          }}
+        />
       </div>
     </div>
   );
 }
+
+function formatBytes(size = 0) {
+  if (!size) return "0 KB";
+  const units = ["B", "KB", "MB", "GB"];
+  const index = Math.min(Math.floor(Math.log(size) / Math.log(1024)), units.length - 1);
+  const value = size / 1024 ** index;
+  return `${value.toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
+}
+
 
 export default function ChatPage() {
   const [users, setUsers] = useState([]);
@@ -80,12 +88,15 @@ export default function ChatPage() {
   const [showAttachmentFab, setShowAttachmentFab] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showGifPicker, setShowGifPicker] = useState(false);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
   const [uploadingDocument, setUploadingDocument] = useState(false);
   const [pendingDocument, setPendingDocument] = useState(null);
+  const [pendingMedia, setPendingMedia] = useState([]);
 
   const socketRef = useRef(null);
   const messageScrollRef = useRef(null);
-  const fileInputRef = useRef(null);
+   const documentInputRef = useRef(null);
+  const mediaInputRef = useRef(null);
 
 
   const activeUser = useMemo(
@@ -175,27 +186,38 @@ export default function ChatPage() {
 
     const trimmedText = messageText.trim();
 
-    if (!trimmedText && !pendingDocument) {
+    if (!trimmedText && !pendingDocument && !pendingMedia.length) {
       return;
     }
 
-    if (pendingDocument) {
-      sendSocketMessage({
-        text: pendingDocument.fileName || "Document",
-        messageType: "document",
-        attachment: pendingDocument,
-      });
-      setPendingDocument(null);
-    }
-
-    if (trimmedText) {
+    if (pendingMedia.length) {
       sendSocketMessage({
         text: trimmedText,
-        messageType: "text",
+        messageType: "media",
+        attachments: pendingMedia,
       });
+      setPendingMedia([]);
+      setMessageText("");
+    } else {
+      if (pendingDocument) {
+        sendSocketMessage({
+          text: pendingDocument.fileName || "Document",
+          messageType: "document",
+          attachment: pendingDocument,
+        });
+        setPendingDocument(null);
+      }
+
+      if (trimmedText) {
+        sendSocketMessage({
+          text: trimmedText,
+          messageType: "text",
+        });
+      }
+
+      setMessageText("");
     }
 
-    setMessageText("");
     setShowAttachmentFab(false);
     setShowEmojiPicker(false);
     setShowGifPicker(false);
@@ -217,8 +239,26 @@ export default function ChatPage() {
   });
 
   setShowGifPicker(false);
-  setShowAttachmentFab(false);
-}
+    setShowAttachmentFab(false);
+  }
+
+  async function uploadSelectedFiles(selectedFiles) {
+    const formData = new FormData();
+    selectedFiles.forEach((file) => formData.append("files", file));
+
+    const response = await fetch("/api/chat/upload", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Failed to upload files");
+    }
+
+    return data.files || [];
+  }
 
   async function handleDocumentUpload(event) {
     const selectedFile = event.target.files?.[0];
@@ -234,22 +274,9 @@ export default function ChatPage() {
     try {
       setUploadingDocument(true);
       setError("");
-
-      const formData = new FormData();
-      formData.append("file", selectedFile);
-
-      const response = await fetch("/api/chat/upload", {
-        method: "POST",
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to upload document");
-      }
-
-      setPendingDocument(data.file);
+      const uploaded = await uploadSelectedFiles([selectedFile]);
+      setPendingDocument(uploaded[0] || null);
+      setPendingMedia([]);
       setShowAttachmentFab(false);
       setShowEmojiPicker(false);
       setShowGifPicker(false);
@@ -257,6 +284,33 @@ export default function ChatPage() {
       setError(err.message || "Failed to upload document");
     } finally {
       setUploadingDocument(false);
+    }
+  }
+
+      async function handleMediaUpload(event) {
+    const selectedFiles = Array.from(event.target.files || []);
+    event.target.value = "";
+
+       if (!selectedFiles.length) return;
+
+      if (!activeUserId) {
+      setError("Please select an active user to send media");
+      return;
+    }
+
+      try {
+      setUploadingMedia(true);
+      setError("");
+      const uploadedMedia = await uploadSelectedFiles(selectedFiles);
+      setPendingMedia(uploadedMedia);
+      setPendingDocument(null);
+      setShowAttachmentFab(false);
+      setShowEmojiPicker(false);
+      setShowGifPicker(false);
+    } catch (err) {
+      setError(err.message || "Failed to upload media");
+    } finally {
+      setUploadingMedia(false);
     }
   }
 
@@ -409,21 +463,38 @@ export default function ChatPage() {
               >
                 {msg.messageType === "gif" ? (
                   msg.text.endsWith(".mp4") ? (
-                    <video
-                      src={msg.text}
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      className="chat-gif"
-                    />
+                    <video src={msg.text} autoPlay loop muted playsInline className="chat-gif" />
                   ) : (
-                    <img
-                      src={msg.text}
-                      alt="GIF"
-                      className="chat-gif"
-                    />
+                    <img src={msg.text} alt="GIF" className="chat-gif" />
                   )
+                  ) : msg.messageType === "media" ? (
+                  <>
+                    <div
+                      className={`chat-media-grid ${
+                        (msg.attachments || []).length > 1 ? "chat-media-grid-multi" : ""
+                      }`}
+                    >
+                      {(msg.attachments || []).map((file, index) => {
+                        const isVideo = file.mimeType?.startsWith("video/");
+                        return (
+                          <a
+                            href={file.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            key={`${msg.id}-media-${index}`}
+                            className="chat-media-item"
+                          >
+                            {isVideo ? (
+                              <video src={file.url} controls className="chat-media-video" />
+                            ) : (
+                              <img src={file.url} alt={file.fileName || `media-${index + 1}`} className="chat-media-image" />
+                            )}
+                          </a>
+                        );
+                      })}
+                    </div>
+                    {msg.text ? <p className="chat-media-caption">{msg.text}</p> : null}
+                  </>
                 ) : msg.messageType === "document" ? (
                   <a
                     href={msg.attachment?.url}
@@ -432,10 +503,14 @@ export default function ChatPage() {
                     download={msg.attachment?.fileName || "document"}
                     className="chat-document"
                   >
-                    <FileText size={17} />
-                    <div>
+                    <div className="chat-document-icon-wrap">
+                      <FileText size={18} />
+                    </div>
+                    <div className="chat-document-content">
                       <strong>{msg.attachment?.fileName || msg.text || "Document"}</strong>
-                      <small>{msg.attachment?.mimeType || "Attachment"}</small>
+                      <small>
+                        {msg.attachment?.mimeType || "Attachment"} • {formatBytes(msg.attachment?.size)}
+                      </small>
                     </div>
                   </a>
                 ) : (
@@ -463,7 +538,7 @@ export default function ChatPage() {
               className="chatmediabtn"
               type="button"
               onClick={() => setShowAttachmentFab((prev) => !prev)}
-              disabled={!activeUserId || uploadingDocument}
+              disabled={!activeUserId || uploadingDocument || uploadingMedia}
             >
               {showAttachmentFab ? <X className="h-4 w-4" /> : <Paperclip className="h-4 w-4" />}
             </button>
@@ -490,7 +565,15 @@ export default function ChatPage() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => fileInputRef.current?.click()}
+                  onClick={() => mediaInputRef.current?.click()}
+                  disabled={uploadingMedia}
+                >
+                  <Film size={16} />
+                  {uploadingMedia ? "Uploading..." : "Photos & Videos"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => documentInputRef.current?.click()}
                   disabled={uploadingDocument}
                 >
                   <FileText size={16} />
@@ -501,12 +584,7 @@ export default function ChatPage() {
 
             {showEmojiPicker && (
               <div className="chat-picker">
-                <EmojiPicker
-                  onEmojiClick={handleEmojiSelect}
-                  width={320}
-                  height={360}
-                  lazyLoadEmojis
-                />
+                <EmojiPicker onEmojiClick={handleEmojiSelect} width={320} height={360} lazyLoadEmojis />
               </div>
             )}
 
@@ -517,19 +595,34 @@ export default function ChatPage() {
             )}
 
             <input
-              ref={fileInputRef}
+              ref={documentInputRef}
               type="file"
               className="chat-hidden-input"
               onChange={handleDocumentUpload}
               accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
+            />
+
+            <input
+              ref={mediaInputRef}
+              type="file"
+              className="chat-hidden-input"
+              onChange={handleMediaUpload}
+              accept="image/*,video/mp4,video/webm,video/quicktime"
+              multiple
             />
           </div>
 
           <div className="chat-compose-inputs">
             {pendingDocument && (
               <div className="chat-pending-document">
-                <FileText size={14} />
-                <span>{pendingDocument.fileName}</span>
+                <input
+              ref={mediaInputRef}
+              type="file"
+              className="chat-hidden-input"
+              onChange={handleMediaUpload}
+              accept="image/*,video/mp4,video/webm,video/quicktime"
+              multiple
+            />
                 <button
                   type="button"
                   onClick={() => setPendingDocument(null)}
@@ -539,10 +632,34 @@ export default function ChatPage() {
                 </button>
               </div>
             )}
+
+             {!!pendingMedia.length && (
+              <div className="chat-pending-media-row">
+                {pendingMedia.map((media, index) => {
+                  const isVideo = media.mimeType?.startsWith("video/");
+                  return (
+                    <div className="chat-pending-media-card" key={`pending-media-${index}`}>
+                      {isVideo ? (
+                        <video src={media.url} className="chat-pending-media-preview" muted playsInline />
+                      ) : (
+                        <img
+                          src={media.url}
+                          className="chat-pending-media-preview"
+                          alt={media.fileName || `selected media ${index + 1}`}
+                        />
+                      )}
+                    </div>
+                  );
+                })}
+                <button type="button" onClick={() => setPendingMedia([])} className="chat-pending-media-remove">
+                  <X size={14} />
+                </button>
+              </div>
+            )}
             <input
               className="chatcomposeinput"
               type="text"
-              placeholder="Type your message"
+              placeholder={pendingMedia.length ? "Add a caption (optional)" : "Type your message"}
               value={messageText}
               onChange={(event) => setMessageText(event.target.value)}
               disabled={!activeUserId}
@@ -551,7 +668,12 @@ export default function ChatPage() {
           <button
             className="chatsendbtn"
             type="submit"
-            disabled={!activeUserId || (!messageText.trim() && !pendingDocument)}
+            disabled={
+              !activeUserId ||
+              (!messageText.trim() && !pendingDocument && !pendingMedia.length) ||
+              uploadingDocument ||
+              uploadingMedia
+            }
           >
             Send
           </button>
@@ -593,8 +715,7 @@ export default function ChatPage() {
             filteredConversations.map((chat) => (
               <button
                 key={chat.id}
-                className={`chat-item ${chat.id === activeUserId ? "active" : ""
-                  }`}
+                className={`chat-item ${chat.id === activeUserId ? "active" : ""}`}
                 onClick={() => setActiveUserId(chat.id)}
               >
                 <div className="chat-item-avatar">

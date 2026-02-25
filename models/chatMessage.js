@@ -20,7 +20,7 @@ const ChatMessageSchema = new mongoose.Schema(
 
     messageType: {
       type: String,
-      enum: ["text", "emoji", "gif", "document"],
+      enum: ["text", "emoji", "gif", "document", "media"],
       default: "text",
     },
     attachment: {
@@ -41,6 +41,26 @@ const ChatMessageSchema = new mongoose.Schema(
         default: 0,
       },
     },
+    attachments: [
+      {
+        url: {
+          type: String,
+          default: "",
+        },
+        fileName: {
+          type: String,
+          default: "",
+        },
+        mimeType: {
+          type: String,
+          default: "",
+        },
+        size: {
+          type: Number,
+          default: 0,
+        },
+      },
+    ],
 
   },
   { timestamps: true }
