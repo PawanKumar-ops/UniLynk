@@ -61,6 +61,10 @@ export async function GET(req) {
       createdAt: msg.createdAt,
       deliveredAt: msg.deliveredAt || null,
       readAt: msg.readAt || null,
+      reactions: (msg.reactions || []).map((reaction) => ({
+        userId: reaction.userId?.toString?.() || reaction.userId,
+        emoji: reaction.emoji || "",
+      })),
     }));
 
     return Response.json({ messages: formattedMessages });
@@ -120,6 +124,7 @@ export async function POST(req) {
       attachments: normalizedType === "media" ? normalizedAttachments : undefined,
       deliveredAt: new Date(),
       readAt: null,
+      reactions: [],
     });
 
     return Response.json(
@@ -135,6 +140,10 @@ export async function POST(req) {
           createdAt: message.createdAt,
           deliveredAt: message.deliveredAt || null,
           readAt: message.readAt || null,
+          reactions: (message.reactions || []).map((reaction) => ({
+            userId: reaction.userId?.toString?.() || reaction.userId,
+            emoji: reaction.emoji || "",
+          })),
         },
       },
       { status: 201 }

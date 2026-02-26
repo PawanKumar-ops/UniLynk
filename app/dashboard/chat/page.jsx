@@ -11,6 +11,8 @@ import {
   Paperclip,
   Search,
   Smile,
+  SmilePlus,
+  Forward,
   X,
 } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
@@ -97,6 +99,8 @@ export default function ChatPage() {
   const [uploadingDocument, setUploadingDocument] = useState(false);
   const [pendingDocument, setPendingDocument] = useState(null);
   const [pendingMedia, setPendingMedia] = useState([]);
+  const [activeReactionPickerFor, setActiveReactionPickerFor] = useState("");
+  const [activeForwardMenuFor, setActiveForwardMenuFor] = useState("");
 
   const socketRef = useRef(null);
   const messageScrollRef = useRef(null);
@@ -403,6 +407,13 @@ export default function ChatPage() {
           );
         });
 
+         socket.on("message-reactions-updated", ({ messageId, reactions }) => {
+          if (!messageId) return;
+          setMessages((prev) =>
+            prev.map((msg) => (msg.id === messageId ? { ...msg, reactions: reactions || [] } : msg))
+          );
+        });
+
       } catch (err) {
         setError(err.message || "Failed to connect socket");
       }
@@ -466,6 +477,72 @@ export default function ChatPage() {
     return "sent";
   }
 
+  const quickReactions = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
+
+  function handleToggleReaction(messageId, emoji) {
+    if (!socketRef.current || !currentUserId || !messageId || !emoji) return;
+
+    socketRef.current.emit(
+      "toggle-reaction",
+      { messageId, userId: currentUserId, emoji },
+      (response) => {
+        if (!response?.ok) {
+          setError(response?.error || "Failed to react to message");
+          return;
+        }
+
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === messageId ? { ...msg, reactions: response.reactions || [] } : msg
+          )
+        );
+        setActiveReactionPickerFor("");
+      }
+    );
+  }
+
+  function handleForwardMessage(message, receiverId) {
+    if (!socketRef.current || !currentUserId || !message?.id || !receiverId) return;
+
+    const payload = {
+      senderId: currentUserId,
+      receiverId,
+      text: message.text || "",
+      messageType: message.messageType || "text",
+    };
+
+    if (message.messageType === "document" && message.attachment?.url) {
+      payload.attachment = message.attachment;
+    }
+
+    if (message.messageType === "media" && Array.isArray(message.attachments)) {
+      payload.attachments = message.attachments;
+    }
+
+    socketRef.current.emit("send-message", payload, (response) => {
+      if (!response?.ok) {
+        setError(response?.error || "Failed to forward message");
+        return;
+      }
+
+      setError("");
+      setActiveForwardMenuFor("");
+    });
+  }
+
+  function groupedReactions(reactions = []) {
+    const map = reactions.reduce((acc, reaction) => {
+      if (!reaction?.emoji) return acc;
+      if (!acc[reaction.emoji]) {
+        acc[reaction.emoji] = 0;
+      }
+      acc[reaction.emoji] += 1;
+      return acc;
+    }, {});
+
+    return Object.entries(map);
+  }
+
   const filteredConversations = useMemo(
     () =>
       conversations.filter((c) => {
@@ -518,8 +595,62 @@ export default function ChatPage() {
             messages.map((msg) => (
               <div
                 key={msg.id}
-                className={`chat-bubble ${msg.sender === currentUserId ? "chat-bubble-own" : ""}`}
+                className={`chat-bubble ${msg.sender === currentUserId ? "chat-bubble-own" : ""} ${activeReactionPickerFor === msg.id || activeForwardMenuFor === msg.id ? "chat-bubble-menu-open" : ""}`}
               >
+                <div className="chat-bubble-actions" onClick={(event) => event.stopPropagation()}>
+                  <button
+                    type="button"
+                    className="chat-bubble-action-btn"
+                    onClick={() => {
+                      setActiveReactionPickerFor((prev) => (prev === msg.id ? "" : msg.id));
+                      setActiveForwardMenuFor("");
+                    }}
+                    aria-label="React to message"
+                  >
+                    <SmilePlus size={14} />
+                  </button>
+                  <button
+                    type="button"
+                    className="chat-bubble-action-btn"
+                    onClick={() => {
+                      setActiveForwardMenuFor((prev) => (prev === msg.id ? "" : msg.id));
+                      setActiveReactionPickerFor("");
+                    }}
+                    aria-label="Forward message"
+                  >
+                    <Forward size={14} />
+                  </button>
+                </div>
+
+                {activeReactionPickerFor === msg.id ? (
+                  <div className="chat-reaction-picker" onClick={(event) => event.stopPropagation()}>
+                    {quickReactions.map((emoji) => (
+                      <button
+                        type="button"
+                        key={`${msg.id}-${emoji}`}
+                        onClick={() => handleToggleReaction(msg.id, emoji)}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+
+                {activeForwardMenuFor === msg.id ? (
+                  <div className="chat-forward-menu" onClick={(event) => event.stopPropagation()}>
+                    {users
+                      .filter((user) => user.id !== currentUserId)
+                      .map((user) => (
+                        <button
+                          type="button"
+                          key={`${msg.id}-forward-${user.id}`}
+                          onClick={() => handleForwardMessage(msg, user.id)}
+                        >
+                          Forward to {user.name}
+                        </button>
+                      ))}
+                  </div>
+                ) : null}
                 {msg.messageType === "gif" ? (
                   /\.mp4($|\?)/i.test(msg.text) ? (
                     <video src={msg.text} autoPlay loop muted playsInline className="chat-gif" />
@@ -573,6 +704,15 @@ export default function ChatPage() {
                   </a>
                 ) : (
                   <p className="chat-text-message">{msg.text}</p>
+                )}
+                {!!(msg.reactions || []).length && (
+                  <div className="chat-reactions-row">
+                    {groupedReactions(msg.reactions).map(([emoji, count]) => (
+                      <span key={`${msg.id}-${emoji}`} className="chat-reaction-chip">
+                        {emoji} {count}
+                      </span>
+                    ))}
+                  </div>
                 )}
                 <span className="chat-meta-row">
                   {new Date(msg.createdAt).toLocaleTimeString()}

@@ -69,6 +69,20 @@ const ChatMessageSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    reactions: [
+      {
+        userId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+          required: true,
+        },
+        emoji: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+      },
+    ],
 
   },
   { timestamps: true }

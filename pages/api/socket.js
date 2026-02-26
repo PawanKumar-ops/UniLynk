@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { Server } from "socket.io";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/user";
@@ -11,6 +12,25 @@ function normalizeAttachment(file) {
     fileName: file?.fileName || "",
     mimeType: file?.mimeType || "",
     size: file?.size || 0,
+  };
+}
+
+function formatMessage(message) {
+  return {
+    id: message._id.toString(),
+    text: message.text || "",
+    messageType: message.messageType || "text",
+    attachment: message.attachment || null,
+    attachments: message.attachments || [],
+    sender: message.sender.toString(),
+    receiver: message.receiver.toString(),
+    createdAt: message.createdAt,
+    deliveredAt: message.deliveredAt || null,
+    readAt: message.readAt || null,
+    reactions: (message.reactions || []).map((reaction) => ({
+      userId: reaction.userId?.toString?.() || reaction.userId,
+      emoji: reaction.emoji || "",
+    })),
   };
 }
 
@@ -91,20 +111,10 @@ export default function handler(req, res) {
             attachments: normalizedType === "media" ? normalizedAttachments : undefined,
             deliveredAt: new Date(),
             readAt: null,
+            reactions: [],
           });
 
-          const formattedMessage = {
-            id: message._id.toString(),
-            text: message.text || "",
-            messageType: message.messageType || "text",
-            attachment: message.attachment || null,
-            attachments: message.attachments || [],
-            sender: message.sender.toString(),
-            receiver: message.receiver.toString(),
-            createdAt: message.createdAt,
-            deliveredAt: message.deliveredAt || null,
-            readAt: message.readAt || null,
-          };
+          const formattedMessage = formatMessage(message);
 
           io.to(senderId).emit("new-message", formattedMessage);
           io.to(receiverId).emit("new-message", formattedMessage);
@@ -116,7 +126,133 @@ export default function handler(req, res) {
         }
       });
 
-       socket.on("mark-messages-read", async (payload, callback) => {
+       socket.on("toggle-reaction", async (payload, callback) => {
+        try {
+          const { messageId, userId, emoji } = payload || {};
+
+          if (!messageId || !userId || !emoji || socket.data.userId !== userId) {
+            callback?.({ ok: false, error: "Invalid payload" });
+            return;
+          }
+
+          if (!mongoose.Types.ObjectId.isValid(messageId) || !mongoose.Types.ObjectId.isValid(userId)) {
+            callback?.({ ok: false, error: "Invalid ids" });
+            return;
+          }
+
+          await connectDB();
+
+          const message = await ChatMessage.findById(messageId);
+          if (!message) {
+            callback?.({ ok: false, error: "Message not found" });
+            return;
+          }
+
+          const isThreadMember =
+            message.sender.toString() === userId || message.receiver.toString() === userId;
+
+          if (!isThreadMember) {
+            callback?.({ ok: false, error: "Unauthorized" });
+            return;
+          }
+
+          const existingIndex = (message.reactions || []).findIndex(
+            (reaction) =>
+              reaction.userId?.toString() === userId &&
+              reaction.emoji === emoji
+          );
+
+          if (existingIndex >= 0) {
+            message.reactions.splice(existingIndex, 1);
+          } else {
+            message.reactions.push({ userId, emoji });
+          }
+
+          await message.save();
+
+          const eventPayload = {
+            messageId: message._id.toString(),
+            reactions: (message.reactions || []).map((reaction) => ({
+              userId: reaction.userId?.toString?.() || reaction.userId,
+              emoji: reaction.emoji || "",
+            })),
+          };
+
+          io.to(message.sender.toString()).emit("message-reactions-updated", eventPayload);
+          io.to(message.receiver.toString()).emit("message-reactions-updated", eventPayload);
+
+          callback?.({ ok: true, ...eventPayload });
+        } catch (error) {
+          console.error("SOCKET TOGGLE REACTION ERROR:", error);
+          callback?.({ ok: false, error: "Failed to update reaction" });
+        }
+      });
+
+      socket.on("forward-message", async (payload, callback) => {
+        try {
+          const { messageId, senderId, receiverId } = payload || {};
+
+          if (!messageId || !senderId || !receiverId || socket.data.userId !== senderId) {
+            callback?.({ ok: false, error: "Invalid payload" });
+            return;
+          }
+
+          if (
+            !mongoose.Types.ObjectId.isValid(messageId) ||
+            !mongoose.Types.ObjectId.isValid(senderId) ||
+            !mongoose.Types.ObjectId.isValid(receiverId)
+          ) {
+            callback?.({ ok: false, error: "Invalid ids" });
+            return;
+          }
+
+          await connectDB();
+
+          const [originalMessage, senderUser, receiverUser] = await Promise.all([
+            ChatMessage.findById(messageId),
+            User.findById(senderId).select("_id"),
+            User.findById(receiverId).select("_id"),
+          ]);
+
+          if (!originalMessage || !senderUser || !receiverUser) {
+            callback?.({ ok: false, error: "Not found" });
+            return;
+          }
+
+          const canForward =
+            originalMessage.sender.toString() === senderId ||
+            originalMessage.receiver.toString() === senderId;
+
+          if (!canForward) {
+            callback?.({ ok: false, error: "Unauthorized" });
+            return;
+          }
+
+          const forwardedMessage = await ChatMessage.create({
+            sender: senderUser._id,
+            receiver: receiverUser._id,
+            text: originalMessage.text || "",
+            messageType: originalMessage.messageType || "text",
+            attachment: originalMessage.attachment || undefined,
+            attachments: originalMessage.attachments || undefined,
+            deliveredAt: new Date(),
+            readAt: null,
+            reactions: [],
+          });
+
+          const formattedMessage = formatMessage(forwardedMessage);
+
+          io.to(senderId).emit("new-message", formattedMessage);
+          io.to(receiverId).emit("new-message", formattedMessage);
+
+          callback?.({ ok: true, message: formattedMessage });
+        } catch (error) {
+          console.error("SOCKET FORWARD MESSAGE ERROR:", error);
+          callback?.({ ok: false, error: "Failed to forward message" });
+        }
+      });
+
+      socket.on("mark-messages-read", async (payload, callback) => {
         try {
           const { currentUserId, otherUserId } = payload || {};
 
