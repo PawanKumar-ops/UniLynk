@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { io } from "socket.io-client";
 import {
+  Check,
+  CheckCheck,
   FileText,
   Film,
   Image as ImageIcon,
@@ -335,6 +337,18 @@ export default function ChatPage() {
   }, [activeUserId]);
 
   useEffect(() => {
+    if (!messages.length || !activeUserId || !currentUserId) return;
+
+    const hasUnreadIncoming = messages.some(
+      (msg) => msg.sender === activeUserId && msg.receiver === currentUserId && !msg.readAt
+    );
+
+    if (hasUnreadIncoming) {
+      markActiveThreadAsRead();
+    }
+  }, [messages, activeUserId, currentUserId]);
+
+  useEffect(() => {
     if (!currentUserId) return;
 
     let isMounted = true;
@@ -370,6 +384,25 @@ export default function ChatPage() {
             return [...prev, incomingMessage];
           });
         });
+
+        socket.on("messages-read", ({ byUserId, peerUserId, readAt }) => {
+          if (!readAt || !currentUserId || !activeUserId) return;
+
+          const affectsOpenThread =
+            (byUserId === currentUserId && peerUserId === activeUserId) ||
+            (byUserId === activeUserId && peerUserId === currentUserId);
+
+          if (!affectsOpenThread) return;
+
+          setMessages((prev) =>
+            prev.map((msg) => {
+              const isIncoming = msg.sender === peerUserId && msg.receiver === byUserId;
+              if (!isIncoming || msg.readAt) return msg;
+              return { ...msg, deliveredAt: readAt, readAt };
+            })
+          );
+        });
+
       } catch (err) {
         setError(err.message || "Failed to connect socket");
       }
@@ -417,6 +450,21 @@ export default function ChatPage() {
     { label: "Clubs", value: "club" },
     { label: "Students", value: "student" },
   ];
+
+  function markActiveThreadAsRead() {
+    if (!socketRef.current || !currentUserId || !activeUserId) return;
+
+    socketRef.current.emit("mark-messages-read", {
+      currentUserId,
+      otherUserId: activeUserId,
+    });
+  }
+
+  function getMessageStatus(message) {
+    if (message.readAt) return "read";
+    if (message.deliveredAt) return "delivered";
+    return "sent";
+  }
 
   const filteredConversations = useMemo(
     () =>
@@ -524,9 +572,16 @@ export default function ChatPage() {
                     </div>
                   </a>
                 ) : (
-                  <p>{msg.text}</p>
+                  <p className="chat-text-message">{msg.text}</p>
                 )}
-                <span>{new Date(msg.createdAt).toLocaleTimeString()}</span>
+                <span className="chat-meta-row">
+                  {new Date(msg.createdAt).toLocaleTimeString()}
+                  {msg.sender === currentUserId ? (
+                    <em className={`chat-status chat-status-${getMessageStatus(msg)}`}>
+                      {getMessageStatus(msg) === "sent" ? <Check size={13} /> : <CheckCheck size={13} />}
+                    </em>
+                  ) : null}
+                </span>
               </div>
             ))
           )}

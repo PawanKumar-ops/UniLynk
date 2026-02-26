@@ -59,6 +59,8 @@ export async function GET(req) {
       sender: msg.sender.toString(),
       receiver: msg.receiver.toString(),
       createdAt: msg.createdAt,
+      deliveredAt: msg.deliveredAt || null,
+      readAt: msg.readAt || null,
     }));
 
     return Response.json({ messages: formattedMessages });
@@ -116,6 +118,8 @@ export async function POST(req) {
       messageType: normalizedType,
       attachment: normalizedAttachment || undefined,
       attachments: normalizedType === "media" ? normalizedAttachments : undefined,
+      deliveredAt: new Date(),
+      readAt: null,
     });
 
     return Response.json(
@@ -129,6 +133,8 @@ export async function POST(req) {
           sender: message.sender.toString(),
           receiver: message.receiver.toString(),
           createdAt: message.createdAt,
+          deliveredAt: message.deliveredAt || null,
+          readAt: message.readAt || null,
         },
       },
       { status: 201 }

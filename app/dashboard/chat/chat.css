@@ -98,7 +98,7 @@
 .chat-bubble {
   max-width: min(72%, 520px);
   align-self: flex-start;
-  padding: 0.2rem ;
+  padding: 0.2rem;
   border-radius: 14px;
   background: #fff;
   border: 1px solid #dfe5ed;
@@ -110,12 +110,43 @@
   color: white;
 }
 
+.chat-text-message {
+  margin: 0;
+  padding: 0.45rem 0.55rem 0.1rem;
+  word-break: break-word;
+}
+
+.chat-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 4px;
+}
+
+.chat-status {
+  display: inline-flex;
+  align-items: center;
+}
+
+.chat-status-delivered,
+.chat-status-sent {
+  color: rgba(100, 116, 139, 0.95);
+}
+
+.chat-bubble-own .chat-status-delivered,
+.chat-bubble-own .chat-status-sent {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.chat-status-read {
+  color: #34b7f1;
+}
+
 .chat-bubble span {
   display: block;
   font-size: 0.7rem;
   opacity: 0.72;
-  margin: 0 4px;
-  margin-top: 6px;
+  margin: 6px 6px 2px;
 }
 
 .chat-gif {

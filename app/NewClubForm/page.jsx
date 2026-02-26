@@ -171,10 +171,7 @@ export default function Step1() {
                         </div>
                     </label>
 
-                    <div className="profile-actions">
-                        <button className="action-button" type="button">Add Members</button>
-                        <button className="action-button" type="button">Edit Profile</button>
-                    </div>
+                    
                 </div>
             </div>
 

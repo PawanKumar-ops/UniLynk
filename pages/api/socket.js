@@ -89,6 +89,8 @@ export default function handler(req, res) {
             messageType: normalizedType,
             attachment: normalizedAttachment || undefined,
             attachments: normalizedType === "media" ? normalizedAttachments : undefined,
+            deliveredAt: new Date(),
+            readAt: null,
           });
 
           const formattedMessage = {
@@ -100,6 +102,8 @@ export default function handler(req, res) {
             sender: message.sender.toString(),
             receiver: message.receiver.toString(),
             createdAt: message.createdAt,
+            deliveredAt: message.deliveredAt || null,
+            readAt: message.readAt || null,
           };
 
           io.to(senderId).emit("new-message", formattedMessage);
@@ -109,6 +113,42 @@ export default function handler(req, res) {
         } catch (error) {
           console.error("SOCKET SEND MESSAGE ERROR:", error);
           callback?.({ ok: false, error: "Failed to send message" });
+        }
+      });
+
+       socket.on("mark-messages-read", async (payload, callback) => {
+        try {
+          const { currentUserId, otherUserId } = payload || {};
+
+          if (!currentUserId || !otherUserId || socket.data.userId !== currentUserId) {
+            callback?.({ ok: false, error: "Invalid payload" });
+            return;
+          }
+
+          await connectDB();
+
+          const now = new Date();
+          await ChatMessage.updateMany(
+            {
+              sender: otherUserId,
+              receiver: currentUserId,
+              readAt: null,
+            },
+            {
+              $set: {
+                deliveredAt: now,
+                readAt: now,
+              },
+            }
+          );
+
+          io.to(currentUserId).emit("messages-read", { byUserId: currentUserId, peerUserId: otherUserId, readAt: now });
+          io.to(otherUserId).emit("messages-read", { byUserId: currentUserId, peerUserId: otherUserId, readAt: now });
+
+          callback?.({ ok: true, readAt: now });
+        } catch (error) {
+          console.error("SOCKET MARK READ ERROR:", error);
+          callback?.({ ok: false, error: "Failed to mark messages as read" });
         }
       });
     });
