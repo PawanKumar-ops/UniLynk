@@ -105,7 +105,7 @@ export default function handler(req, res) {
           io.to(senderId).emit("new-message", formattedMessage);
           io.to(receiverId).emit("new-message", formattedMessage);
 
-          callback?.({ ok: true });
+          callback?.({ ok: true, message: formattedMessage });
         } catch (error) {
           console.error("SOCKET SEND MESSAGE ERROR:", error);
           callback?.({ ok: false, error: "Failed to send message" });

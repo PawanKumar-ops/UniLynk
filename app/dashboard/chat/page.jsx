@@ -35,19 +35,19 @@ function GiphyPicker({ onSelect }) {
       {/* 🔍 Search Bar */}
       <div className="giphy-search">
         <div className="gif-search">
-        <Search size={16} />
-        <input
-          type="text"
-          placeholder="Search GIFs"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+          <Search size={16} />
+          <input
+            type="text"
+            placeholder="Search GIFs"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
         </div>
       </div>
 
       {/*  GIF Grid */}
       <div className="giphy-grid-scroll">
-      <Grid
+        <Grid
           width={340}
           columns={2}
           gutter={8}
@@ -55,9 +55,12 @@ function GiphyPicker({ onSelect }) {
           key={query}
           onGifClick={(gif, e) => {
             e.preventDefault();
-            const videoUrl = gif.images.original_mp4?.mp4 || gif.images.fixed_height?.mp4;
+            const gifUrl = gif.images.original?.url || gif.images.fixed_height?.url;
+            const fallbackVideoUrl = gif.images.original_mp4?.mp4 || gif.images.fixed_height?.mp4;
 
-            if (videoUrl) onSelect(videoUrl);
+            if (gifUrl || fallbackVideoUrl) {
+              onSelect(gifUrl || fallbackVideoUrl);
+            }
           }}
         />
       </div>
@@ -95,7 +98,7 @@ export default function ChatPage() {
 
   const socketRef = useRef(null);
   const messageScrollRef = useRef(null);
-   const documentInputRef = useRef(null);
+  const documentInputRef = useRef(null);
   const mediaInputRef = useRef(null);
 
 
@@ -126,6 +129,14 @@ export default function ChatPage() {
         if (!response?.ok) {
           setError(response?.error || "Failed to send message");
           return;
+        }
+
+        if (response?.message) {
+          setMessages((prev) => {
+            const exists = prev.some((msg) => msg.id === response.message.id);
+            if (exists) return prev;
+            return [...prev, response.message];
+          });
         }
 
         setError("");
@@ -231,14 +242,14 @@ export default function ChatPage() {
   }
 
   function handleGifSelect(mediaUrl) {
-  if (!mediaUrl) return;
+    if (!mediaUrl) return;
 
-  sendSocketMessage({
-    text: mediaUrl,
-    messageType: "gif",
-  });
+    sendSocketMessage({
+      text: mediaUrl,
+      messageType: "gif",
+    });
 
-  setShowGifPicker(false);
+    setShowGifPicker(false);
     setShowAttachmentFab(false);
   }
 
@@ -287,18 +298,18 @@ export default function ChatPage() {
     }
   }
 
-      async function handleMediaUpload(event) {
+  async function handleMediaUpload(event) {
     const selectedFiles = Array.from(event.target.files || []);
     event.target.value = "";
 
-       if (!selectedFiles.length) return;
+    if (!selectedFiles.length) return;
 
-      if (!activeUserId) {
+    if (!activeUserId) {
       setError("Please select an active user to send media");
       return;
     }
 
-      try {
+    try {
       setUploadingMedia(true);
       setError("");
       const uploadedMedia = await uploadSelectedFiles(selectedFiles);
@@ -346,8 +357,8 @@ export default function ChatPage() {
 
         socket.on("new-message", (incomingMessage) => {
           const isInOpenThread =
-            incomingMessage.sender === activeUserId ||
-            incomingMessage.receiver === activeUserId;
+            (incomingMessage.sender === activeUserId && incomingMessage.receiver === currentUserId) ||
+            (incomingMessage.sender === currentUserId && incomingMessage.receiver === activeUserId);
 
           if (!isInOpenThread) {
             return;
@@ -462,17 +473,16 @@ export default function ChatPage() {
                 className={`chat-bubble ${msg.sender === currentUserId ? "chat-bubble-own" : ""}`}
               >
                 {msg.messageType === "gif" ? (
-                  msg.text.endsWith(".mp4") ? (
+                  /\.mp4($|\?)/i.test(msg.text) ? (
                     <video src={msg.text} autoPlay loop muted playsInline className="chat-gif" />
                   ) : (
                     <img src={msg.text} alt="GIF" className="chat-gif" />
                   )
-                  ) : msg.messageType === "media" ? (
+                ) : msg.messageType === "media" ? (
                   <>
                     <div
-                      className={`chat-media-grid ${
-                        (msg.attachments || []).length > 1 ? "chat-media-grid-multi" : ""
-                      }`}
+                      className={`chat-media-grid ${(msg.attachments || []).length > 1 ? "chat-media-grid-multi" : ""
+                        }`}
                     >
                       {(msg.attachments || []).map((file, index) => {
                         const isVideo = file.mimeType?.startsWith("video/");
@@ -616,13 +626,13 @@ export default function ChatPage() {
             {pendingDocument && (
               <div className="chat-pending-document">
                 <input
-              ref={mediaInputRef}
-              type="file"
-              className="chat-hidden-input"
-              onChange={handleMediaUpload}
-              accept="image/*,video/mp4,video/webm,video/quicktime"
-              multiple
-            />
+                  ref={mediaInputRef}
+                  type="file"
+                  className="chat-hidden-input"
+                  onChange={handleMediaUpload}
+                  accept="image/*,video/mp4,video/webm,video/quicktime"
+                  multiple
+                />
                 <button
                   type="button"
                   onClick={() => setPendingDocument(null)}
@@ -633,7 +643,7 @@ export default function ChatPage() {
               </div>
             )}
 
-             {!!pendingMedia.length && (
+            {!!pendingMedia.length && (
               <div className="chat-pending-media-row">
                 {pendingMedia.map((media, index) => {
                   const isVideo = media.mimeType?.startsWith("video/");

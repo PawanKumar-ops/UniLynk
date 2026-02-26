@@ -98,7 +98,7 @@
 .chat-bubble {
   max-width: min(72%, 520px);
   align-self: flex-start;
-  padding: 0.6rem 0.9rem;
+  padding: 0.2rem ;
   border-radius: 14px;
   background: #fff;
   border: 1px solid #dfe5ed;
@@ -114,6 +114,7 @@
   display: block;
   font-size: 0.7rem;
   opacity: 0.72;
+  margin: 0 4px;
   margin-top: 6px;
 }
 
