@@ -543,6 +543,7 @@ export default function ChatPage() {
     return Object.entries(map);
   }
 
+
   const filteredConversations = useMemo(
     () =>
       conversations.filter((c) => {
@@ -595,8 +596,11 @@ export default function ChatPage() {
             messages.map((msg) => (
               <div
                 key={msg.id}
-                className={`chat-bubble ${msg.sender === currentUserId ? "chat-bubble-own" : ""} ${activeReactionPickerFor === msg.id || activeForwardMenuFor === msg.id ? "chat-bubble-menu-open" : ""}`}
+                className={`chat-message-wrap ${msg.sender === currentUserId ? "chat-message-wrap-own" : ""}`}
               >
+                <div
+                  className={`chat-bubble ${msg.sender === currentUserId ? "chat-bubble-own" : ""} ${activeReactionPickerFor === msg.id || activeForwardMenuFor === msg.id ? "chat-bubble-menu-open" : ""}`}
+                >
                 <div className="chat-bubble-actions" onClick={(event) => event.stopPropagation()}>
                   <button
                     type="button"
@@ -722,6 +726,16 @@ export default function ChatPage() {
                     </em>
                   ) : null}
                 </span>
+                </div>
+                {!!(msg.reactions || []).length && (
+                  <div className="chat-reactions-row">
+                    {groupedReactions(msg.reactions).map(([emoji, count]) => (
+                      <span key={`${msg.id}-${emoji}`} className="chat-reaction-chip">
+                        {emoji} {count}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
             ))
           )}

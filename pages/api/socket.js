@@ -126,11 +126,11 @@ export default function handler(req, res) {
         }
       });
 
-       socket.on("toggle-reaction", async (payload, callback) => {
+           socket.on("toggle-reaction", async (payload, callback) => {
         try {
           const { messageId, userId, emoji } = payload || {};
 
-          if (!messageId || !userId || !emoji || socket.data.userId !== userId) {
+          if (!messageId || !userId || !emoji) {
             callback?.({ ok: false, error: "Invalid payload" });
             return;
           }
@@ -142,9 +142,13 @@ export default function handler(req, res) {
 
           await connectDB();
 
-          const message = await ChatMessage.findById(messageId);
-          if (!message) {
-            callback?.({ ok: false, error: "Message not found" });
+          const [message, reactingUser] = await Promise.all([
+            ChatMessage.findById(messageId),
+            User.findById(userId).select("_id"),
+          ]);
+
+          if (!message || !reactingUser) {
+            callback?.({ ok: false, error: "Message or user not found" });
             return;
           }
 

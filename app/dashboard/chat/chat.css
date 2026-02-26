@@ -95,9 +95,17 @@
   scrollbar-width: thin;
 }
 
-.chat-bubble {
-  max-width: min(72%, 520px);
+.chat-message-wrap {
   align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  max-width: min(72%, 520px);
+}
+
+.chat-message-wrap-own {
+  align-self: flex-end;
+}
+.chat-bubble {
   padding: 0.2rem;
   border-radius: 14px;
   background: #fff;
@@ -124,7 +132,8 @@
 }
 
 .chat-bubble-own .chat-bubble-actions {
-  background: #eef4ff;
+  background: #d3e2fd;
+  color: #000;
 }
 
 .chat-bubble:hover .chat-bubble-actions,
@@ -182,24 +191,31 @@
 .chat-reactions-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 4px;
-  margin: 6px;
+  gap: 5px;
+  margin-top: 4px;
+  padding: 0 4px;
+}
+
+.chat-message-wrap-own .chat-reactions-row {
+  justify-content: flex-end;
 }
 
 .chat-reaction-chip {
   display: inline-flex;
   align-items: center;
   border-radius: 999px;
-  background: rgba(148, 163, 184, 0.2);
-  padding: 1px 7px;
-  font-size: 0.68rem;
+  background: #ffffff;
+  border: 1px solid #dbe3ef;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  line-height: 1.2;
 }
 
 
 .chat-bubble-own {
   align-self: flex-end;
   background: #2f6fed;
-  color: white;
+  color: #fff;
 }
 
 .chat-text-message {
