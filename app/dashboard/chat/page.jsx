@@ -13,6 +13,8 @@ import {
   Smile,
   SmilePlus,
   Forward,
+  Trash2,
+  Undo2,
   X,
 } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
@@ -121,27 +123,27 @@ export default function ChatPage() {
   }, [messages]);
 
   useEffect(() => {
-  if (!activeReactionPickerFor) return;
+    if (!activeReactionPickerFor) return;
 
-  const handleOutsideReactionPickerClick = (event) => {
-    const target = event.target;
-    if (!(target instanceof Element)) return;
+    const handleOutsideReactionPickerClick = (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
 
-    if (target.closest(".chat-reaction-picker") || target.closest(".chat-bubble-action-btn")) {
-      return;
-    }
+      if (target.closest(".chat-reaction-picker") || target.closest(".chat-bubble-action-btn")) {
+        return;
+      }
 
-    setActiveReactionPickerFor("");
-  };
+      setActiveReactionPickerFor("");
+    };
 
-  document.addEventListener("mousedown", handleOutsideReactionPickerClick);
-  document.addEventListener("touchstart", handleOutsideReactionPickerClick);
+    document.addEventListener("mousedown", handleOutsideReactionPickerClick);
+    document.addEventListener("touchstart", handleOutsideReactionPickerClick);
 
-  return () => {
-    document.removeEventListener("mousedown", handleOutsideReactionPickerClick);
-    document.removeEventListener("touchstart", handleOutsideReactionPickerClick);
-  };
-}, [activeReactionPickerFor]);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideReactionPickerClick);
+      document.removeEventListener("touchstart", handleOutsideReactionPickerClick);
+    };
+  }, [activeReactionPickerFor]);
 
   function sendSocketMessage(payload) {
     if (!activeUserId || !currentUserId || !socketRef.current) {
@@ -439,6 +441,20 @@ export default function ChatPage() {
           );
         });
 
+        socket.on("message-deleted", ({ messageId }) => {
+          if (!messageId) return;
+
+          setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+
+          if (forwardTargetMessage?.id === messageId) {
+            closeForwardModal();
+          }
+
+          if (activeReactionPickerFor === messageId) {
+            setActiveReactionPickerFor("");
+          }
+        });
+
       } catch (err) {
         setError(err.message || "Failed to connect socket");
       }
@@ -533,6 +549,33 @@ export default function ChatPage() {
     setError("");
   }
 
+  function handleDeleteMessage(messageId, mode) {
+    if (!socketRef.current || !currentUserId || !messageId) return;
+
+    socketRef.current.emit(
+      "delete-message",
+      { messageId, userId: currentUserId, mode },
+      (response) => {
+        if (!response?.ok) {
+          setError(response?.error || "Failed to delete message");
+          return;
+        }
+
+        setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+        setError("");
+
+        if (forwardTargetMessage?.id === messageId) {
+          closeForwardModal();
+        }
+
+        if (activeReactionPickerFor === messageId) {
+          setActiveReactionPickerFor("");
+        }
+      }
+    );
+  }
+
+
   function toggleForwardRecipient(userId) {
     if (!userId) return;
 
@@ -570,7 +613,7 @@ export default function ChatPage() {
       messageType: forwardTargetMessage.messageType || "text",
     };
 
-     if (forwardTargetMessage.messageType === "document" && forwardTargetMessage.attachment?.url) {
+    if (forwardTargetMessage.messageType === "document" && forwardTargetMessage.attachment?.url) {
       payload.attachment = forwardTargetMessage.attachment;
     }
 
@@ -582,7 +625,7 @@ export default function ChatPage() {
       selectedForwardUserIds.map((receiverId) => emitForwardMessage({ ...payload, receiverId }))
     );
 
-      const failedResponses = responses.filter((response) => !response?.ok);
+    const failedResponses = responses.filter((response) => !response?.ok);
 
     responses.forEach((response) => {
       if (!response?.ok || !response.message) return;
@@ -678,115 +721,134 @@ export default function ChatPage() {
                 className={`chat-message-wrap-wrapper ${msg.sender === currentUserId ? "chat-message-wrap-wrapper-own" : ""}`}
               >
                 <div
-                 className={`chat-message-wrap ${msg.sender === currentUserId ? "chat-message-wrap-own" : ""}`}
+                  className={`chat-message-wrap ${msg.sender === currentUserId ? "chat-message-wrap-own" : ""}`}
                 >
                   <div
                     className={`chat-bubble ${msg.sender === currentUserId ? "chat-bubble-own" : ""} ${activeReactionPickerFor === msg.id || forwardTargetMessage?.id === msg.id ? "chat-bubble-menu-open" : ""}`}
                   >
-                  <div className="chat-bubble-actions" onClick={(event) => event.stopPropagation()}>
-                    <button
-                      type="button"
-                      className="chat-bubble-action-btn"
-                      onClick={() => {
-                        setActiveReactionPickerFor((prev) => (prev === msg.id ? "" : msg.id));
-                        
-                      }}
-                      aria-label="React to message"
-                    >
-                      <SmilePlus size={14} />
-                    </button>
-                    <button
-                      type="button"
-                      className="chat-bubble-action-btn"
-                      onClick={() => {
-                        setActiveReactionPickerFor("");
-                        openForwardModal(msg);
-                      }}
-                      aria-label="Forward message"
-                    >
-                      <Forward size={14} />
-                    </button>
-                  </div>
+                    <div className="chat-bubble-actions" onClick={(event) => event.stopPropagation()}>
+                      <button
+                        type="button"
+                        className="chat-bubble-action-btn"
+                        onClick={() => {
+                          setActiveReactionPickerFor((prev) => (prev === msg.id ? "" : msg.id));
 
-                  {activeReactionPickerFor === msg.id ? (
-                    <div className="chat-reaction-picker" onClick={(event) => event.stopPropagation()}>
-                      {quickReactions.map((emoji) => (
-                        <button
-                          type="button"
-                          key={`${msg.id}-${emoji}`}
-                          onClick={() => handleToggleReaction(msg.id, emoji)}
-                        >
-                          {emoji}
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-
-                  {msg.messageType === "gif" ? (
-                    /\.mp4($|\?)/i.test(msg.text) ? (
-                      <video src={msg.text} autoPlay loop muted playsInline className="chat-gif" />
-                    ) : (
-                      <img src={msg.text} alt="GIF" className="chat-gif" />
-                    )
-                  ) : msg.messageType === "media" ? (
-                    <>
-                      <div
-                        className={`chat-media-grid ${(msg.attachments || []).length > 1 ? "chat-media-grid-multi" : ""
-                          }`}
+                        }}
+                        aria-label="React to message"
                       >
-                        {(msg.attachments || []).map((file, index) => {
-                          const isVideo = file.mimeType?.startsWith("video/");
-                          return (
-                            <a
-                              href={file.url}
-                              target="_blank"
-                              rel="noreferrer"
-                              key={`${msg.id}-media-${index}`}
-                              className="chat-media-item"
-                            >
-                              {isVideo ? (
-                                <video src={file.url} controls className="chat-media-video" />
-                              ) : (
-                                <img src={file.url} alt={file.fileName || `media-${index + 1}`} className="chat-media-image" />
-                              )}
-                            </a>
+                        <SmilePlus size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        className="chat-bubble-action-btn"
+                        onClick={() => {
+                          setActiveReactionPickerFor("");
+                          openForwardModal(msg);
+                        }}
+                        aria-label="Forward message"
+                      >
+                        {/*================== Forward-icon============= */}
+                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" id="forward">
+                          <path stroke="#000" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="1.5" d="M15 10H10H7C5.89543 10 5 10.8954 5 12V18"></path>
+                          <path stroke="#000" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="1.5" d="M11 6 15 10 11 14M15 6 19 10 15 14"></path>
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        className="chat-bubble-action-btn"
+                        onClick={() => {
+                          setActiveReactionPickerFor("");
+                          handleDeleteMessage(
+                            msg.id,
+                            msg.sender === currentUserId ? "for-everyone" : "for-me"
                           );
-                        })}
-                      </div>
-                      {msg.text ? <p className="chat-media-caption">{msg.text}</p> : null}
-                    </>
-                  ) : msg.messageType === "document" ? (
-                    <a
-                      href={msg.attachment?.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      download={msg.attachment?.fileName || "document"}
-                      className="chat-document"
-                    >
-                      <div className="chat-document-icon-wrap">
-                        <FileText size={18} />
-                      </div>
-                      <div className="chat-document-content">
-                        <strong>{msg.attachment?.fileName || msg.text || "Document"}</strong>
-                        <small>
-                          {msg.attachment?.mimeType || "Attachment"} • {formatBytes(msg.attachment?.size)}
-                        </small>
-                      </div>
-                    </a>
-                  ) : (
-                    <p className="chat-text-message">{msg.text}</p>
-                  )}
+                        }}
+                        aria-label={msg.sender === currentUserId ? "Unsend" : "Delete for me"}
+                        title={msg.sender === currentUserId ? "Unsend" : "Delete for me"}
+                      >
+                        {msg.sender === currentUserId ? <Undo2 size={14} className="undo-svg" /> : <Trash2 size={14} />}
+                      </button>
 
-                  <span className="chat-meta-row">
-                    {new Date(msg.createdAt).toLocaleTimeString()}
-                    {msg.sender === currentUserId ? (
-                      <em className={`chat-status chat-status-${getMessageStatus(msg)}`}>
-                        {getMessageStatus(msg) === "sent" ? <Check size={13} /> : <CheckCheck size={13} />}
-                      </em>
-                    ) : null}
-                  </span>
-                </div>
-                {!!(msg.reactions || []).length && (
+                      {activeReactionPickerFor === msg.id ? (
+                        <div className="chat-reaction-picker" onClick={(event) => event.stopPropagation()}>
+                          {quickReactions.map((emoji) => (
+                            <button
+                              type="button"
+                              key={`${msg.id}-${emoji}`}
+                              onClick={() => handleToggleReaction(msg.id, emoji)}
+                            >
+                              {emoji}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {msg.messageType === "gif" ? (
+                      /\.mp4($|\?)/i.test(msg.text) ? (
+                        <video src={msg.text} autoPlay loop muted playsInline className="chat-gif" />
+                      ) : (
+                        <img src={msg.text} alt="GIF" className="chat-gif" />
+                      )
+                    ) : msg.messageType === "media" ? (
+                      <>
+                        <div
+                          className={`chat-media-grid ${(msg.attachments || []).length > 1 ? "chat-media-grid-multi" : ""
+                            }`}
+                        >
+                          {(msg.attachments || []).map((file, index) => {
+                            const isVideo = file.mimeType?.startsWith("video/");
+                            return (
+                              <a
+                                href={file.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                key={`${msg.id}-media-${index}`}
+                                className="chat-media-item"
+                              >
+                                {isVideo ? (
+                                  <video src={file.url} controls className="chat-media-video" />
+                                ) : (
+                                  <img src={file.url} alt={file.fileName || `media-${index + 1}`} className="chat-media-image" />
+                                )}
+                              </a>
+                            );
+                          })}
+                        </div>
+                        {msg.text ? <p className="chat-media-caption">{msg.text}</p> : null}
+                      </>
+                    ) : msg.messageType === "document" ? (
+                      <a
+                        href={msg.attachment?.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        download={msg.attachment?.fileName || "document"}
+                        className="chat-document"
+                      >
+                        <div className="chat-document-icon-wrap">
+                          <FileText size={18} />
+                        </div>
+                        <div className="chat-document-content">
+                          <strong>{msg.attachment?.fileName || msg.text || "Document"}</strong>
+                          <small>
+                            {msg.attachment?.mimeType || "Attachment"} • {formatBytes(msg.attachment?.size)}
+                          </small>
+                        </div>
+                      </a>
+                    ) : (
+                      <p className="chat-text-message">{msg.text}</p>
+                    )}
+
+                    <span className="chat-meta-row">
+                      {new Date(msg.createdAt).toLocaleTimeString()}
+                      {msg.sender === currentUserId ? (
+                        <em className={`chat-status chat-status-${getMessageStatus(msg)}`}>
+                          {getMessageStatus(msg) === "sent" ? <Check size={13} /> : <CheckCheck size={13} />}
+                        </em>
+                      ) : null}
+                    </span>
+                  </div>
+                  {!!(msg.reactions || []).length && (
                     <div className="chat-reactions-row">
                       {groupedReactions(msg.reactions).map(([emoji, count]) => (
                         <span key={`${msg.id}-${emoji}`} className="chat-reaction-chip">

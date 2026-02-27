@@ -865,6 +865,10 @@
 
 }
 
+.undo-svg{
+  color: rgb(255, 73, 73);
+}
+
 .chat-bubble-menu-open {
   margin-bottom: 6px;
 }
@@ -876,7 +880,8 @@
   bottom: calc(100% + 6px);
 
 
-  left: calc(100% + 10px);
+  left: 0;
+  right: auto;
 
   display: flex;
   gap: 6px;
@@ -896,7 +901,7 @@
 
 .chat-bubble-own .chat-reaction-picker {
   left: auto;
-  right: calc(100% + 10px);
+  right: 0;
 }
 
 @keyframes reaction-pop {

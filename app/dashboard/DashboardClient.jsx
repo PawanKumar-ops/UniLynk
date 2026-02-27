@@ -7,6 +7,7 @@ import PostFAB from '../../components/PostFAB';
 import Post from '../../components/Post';
 import { EllipsisVertical } from 'lucide-react';
 import ReliableImage from '../../components/ReliableImage';
+import CommentModal from '@/components/CommentModal';
 
 const formatRelativeTime = (dateString) => {
   const date = new Date(dateString);
@@ -30,6 +31,7 @@ export default function DashboardClient() {
   const [ispost, setIspost] = useState(false)
   const [posts, setPosts] = useState([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
+  const [activePostId, setActivePostId] = useState(null);
 
   const selectedAudience = useMemo(() => (isAnnual ? "for-you" : "clubs"), [isAnnual]);
 
@@ -154,7 +156,16 @@ export default function DashboardClient() {
 
                   <div className="post-foot">
                     <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/thumb.svg" alt="Like" /><span className='post-like-count'>0</span></div>
-                    <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/comment.svg" alt="Comment" /><span className='post-comment-count'>0</span></div>
+                    <div className="post-foot-iconcont">
+                      <button onClick={() => setActivePostId(post._id)}>
+                        <img className='post-foot-icon' src="Postimg/comment.svg" />
+                      </button>
+
+                      <CommentModal
+                        isOpen={activePostId === post._id}
+                        onClose={() => setActivePostId(null)}
+                      />
+                    </div>
                     <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/share.svg" alt="Share" /><span className='post-share-count'>0</span></div>
                     <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/bookmark.svg" alt="Share" /><span className='post-share-count'>0</span></div>
 

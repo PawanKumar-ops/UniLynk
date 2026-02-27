@@ -25,7 +25,7 @@
   background-color: #fff;
   border-bottom: 1px solid #e4eaec;
   position: relative;
-  contain: paint;
+  /* contain: paint; */
 }
 
 .userpost::before {

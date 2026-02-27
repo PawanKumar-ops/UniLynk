@@ -256,6 +256,74 @@ export default function handler(req, res) {
         }
       });
 
+     socket.on("delete-message", async (payload, callback) => {
+        try {
+          const { messageId, userId, mode = "for-everyone" } = payload || {};
+
+          if (!messageId || !userId || socket.data.userId !== userId) {
+            callback?.({ ok: false, error: "Invalid payload" });
+            return;
+          }
+
+          if (!mongoose.Types.ObjectId.isValid(messageId) || !mongoose.Types.ObjectId.isValid(userId)) {
+            callback?.({ ok: false, error: "Invalid ids" });
+            return;
+          }
+
+          await connectDB();
+
+          const message = await ChatMessage.findById(messageId);
+          if (!message) {
+            callback?.({ ok: false, error: "Message not found" });
+            return;
+          }
+
+          const isThreadMember =
+            message.sender.toString() === userId || message.receiver.toString() === userId;
+
+          if (!isThreadMember) {
+            callback?.({ ok: false, error: "Unauthorized" });
+            return;
+          }
+
+          const senderId = message.sender.toString();
+          const receiverId = message.receiver.toString();
+
+          if (mode === "for-me") {
+            const alreadyDeletedForUser = (message.deletedFor || []).some(
+              (id) => id.toString() === userId
+            );
+
+            if (!alreadyDeletedForUser) {
+              message.deletedFor = [...(message.deletedFor || []), userId];
+              await message.save();
+            }
+
+            const eventPayload = { messageId: message._id.toString(), mode: "for-me", userId };
+            io.to(userId).emit("message-deleted", eventPayload);
+            callback?.({ ok: true, ...eventPayload });
+            return;
+          }
+
+          if (message.sender.toString() !== userId) {
+            callback?.({ ok: false, error: "Only sender can unsend for everyone" });
+            return;
+          }
+
+          await ChatMessage.deleteOne({ _id: message._id });
+
+          const eventPayload = { messageId: message._id.toString(), mode: "for-everyone", userId };
+          io.to(senderId).emit("message-deleted", eventPayload);
+          io.to(receiverId).emit("message-deleted", eventPayload);
+
+          callback?.({ ok: true, ...eventPayload });
+        } catch (error) {
+          console.error("SOCKET DELETE MESSAGE ERROR:", error);
+          callback?.({ ok: false, error: "Failed to delete message" });
+        }
+      });
+
+
       socket.on("mark-messages-read", async (payload, callback) => {
         try {
           const { currentUserId, otherUserId } = payload || {};

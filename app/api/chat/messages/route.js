@@ -46,6 +46,7 @@ export async function GET(req) {
         { sender: currentUser._id, receiver: otherUserId },
         { sender: otherUserId, receiver: currentUser._id },
       ],
+      deletedFor: { $ne: currentUser._id },
     })
       .sort({ createdAt: 1 })
       .lean();
