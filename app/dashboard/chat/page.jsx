@@ -100,7 +100,9 @@ export default function ChatPage() {
   const [pendingDocument, setPendingDocument] = useState(null);
   const [pendingMedia, setPendingMedia] = useState([]);
   const [activeReactionPickerFor, setActiveReactionPickerFor] = useState("");
-  const [activeForwardMenuFor, setActiveForwardMenuFor] = useState("");
+  const [forwardTargetMessage, setForwardTargetMessage] = useState(null);
+  const [selectedForwardUserIds, setSelectedForwardUserIds] = useState([]);
+  const [forwardingMessage, setForwardingMessage] = useState(false);
 
   const socketRef = useRef(null);
   const messageScrollRef = useRef(null);
@@ -407,7 +409,7 @@ export default function ChatPage() {
           );
         });
 
-         socket.on("message-reactions-updated", ({ messageId, reactions }) => {
+        socket.on("message-reactions-updated", ({ messageId, reactions }) => {
           if (!messageId) return;
           setMessages((prev) =>
             prev.map((msg) => (msg.id === messageId ? { ...msg, reactions: reactions || [] } : msg))
@@ -501,33 +503,87 @@ export default function ChatPage() {
     );
   }
 
-  function handleForwardMessage(message, receiverId) {
-    if (!socketRef.current || !currentUserId || !message?.id || !receiverId) return;
+  function openForwardModal(message) {
+    if (!message?.id) return;
+    setForwardTargetMessage(message);
+    setSelectedForwardUserIds([]);
+    setError("");
+  }
+
+  function toggleForwardRecipient(userId) {
+    if (!userId) return;
+
+    setSelectedForwardUserIds((prev) =>
+      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+    );
+  }
+
+  function closeForwardModal() {
+    setForwardTargetMessage(null);
+    setSelectedForwardUserIds([]);
+    setForwardingMessage(false);
+  }
+
+  function emitForwardMessage(payload) {
+    return new Promise((resolve) => {
+      socketRef.current.emit("send-message", payload, (response) => {
+        resolve(response);
+      });
+    });
+  }
+
+  async function handleForwardMessage() {
+    if (!socketRef.current || !currentUserId || !forwardTargetMessage?.id) return;
+    if (!selectedForwardUserIds.length) {
+      setError("Please select at least one user to forward this message");
+      return;
+    }
+
+    setForwardingMessage(true);
 
     const payload = {
       senderId: currentUserId,
-      receiverId,
-      text: message.text || "",
-      messageType: message.messageType || "text",
+      text: forwardTargetMessage.text || "",
+      messageType: forwardTargetMessage.messageType || "text",
     };
 
-    if (message.messageType === "document" && message.attachment?.url) {
-      payload.attachment = message.attachment;
+     if (forwardTargetMessage.messageType === "document" && forwardTargetMessage.attachment?.url) {
+      payload.attachment = forwardTargetMessage.attachment;
     }
 
-    if (message.messageType === "media" && Array.isArray(message.attachments)) {
-      payload.attachments = message.attachments;
+    if (forwardTargetMessage.messageType === "media" && Array.isArray(forwardTargetMessage.attachments)) {
+      payload.attachments = forwardTargetMessage.attachments;
     }
 
-    socketRef.current.emit("send-message", payload, (response) => {
-      if (!response?.ok) {
-        setError(response?.error || "Failed to forward message");
-        return;
-      }
+    const responses = await Promise.all(
+      selectedForwardUserIds.map((receiverId) => emitForwardMessage({ ...payload, receiverId }))
+    );
 
-      setError("");
-      setActiveForwardMenuFor("");
+      const failedResponses = responses.filter((response) => !response?.ok);
+
+    responses.forEach((response) => {
+      if (!response?.ok || !response.message) return;
+
+      const isInOpenThread =
+        (response.message.sender === activeUserId && response.message.receiver === currentUserId) ||
+        (response.message.sender === currentUserId && response.message.receiver === activeUserId);
+
+      if (!isInOpenThread) return;
+
+      setMessages((prev) => {
+        const exists = prev.some((msg) => msg.id === response.message.id);
+        if (exists) return prev;
+        return [...prev, response.message];
+      });
     });
+    if (failedResponses.length) {
+      setError(failedResponses[0]?.error || "Failed to forward message to some users");
+      setForwardingMessage(false);
+      return;
+    }
+
+    setError("");
+    closeForwardModal();
   }
 
   function groupedReactions(reactions = []) {
@@ -599,133 +655,110 @@ export default function ChatPage() {
                 className={`chat-message-wrap ${msg.sender === currentUserId ? "chat-message-wrap-own" : ""}`}
               >
                 <div
-                  className={`chat-bubble ${msg.sender === currentUserId ? "chat-bubble-own" : ""} ${activeReactionPickerFor === msg.id || activeForwardMenuFor === msg.id ? "chat-bubble-menu-open" : ""}`}
+                  className={`chat-bubble ${msg.sender === currentUserId ? "chat-bubble-own" : ""} ${activeReactionPickerFor === msg.id || forwardTargetMessage?.id === msg.id ? "chat-bubble-menu-open" : ""}`}
                 >
-                <div className="chat-bubble-actions" onClick={(event) => event.stopPropagation()}>
-                  <button
-                    type="button"
-                    className="chat-bubble-action-btn"
-                    onClick={() => {
-                      setActiveReactionPickerFor((prev) => (prev === msg.id ? "" : msg.id));
-                      setActiveForwardMenuFor("");
-                    }}
-                    aria-label="React to message"
-                  >
-                    <SmilePlus size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    className="chat-bubble-action-btn"
-                    onClick={() => {
-                      setActiveForwardMenuFor((prev) => (prev === msg.id ? "" : msg.id));
-                      setActiveReactionPickerFor("");
-                    }}
-                    aria-label="Forward message"
-                  >
-                    <Forward size={14} />
-                  </button>
-                </div>
-
-                {activeReactionPickerFor === msg.id ? (
-                  <div className="chat-reaction-picker" onClick={(event) => event.stopPropagation()}>
-                    {quickReactions.map((emoji) => (
-                      <button
-                        type="button"
-                        key={`${msg.id}-${emoji}`}
-                        onClick={() => handleToggleReaction(msg.id, emoji)}
-                      >
-                        {emoji}
-                      </button>
-                    ))}
+                  <div className="chat-bubble-actions" onClick={(event) => event.stopPropagation()}>
+                    <button
+                      type="button"
+                      className="chat-bubble-action-btn"
+                      onClick={() => {
+                        setActiveReactionPickerFor((prev) => (prev === msg.id ? "" : msg.id));
+                        
+                      }}
+                      aria-label="React to message"
+                    >
+                      <SmilePlus size={14} />
+                    </button>
+                    <button
+                      type="button"
+                      className="chat-bubble-action-btn"
+                      onClick={() => {
+                        setActiveReactionPickerFor("");
+                        openForwardModal(msg);
+                      }}
+                      aria-label="Forward message"
+                    >
+                      <Forward size={14} />
+                    </button>
                   </div>
-                ) : null}
 
-                {activeForwardMenuFor === msg.id ? (
-                  <div className="chat-forward-menu" onClick={(event) => event.stopPropagation()}>
-                    {users
-                      .filter((user) => user.id !== currentUserId)
-                      .map((user) => (
+                  {activeReactionPickerFor === msg.id ? (
+                    <div className="chat-reaction-picker" onClick={(event) => event.stopPropagation()}>
+                      {quickReactions.map((emoji) => (
                         <button
                           type="button"
-                          key={`${msg.id}-forward-${user.id}`}
-                          onClick={() => handleForwardMessage(msg, user.id)}
+                          key={`${msg.id}-${emoji}`}
+                          onClick={() => handleToggleReaction(msg.id, emoji)}
                         >
-                          Forward to {user.name}
+                          {emoji}
                         </button>
                       ))}
-                  </div>
-                ) : null}
-                {msg.messageType === "gif" ? (
-                  /\.mp4($|\?)/i.test(msg.text) ? (
-                    <video src={msg.text} autoPlay loop muted playsInline className="chat-gif" />
-                  ) : (
-                    <img src={msg.text} alt="GIF" className="chat-gif" />
-                  )
-                ) : msg.messageType === "media" ? (
-                  <>
-                    <div
-                      className={`chat-media-grid ${(msg.attachments || []).length > 1 ? "chat-media-grid-multi" : ""
-                        }`}
-                    >
-                      {(msg.attachments || []).map((file, index) => {
-                        const isVideo = file.mimeType?.startsWith("video/");
-                        return (
-                          <a
-                            href={file.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            key={`${msg.id}-media-${index}`}
-                            className="chat-media-item"
-                          >
-                            {isVideo ? (
-                              <video src={file.url} controls className="chat-media-video" />
-                            ) : (
-                              <img src={file.url} alt={file.fileName || `media-${index + 1}`} className="chat-media-image" />
-                            )}
-                          </a>
-                        );
-                      })}
                     </div>
-                    {msg.text ? <p className="chat-media-caption">{msg.text}</p> : null}
-                  </>
-                ) : msg.messageType === "document" ? (
-                  <a
-                    href={msg.attachment?.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    download={msg.attachment?.fileName || "document"}
-                    className="chat-document"
-                  >
-                    <div className="chat-document-icon-wrap">
-                      <FileText size={18} />
-                    </div>
-                    <div className="chat-document-content">
-                      <strong>{msg.attachment?.fileName || msg.text || "Document"}</strong>
-                      <small>
-                        {msg.attachment?.mimeType || "Attachment"} • {formatBytes(msg.attachment?.size)}
-                      </small>
-                    </div>
-                  </a>
-                ) : (
-                  <p className="chat-text-message">{msg.text}</p>
-                )}
-                {!!(msg.reactions || []).length && (
-                  <div className="chat-reactions-row">
-                    {groupedReactions(msg.reactions).map(([emoji, count]) => (
-                      <span key={`${msg.id}-${emoji}`} className="chat-reaction-chip">
-                        {emoji} {count}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <span className="chat-meta-row">
-                  {new Date(msg.createdAt).toLocaleTimeString()}
-                  {msg.sender === currentUserId ? (
-                    <em className={`chat-status chat-status-${getMessageStatus(msg)}`}>
-                      {getMessageStatus(msg) === "sent" ? <Check size={13} /> : <CheckCheck size={13} />}
-                    </em>
                   ) : null}
-                </span>
+
+                  {msg.messageType === "gif" ? (
+                    /\.mp4($|\?)/i.test(msg.text) ? (
+                      <video src={msg.text} autoPlay loop muted playsInline className="chat-gif" />
+                    ) : (
+                      <img src={msg.text} alt="GIF" className="chat-gif" />
+                    )
+                  ) : msg.messageType === "media" ? (
+                    <>
+                      <div
+                        className={`chat-media-grid ${(msg.attachments || []).length > 1 ? "chat-media-grid-multi" : ""
+                          }`}
+                      >
+                        {(msg.attachments || []).map((file, index) => {
+                          const isVideo = file.mimeType?.startsWith("video/");
+                          return (
+                            <a
+                              href={file.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              key={`${msg.id}-media-${index}`}
+                              className="chat-media-item"
+                            >
+                              {isVideo ? (
+                                <video src={file.url} controls className="chat-media-video" />
+                              ) : (
+                                <img src={file.url} alt={file.fileName || `media-${index + 1}`} className="chat-media-image" />
+                              )}
+                            </a>
+                          );
+                        })}
+                      </div>
+                      {msg.text ? <p className="chat-media-caption">{msg.text}</p> : null}
+                    </>
+                  ) : msg.messageType === "document" ? (
+                    <a
+                      href={msg.attachment?.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      download={msg.attachment?.fileName || "document"}
+                      className="chat-document"
+                    >
+                      <div className="chat-document-icon-wrap">
+                        <FileText size={18} />
+                      </div>
+                      <div className="chat-document-content">
+                        <strong>{msg.attachment?.fileName || msg.text || "Document"}</strong>
+                        <small>
+                          {msg.attachment?.mimeType || "Attachment"} • {formatBytes(msg.attachment?.size)}
+                        </small>
+                      </div>
+                    </a>
+                  ) : (
+                    <p className="chat-text-message">{msg.text}</p>
+                  )}
+
+                  <span className="chat-meta-row">
+                    {new Date(msg.createdAt).toLocaleTimeString()}
+                    {msg.sender === currentUserId ? (
+                      <em className={`chat-status chat-status-${getMessageStatus(msg)}`}>
+                        {getMessageStatus(msg) === "sent" ? <Check size={13} /> : <CheckCheck size={13} />}
+                      </em>
+                    ) : null}
+                  </span>
                 </div>
                 {!!(msg.reactions || []).length && (
                   <div className="chat-reactions-row">
@@ -965,6 +998,52 @@ export default function ChatPage() {
           )}
         </div>
       </aside>
+      {forwardTargetMessage ? (
+        <div className="chat-forward-modal-backdrop" onClick={closeForwardModal}>
+          <div className="chat-forward-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="chat-forward-modal-head">
+              <h3>Forward message</h3>
+              <button type="button" onClick={closeForwardModal} aria-label="Close forward modal">
+                <X size={16} />
+              </button>
+            </div>
+
+            <p>Select users to forward this message to:</p>
+
+            <div className="chat-forward-user-list">
+              {users
+                .filter((user) => user.id !== currentUserId)
+                .map((user) => {
+                  const isSelected = selectedForwardUserIds.includes(user.id);
+                  return (
+                    <button
+                      type="button"
+                      key={`forward-modal-${user.id}`}
+                      className={`chat-forward-user-item ${isSelected ? "selected" : ""}`}
+                      onClick={() => toggleForwardRecipient(user.id)}
+                    >
+                      <span>{user.name}</span>
+                      {isSelected ? <Check size={14} /> : null}
+                    </button>
+                  );
+                })}
+            </div>
+
+            <div className="chat-forward-modal-actions">
+              <button type="button" onClick={closeForwardModal} disabled={forwardingMessage}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleForwardMessage}
+                disabled={!selectedForwardUserIds.length || forwardingMessage}
+              >
+                {forwardingMessage ? "Sending..." : "Send"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

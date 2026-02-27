@@ -188,6 +188,116 @@
   font-size: 0.75rem;
 }
 
+.chat-forward-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: grid;
+  place-items: center;
+  z-index: 1100;
+  padding: 1rem;
+}
+
+.chat-forward-modal {
+  width: min(460px, 100%);
+  max-height: 80vh;
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid #dce3ed;
+  background: #fff;
+  box-shadow: 0 20px 55px rgba(15, 23, 42, 0.3);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chat-forward-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.chat-forward-modal-head h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.chat-forward-modal-head button {
+  border: none;
+  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  background: #eef2ff;
+  color: #334155;
+  cursor: pointer;
+}
+
+.chat-forward-modal p {
+  margin: 0;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.chat-forward-user-list {
+  max-height: 300px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-right: 2px;
+}
+
+.chat-forward-user-item {
+  border: 1px solid #dce3ed;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #0f172a;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 9px 10px;
+}
+
+.chat-forward-user-item.selected {
+  border-color: #2f6fed;
+  background: #e8f0ff;
+  color: #1d4ed8;
+}
+
+.chat-forward-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.chat-forward-modal-actions button {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.chat-forward-modal-actions button:first-child {
+  background: #e2e8f0;
+  color: #334155;
+}
+
+.chat-forward-modal-actions button:last-child {
+  background: #2f6fed;
+  color: #fff;
+}
+
+.chat-forward-modal-actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+
 .chat-reactions-row {
   display: flex;
   flex-wrap: wrap;
@@ -208,7 +318,6 @@
   border: 1px solid #dbe3ef;
   padding: 2px 8px;
   font-size: 0.7rem;
-  line-height: 1.2;
 }
 
 
