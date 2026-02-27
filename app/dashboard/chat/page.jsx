@@ -120,6 +120,29 @@ export default function ChatPage() {
     messageScrollRef.current.scrollTop = messageScrollRef.current.scrollHeight;
   }, [messages]);
 
+  useEffect(() => {
+  if (!activeReactionPickerFor) return;
+
+  const handleOutsideReactionPickerClick = (event) => {
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+
+    if (target.closest(".chat-reaction-picker") || target.closest(".chat-bubble-action-btn")) {
+      return;
+    }
+
+    setActiveReactionPickerFor("");
+  };
+
+  document.addEventListener("mousedown", handleOutsideReactionPickerClick);
+  document.addEventListener("touchstart", handleOutsideReactionPickerClick);
+
+  return () => {
+    document.removeEventListener("mousedown", handleOutsideReactionPickerClick);
+    document.removeEventListener("touchstart", handleOutsideReactionPickerClick);
+  };
+}, [activeReactionPickerFor]);
+
   function sendSocketMessage(payload) {
     if (!activeUserId || !currentUserId || !socketRef.current) {
       setError("Select a user and wait for chat connection");
@@ -652,11 +675,14 @@ export default function ChatPage() {
             messages.map((msg) => (
               <div
                 key={msg.id}
-                className={`chat-message-wrap ${msg.sender === currentUserId ? "chat-message-wrap-own" : ""}`}
+                className={`chat-message-wrap-wrapper ${msg.sender === currentUserId ? "chat-message-wrap-wrapper-own" : ""}`}
               >
                 <div
-                  className={`chat-bubble ${msg.sender === currentUserId ? "chat-bubble-own" : ""} ${activeReactionPickerFor === msg.id || forwardTargetMessage?.id === msg.id ? "chat-bubble-menu-open" : ""}`}
+                 className={`chat-message-wrap ${msg.sender === currentUserId ? "chat-message-wrap-own" : ""}`}
                 >
+                  <div
+                    className={`chat-bubble ${msg.sender === currentUserId ? "chat-bubble-own" : ""} ${activeReactionPickerFor === msg.id || forwardTargetMessage?.id === msg.id ? "chat-bubble-menu-open" : ""}`}
+                  >
                   <div className="chat-bubble-actions" onClick={(event) => event.stopPropagation()}>
                     <button
                       type="button"
@@ -761,14 +787,15 @@ export default function ChatPage() {
                   </span>
                 </div>
                 {!!(msg.reactions || []).length && (
-                  <div className="chat-reactions-row">
-                    {groupedReactions(msg.reactions).map(([emoji, count]) => (
-                      <span key={`${msg.id}-${emoji}`} className="chat-reaction-chip">
-                        {emoji} {count}
-                      </span>
-                    ))}
-                  </div>
-                )}
+                    <div className="chat-reactions-row">
+                      {groupedReactions(msg.reactions).map(([emoji, count]) => (
+                        <span key={`${msg.id}-${emoji}`} className="chat-reaction-chip">
+                          {emoji} {count}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             ))
           )}

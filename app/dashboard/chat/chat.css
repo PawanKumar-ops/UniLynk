@@ -95,16 +95,23 @@
   scrollbar-width: thin;
 }
 
+.chat-message-wrap-wrapper {
+  width: 100%;
+  display: flex;
+  justify-content: flex-start;
+}
+
+.chat-message-wrap-wrapper-own {
+  justify-content: flex-end;
+}
+
+
 .chat-message-wrap {
-  align-self: flex-start;
   display: flex;
   flex-direction: column;
   max-width: min(72%, 520px);
 }
 
-.chat-message-wrap-own {
-  align-self: flex-end;
-}
 .chat-bubble {
   padding: 0.2rem;
   border-radius: 14px;
@@ -114,14 +121,18 @@
 
 .chat-bubble {
   position: relative;
+  overflow: visible;
 }
 
 .chat-bubble-actions {
+  --chat-bubble-actions-gap: 10px;
   position: absolute;
-  top: -12px;
-  right: 8px;
+  top: 50%;
+  left: calc(100% + var(--chat-bubble-actions-gap));
+  transform: translateY(-50%);
   display: none;
   align-items: center;
+  flex-direction: row;
   gap: 6px;
   background: #ffffff;
   border: 1px solid #dce3ed;
@@ -132,12 +143,17 @@
 }
 
 .chat-bubble-own .chat-bubble-actions {
+  left: auto;
+  right: calc(100% + var(--chat-bubble-actions-gap));
   background: #d3e2fd;
+  margin-left: 0;
+  margin-right: 10px;
   color: #000;
 }
 
-.chat-bubble:hover .chat-bubble-actions,
-.chat-bubble:focus-within .chat-bubble-actions {
+.chat-message-wrap-wrapper:hover .chat-bubble-actions,
+.chat-message-wrap-wrapper:focus-within .chat-bubble-actions,
+.chat-bubble-menu-open .chat-bubble-actions {
   display: inline-flex;
 }
 
@@ -158,8 +174,11 @@
 
 .chat-reaction-picker,
 .chat-forward-menu {
-  position: relative;
-  margin: 6px 6px 0;
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 44px);
+  transform: translateY(-50%);
+  margin: 0;
   background: #fff;
   border: 1px solid #dce3ed;
   border-radius: 10px;
@@ -168,6 +187,12 @@
   gap: 4px;
   z-index: 999;
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.14);
+}
+
+.chat-bubble-own .chat-reaction-picker,
+.chat-bubble-own .chat-forward-menu {
+  left: auto;
+  right: calc(100% + 44px);
 }
 
 .chat-forward-menu {
@@ -316,7 +341,7 @@
   border-radius: 999px;
   background: #ffffff;
   border: 1px solid #dbe3ef;
-  padding: 2px 8px;
+  padding: 3px 8px;
   font-size: 0.7rem;
 }
 
@@ -423,7 +448,7 @@
   justify-content: center;
   align-items: center;
   background: rgba(15, 23, 42, 0.1);
-  
+
 }
 
 .chat-document-content {
@@ -554,10 +579,10 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  
+
 }
 
-.giphy-search{
+.giphy-search {
   position: sticky;
   padding: 15px 10px;
 }
@@ -588,7 +613,7 @@
   padding: 9.6px 12px;
 }
 
-.gif-search svg{
+.gif-search svg {
   height: 15px;
   width: 15px;
   color: grey;
@@ -837,8 +862,87 @@
   box-sizing: border-box !important;
 
   padding: 0 12px 0 36px !important;
- 
+
 }
+
 .chat-bubble-menu-open {
   margin-bottom: 6px;
+}
+
+.chat-reaction-picker {
+  height: fit-content;
+  position: absolute;
+
+  bottom: calc(100% + 6px);
+
+
+  left: calc(100% + 10px);
+
+  display: flex;
+  gap: 6px;
+  padding: 6px;
+
+  background: #fff;
+  border: 1px solid #dce3ed;
+  border-radius: 12px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.14);
+
+  z-index: 20;
+
+  opacity: 0;
+  transform: translateY(6px) scale(0.96);
+  animation: reaction-pop 140ms ease-out forwards;
+}
+
+.chat-bubble-own .chat-reaction-picker {
+  left: auto;
+  right: calc(100% + 10px);
+}
+
+@keyframes reaction-pop {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.chat-reaction-picker button {
+  border: none;
+  background: #f4f6fb;
+  border-radius: 10px;
+  padding: 6px 8px;
+  cursor: pointer;
+  font-size: 0.9rem;
+
+  transition: transform 120ms ease, background 120ms ease;
+}
+
+.chat-reaction-picker button:hover {
+  transform: translateY(-2px) scale(1.15);
+  background: #eef2ff;
+}
+
+.chat-reaction-picker button:active {
+  transform: scale(0.9);
+}
+
+.chat-reaction-chip {
+  animation: reaction-chip-in 160ms ease-out;
+}
+
+@keyframes reaction-chip-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.85);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
