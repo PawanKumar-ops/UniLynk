@@ -158,8 +158,8 @@ export default function DashboardClient() {
                     <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/thumb.svg" alt="Like" /><span className='post-like-count'>0</span></div>
                     <div className="post-foot-iconcont">
                       <button onClick={() => setActivePostId(post._id)}>
-                        <img className='post-foot-icon' src="Postimg/comment.svg" />
-                      </button>
+                        <img className='post-foot-icon' src="Postimg/comment.svg" alt="Comment" />
+                      </button><span className='post-comment-count'>0</span>
 
                       <CommentModal
                         isOpen={activePostId === post._id}

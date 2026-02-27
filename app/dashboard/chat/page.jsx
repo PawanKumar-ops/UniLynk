@@ -12,7 +12,6 @@ import {
   Search,
   Smile,
   SmilePlus,
-  Forward,
   Trash2,
   Undo2,
   X,
