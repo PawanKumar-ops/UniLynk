@@ -3,7 +3,7 @@
   overflow: hidden;
 }
 
-.userpostsloadani{
+.userpostsloadani {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -13,29 +13,35 @@
 .userposts {
   display: flex;
   flex-direction: column;
-  width: 100%;
-  margin-top: 50px;
+  width: min(820px, 100%);
+  margin: 62px auto 0;
+  padding: 0 14px 96px;
+  gap: 12px;
 }
 
 .userpost {
   display: flex;
-  padding: 12px 16px;
+  gap: 10px;
+  padding: 14px 16px;
   width: 100%;
   height: fit-content;
   background-color: #fff;
-  border-bottom: 1px solid #e4eaec;
+  border: 1px solid #e4eaec;
+  border-radius: 16px;
   position: relative;
   /* contain: paint; */
+  box-shadow: 0 6px 18px rgba(15, 20, 25, 0.05);
 }
 
 .userpost::before {
   content: "";
   position: absolute;
   inset: 0;
-  background-color: #f9f9fa;
+  background: linear-gradient(180deg, rgba(250, 250, 251, 0.7), rgba(244, 246, 248, 0.35));
   opacity: 0;
   transition: opacity 120ms ease-out;
   z-index: 0;
+  border-radius: 16px;
 }
 
 .userpost:hover::before {
@@ -43,12 +49,12 @@
 }
 
 
-.userpost > * {
+.userpost>* {
   position: relative;
   z-index: 1;
 }
 
-.noposts-illuistration{
+.noposts-illuistration {
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -56,29 +62,29 @@
   height: 90vh;
 }
 
-.noposts-illuistration img{
+.noposts-illuistration img {
   margin-bottom: 2rem;
 }
 
-.noposts-illuistrationh{
+.noposts-illuistrationh {
   font-size: 1.5rem;
   margin-bottom: 0.75rem;
 }
 
-.noposts-illuistrationp{
+.noposts-illuistrationp {
   width: 384px;
   text-align: center;
   color: grey;
 }
 
 
-.post-left{
+.post-left {
   width: fit-content;
   height: 100%;
   margin-right: 6px;
 }
 
-.profileimg{
+.profileimg {
   width: 40px;
   height: 40px;
   object-fit: cover;
@@ -86,7 +92,7 @@
   background: #f4f4f5;
 }
 
-.profilepic{
+.profilepic {
   border-radius: 999px;
   overflow: hidden;
   width: fit-content;
@@ -94,58 +100,66 @@
   height: 40px;
 }
 
-.post-right{
+.post-right {
   width: 100%;
 }
 
-.posth-right-btn{
+.posth-right-btn {
   padding: 5px;
   border-radius: 999px;
 }
 
-.posth-right-btn:hover{
+.posth-right-btn:hover {
   background-color: #ececec;
 }
 
-.posth-right-btn svg{
+.posth-right-btn svg {
   width: 18px;
   height: 18px;
   color: grey;
 }
 
-.posth{
+.posth {
   display: flex;
   justify-content: space-between;
 }
 
-.posth-left{
+.posth-left {
   display: flex;
-  gap: 20px;
+  gap: 5px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
-.user-name{
+.user-name {
   color: #000;
-  font-weight: bold;
+  font-weight: 700;
+  font-size: 15px;
 }
 
-.post-time{
-  list-style: disc;
+.post-time {
+  list-style: none;
   color: grey;
+  display: flex;
+  gap: 5px;
 }
 
-.post-timeli{
-  list-style: disc;
+.post-dot {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-.post-content{
+.post-content {
   text-align: left;
   color: rgb(15, 20, 25);
   font-size: 15px;
-  line-height: 20px;
+  line-height: 1.45;
   white-space: pre-wrap;
   word-wrap: break-word;
   overflow-wrap: break-word;
   letter-spacing: 0.01em;
+  margin-top: 2px;
 }
 
 .image-post {
@@ -203,13 +217,15 @@
 }
 
 
-.post-foot{
+.post-foot {
   padding-top: 12px;
   display: flex;
   justify-content: space-between;
+  border-top: 1px solid #edf1f3;
+  margin-top: 12px;
 }
 
-.post-foot-icon{
+.post-foot-icon {
   padding: 5px;
   width: 30px;
   height: 30px;
@@ -217,19 +233,26 @@
   cursor: pointer;
 }
 
-.post-foot-icon:hover{
+.post-foot-icon:hover {
   background-color: #ececec;
 }
 
-.post-foot-iconcont{
+.post-foot-iconcont {
   display: flex;
   align-items: center;
+  gap: 4px;
   font-size: 14px;
   color: #3e3e3e;
 }
 
 
-
+.post-foot-iconcont button {
+  border: none;
+  background: transparent;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
 
 
 
@@ -264,6 +287,7 @@ body {
   overflow-y: auto;
   width: 100%;
   height: 100vh;
+  padding-bottom: 110px;
 }
 
 /* .fhead {
@@ -281,7 +305,7 @@ body {
 
 .pricing-toggle {
   position: fixed;
-  top: 10px;               
+  top: 10px;
   left: 50%;
   transform: translateX(-50%);
   background: #f3f3f3;
@@ -681,12 +705,19 @@ body {
 }
 
 @media (max-width: 768px) {
+  .userposts {
+    padding: 0 10px 84px;
+    margin-top: 56px;
+    gap: 10px;
+  }
+
   .userpost {
     padding: 12px;
+    border-radius: 14px;
   }
 
   .posth-left {
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
   }
 
@@ -696,7 +727,7 @@ body {
   }
 
   .post-foot-iconcont {
-    min-width: 72px;
+    min-width: 66px;
   }
 
   .post-content {
