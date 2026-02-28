@@ -1,6 +1,14 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useDeferredValue,
+  useRef,
+} from "react";
+import { createPortal } from "react-dom";
 import "./ShareModal.css";
 
 const MOCK_CONTACTS = [
@@ -20,14 +28,28 @@ const ShareModal = ({
   postUrl = typeof window !== "undefined" ? window.location.href : "",
   postTitle = "Check out this post",
 }) => {
+    const closeTimeoutRef = useRef(null);
+  const copyTimeoutRef = useRef(null);
   const [closing, setClosing] = useState(false);
   const [search, setSearch] = useState("");
   const [sentIds, setSentIds] = useState(new Set());
   const [copied, setCopied] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const deferredSearch = useDeferredValue(search);
+
+  useEffect(() => {
+    setMounted(true);
+    return () => {
+      if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    };
+  }, []);
 
   const handleClose = useCallback(() => {
     setClosing(true);
-    setTimeout(() => {
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+
+    closeTimeoutRef.current = setTimeout(() => {
       setClosing(false);
       setSearch("");
       setSentIds(new Set());
@@ -47,36 +69,54 @@ const ShareModal = ({
     return () => document.removeEventListener("keydown", handleKey);
   }, [open, handleClose]);
 
-  if (!open && !closing) return null;
+  useEffect(() => {
+    if (!open && !closing) return undefined;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open, closing]);
 
   const encoded = encodeURIComponent(postUrl);
   const encodedTitle = encodeURIComponent(postTitle);
 
-  const externalPlatforms = [
-    { name: "WhatsApp", url: `https://wa.me/?text=${encodedTitle}%20${encoded}`, icon: <WhatsAppIcon /> },
-    { name: "Facebook", url: `https://www.facebook.com/sharer/sharer.php?u=${encoded}`, icon: <FacebookIcon /> },
-    { name: "Twitter/X", url: `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encoded}`, icon: <TwitterIcon /> },
-    { name: "Telegram", url: `https://t.me/share/url?url=${encoded}&text=${encodedTitle}`, icon: <TelegramIcon /> },
-    { name: "LinkedIn", url: `https://www.linkedin.com/sharing/share-offsite/?url=${encoded}`, icon: <LinkedInIcon /> },
-    { name: "Email", url: `mailto:?subject=${encodedTitle}&body=${encoded}`, icon: <EmailIcon /> },
-    { name: "Copy Link", url: "", icon: <CopyIcon /> },
-  ];
-
-  const filteredContacts = MOCK_CONTACTS.filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase())
+  const externalPlatforms = useMemo(
+    () => [
+      { name: "WhatsApp", url: `https://wa.me/?text=${encodedTitle}%20${encoded}`, icon: WhatsAppIcon },
+      { name: "Facebook", url: `https://www.facebook.com/sharer/sharer.php?u=${encoded}`, icon: FacebookIcon },
+      { name: "Twitter/X", url: `https://twitter.com/intent/tweet?text=${encodedTitle}&url=${encoded}`, icon: TwitterIcon },
+      { name: "Telegram", url: `https://t.me/share/url?url=${encoded}&text=${encodedTitle}`, icon: TelegramIcon },
+      { name: "LinkedIn", url: `https://www.linkedin.com/sharing/share-offsite/?url=${encoded}`, icon: LinkedInIcon },
+      { name: "Email", url: `mailto:?subject=${encodedTitle}&body=${encoded}`, icon: EmailIcon },
+      { name: "Copy Link", url: "", icon: CopyIcon },
+    ],
+    [encoded, encodedTitle]
   );
 
-  const handleCopyLink = () => {
-    navigator.clipboard.writeText(postUrl);
+  const filteredContacts = useMemo(() => {
+    const term = deferredSearch.trim().toLowerCase();
+    if (!term) return MOCK_CONTACTS;
+    return MOCK_CONTACTS.filter((c) => c.name.toLowerCase().includes(term));
+  }, [deferredSearch]);
+
+  const handleCopyLink = async () => {
+    if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+
+    await navigator.clipboard.writeText(postUrl);
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    copyTimeoutRef.current = setTimeout(() => setCopied(false), 1800);
   };
 
   const handleSend = (id) => {
     setSentIds((prev) => new Set(prev).add(id));
   };
   
-  return (
+  if (!mounted || (!open && !closing)) return null;
+
+  return createPortal(
     <div
       className={`share-modal-overlay${closing ? " closing" : ""}`}
       onClick={(e) => e.target === e.currentTarget && handleClose()}
@@ -98,12 +138,12 @@ const ShareModal = ({
             {externalPlatforms.map((p) => (
               p.name === "Copy Link" ? (
                 <button key={p.name} className="share-external-btn" onClick={handleCopyLink}>
-                  <span className="share-external-icon">{p.icon}</span>
+                  <span className="share-external-icon"><p.icon /></span>
                   <span className="share-external-label">{copied ? "Copied!" : p.name}</span>
                 </button>
               ) : (
                 <a key={p.name} className="share-external-btn" href={p.url} target="_blank" rel="noopener noreferrer">
-                  <span className="share-external-icon">{p.icon}</span>
+                  <span className="share-external-icon"><p.icon /></span>
                   <span className="share-external-label">{p.name}</span>
                 </a>
               )
@@ -142,7 +182,8 @@ const ShareModal = ({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

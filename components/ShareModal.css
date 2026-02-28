@@ -9,6 +9,8 @@
   align-items: center;
   justify-content: center;
   animation: overlay-fade-in 0.2s ease-out;
+  will-change: opacity;
+  backface-visibility: hidden;
 }
 
 .share-modal-overlay.closing {
@@ -25,6 +27,9 @@
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
   animation: modal-slide-up 0.25s ease-out;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  contain: layout paint;
 }
 
 .share-modal-overlay.closing .share-modal {
@@ -283,4 +288,18 @@
 .share-modal::-webkit-scrollbar-thumb {
   background: #ddd;
   border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .share-modal-overlay,
+  .share-modal-overlay.closing,
+  .share-modal,
+  .share-modal-overlay.closing .share-modal {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .share-chat-send {
+    transition: none !important;
+  }
 }
