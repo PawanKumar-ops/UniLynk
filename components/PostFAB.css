@@ -1,7 +1,7 @@
 .fab {
   position: fixed;
   bottom: 40px;
-  right: 33%;
+  right: calc(31.24% + 24px);
 
   width: 50px;
   height: 50px;
@@ -18,7 +18,7 @@
 
   cursor: pointer;
   overflow: hidden;
-
+  z-index: 120;
   padding: 5px;
   transition: width 0.3s ease;
 }
@@ -58,12 +58,30 @@
 }
 
 /* hover expand */
-.fab:hover {
-  width: 140px;
+@media (hover: hover) {
+  .fab:hover {
+    width: 140px;
+  }
+
+  /* smooth text reveal */
+  .fab:hover .text {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 /* smooth text reveal */
-.fab:hover .text {
-  opacity: 1;
-  transform: translateX(0);
+@media (max-width: 1200px) {
+  .fab {
+    right: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .fab {
+    right: 16px;
+    bottom: 16px;
+    width: 52px;
+    height: 52px;
+  }
 }
