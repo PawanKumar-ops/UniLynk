@@ -1,0 +1,286 @@
+/* Share Modal Styles — Black & White Light Theme */
+
+.share-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: overlay-fade-in 0.2s ease-out;
+}
+
+.share-modal-overlay.closing {
+  animation: overlay-fade-out 0.2s ease-out forwards;
+}
+
+.share-modal {
+  background: #ffffff;
+  color: #000000;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  animation: modal-slide-up 0.25s ease-out;
+}
+
+.share-modal-overlay.closing .share-modal {
+  animation: modal-slide-down 0.2s ease-out forwards;
+}
+
+/* Header */
+.share-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.share-modal-header h2 {
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.share-modal-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000;
+  transition: background 0.15s;
+}
+
+.share-modal-close:hover {
+  background: #f0f0f0;
+}
+
+/* External Share Section */
+.share-modal-section {
+  padding: 20px 24px;
+}
+
+.share-modal-section-title {
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #888;
+  margin: 0 0 14px;
+}
+
+.share-external-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.share-external-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 14px 8px;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  background: #fff;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  color: #000;
+  text-decoration: none;
+}
+
+.share-external-btn:hover {
+  background: #f5f5f5;
+  border-color: #ccc;
+}
+
+.share-external-icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.share-external-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.share-external-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #333;
+}
+
+/* Divider */
+.share-modal-divider {
+  height: 1px;
+  background: #e5e5e5;
+  margin: 0 24px;
+}
+
+/* Chat Section */
+.share-chat-search {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1px solid #e5e5e5;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+  background: #fafafa;
+  color: #000;
+  margin-bottom: 14px;
+  transition: border-color 0.15s;
+}
+
+.share-chat-search::placeholder {
+  color: #aaa;
+}
+
+.share-chat-search:focus {
+  border-color: #999;
+  background: #fff;
+}
+
+.share-chat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.share-chat-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  transition: background 0.15s;
+}
+
+.share-chat-item:hover {
+  background: #f5f5f5;
+}
+
+.share-chat-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #e5e5e5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: #555;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.share-chat-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.share-chat-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 500;
+  color: #000;
+}
+
+.share-chat-send {
+  padding: 6px 16px;
+  border: 1px solid #000;
+  border-radius: 6px;
+  background: #000;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+}
+
+.share-chat-send:hover {
+  background: #333;
+}
+
+.share-chat-send:active {
+  transform: scale(0.96);
+}
+
+.share-chat-send.sent {
+  background: #fff;
+  color: #000;
+  border-color: #ccc;
+  cursor: default;
+}
+
+/* Animations */
+@keyframes overlay-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes overlay-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes modal-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes modal-slide-down {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(20px) scale(0.97);
+  }
+}
+
+/* Scrollbar */
+.share-chat-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.share-chat-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.share-chat-list::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 4px;
+}
+
+.share-modal::-webkit-scrollbar {
+  width: 4px;
+}
+
+.share-modal::-webkit-scrollbar-thumb {
+  background: #ddd;
+  border-radius: 4px;
+}

@@ -8,6 +8,7 @@ import Post from '../../components/Post';
 import { EllipsisVertical } from 'lucide-react';
 import ReliableImage from '../../components/ReliableImage';
 import CommentModal from '@/components/CommentModal';
+import ShareModal from '@/components/ShareModal';
 
 const formatRelativeTime = (dateString) => {
   const date = new Date(dateString);
@@ -32,6 +33,7 @@ export default function DashboardClient() {
   const [posts, setPosts] = useState([]);
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [activePostId, setActivePostId] = useState(null);
+  const [sharePost, setSharePost] = useState(null);
 
   const selectedAudience = useMemo(() => (isAnnual ? "for-you" : "clubs"), [isAnnual]);
 
@@ -168,8 +170,19 @@ export default function DashboardClient() {
                         onClose={() => setActivePostId(null)}
                       />
                     </div>
-                    <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/share.svg" alt="Share" /><span className='post-share-count'>0</span></div>
-                    <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/bookmark.svg" alt="Share" /><span className='post-share-count'>0</span></div>
+                    <div className="post-foot-iconcont">
+                      <button onClick={() => setSharePost(post)}>
+                        <img className="post-foot-icon" src="Postimg/share.svg" alt="Share" />
+                      </button>
+
+                      <ShareModal
+                        open={!!sharePost}
+                        postUrl={`https://yourapp.com/post/${sharePost?._id}`}
+                        postTitle={sharePost?.content}
+                        onClose={() => setSharePost(null)}
+                      />
+                      <span className='post-share-count'>0</span></div>
+                    <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/bookmark.svg" alt="bookmark" /><span className='post-bookmark-count'>0</span></div>
 
                   </div>
                 </div>

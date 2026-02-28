@@ -15,7 +15,7 @@
   flex-direction: column;
   width: min(820px, 100%);
   margin: 62px auto 0;
-  padding: 0 14px 96px;
+  padding: 0 14px 14px;
   gap: 12px;
 }
 
@@ -287,7 +287,6 @@ body {
   overflow-y: auto;
   width: 100%;
   height: 100vh;
-  padding-bottom: 110px;
 }
 
 /* .fhead {

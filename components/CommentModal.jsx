@@ -111,7 +111,11 @@ const CommentModal = ({ isOpen, onClose, onSubmit }) => {
         if (!textareaRef.current) return;
 
         textareaRef.current.style.height = 'auto';
-        textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+        const maxTextareaHeight = 260;
+        const nextHeight = Math.min(textareaRef.current.scrollHeight, maxTextareaHeight);
+
+        textareaRef.current.style.height = `${nextHeight}px`;
+        textareaRef.current.style.overflowY = textareaRef.current.scrollHeight > maxTextareaHeight ? 'auto' : 'hidden';
     }, [comment, imageAttachments.length, gifAttachment]);
 
     if (!isOpen || !isMounted) return null;
