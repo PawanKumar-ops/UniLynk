@@ -8,13 +8,17 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: overlay-fade-in 0.2s ease-out;
   will-change: opacity;
   backface-visibility: hidden;
 }
 
+.share-modal-overlay.open {
+  animation: overlay-fade-in 0.2s ease-out;
+}
+
 .share-modal-overlay.closing {
-  animation: overlay-fade-out 0.2s ease-out forwards;
+  animation: overlay-fade-out 0.18s ease-out forwards;
+  pointer-events: none;
 }
 
 .share-modal {
@@ -26,14 +30,59 @@
   max-height: 85vh;
   overflow-y: auto;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-  animation: modal-slide-up 0.25s ease-out;
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
   will-change: transform, opacity;
-  transform: translateZ(0);
-  contain: layout paint;
+  backface-visibility: hidden;
+  contain: paint;
 }
 
-.share-modal-overlay.closing .share-modal {
-  animation: modal-slide-down 0.2s ease-out forwards;
+.share-modal.open {
+  animation: modal-slide-up 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.share-modal.closing {
+  animation: modal-slide-down 0.18s ease-out forwards;
+}
+
+@keyframes overlay-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes overlay-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes modal-slide-up {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 20px, 0) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes modal-slide-down {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0) scale(0.98);
+  }
 }
 
 /* Header */
@@ -235,37 +284,6 @@
 }
 
 /* Animations */
-@keyframes overlay-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@keyframes overlay-fade-out {
-  from { opacity: 1; }
-  to { opacity: 0; }
-}
-
-@keyframes modal-slide-up {
-  from {
-    opacity: 0;
-    transform: translateY(20px) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes modal-slide-down {
-  from {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: translateY(20px) scale(0.97);
-  }
-}
 
 /* Scrollbar */
 .share-chat-list::-webkit-scrollbar {

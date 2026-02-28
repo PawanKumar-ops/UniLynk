@@ -118,10 +118,10 @@ const ShareModal = ({
 
   return createPortal(
     <div
-      className={`share-modal-overlay${closing ? " closing" : ""}`}
+      className={`share-modal-overlay${closing ? " closing" : " open"}`}
       onClick={(e) => e.target === e.currentTarget && handleClose()}
     >
-      <div className="share-modal" role="dialog" aria-label="Share Post">
+      <div className={`share-modal${closing ? " closing" : " open"}`} role="dialog" aria-label="Share Post">
         <div className="share-modal-header">
           <h2>Share Post</h2>
           <button className="share-modal-close" onClick={handleClose} aria-label="Close">
