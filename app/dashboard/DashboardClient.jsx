@@ -34,6 +34,7 @@ export default function DashboardClient() {
   const [loadingPosts, setLoadingPosts] = useState(false);
   const [activePostId, setActivePostId] = useState(null);
   const [sharePost, setSharePost] = useState(null);
+  const [openShare, setOpenShare]= useState(false);
 
   const selectedAudience = useMemo(() => (isAnnual ? "for-you" : "clubs"), [isAnnual]);
 
@@ -171,15 +172,15 @@ export default function DashboardClient() {
                       />
                     </div>
                     <div className="post-foot-iconcont">
-                      <button onClick={() => setSharePost(post)}>
+                      <button onClick={() => setOpenShare(true)}>
                         <img className="post-foot-icon" src="Postimg/share.svg" alt="Share" />
                       </button>
 
                       <ShareModal
-                        open={!!sharePost}
+                        isOpen={openShare}
                         postUrl={`https://yourapp.com/post/${sharePost?._id}`}
-                        postTitle={sharePost?.content}
-                        onClose={() => setSharePost(null)}
+                        postContent={sharePost?.content}
+                        onClose={() => setOpenShare(false)}
                       />
                       <span className='post-share-count'>0</span></div>
                     <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/bookmark.svg" alt="bookmark" /><span className='post-bookmark-count'>0</span></div>

@@ -1,323 +1,360 @@
-/* Share Modal Styles — Black & White Light Theme */
-
+/* Modal Overlay */
 .share-modal-overlay {
   position: fixed;
-  inset: 0;
-  z-index: 100;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  will-change: opacity;
-  backface-visibility: hidden;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  animation: fadeIn 0.2s ease-in-out;
 }
 
-.share-modal-overlay.open {
-  animation: overlay-fade-in 0.2s ease-out;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
-.share-modal-overlay.closing {
-  animation: overlay-fade-out 0.18s ease-out forwards;
-  pointer-events: none;
+@keyframes slideUp {
+  from {
+    transform: translate(-50%, -40%);
+    opacity: 0;
+  }
+  to {
+    transform: translate(-50%, -50%);
+    opacity: 1;
+  }
 }
 
+/* Modal Container */
 .share-modal {
-  background: #ffffff;
-  color: #000000;
-  border-radius: 12px;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   width: 90%;
-  max-width: 480px;
+  max-width: 560px;
   max-height: 85vh;
-  overflow-y: auto;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
-  opacity: 1;
-  transform: translate3d(0, 0, 0) scale(1);
-  will-change: transform, opacity;
-  backface-visibility: hidden;
-  contain: paint;
+  overflow: hidden;
+  z-index: 1000;
+  animation: slideUp 0.3s ease-out;
 }
 
-.share-modal.open {
-  animation: modal-slide-up 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
-}
-
-.share-modal.closing {
-  animation: modal-slide-down 0.18s ease-out forwards;
-}
-
-@keyframes overlay-fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes overlay-fade-out {
-  from {
-    opacity: 1;
-  }
-  to {
-    opacity: 0;
-  }
-}
-
-@keyframes modal-slide-up {
-  from {
-    opacity: 0;
-    transform: translate3d(0, 20px, 0) scale(0.97);
-  }
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-}
-
-@keyframes modal-slide-down {
-  from {
-    opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  to {
-    opacity: 0;
-    transform: translate3d(0, 16px, 0) scale(0.98);
-  }
-}
-
-/* Header */
+/* Modal Header */
 .share-modal-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  padding: 20px 24px 16px;
+  align-items: center;
+  padding: 20px 24px;
   border-bottom: 1px solid #e5e5e5;
 }
 
 .share-modal-header h2 {
-  font-size: 18px;
-  font-weight: 600;
   margin: 0;
-  letter-spacing: -0.01em;
+  font-size: 20px;
+  font-weight: 600;
+  color: #000000;
 }
 
-.share-modal-close {
+.share-modal-close-button {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 6px;
-  border-radius: 6px;
+  padding: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #000;
-  transition: background 0.15s;
+  color: #666666;
+  transition: all 0.2s ease;
+  border-radius: 8px;
 }
 
-.share-modal-close:hover {
-  background: #f0f0f0;
+.share-modal-close-button:hover {
+  background-color: #f5f5f5;
+  color: #000000;
 }
 
-/* External Share Section */
-.share-modal-section {
-  padding: 20px 24px;
+/* Modal Body */
+.share-modal-body {
+  padding: 24px;
+  overflow-y: auto;
+  max-height: calc(85vh - 80px);
 }
 
-.share-modal-section-title {
-  font-size: 13px;
-  font-weight: 500;
+.share-modal-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+.share-modal-body::-webkit-scrollbar-track {
+  background: #f5f5f5;
+  border-radius: 4px;
+}
+
+.share-modal-body::-webkit-scrollbar-thumb {
+  background: #cccccc;
+  border-radius: 4px;
+}
+
+.share-modal-body::-webkit-scrollbar-thumb:hover {
+  background: #999999;
+}
+
+/* Share Sections */
+.share-section {
+  margin-bottom: 28px;
+}
+
+.share-section:last-child {
+  margin-bottom: 0;
+}
+
+.share-section h3 {
+  margin: 0 0 16px 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #666666;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: #888;
-  margin: 0 0 14px;
+  letter-spacing: 0.5px;
 }
 
-.share-external-grid {
+/* Share Apps Grid */
+.share-apps {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   gap: 12px;
 }
 
-.share-external-btn {
+.app-button {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  padding: 14px 8px;
+  padding: 16px 8px;
+  background-color: #ffffff;
   border: 1px solid #e5e5e5;
-  border-radius: 10px;
-  background: #fff;
+  border-radius: 12px;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
-  color: #000;
-  text-decoration: none;
+  transition: all 0.2s ease;
+  font-size: 13px;
+  color: #333333;
 }
 
-.share-external-btn:hover {
-  background: #f5f5f5;
-  border-color: #ccc;
+.app-button:hover {
+  background-color: #f9f9f9;
+  border-color: #d0d0d0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-.share-external-icon {
-  width: 32px;
-  height: 32px;
+.app-button:active {
+  transform: translateY(0);
+}
+
+.app-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: #ffffff;
 }
 
-.share-external-icon svg {
+.app-icon svg {
   width: 24px;
   height: 24px;
 }
 
-.share-external-label {
-  font-size: 11px;
-  font-weight: 500;
-  color: #333;
+.app-icon.whatsapp {
+  background-color: #25D366;
 }
 
-/* Divider */
-.share-modal-divider {
-  height: 1px;
-  background: #e5e5e5;
-  margin: 0 24px;
+.app-icon.facebook {
+  background-color: #1877F2;
+}
+
+.app-icon.twitter {
+  background-color: #000000;
+}
+
+.app-icon.telegram {
+  background-color: #0088cc;
+}
+
+.app-icon.linkedin {
+  background-color: #0A66C2;
+}
+
+.app-icon.email {
+  background-color: #666666;
+}
+
+/* Copy Link Section */
+.copy-link-container {
+  display: flex;
+  gap: 8px;
+}
+
+.link-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid #e5e5e5;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #666666;
+  background-color: #f9f9f9;
+  outline: none;
+}
+
+.copy-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 20px;
+  background-color: #000000;
+  color: #ffffff;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.copy-button:hover {
+  background-color: #333333;
+}
+
+.copy-button.copied {
+  background-color: #10b981;
+}
+
+.copy-button.copied:hover {
+  background-color: #059669;
 }
 
 /* Chat Section */
-.share-chat-search {
-  width: 100%;
+.chat-container {
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.chat-messages {
+  padding: 16px;
+  background-color: #f9f9f9;
+  max-height: 200px;
+  overflow-y: auto;
+  border-bottom: 1px solid #e5e5e5;
+}
+
+.chat-message {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  background-color: #ffffff;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  font-size: 14px;
+  color: #333333;
+  border: 1px solid #e5e5e5;
+}
+
+.chat-message:last-child {
+  margin-bottom: 0;
+}
+
+.chat-message svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #666666;
+}
+
+.chat-input-container {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  background-color: #ffffff;
+}
+
+.chat-input {
+  flex: 1;
   padding: 10px 14px;
   border: 1px solid #e5e5e5;
   border-radius: 8px;
   font-size: 14px;
+  color: #333333;
   outline: none;
-  background: #fafafa;
-  color: #000;
-  margin-bottom: 14px;
-  transition: border-color 0.15s;
+  transition: border-color 0.2s ease;
 }
 
-.share-chat-search::placeholder {
-  color: #aaa;
+.chat-input:focus {
+  border-color: #000000;
 }
 
-.share-chat-search:focus {
-  border-color: #999;
-  background: #fff;
+.chat-input::placeholder {
+  color: #999999;
 }
 
-.share-chat-list {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  max-height: 240px;
-  overflow-y: auto;
-}
-
-.share-chat-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
+.send-button {
+  padding: 10px 20px;
+  background-color: #000000;
+  color: #ffffff;
+  border: none;
   border-radius: 8px;
-  transition: background 0.15s;
-}
-
-.share-chat-item:hover {
-  background: #f5f5f5;
-}
-
-.share-chat-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: #e5e5e5;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 16px;
-  font-weight: 600;
-  color: #555;
-  flex-shrink: 0;
-  overflow: hidden;
-}
-
-.share-chat-avatar img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-.share-chat-name {
-  flex: 1;
+  cursor: pointer;
   font-size: 14px;
   font-weight: 500;
-  color: #000;
+  transition: all 0.2s ease;
 }
 
-.share-chat-send {
-  padding: 6px 16px;
-  border: 1px solid #000;
-  border-radius: 6px;
-  background: #000;
-  color: #fff;
-  font-size: 13px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: background 0.15s, transform 0.1s;
+.send-button:hover:not(:disabled) {
+  background-color: #333333;
 }
 
-.share-chat-send:hover {
-  background: #333;
+.send-button:disabled {
+  background-color: #e5e5e5;
+  color: #999999;
+  cursor: not-allowed;
 }
 
-.share-chat-send:active {
-  transform: scale(0.96);
-}
-
-.share-chat-send.sent {
-  background: #fff;
-  color: #000;
-  border-color: #ccc;
-  cursor: default;
-}
-
-/* Animations */
-
-/* Scrollbar */
-.share-chat-list::-webkit-scrollbar {
-  width: 4px;
-}
-
-.share-chat-list::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.share-chat-list::-webkit-scrollbar-thumb {
-  background: #ddd;
-  border-radius: 4px;
-}
-
-.share-modal::-webkit-scrollbar {
-  width: 4px;
-}
-
-.share-modal::-webkit-scrollbar-thumb {
-  background: #ddd;
-  border-radius: 4px;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .share-modal-overlay,
-  .share-modal-overlay.closing,
-  .share-modal,
-  .share-modal-overlay.closing .share-modal {
-    animation: none !important;
-    transition: none !important;
+/* Responsive Design */
+@media (max-width: 600px) {
+  .share-modal {
+    width: 95%;
+    max-height: 90vh;
   }
 
-  .share-chat-send {
-    transition: none !important;
+  .share-apps {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .modal-header {
+    padding: 16px 20px;
+  }
+
+  .modal-body {
+    padding: 20px;
+  }
+
+  .app-button {
+    padding: 14px 8px;
+  }
+
+  .copy-link-container {
+    flex-direction: column;
+  }
+
+  .copy-button {
+    justify-content: center;
   }
 }
