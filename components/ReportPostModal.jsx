@@ -27,14 +27,14 @@ export function ReportPostModal({ isOpen, onClose, postId }) {
     // Mock submission
     console.log('Report submitted:', { postId, reason: selectedReason, details: additionalDetails });
     setIsSubmitted(true);
-    
+
     // Reset after 2 seconds and close
     setTimeout(() => {
       setIsSubmitted(false);
       setSelectedReason('');
       setAdditionalDetails('');
       onClose();
-    }, 2000);
+    }, 3000);
   };
 
   const handleBackdropClick = (e) => {
@@ -60,7 +60,7 @@ export function ReportPostModal({ isOpen, onClose, postId }) {
                 Help us understand what's happening with this post. Your report is anonymous.
               </p>
 
-              <form onSubmit={handleSubmit}>
+              <form>
                 <div className="report-reasons">
                   {reportReasons.map((reason) => (
                     <label
@@ -93,24 +93,29 @@ export function ReportPostModal({ isOpen, onClose, postId }) {
                   />
                 </div>
 
-                <div className="report-modal-footer">
-                  <button type="button" className="button-secondary" onClick={onClose}>
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="button-primary"
-                    disabled={!selectedReason}
-                  >
-                    Submit Report
-                  </button>
-                </div>
               </form>
+            </div>
+            <div className="report-modal-footer">
+              <button type="button" className="button-secondary" onClick={onClose}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="button-primary"
+                disabled={!selectedReason}
+                onClick={handleSubmit}
+              >
+                Submit Report
+              </button>
             </div>
           </>
         ) : (
           <div className="report-success">
-            <div className="success-icon">✓</div>
+            <div className="success-icon"><svg xmlns="http://www.w3.org/2000/svg" enableBackground="new 0 0 60 60" viewBox="0 0 60 60" id="approve">
+              <path d="M30,6C16.7666016,6,6,16.7666016,6,30s10.7666016,24,24,24s24-10.7666016,24-24S43.2333984,6,30,6z M30,52
+	C17.8691406,52,8,42.1308594,8,30S17.8691406,8,30,8s22,9.8691406,22,22S42.1308594,52,30,52z"></path>
+              <polygon points="25.608 36.577 19.116 30.086 17.702 31.5 25.608 39.405 42.298 22.715 40.884 21.301"></polygon>
+            </svg></div>
             <h3>Report Submitted</h3>
             <p>Thank you for helping keep our community safe. We'll review this report.</p>
           </div>

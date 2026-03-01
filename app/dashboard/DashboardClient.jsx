@@ -9,6 +9,7 @@ import { EllipsisVertical } from 'lucide-react';
 import ReliableImage from '../../components/ReliableImage';
 import CommentModal from '@/components/CommentModal';
 import ShareModal from '@/components/ShareModal';
+import { ReportPostModal } from '@/components/ReportPostModal';
 
 const formatRelativeTime = (dateString) => {
   const date = new Date(dateString);
@@ -36,6 +37,7 @@ export default function DashboardClient() {
   const [sharePost, setSharePost] = useState(null);
   const [openShare, setOpenShare] = useState(false);
   const [menuPostId, setMenuPostId] = useState(null);
+  const [reportPostId, setReportPostId] = useState(null);
 
   const selectedAudience = useMemo(() => (isAnnual ? "for-you" : "clubs"), [isAnnual]);
 
@@ -69,9 +71,9 @@ export default function DashboardClient() {
     return "image-grid count-4";
   };
 
-  const handleReportClick = () => {
-    setIsMenuOpen(false);
-    onReport(id);
+  const handleReportClick = (postId) => {
+    setMenuPostId(null);
+    setReportPostId(postId);
   };
 
   return (
@@ -122,7 +124,7 @@ export default function DashboardClient() {
             </div>}
 
             {!loadingPosts && posts.map((post) => (
-              <div className="userpost" key={post._id}>
+              <div className={`userpost ${menuPostId === post._id ? "menu-open" : ""}`} key={post._id}>
                 <div className="post-left">
                   <div className="profilepic">
                     <ReliableImage
@@ -256,6 +258,12 @@ export default function DashboardClient() {
             setOpenShare(false);
             setSharePost(null);
           }}
+        />
+
+        <ReportPostModal
+          isOpen={Boolean(reportPostId)}
+          postId={reportPostId}
+          onClose={() => setReportPostId(null)}
         />
       </main >
       <div className="msgsidebar">

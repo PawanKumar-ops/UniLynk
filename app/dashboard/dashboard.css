@@ -29,8 +29,13 @@
   border: 1px solid #e4eaec;
   border-radius: 16px;
   position: relative;
+  z-index: 1;
   /* contain: paint; */
   box-shadow: 0 6px 18px rgba(15, 20, 25, 0.05);
+}
+
+.userpost.menu-open {
+  z-index: 30;
 }
 
 .userpost::before {
@@ -122,6 +127,10 @@
 .posth {
   display: flex;
   justify-content: space-between;
+}
+
+.posth-right {
+  position: relative;
 }
 
 .posth-left {
@@ -746,7 +755,7 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   min-width: 180px;
   overflow: hidden;
-  z-index: 10;
+  z-index: 120;
   animation: dropdownSlide 0.2s ease-out;
 }
 
