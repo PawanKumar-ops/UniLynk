@@ -172,16 +172,10 @@ export default function DashboardClient() {
                       />
                     </div>
                     <div className="post-foot-iconcont">
-                      <button onClick={() => setOpenShare(true)}>
+                      <button onClick={() => { setSharePost(post); setOpenShare(true); }}>
                         <img className="post-foot-icon" src="Postimg/share.svg" alt="Share" />
                       </button>
 
-                      <ShareModal
-                        isOpen={openShare}
-                        postUrl={`https://yourapp.com/post/${sharePost?._id}`}
-                        postContent={sharePost?.content}
-                        onClose={() => setOpenShare(false)}
-                      />
                       <span className='post-share-count'>0</span></div>
                     <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/bookmark.svg" alt="bookmark" /><span className='post-bookmark-count'>0</span></div>
 
@@ -208,6 +202,15 @@ export default function DashboardClient() {
 
         </div>
 
+            <ShareModal
+          isOpen={openShare}
+          postUrl={sharePost ? `https://yourapp.com/post/${sharePost._id}` : ''}
+          postContent={sharePost?.content || ''}
+          onClose={() => {
+            setOpenShare(false);
+            setSharePost(null);
+          }}
+        />
       </main >
       <div className="msgsidebar">
         <div className="msgsidebarmain">

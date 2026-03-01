@@ -5,12 +5,13 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  z-index: 999;
+  background-color: rgba(15, 23, 42, 0.36);
+  backdrop-filter: blur(2px);
+  z-index: 2000;
   animation: fadeIn 0.2s ease-in-out;
 }
 
-@keyframes fadeIn {
+@keyframes shareModalFadeIn {
   from {
     opacity: 0;
   }
@@ -19,7 +20,7 @@
   }
 }
 
-@keyframes slideUp {
+@keyframes shareModalSlideUp {
   from {
     transform: translate(-50%, -40%);
     opacity: 0;
@@ -40,11 +41,11 @@
   border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
   width: 90%;
-  max-width: 560px;
+  max-width: 480px;
   max-height: 85vh;
   overflow: hidden;
-  z-index: 1000;
-  animation: slideUp 0.3s ease-out;
+  z-index: 2001;
+  animation: shareSlideUp 0.3s ease-out;
 }
 
 /* Modal Header */
@@ -89,7 +90,7 @@
 }
 
 .share-modal-body::-webkit-scrollbar {
-  width: 8px;
+  width: 4px;
 }
 
 .share-modal-body::-webkit-scrollbar-track {
@@ -131,7 +132,7 @@
   gap: 12px;
 }
 
-.app-button {
+.share-modal-app-button {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -146,53 +147,53 @@
   color: #333333;
 }
 
-.app-button:hover {
+.share-modal-app-button:hover {
   background-color: #f9f9f9;
-  border-color: #d0d0d0;
-  transform: translateY(-2px);
+  
+
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-.app-button:active {
+.share-modal-app-button:active {
   transform: translateY(0);
 }
 
-.app-icon {
+.share-modal-app-icon {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: 15%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: #ffffff;
 }
 
-.app-icon svg {
+.share-modal-app-icon svg {
   width: 24px;
   height: 24px;
 }
 
-.app-icon.whatsapp {
+.share-modal-app-icon.whatsapp {
   background-color: #25D366;
 }
 
-.app-icon.facebook {
+.share-modal-app-icon.facebook {
   background-color: #1877F2;
 }
 
-.app-icon.twitter {
+.share-modal-app-icon.twitter {
   background-color: #000000;
 }
 
-.app-icon.telegram {
+.share-modal-app-icon.telegram {
   background-color: #0088cc;
 }
 
-.app-icon.linkedin {
+.share-modal-app-icon.linkedin {
   background-color: #0A66C2;
 }
 
-.app-icon.email {
+.share-modal-app-icon.email {
   background-color: #666666;
 }
 
@@ -338,11 +339,11 @@
     grid-template-columns: repeat(2, 1fr);
   }
 
-  .modal-header {
+  .share-modal-header {
     padding: 16px 20px;
   }
 
-  .modal-body {
+  .share-modal-body {
     padding: 20px;
   }
 
