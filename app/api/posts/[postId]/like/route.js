@@ -22,6 +22,22 @@ const resolveCurrentUser = async () => {
 const invalidPostResponse = () =>
   Response.json({ error: "Invalid post id" }, { status: 400 });
 
+const extractValidPostId = (params) => {
+  const postId = params?.postId;
+
+  if (!postId || typeof postId !== "string") {
+    return null;
+  }
+
+  const normalizedPostId = postId.trim();
+
+  if (!normalizedPostId || normalizedPostId === "undefined") {
+    return null;
+  }
+
+  return normalizedPostId;
+};
+
 export async function POST(_req, { params }) {
   try {
     await connectDB();
@@ -31,7 +47,11 @@ export async function POST(_req, { params }) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { postId } = params;
+    const postId = extractValidPostId(params);
+    if (!postId) {
+      return invalidPostResponse();
+    }
+
     if (!mongoose.Types.ObjectId.isValid(postId)) {
       return invalidPostResponse();
     }
@@ -87,7 +107,11 @@ export async function DELETE(_req, { params }) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { postId } = params;
+    const postId = extractValidPostId(params);
+    if (!postId) {
+      return invalidPostResponse();
+    }
+
     if (!mongoose.Types.ObjectId.isValid(postId)) {
       return invalidPostResponse();
     }
