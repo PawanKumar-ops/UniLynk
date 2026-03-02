@@ -84,7 +84,7 @@
   color: grey;
 }
 
-.chat-messages {
+.chat-messages-ch {
   overflow-y: auto;
   /*  ONLY THIS SCROLLS */
   padding: 1rem;

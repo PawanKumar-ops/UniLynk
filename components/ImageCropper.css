@@ -1,0 +1,131 @@
+.image-cropper-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  padding: 1rem;
+  backdrop-filter: blur(4px);
+}
+
+.image-cropper-modal {
+  background: #fff;
+  border-radius: 16px;
+  max-width: 700px;
+  width: 100%;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.cropper-header {
+  padding: 2rem 2rem 1rem;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.cropper-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 0.5rem;
+}
+
+.cropper-subtitle {
+  font-size: 0.9375rem;
+  color: #666;
+}
+
+.cropper-content {
+  padding: 2rem;
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f8f9fa;
+}
+
+.cropper-image {
+  max-width: 100%;
+  max-height: 60vh;
+  display: block;
+}
+
+.cropper-actions {
+  padding: 1.5rem 2rem;
+  border-top: 1px solid #e9ecef;
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+}
+
+.btn-cropper-cancel,
+.btn-cropper-apply {
+  padding: 0.875rem 2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.btn-cropper-cancel {
+  background: #f5f5f5;
+  color: #333;
+}
+
+.btn-cropper-cancel:hover {
+  background: #e0e0e0;
+}
+
+.btn-cropper-apply {
+  background: #000;
+  color: #fff;
+}
+
+.btn-cropper-apply:hover {
+  background: #222;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+/* Override react-image-crop styles */
+.ReactCrop {
+  max-width: 100%;
+}
+
+.ReactCrop__crop-selection {
+  border: 2px solid #000;
+  box-shadow: 0 0 0 9999em rgba(0, 0, 0, 0.5);
+}
+
+@media (max-width: 768px) {
+  .image-cropper-modal {
+    max-height: 95vh;
+  }
+
+  .cropper-header {
+    padding: 1.5rem 1.5rem 1rem;
+  }
+
+  .cropper-content {
+    padding: 1.5rem;
+  }
+
+  .cropper-actions {
+    padding: 1rem 1.5rem;
+    flex-direction: column-reverse;
+  }
+
+  .btn-cropper-cancel,
+  .btn-cropper-apply {
+    width: 100%;
+  }
+}

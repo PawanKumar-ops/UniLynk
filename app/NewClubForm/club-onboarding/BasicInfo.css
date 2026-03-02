@@ -1,0 +1,244 @@
+/* Banner Upload Styles */
+.banner-upload-area {
+  display: block;
+  width: 100%;
+  height: 200px;
+  border: 2px dashed #ddd;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  position: relative;
+}
+
+.banner-upload-area:hover {
+  border-color: #000;
+}
+
+.banner-preview-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.banner-preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.banner-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.banner-upload-area:hover .banner-overlay {
+  opacity: 1;
+}
+
+
+.banner-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: #fafafa;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.banner-placeholder::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 64px;
+  height: 64px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="64" height="64" viewBox="0 0 512 512" fill="%23fff"><path d="M417.5 160h-61.7c-32.1-36-42.2-48-54.5-48h-88.5c-12.3 0-22.2 12-54.5 48H145v-16h-34v16H97.5C79.9 160 64 173.2 64 190.7v176c0 17.5 15.9 33.3 33.5 33.3h320c17.6 0 30.5-15.8 30.5-33.3v-176c0-17.5-12.9-30.7-30.5-30.7zM432 366.7c0 9.3-6.2 17.3-14.5 17.3h-320c-8.7 0-17.5-8.7-17.5-17.3v-176c0-8.2 8.1-14.7 17.5-14.7h67.8l4.8-3.2c4-4.5 7.7-10 11.1-13.8 11.3-12.7 19.5-21.7 25.3-26.9 4.7-4.2 6.2-4.1 6.2-4.1h88.5s1.6-.1 6.7 4.5c6.1 5.5 14.7 16.5 26.6 29.8 2.9 3.3 6 6.8 9.3 10.5l4.8 3.2h68.9c8.8 0 14.5 6 14.5 14.7v176z"/><path d="M256 189.5c-47.1 0-85.5 38.4-85.5 85.5s38.4 85.5 85.5 85.5 85.5-38.4 85.5-85.5-38.4-85.5-85.5-85.5zm0 155c-38.4 0-69.5-31.1-69.5-69.5s31.1-69.5 69.5-69.5 69.5 31.1 69.5 69.5-31.1 69.5-69.5 69.5zM352 192h17v17h-17z"/><circle cx="256" cy="275" r="32"/></svg>');
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.banner-upload-area:hover .banner-placeholder {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.banner-upload-area:hover .banner-placeholder::after {
+  opacity: 1;
+}
+
+.banner-upload-area:hover .banner-placeholder .banner-icon,
+.banner-upload-area:hover .banner-placeholder .banner-text,
+.banner-upload-area:hover .banner-placeholder .banner-hint {
+  opacity: 0;
+}
+
+.banner-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  transition: opacity 0.3s ease;
+}
+
+.banner-text {
+  font-size: 1rem;
+  color: #666;
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  transition: opacity 0.3s ease;
+}
+
+.banner-hint {
+  font-size: 0.875rem;
+  color: #999;
+  transition: opacity 0.3s ease;
+}
+
+/* Logo Upload Styles */
+.logo-upload-area {
+  display: inline-flex;
+  width: 160px;
+  height: 160px;
+  border: 3px dashed #ddd;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  position: relative;
+  background: #fafafa;
+}
+
+.logo-upload-area:hover {
+  border-color: #000;
+  transform: scale(1.02);
+}
+
+.logo-preview-wrapper {
+  width: 100%;
+  height: 100%;
+  position: relative;
+}
+
+.logo-preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.logo-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: 50%;
+}
+
+.logo-upload-area:hover .logo-overlay {
+  opacity: 1;
+}
+
+.change-logo-icon {
+  font-size: 3.5rem;
+  color: #fff;
+}
+
+.logo-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  gap: 0.5rem;
+  position: relative;
+  transition: all 0.3s ease;
+}
+
+.logo-placeholder::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 56px;
+  height: 56px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" width="56" height="56" viewBox="0 0 512 512" fill="%23fff"><path d="M417.5 160h-61.7c-32.1-36-42.2-48-54.5-48h-88.5c-12.3 0-22.2 12-54.5 48H145v-16h-34v16H97.5C79.9 160 64 173.2 64 190.7v176c0 17.5 15.9 33.3 33.5 33.3h320c17.6 0 30.5-15.8 30.5-33.3v-176c0-17.5-12.9-30.7-30.5-30.7zM432 366.7c0 9.3-6.2 17.3-14.5 17.3h-320c-8.7 0-17.5-8.7-17.5-17.3v-176c0-8.2 8.1-14.7 17.5-14.7h67.8l4.8-3.2c4-4.5 7.7-10 11.1-13.8 11.3-12.7 19.5-21.7 25.3-26.9 4.7-4.2 6.2-4.1 6.2-4.1h88.5s1.6-.1 6.7 4.5c6.1 5.5 14.7 16.5 26.6 29.8 2.9 3.3 6 6.8 9.3 10.5l4.8 3.2h68.9c8.8 0 14.5 6 14.5 14.7v176z"/><path d="M256 189.5c-47.1 0-85.5 38.4-85.5 85.5s38.4 85.5 85.5 85.5 85.5-38.4 85.5-85.5-38.4-85.5-85.5-85.5zm0 155c-38.4 0-69.5-31.1-69.5-69.5s31.1-69.5 69.5-69.5 69.5 31.1 69.5 69.5-31.1 69.5-69.5 69.5zM352 192h17v17h-17z"/><circle cx="256" cy="275" r="32"/></svg>');
+  background-size: contain;
+  background-repeat: no-repeat;
+}
+
+.logo-upload-area:hover .logo-placeholder {
+  background: rgba(0, 0, 0, 0.7);
+}
+
+.logo-upload-area:hover .logo-placeholder::after {
+  opacity: 1;
+}
+
+.logo-upload-area:hover .logo-placeholder .logo-icon,
+.logo-upload-area:hover .logo-placeholder .logo-text {
+  opacity: 0;
+}
+
+.logo-icon {
+  font-size: 2.5rem;
+  transition: opacity 0.3s ease;
+}
+
+.banner-icon svg{
+    height: 40px;
+    width: 40px;
+    color: grey;
+}
+
+.logo-icon svg{
+    height: 35px;
+    width: 35px;
+    color: grey;
+}
+
+.logo-text {
+  font-size: 0.875rem;
+  color: #666;
+  font-weight: 600;
+  text-align: center;
+  transition: opacity 0.3s ease;
+}
+
+.btn-next-firstpage{
+  width: 100%;
+}
+
+@media (max-width: 768px) {
+  .banner-upload-area {
+    height: 150px;
+  }
+
+  .logo-upload-area {
+    width: 120px;
+    height: 120px;
+  }
+}

@@ -1,0 +1,173 @@
+.upcoming-events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.upcoming-event-card {
+  background: #fff;
+  border: 2px solid #e9ecef;
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.upcoming-event-card:hover {
+  border-color: #000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.upcoming-event-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.event-badge {
+  display: inline-block;
+  padding: 0.375rem 0.875rem;
+  background: #000;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 20px;
+  letter-spacing: 0.05em;
+}
+
+.btn-remove-upcoming {
+  padding: 0.5rem 1rem;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #e53e3e;
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.btn-remove-upcoming:hover {
+  background: #fee;
+  border-color: #e53e3e;
+}
+
+.upcoming-event-title {
+  font-size: 1.375rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 1rem;
+}
+
+.upcoming-event-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.detail-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.9375rem;
+  color: #333;
+}
+
+.detail-icon {
+  font-size: 1.125rem;
+}
+
+.upcoming-event-description {
+  font-size: 0.9375rem;
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 1rem;
+}
+
+.event-seats {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e9ecef;
+}
+
+.seats-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.seats-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #666;
+}
+
+.seats-count {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.seats-progress {
+  height: 6px;
+  background: #e9ecef;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.seats-progress-fill {
+  height: 100%;
+  background: #000;
+  transition: width 0.3s ease;
+}
+
+.btn-add-upcoming {
+  width: 100%;
+  padding: 1rem;
+  background: #f8f9fa;
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #666;
+  font-size: 1rem;
+  transition: all 0.2s ease;
+  margin-bottom: 2rem;
+}
+
+.btn-add-upcoming:hover {
+  border-color: #000;
+  color: #000;
+  background: #f0f0f0;
+}
+
+.upcoming-event-form {
+  background: #f8f9fa;
+  padding: 2rem;
+  border-radius: 12px;
+  margin-bottom: 2rem;
+}
+
+.upcoming-event-form-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .upcoming-event-header {
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .upcoming-event-details {
+    padding: 0.75rem;
+  }
+}
