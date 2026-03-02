@@ -654,7 +654,7 @@ export default function ChatPage() {
           )}
         </header>
 
-        <div className="chat-messages" ref={messageScrollRef}>
+        <div className="chat-messages-ch" ref={messageScrollRef}>
           {loadingMessages ? (
             <div className="chatloadani">
               <div className="relative w-12 h-12">
