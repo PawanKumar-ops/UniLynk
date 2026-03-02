@@ -107,6 +107,12 @@ const resolveLikeState = async (posts, userId) => {
   );
 };
 
+const normalizePosts = (posts) =>
+  posts.map((post) => ({
+    ...post,
+    id: post.id ?? post._id?.toString?.() ?? String(post._id || ""),
+  }));
+
 export async function GET(req) {
   try {
     await connectDB();
@@ -127,8 +133,9 @@ export async function GET(req) {
       : null;
 
     const enrichedPosts = await resolveLikeState(hydratedPosts, user?._id?.toString());
+    const normalizedPosts = normalizePosts(enrichedPosts);
 
-    return Response.json({ posts: enrichedPosts }, { status: 200 });
+    return Response.json({ posts: normalizedPosts }, { status: 200 });
   } catch (error) {
     console.error("GET POSTS ERROR:", error);
     return new Response("Internal Server Error", { status: 500 });
@@ -187,7 +194,12 @@ const {
       images: safeImages,
     });
 
-    return Response.json({ post }, { status: 201 });
+    const normalizedPost = {
+      ...post.toObject(),
+      id: post._id.toString(),
+    };
+
+    return Response.json({ post: normalizedPost }, { status: 201 });
   } catch (error) {
     console.error("CREATE POST ERROR:", error);
     return new Response("Internal Server Error", { status: 500 });

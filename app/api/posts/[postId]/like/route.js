@@ -22,7 +22,8 @@ const resolveCurrentUser = async () => {
 const invalidPostResponse = () =>
   Response.json({ error: "Invalid post id" }, { status: 400 });
 
-const extractValidPostId = (params) => {
+const extractValidPostId = async (context) => {
+  const params = await context?.params;
   const postId = params?.postId;
 
   if (!postId || typeof postId !== "string") {
@@ -31,14 +32,14 @@ const extractValidPostId = (params) => {
 
   const normalizedPostId = postId.trim();
 
-  if (!normalizedPostId || normalizedPostId === "undefined") {
+  if (!normalizedPostId || normalizedPostId === "undefined" || normalizedPostId === "null") {
     return null;
   }
 
   return normalizedPostId;
 };
 
-export async function POST(_req, { params }) {
+export async function POST(_req, context) {
   try {
     await connectDB();
 
@@ -47,7 +48,7 @@ export async function POST(_req, { params }) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const postId = extractValidPostId(params);
+    const postId = await extractValidPostId(context);
     if (!postId) {
       return invalidPostResponse();
     }
@@ -98,7 +99,7 @@ export async function POST(_req, { params }) {
   }
 }
 
-export async function DELETE(_req, { params }) {
+export async function DELETE(_req, context) {
   try {
     await connectDB();
 
@@ -107,7 +108,7 @@ export async function DELETE(_req, { params }) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const postId = extractValidPostId(params);
+    const postId = await extractValidPostId(context);
     if (!postId) {
       return invalidPostResponse();
     }

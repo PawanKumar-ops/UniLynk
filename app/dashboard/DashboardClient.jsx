@@ -11,6 +11,15 @@ import CommentModal from '@/components/CommentModal';
 import ShareModal from '@/components/ShareModal';
 import { ReportPostModal } from '@/components/ReportPostModal';
 
+const Loading = () => (
+  <div className="userpostsloadani">
+    <div className="relative w-12 h-12">
+      <div className="absolute inset-0 rounded-full border-3 border-gray-200"></div>
+      <div className="absolute inset-0 rounded-full border-3 border-black border-t-transparent animate-spin"></div>
+    </div>
+  </div>
+);
+
 const formatRelativeTime = (dateString) => {
   const date = new Date(dateString);
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
@@ -45,11 +54,19 @@ const normalizePost = (post) => {
   };
 };
 
+const likePost = async (postId, method) => {
+  if (!postId || typeof postId !== "string" || !postId.trim()) {
+    throw new Error("Attempted like without postId");
+  }
+
+  return fetch(`/api/posts/${postId}/like`, { method });
+};
+
 export default function DashboardClient() {
   const [isAnnual, setIsAnnual] = useState(true);
   const [ispost, setIspost] = useState(false)
-  const [posts, setPosts] = useState([]);
-  const [loadingPosts, setLoadingPosts] = useState(false);
+  const [posts, setPosts] = useState(null);
+  const [loadingPosts, setLoadingPosts] = useState(true);
   const [activePostId, setActivePostId] = useState(null);
   const [sharePost, setSharePost] = useState(null);
   const [openShare, setOpenShare] = useState(false);
@@ -90,7 +107,7 @@ export default function DashboardClient() {
   const handlePosted = (createdPost) => {
     const normalizedPost = normalizePost(createdPost);
     if (!normalizedPost || normalizedPost.audience !== selectedAudience) return;
-    setPosts((prev) => [normalizedPost, ...prev]);
+    setPosts((prev) => [normalizedPost, ...(Array.isArray(prev) ? prev : [])]);
   };
 
   const getImageGridClass = (count) => {
@@ -138,7 +155,7 @@ export default function DashboardClient() {
 
       try {
         const method = currentlyLiked ? 'DELETE' : 'POST';
-        const res = await fetch(`/api/posts/${postId}/like`, { method });
+        const res = await likePost(postId, method);
         const data = await res.json();
 
         if (!res.ok) {
@@ -214,19 +231,14 @@ export default function DashboardClient() {
 
 
             {/*================== One Card of user post ====================*/}
-            {loadingPosts && <div className="userpostsloadani">
-              <div className="relative w-12 h-12">
-                <div className="absolute inset-0 rounded-full border-3 border-gray-200"></div>
-                <div className="absolute inset-0 rounded-full border-3 border-black border-t-transparent animate-spin"></div>
-              </div>
-            </div>}
-            {!loadingPosts && posts.length === 0 && <div className="noposts-illuistration">
+            {(loadingPosts || !posts) && <Loading />}
+            {!loadingPosts && Array.isArray(posts) && posts.length === 0 && <div className="noposts-illuistration">
               <img src="./dashboard/NoPosts.svg" alt="No Posts" />
               <h1 className='noposts-illuistrationh'>No Posts Yet</h1>
               <p className='noposts-illuistrationp'>It looks a little empty here. Check back later or be the first to create something amazing!</p>
             </div>}
 
-            {!loadingPosts && posts.map((post) => (
+            {!loadingPosts && Array.isArray(posts) && posts.map((post) => (
               <div className={`userpost ${menuPostId === post.id ? "menu-open" : ""}`} key={post.id}>
                 <div className="post-left">
                   <div className="profilepic">
@@ -314,8 +326,16 @@ export default function DashboardClient() {
                     <div className="post-foot-iconcont">
                       <button
                         onClick={() => {
-                          if (!post?.id) return;
-                          queueLikeToggle(post.id, Boolean(post.likedByCurrentUser));
+                          const handleLikeClick = () => {
+                            if (!post?.id) {
+                              console.error("Invalid post id:", post);
+                              return;
+                            }
+
+                            queueLikeToggle(post.id, Boolean(post.likedByCurrentUser));
+                          };
+
+                          handleLikeClick();
                         }}
                         disabled={Boolean(post.likePending)}
                         aria-label={post.likedByCurrentUser ? "Unlike post" : "Like post"}
