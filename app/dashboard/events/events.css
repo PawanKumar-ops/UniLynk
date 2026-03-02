@@ -194,6 +194,7 @@ body {
 .no-events-illh{
   font-size: 24px;
   margin-bottom: 0.75rem;
+  color: black;
 }
 
 .no-events-illp{
@@ -201,21 +202,6 @@ body {
   text-align: center;
   color: grey;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 .form-card-right {
   display: flex;
   align-items: center;
