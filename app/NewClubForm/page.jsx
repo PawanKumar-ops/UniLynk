@@ -55,7 +55,7 @@ export default function ClubOnboarding() {
   const clubId = Date.now().toString();
   localStorage.setItem(`club_${clubId}`, JSON.stringify(clubData));
 
-  router.push(`/success`);
+  router.push('/NewClubForm/success');
 };
 
   const renderStep = () => {
