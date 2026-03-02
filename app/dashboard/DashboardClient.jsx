@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './dashboard.css';
 import { Search } from 'lucide-react';
 import PostFAB from '../../components/PostFAB';
@@ -39,7 +39,14 @@ export default function DashboardClient() {
   const [menuPostId, setMenuPostId] = useState(null);
   const [reportPostId, setReportPostId] = useState(null);
 
+  const likeTimersRef = useRef({});
+  const pendingLikePostIdsRef = useRef(new Set());
+
   const selectedAudience = useMemo(() => (isAnnual ? "for-you" : "clubs"), [isAnnual]);
+
+  useEffect(() => () => {
+    Object.values(likeTimersRef.current).forEach((timer) => clearTimeout(timer));
+  }, []);
 
   useEffect(() => {
     const loadPosts = async () => {
@@ -74,6 +81,75 @@ export default function DashboardClient() {
   const handleReportClick = (postId) => {
     setMenuPostId(null);
     setReportPostId(postId);
+  };
+
+  const queueLikeToggle = (postId, currentlyLiked) => {
+    if (pendingLikePostIdsRef.current.has(postId)) return;
+
+    setPosts((prev) =>
+      prev.map((post) => {
+        if (post._id !== postId) return post;
+
+        const nextLiked = !currentlyLiked;
+        const nextLikeCount = Math.max(0, Number(post.likeCount || 0) + (nextLiked ? 1 : -1));
+
+        return {
+          ...post,
+          likedByCurrentUser: nextLiked,
+          likeCount: nextLikeCount,
+          likePending: true,
+        };
+      })
+    );
+
+    if (likeTimersRef.current[postId]) {
+      clearTimeout(likeTimersRef.current[postId]);
+    }
+
+    likeTimersRef.current[postId] = setTimeout(async () => {
+      pendingLikePostIdsRef.current.add(postId);
+
+      try {
+        const method = currentlyLiked ? 'DELETE' : 'POST';
+        const res = await fetch(`/api/posts/${postId}/like`, { method });
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data?.error || 'Failed to update like');
+        }
+
+        setPosts((prev) =>
+          prev.map((post) =>
+            post._id === postId
+              ? {
+                  ...post,
+                  likedByCurrentUser: Boolean(data.likedByCurrentUser),
+                  likeCount: Number(data.likeCount || 0),
+                  likePending: false,
+                }
+              : post
+          )
+        );
+      } catch (error) {
+        console.error(error);
+        setPosts((prev) =>
+          prev.map((post) => {
+            if (post._id !== postId) return post;
+
+            const rollbackLiked = currentlyLiked;
+            return {
+              ...post,
+              likedByCurrentUser: rollbackLiked,
+              likeCount: Math.max(0, Number(post.likeCount || 0) + (rollbackLiked ? 1 : -1)),
+              likePending: false,
+            };
+          })
+        );
+      } finally {
+        pendingLikePostIdsRef.current.delete(postId);
+        delete likeTimersRef.current[postId];
+      }
+    }, 220);
   };
 
   return (
@@ -208,7 +284,17 @@ export default function DashboardClient() {
 
 
                   <div className="post-foot">
-                    <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/thumb.svg" alt="Like" /><span className='post-like-count'>0</span></div>
+                    <div className="post-foot-iconcont">
+                      <button
+                        onClick={() => queueLikeToggle(post._id, Boolean(post.likedByCurrentUser))}
+                        disabled={Boolean(post.likePending)}
+                        aria-label={post.likedByCurrentUser ? "Unlike post" : "Like post"}
+                        className={`like-button ${post.likedByCurrentUser ? 'liked' : ''}`}
+                      >
+                        <img className='post-foot-icon' src="Postimg/thumb.svg" alt="Like" />
+                      </button>
+                      <span className='post-like-count'>{Number(post.likeCount || 0)}</span>
+                    </div>
                     <div className="post-foot-iconcont">
                       <button onClick={() => setActivePostId(post._id)}>
                         <img className='post-foot-icon' src="Postimg/comment.svg" alt="Comment" />

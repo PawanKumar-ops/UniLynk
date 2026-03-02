@@ -263,7 +263,15 @@
   align-items: center;
 }
 
+.like-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 
+.like-button.liked .post-foot-icon {
+  background-color: #ffe8ec;
+  filter: hue-rotate(300deg) saturate(150%);
+}
 
 
 body {

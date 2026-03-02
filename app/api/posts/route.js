@@ -1,6 +1,8 @@
 import { connectDB } from "@/lib/mongodb";
 import Post from "@/models/post";
 import User from "@/models/user";
+import PostLike from "@/models/postLike";
+import { getLikeCount } from "@/lib/postLikeCache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
@@ -74,6 +76,37 @@ const resolvePostAuthorImages = async (posts) => {
 };
 
 
+const resolveLikeState = async (posts, userId) => {
+  if (!posts.length) return [];
+
+  const postIds = posts.map((post) => post._id.toString());
+  const likedPostIds = new Set();
+
+  if (userId) {
+    const likes = await PostLike.find(
+      { postId: { $in: postIds }, userId },
+      { postId: 1 }
+    ).lean();
+
+    for (const like of likes) {
+      likedPostIds.add(like.postId.toString());
+    }
+  }
+
+  return Promise.all(
+    posts.map(async (post) => {
+      const postId = post._id.toString();
+      const likeCount = await getLikeCount(postId, Number(post.likeCount || 0));
+
+      return {
+        ...post,
+        likeCount,
+        likedByCurrentUser: likedPostIds.has(postId),
+      };
+    })
+  );
+};
+
 export async function GET(req) {
   try {
     await connectDB();
@@ -87,7 +120,15 @@ export async function GET(req) {
     const posts = await Post.find(query).sort({ createdAt: -1 }).lean();
     const hydratedPosts = await resolvePostAuthorImages(posts);
 
-    return Response.json({ posts: hydratedPosts }, { status: 200 });
+    const session = await getServerSession(authOptions);
+    const sessionEmail = normalizeEmail(session?.user?.email);
+    const user = sessionEmail
+      ? await User.findOne({ email: sessionEmail }, { _id: 1 }).lean()
+      : null;
+
+    const enrichedPosts = await resolveLikeState(hydratedPosts, user?._id?.toString());
+
+    return Response.json({ posts: enrichedPosts }, { status: 200 });
   } catch (error) {
     console.error("GET POSTS ERROR:", error);
     return new Response("Internal Server Error", { status: 500 });
