@@ -28,6 +28,23 @@ const buildAvatarFallback = (name) => {
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(safeName)}&background=random&color=fff&size=128&bold=true`;
 };
 
+const normalizePost = (post) => {
+  if (!post || typeof post !== "object") return null;
+
+  const candidateId = post.id ?? post._id ?? post.postId;
+  const safeId = typeof candidateId === "string" ? candidateId.trim() : "";
+
+  if (!safeId) {
+    console.error("Invalid post id:", candidateId);
+    return null;
+  }
+
+  return {
+    ...post,
+    id: safeId,
+  };
+};
+
 export default function DashboardClient() {
   const [isAnnual, setIsAnnual] = useState(true);
   const [ispost, setIspost] = useState(false)
@@ -55,7 +72,11 @@ export default function DashboardClient() {
         const res = await fetch(`/api/posts?audience=${selectedAudience}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error || "Failed to fetch posts");
-        setPosts(data.posts || []);
+        const normalizedPosts = (data.posts || [])
+          .map(normalizePost)
+          .filter(Boolean);
+
+        setPosts(normalizedPosts);
       } catch (error) {
         console.error(error);
       } finally {
@@ -67,8 +88,9 @@ export default function DashboardClient() {
   }, [selectedAudience]);
 
   const handlePosted = (createdPost) => {
-    if (!createdPost || createdPost.audience !== selectedAudience) return;
-    setPosts((prev) => [createdPost, ...prev]);
+    const normalizedPost = normalizePost(createdPost);
+    if (!normalizedPost || normalizedPost.audience !== selectedAudience) return;
+    setPosts((prev) => [normalizedPost, ...prev]);
   };
 
   const getImageGridClass = (count) => {
@@ -84,11 +106,16 @@ export default function DashboardClient() {
   };
 
   const queueLikeToggle = (postId, currentlyLiked) => {
+    if (!postId || typeof postId !== "string") {
+      console.error("Invalid post id:", postId);
+      return;
+    }
+
     if (pendingLikePostIdsRef.current.has(postId)) return;
 
     setPosts((prev) =>
       prev.map((post) => {
-        if (post._id !== postId) return post;
+        if (post.id !== postId) return post;
 
         const nextLiked = !currentlyLiked;
         const nextLikeCount = Math.max(0, Number(post.likeCount || 0) + (nextLiked ? 1 : -1));
@@ -120,7 +147,7 @@ export default function DashboardClient() {
 
         setPosts((prev) =>
           prev.map((post) =>
-            post._id === postId
+            post.id === postId
               ? {
                   ...post,
                   likedByCurrentUser: Boolean(data.likedByCurrentUser),
@@ -134,7 +161,7 @@ export default function DashboardClient() {
         console.error(error);
         setPosts((prev) =>
           prev.map((post) => {
-            if (post._id !== postId) return post;
+            if (post.id !== postId) return post;
 
             const rollbackLiked = currentlyLiked;
             return {
@@ -200,7 +227,7 @@ export default function DashboardClient() {
             </div>}
 
             {!loadingPosts && posts.map((post) => (
-              <div className={`userpost ${menuPostId === post._id ? "menu-open" : ""}`} key={post._id}>
+              <div className={`userpost ${menuPostId === post.id ? "menu-open" : ""}`} key={post.id}>
                 <div className="post-left">
                   <div className="profilepic">
                     <ReliableImage
@@ -224,14 +251,14 @@ export default function DashboardClient() {
                     </div>
                     <div className="posth-right"><button
                       className='posth-right-btn' onClick={() =>
-                        setMenuPostId(menuPostId === post._id ? null : post._id)
+                        setMenuPostId(menuPostId === post.id ? null : post.id)
                       }
                       aria-label="Post options"><EllipsisVertical /></button>
-                      {menuPostId === post._id && (
+                      {menuPostId === post.id && (
                         <div className="post-dropdown-menu">
                           <button className="menu-item" onClick={() => {
                             setMenuPostId(null);
-                            handleReportClick(post._id);
+                            handleReportClick(post.id);
                           }}>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
@@ -275,7 +302,7 @@ export default function DashboardClient() {
                       <div className="image-post">
                         <div className={getImageGridClass(post.images.length)}>
                           {post.images.map((imageUrl, idx) => (
-                            <img key={`${post._id}-${idx}`} src={imageUrl} alt="Post image" />
+                            <img key={`${post.id}-${idx}`} src={imageUrl} alt="Post image" />
                           ))}
                         </div>
                       </div>
@@ -286,7 +313,10 @@ export default function DashboardClient() {
                   <div className="post-foot">
                     <div className="post-foot-iconcont">
                       <button
-                        onClick={() => queueLikeToggle(post._id, Boolean(post.likedByCurrentUser))}
+                        onClick={() => {
+                          if (!post?.id) return;
+                          queueLikeToggle(post.id, Boolean(post.likedByCurrentUser));
+                        }}
                         disabled={Boolean(post.likePending)}
                         aria-label={post.likedByCurrentUser ? "Unlike post" : "Like post"}
                         className={`like-button ${post.likedByCurrentUser ? 'liked' : ''}`}
@@ -296,12 +326,15 @@ export default function DashboardClient() {
                       <span className='post-like-count'>{Number(post.likeCount || 0)}</span>
                     </div>
                     <div className="post-foot-iconcont">
-                      <button onClick={() => setActivePostId(post._id)}>
+                      <button onClick={() => {
+                        if (!post?.id) return;
+                        setActivePostId(post.id);
+                      }}>
                         <img className='post-foot-icon' src="Postimg/comment.svg" alt="Comment" />
                       </button><span className='post-comment-count'>0</span>
 
                       <CommentModal
-                        isOpen={activePostId === post._id}
+                        isOpen={activePostId === post.id}
                         onClose={() => setActivePostId(null)}
                       />
                     </div>
@@ -338,7 +371,7 @@ export default function DashboardClient() {
 
         <ShareModal
           isOpen={openShare}
-          postUrl={sharePost ? `https://yourapp.com/post/${sharePost._id}` : ''}
+          postUrl={sharePost?.id ? `https://yourapp.com/post/${sharePost.id}` : ''}
           postContent={sharePost?.content || ''}
           onClose={() => {
             setOpenShare(false);
