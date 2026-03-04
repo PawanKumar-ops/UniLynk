@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './dashboard.css';
 import { Search } from 'lucide-react';
 import PostFAB from '../../components/PostFAB';
@@ -10,6 +10,15 @@ import ReliableImage from '../../components/ReliableImage';
 import CommentModal from '@/components/CommentModal';
 import ShareModal from '@/components/ShareModal';
 import { ReportPostModal } from '@/components/ReportPostModal';
+
+const Loading = () => (
+  <div className="userpostsloadani">
+    <div className="relative w-12 h-12">
+      <div className="absolute inset-0 rounded-full border-3 border-gray-200"></div>
+      <div className="absolute inset-0 rounded-full border-3 border-black border-t-transparent animate-spin"></div>
+    </div>
+  </div>
+);
 
 const formatRelativeTime = (dateString) => {
   const date = new Date(dateString);
@@ -28,18 +37,50 @@ const buildAvatarFallback = (name) => {
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(safeName)}&background=random&color=fff&size=128&bold=true`;
 };
 
+const normalizePost = (post) => {
+  if (!post || typeof post !== "object") return null;
+
+  const candidateId = post.id ?? post._id ?? post.postId;
+  const safeId = typeof candidateId === "string" ? candidateId.trim() : "";
+
+  if (!safeId) {
+    console.error("Invalid post id:", candidateId);
+    return null;
+  }
+
+  return {
+    ...post,
+    id: safeId,
+  };
+};
+
+const likePost = async (postId, method) => {
+  if (!postId || typeof postId !== "string" || !postId.trim()) {
+    throw new Error("Attempted like without postId");
+  }
+
+  return fetch(`/api/posts/${postId}/like`, { method });
+};
+
 export default function DashboardClient() {
   const [isAnnual, setIsAnnual] = useState(true);
   const [ispost, setIspost] = useState(false)
-  const [posts, setPosts] = useState([]);
-  const [loadingPosts, setLoadingPosts] = useState(false);
+  const [posts, setPosts] = useState(null);
+  const [loadingPosts, setLoadingPosts] = useState(true);
   const [activePostId, setActivePostId] = useState(null);
   const [sharePost, setSharePost] = useState(null);
   const [openShare, setOpenShare] = useState(false);
   const [menuPostId, setMenuPostId] = useState(null);
   const [reportPostId, setReportPostId] = useState(null);
 
+  const likeTimersRef = useRef({});
+  const pendingLikePostIdsRef = useRef(new Set());
+
   const selectedAudience = useMemo(() => (isAnnual ? "for-you" : "clubs"), [isAnnual]);
+
+  useEffect(() => () => {
+    Object.values(likeTimersRef.current).forEach((timer) => clearTimeout(timer));
+  }, []);
 
   useEffect(() => {
     const loadPosts = async () => {
@@ -48,7 +89,11 @@ export default function DashboardClient() {
         const res = await fetch(`/api/posts?audience=${selectedAudience}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error || "Failed to fetch posts");
-        setPosts(data.posts || []);
+        const normalizedPosts = (data.posts || [])
+          .map(normalizePost)
+          .filter(Boolean);
+
+        setPosts(normalizedPosts);
       } catch (error) {
         console.error(error);
       } finally {
@@ -60,8 +105,9 @@ export default function DashboardClient() {
   }, [selectedAudience]);
 
   const handlePosted = (createdPost) => {
-    if (!createdPost || createdPost.audience !== selectedAudience) return;
-    setPosts((prev) => [createdPost, ...prev]);
+    const normalizedPost = normalizePost(createdPost);
+    if (!normalizedPost || normalizedPost.audience !== selectedAudience) return;
+    setPosts((prev) => [normalizedPost, ...(Array.isArray(prev) ? prev : [])]);
   };
 
   const getImageGridClass = (count) => {
@@ -74,6 +120,80 @@ export default function DashboardClient() {
   const handleReportClick = (postId) => {
     setMenuPostId(null);
     setReportPostId(postId);
+  };
+
+  const queueLikeToggle = (postId, currentlyLiked) => {
+    if (!postId || typeof postId !== "string") {
+      console.error("Invalid post id:", postId);
+      return;
+    }
+
+    if (pendingLikePostIdsRef.current.has(postId)) return;
+
+    setPosts((prev) =>
+      prev.map((post) => {
+        if (post.id !== postId) return post;
+
+        const nextLiked = !currentlyLiked;
+        const nextLikeCount = Math.max(0, Number(post.likeCount || 0) + (nextLiked ? 1 : -1));
+
+        return {
+          ...post,
+          likedByCurrentUser: nextLiked,
+          likeCount: nextLikeCount,
+          likePending: true,
+        };
+      })
+    );
+
+    if (likeTimersRef.current[postId]) {
+      clearTimeout(likeTimersRef.current[postId]);
+    }
+
+    likeTimersRef.current[postId] = setTimeout(async () => {
+      pendingLikePostIdsRef.current.add(postId);
+
+      try {
+        const method = currentlyLiked ? 'DELETE' : 'POST';
+        const res = await likePost(postId, method);
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data?.error || 'Failed to update like');
+        }
+
+        setPosts((prev) =>
+          prev.map((post) =>
+            post.id === postId
+              ? {
+                  ...post,
+                  likedByCurrentUser: Boolean(data.likedByCurrentUser),
+                  likeCount: Number(data.likeCount || 0),
+                  likePending: false,
+                }
+              : post
+          )
+        );
+      } catch (error) {
+        console.error(error);
+        setPosts((prev) =>
+          prev.map((post) => {
+            if (post.id !== postId) return post;
+
+            const rollbackLiked = currentlyLiked;
+            return {
+              ...post,
+              likedByCurrentUser: rollbackLiked,
+              likeCount: Math.max(0, Number(post.likeCount || 0) + (rollbackLiked ? 1 : -1)),
+              likePending: false,
+            };
+          })
+        );
+      } finally {
+        pendingLikePostIdsRef.current.delete(postId);
+        delete likeTimersRef.current[postId];
+      }
+    }, 220);
   };
 
   return (
@@ -111,20 +231,15 @@ export default function DashboardClient() {
 
 
             {/*================== One Card of user post ====================*/}
-            {loadingPosts && <div className="userpostsloadani">
-              <div className="relative w-12 h-12">
-                <div className="absolute inset-0 rounded-full border-3 border-gray-200"></div>
-                <div className="absolute inset-0 rounded-full border-3 border-black border-t-transparent animate-spin"></div>
-              </div>
-            </div>}
-            {!loadingPosts && posts.length === 0 && <div className="noposts-illuistration">
+            {(loadingPosts || !posts) && <Loading />}
+            {!loadingPosts && Array.isArray(posts) && posts.length === 0 && <div className="noposts-illuistration">
               <img src="./dashboard/NoPosts.svg" alt="No Posts" />
               <h1 className='noposts-illuistrationh'>No Posts Yet</h1>
               <p className='noposts-illuistrationp'>It looks a little empty here. Check back later or be the first to create something amazing!</p>
             </div>}
 
-            {!loadingPosts && posts.map((post) => (
-              <div className={`userpost ${menuPostId === post._id ? "menu-open" : ""}`} key={post._id}>
+            {!loadingPosts && Array.isArray(posts) && posts.map((post) => (
+              <div className={`userpost ${menuPostId === post.id ? "menu-open" : ""}`} key={post.id}>
                 <div className="post-left">
                   <div className="profilepic">
                     <ReliableImage
@@ -148,14 +263,14 @@ export default function DashboardClient() {
                     </div>
                     <div className="posth-right"><button
                       className='posth-right-btn' onClick={() =>
-                        setMenuPostId(menuPostId === post._id ? null : post._id)
+                        setMenuPostId(menuPostId === post.id ? null : post.id)
                       }
                       aria-label="Post options"><EllipsisVertical /></button>
-                      {menuPostId === post._id && (
+                      {menuPostId === post.id && (
                         <div className="post-dropdown-menu">
                           <button className="menu-item" onClick={() => {
                             setMenuPostId(null);
-                            handleReportClick(post._id);
+                            handleReportClick(post.id);
                           }}>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                               <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
@@ -199,7 +314,7 @@ export default function DashboardClient() {
                       <div className="image-post">
                         <div className={getImageGridClass(post.images.length)}>
                           {post.images.map((imageUrl, idx) => (
-                            <img key={`${post._id}-${idx}`} src={imageUrl} alt="Post image" />
+                            <img key={`${post.id}-${idx}`} src={imageUrl} alt="Post image" />
                           ))}
                         </div>
                       </div>
@@ -208,14 +323,38 @@ export default function DashboardClient() {
 
 
                   <div className="post-foot">
-                    <div className="post-foot-iconcont"><img className='post-foot-icon' src="Postimg/thumb.svg" alt="Like" /><span className='post-like-count'>0</span></div>
                     <div className="post-foot-iconcont">
-                      <button onClick={() => setActivePostId(post._id)}>
+                      <button
+                        onClick={() => {
+                          const handleLikeClick = () => {
+                            if (!post?.id) {
+                              console.error("Invalid post id:", post);
+                              return;
+                            }
+
+                            queueLikeToggle(post.id, Boolean(post.likedByCurrentUser));
+                          };
+
+                          handleLikeClick();
+                        }}
+                        disabled={Boolean(post.likePending)}
+                        aria-label={post.likedByCurrentUser ? "Unlike post" : "Like post"}
+                        className={`like-button ${post.likedByCurrentUser ? 'liked' : ''}`}
+                      >
+                        <img className='post-foot-icon' src="Postimg/thumb.svg" alt="Like" />
+                      </button>
+                      <span className='post-like-count'>{Number(post.likeCount || 0)}</span>
+                    </div>
+                    <div className="post-foot-iconcont">
+                      <button onClick={() => {
+                        if (!post?.id) return;
+                        setActivePostId(post.id);
+                      }}>
                         <img className='post-foot-icon' src="Postimg/comment.svg" alt="Comment" />
                       </button><span className='post-comment-count'>0</span>
 
                       <CommentModal
-                        isOpen={activePostId === post._id}
+                        isOpen={activePostId === post.id}
                         onClose={() => setActivePostId(null)}
                       />
                     </div>
@@ -252,7 +391,7 @@ export default function DashboardClient() {
 
         <ShareModal
           isOpen={openShare}
-          postUrl={sharePost ? `https://yourapp.com/post/${sharePost._id}` : ''}
+          postUrl={sharePost?.id ? `https://yourapp.com/post/${sharePost.id}` : ''}
           postContent={sharePost?.content || ''}
           onClose={() => {
             setOpenShare(false);

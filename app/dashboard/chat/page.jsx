@@ -19,59 +19,8 @@ import {
 import EmojiPicker from "emoji-picker-react";
 import "./chat.css";
 import ReliableImage from "@/components/ReliableImage";
-import { GiphyFetch } from "@giphy/js-fetch-api";
-import { Grid } from "@giphy/react-components";
+import ChatGiphyPicker from "@/components/shared/ChatGiphyPicker";
 
-const GIPHY_API_KEY = process.env.NEXT_PUBLIC_GIPHY_API_KEY || "";
-const gf = new GiphyFetch(GIPHY_API_KEY);
-
-function GiphyPicker({ onSelect }) {
-  const [query, setQuery] = useState("");
-
-  const fetchGifs = (offset) => {
-    if (query.trim()) {
-      return gf.search(query, { offset, limit: 20 });
-    }
-    return gf.trending({ offset, limit: 20 });
-  };
-
-  return (
-    <div className="giphy-picker-wrapper">
-      {/* 🔍 Search Bar */}
-      <div className="giphy-search">
-        <div className="gif-search">
-          <Search size={16} />
-          <input
-            type="text"
-            placeholder="Search GIFs"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
-      </div>
-
-      {/*  GIF Grid */}
-      <div className="giphy-grid-scroll">
-        <Grid
-          width={340}
-          columns={2}
-          gutter={8}
-          fetchGifs={fetchGifs}
-          key={query}
-          onGifClick={(gif, e) => {
-            e.preventDefault();
-            const gifUrl = gif.images.original?.url || gif.images.fixed_height?.url;
-            const fallbackVideoUrl = gif.images.original_mp4?.mp4 || gif.images.fixed_height?.mp4;
-
-            if (gifUrl || fallbackVideoUrl) {
-              onSelect(gifUrl || fallbackVideoUrl);
-            }
-          }}
-        />
-      </div>
-    </div>
-  );
-}
 
 function formatBytes(size = 0) {
   if (!size) return "0 KB";
@@ -930,7 +879,7 @@ export default function ChatPage() {
 
             {showGifPicker && (
               <div className="chat-picker chat-gif-picker">
-                <GiphyPicker onSelect={handleGifSelect} />
+                <ChatGiphyPicker onSelect={handleGifSelect} />
               </div>
             )}
 
