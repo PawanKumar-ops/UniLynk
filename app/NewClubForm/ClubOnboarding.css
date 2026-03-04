@@ -1,7 +1,7 @@
 .onboarding-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  padding: 2rem;
+  padding: 3.5rem 2rem;
 }
 
 .onboarding-header {
@@ -11,7 +11,7 @@
 
 .onboarding-brand {
   margin-bottom: 0.5rem;
-  font-size: 27px;
+  font-size: 25px;
   letter-spacing: -0.02em;
   display: flex;
   gap: 8px;
@@ -20,7 +20,7 @@
 }
 
 .onboarding-brand img{
-  height: 45px;
+  height: 40px;
   margin-bottom: 0.5rem;
 }
 

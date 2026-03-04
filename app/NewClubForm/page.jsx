@@ -14,6 +14,7 @@ export default function ClubOnboarding() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
   const totalSteps = 6;
+  const [submitError, setSubmitError] = useState('');
 
   const [clubData, setClubData] = useState({
     clubName: '',
@@ -51,12 +52,27 @@ export default function ClubOnboarding() {
     }
   };
 
-  const handleSubmit = () => {
-  const clubId = Date.now().toString();
-  localStorage.setItem(`club_${clubId}`, JSON.stringify(clubData));
+  const handleSubmit = async () => {
+    setSubmitError('');
 
-  router.push('/NewClubForm/success');
-};
+   try {
+      const res = await fetch('/api/clubs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(clubData),
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to save club details. Please try again.');
+      }
+
+      router.push('/NewClubForm/success');
+    } catch (error) {
+      setSubmitError(error.message || 'Something went wrong while submitting the form.');
+    }
+  };
 
   const renderStep = () => {
     switch (currentStep) {
@@ -110,6 +126,12 @@ export default function ClubOnboarding() {
           />
         </div>
       </div>
+
+      {submitError && (
+        <p style={{ color: '#dc2626', textAlign: 'center', marginTop: '12px' }}>
+          {submitError}
+        </p>
+      )}
 
       <div className="onboarding-content">
         {renderStep()}

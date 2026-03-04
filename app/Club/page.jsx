@@ -4,6 +4,7 @@ import Image from 'next/image'
 import "./Club.css"
 import { useState } from "react";
 import Link from 'next/link'
+import { Sparkle } from 'lucide-react';
 import AddMembersFab from '@/components/AddMembersFab'
 
 const Clubpage = () => {
@@ -83,7 +84,17 @@ const Clubpage = () => {
                                 <div className="whatwedo">
                                     <h1 className="clubprofhead">What We Do</h1>
                                     <div className="whatcardcont">
-                                        <div className="whatcard"></div>
+                                        <div className="whatcard"><div className="whatcardl"><Sparkle /></div>
+                                            <div className="whatcardr">
+                                                <h1 className="whatcardrh">
+                                                    Hackathon
+                                                </h1>
+                                                <div className="whatcardr-content"><p>
+                                                    content h 
+                                                </p>
+                                                </div>
+                                            </div>
+                                        </div>
                                         <div className="whatcard"></div>
                                         <div className="whatcard"></div>
                                         <div className="whatcard"></div>
