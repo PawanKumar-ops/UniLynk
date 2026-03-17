@@ -80,6 +80,17 @@ const ProfileEditModal = ({ onClose, user, onSave }) => {
             id: `${skill}-${Math.random().toString(36).slice(2, 9)}`,
             name: skill,
         })));
+        setSocials(
+            (user.socials || [])
+                .filter((social) => social?.platform && social?.url)
+                .map((social) => ({
+                    id:
+                        social.id ||
+                        `${social.platform}-${Math.random().toString(36).slice(2, 9)}`,
+                    platform: social.platform,
+                    url: social.url,
+                })),
+        );
     }, [user]);
 
 
@@ -196,6 +207,12 @@ const ProfileEditModal = ({ onClose, user, onSave }) => {
                     branch: profileData.branch,
                     year: profileData.year,
                     skills: skills.map((skill) => skill.name).filter(Boolean),
+                    socials: socials
+                        .filter((social) => social?.platform && social?.url)
+                        .map((social) => ({
+                            platform: social.platform,
+                            url: social.url,
+                        })),
                     img: imageUrl,
                 }),
             });
