@@ -325,6 +325,19 @@
   margin-top: 5px;
 }
 
+
+.applogo{
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+}
+
+.social-platform-name{
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+}
 .applogo img{
   height: 40px;
   width: auto;

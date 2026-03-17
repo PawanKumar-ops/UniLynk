@@ -12,7 +12,7 @@ export async function PATCH(req) {
       return Response.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const { branch, year, skills, img } = await req.json();
+    const { branch, year, skills, socials, img } = await req.json();
 
     const updatePayload = {
       branch: typeof branch === "string" ? branch.trim() : "",
@@ -21,6 +21,14 @@ export async function PATCH(req) {
         ? skills
             .map((skill) => (typeof skill === "string" ? skill.trim() : ""))
             .filter(Boolean)
+        : [],
+      socials: Array.isArray(socials)
+        ? socials
+            .map((social) => ({
+              platform: typeof social?.platform === "string" ? social.platform.trim() : "",
+              url: typeof social?.url === "string" ? social.url.trim() : "",
+            }))
+            .filter((social) => social.platform && social.url)
         : [],
       profileCompleted: true,
     };
