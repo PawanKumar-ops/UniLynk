@@ -80,11 +80,6 @@ const ProfileEditModal = ({ onClose, user, onSave }) => {
             id: `${skill}-${Math.random().toString(36).slice(2, 9)}`,
             name: skill,
         })));
-        setSocials((user.socials || []).map((social) => ({
-            id: `${social.platform}-${Math.random().toString(36).slice(2, 9)}`,
-            platform: social.platform,
-            url: social.url,
-        })));
     }, [user]);
 
 
@@ -177,12 +172,10 @@ const ProfileEditModal = ({ onClose, user, onSave }) => {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
+                    branch: profileData.branch,
+                    year: profileData.year,
                     skills: skills.map((skill) => skill.name).filter(Boolean),
                     img: imageUrl,
-                    socials: socials.map((social) => ({
-                        platform: social.platform,
-                        url: social.url,
-                    })),
                 }),
             });
 
@@ -377,8 +370,12 @@ const ProfileEditModal = ({ onClose, user, onSave }) => {
                                             type="text"
                                             className="form-input"
                                             value={profileData.branch}
-                                            readOnly
-                                            disabled
+                                            onChange={(e) =>
+                                                setProfileData({
+                                                    ...profileData,
+                                                    branch: e.target.value,
+                                                })
+                                            }
                                         />
                                     </div>
                                     <div className="form-group">
