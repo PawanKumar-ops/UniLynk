@@ -99,24 +99,45 @@ const ProfileEditModal = ({ onClose, user, onSave }) => {
     };
 
     /* ================= SOCIALS ================= */
+    const buildSocialUrl = (url) => {
+        const trimmed = url.trim();
+        if (!trimmed) return "";
+        if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
+        return `https://${trimmed}`;
+    };
+
     const addSocial = () => {
         if (!newSocialUrl.trim()) return;
 
-        setSocials((prev) => [
-            ...prev,
-            {
-                id: Date.now().toString(),
-                platform: newSocialPlatform,
-                url: newSocialUrl.trim(),
-            },
-        ]);
+        const normalizedUrl = buildSocialUrl(newSocialUrl);
+
+        setSocials((prev) => {
+            const existingIndex = prev.findIndex((social) => social.platform === newSocialPlatform);
+            if (existingIndex !== -1) {
+                return prev.map((social, index) => (
+                    index === existingIndex
+                        ? { ...social, url: normalizedUrl }
+                        : social
+                ));
+            }
+
+            return [
+                ...prev,
+                {
+                    id: Date.now().toString(),
+                    platform: newSocialPlatform,
+                    url: normalizedUrl,
+                },
+            ];
+        });
 
         setNewSocialUrl("");
     };
 
 
-    const removeSocial = (id) =>
-        setSocials(socials.filter(s => s.id !== id));
+    const removeSocial = (id) => {
+        setSocials((prev) => prev.filter((s) => s.id !== id));
+    };
 
     /* ================= SKILLS ================= */
     const addSkill = () => {
@@ -777,6 +798,11 @@ const ProfileEditModal = ({ onClose, user, onSave }) => {
 
                 {/* Modal Footer */}
                 <div className="modal-footer">
+                    {saveError && (
+                        <p className="section-description" style={{ color: "#dc2626", marginBottom: "8px" }}>
+                            {saveError}
+                        </p>
+                    )}
                     <button
                         className="cancel-button"
                         onClick={onClose}
