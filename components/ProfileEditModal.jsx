@@ -6,17 +6,15 @@ import { SOCIAL_ICONS, SOCIAL_PLACEHOLDERS } from "@/lib/socialIcons";
 import { Plus } from "lucide-react";
 
 
-const ProfileEditModal = ({ onClose }) => {
+const ProfileEditModal = ({ onClose, user, onSave }) => {
 
-    const [socials, setSocials] = useState([
-        { id: "1", platform: "LinkedIn", url: "linkedin.com/in/krishna" },
-        { id: "2", platform: "GitHub", url: "github.com/krishna" },
-    ]);
+    const [socials, setSocials] = useState([]);
 
     const [activeTab, setActiveTab] = useState("profile");
-    const [profileImage, setProfileImage] = useState(
-        "https://akm-img-a-in.tosshub.com/sites/dailyo/story/embed/201809/painting_of_lord_kri_090118090030.jpg"
-    );
+    const [profileImage, setProfileImage] = useState(user?.img || "/Profilepic.png");
+    const [selectedImageFile, setSelectedImageFile] = useState(null);
+    const [saving, setSaving] = useState(false);
+    const [saveError, setSaveError] = useState("");
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef(null);
 
@@ -25,13 +23,7 @@ const ProfileEditModal = ({ onClose }) => {
     const [newSocialUrl, setNewSocialUrl] = useState("");
 
     /* ================= SKILLS ================= */
-    const [skills, setSkills] = useState([
-        { id: "1", name: "React" },
-        { id: "2", name: "TypeScript" },
-        { id: "3", name: "Node.js" },
-        { id: "4", name: "UI/UX Design" },
-        { id: "5", name: "Python" },
-    ]);
+    const [skills, setSkills] = useState([]);
     const [newSkill, setNewSkill] = useState("");
 
     /* ================= ACHIEVEMENTS ================= */
@@ -59,10 +51,10 @@ const ProfileEditModal = ({ onClose }) => {
 
     /* ================= PROFILE ================= */
     const [profileData, setProfileData] = useState({
-        name: "Krishna",
-        major: "Computer Science",
-        year: "Class of 2026",
-        email: "74863952@nitkkr.ac.in",
+        name: "",
+        branch: "",
+        year: "",
+        email: "",
     });
 
     // =========================== UseEffects===================
@@ -74,10 +66,39 @@ const ProfileEditModal = ({ onClose }) => {
         };
     }, []);
 
+    useEffect(() => {
+        if (!user) return;
+
+        setProfileData({
+            name: user.name || "",
+            branch: user.branch || "",
+            year: user.year || "",
+            email: user.email || "",
+        });
+        setProfileImage(user.img || "/Profilepic.png");
+        setSkills((user.skills || []).map((skill) => ({
+            id: `${skill}-${Math.random().toString(36).slice(2, 9)}`,
+            name: skill,
+        })));
+        setSocials((user.socials || []).map((social) => ({
+            id: `${social.platform}-${Math.random().toString(36).slice(2, 9)}`,
+            platform: social.platform,
+            url: social.url,
+        })));
+    }, [user]);
+
+    useEffect(() => {
+        const existingSocial = socials.find((social) => social.platform === newSocialPlatform);
+        if (existingSocial && !newSocialUrl) {
+            setNewSocialUrl(existingSocial.url);
+        }
+    }, [newSocialPlatform, socials, newSocialUrl]);
+
 
     /* ================= IMAGE ================= */
     const handleImageUpload = (file) => {
         if (!file || !file.type.startsWith("image/")) return;
+        setSelectedImageFile(file);
         const reader = new FileReader();
         reader.onloadend = () => setProfileImage(reader.result);
         reader.readAsDataURL(file);
@@ -90,24 +111,45 @@ const ProfileEditModal = ({ onClose }) => {
     };
 
     /* ================= SOCIALS ================= */
+    const buildSocialUrl = (url) => {
+        const trimmed = url.trim();
+        if (!trimmed) return "";
+        if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
+        return `https://${trimmed}`;
+    };
+
     const addSocial = () => {
         if (!newSocialUrl.trim()) return;
 
-        setSocials((prev) => [
-            ...prev,
-            {
-                id: Date.now().toString(),
-                platform: newSocialPlatform,
-                url: newSocialUrl.trim(),
-            },
-        ]);
+        const normalizedUrl = buildSocialUrl(newSocialUrl);
+
+        setSocials((prev) => {
+            const existingIndex = prev.findIndex((social) => social.platform === newSocialPlatform);
+            if (existingIndex !== -1) {
+                return prev.map((social, index) => (
+                    index === existingIndex
+                        ? { ...social, url: normalizedUrl }
+                        : social
+                ));
+            }
+
+            return [
+                ...prev,
+                {
+                    id: Date.now().toString(),
+                    platform: newSocialPlatform,
+                    url: normalizedUrl,
+                },
+            ];
+        });
 
         setNewSocialUrl("");
     };
 
 
-    const removeSocial = (id) =>
-        setSocials(socials.filter(s => s.id !== id));
+    const removeSocial = (id) => {
+        setSocials((prev) => prev.filter((s) => s.id !== id));
+    };
 
     /* ================= SKILLS ================= */
     const addSkill = () => {
@@ -135,15 +177,79 @@ const ProfileEditModal = ({ onClose }) => {
     const removeAchievement = (id) =>
         setAchievements(achievements.filter(a => a.id !== id));
 
-    const handleSave = () => {
-        console.log({
-            profileData,
-            profileImage,
-            socials,
-            skills,
-            achievements,
-        });
-        onClose()
+    const handleSave = async () => {
+        try {
+            setSaving(true);
+            setSaveError("");
+
+            const pendingSocialUrl = buildSocialUrl(newSocialUrl);
+            const socialsToSave = pendingSocialUrl
+                ? (() => {
+                    const existingIndex = socials.findIndex((social) => social.platform === newSocialPlatform);
+                    if (existingIndex !== -1) {
+                        return socials.map((social, index) => (
+                            index === existingIndex
+                                ? { ...social, url: pendingSocialUrl }
+                                : social
+                        ));
+                    }
+                    return [
+                        ...socials,
+                        {
+                            id: Date.now().toString(),
+                            platform: newSocialPlatform,
+                            url: pendingSocialUrl,
+                        },
+                    ];
+                })()
+                : socials;
+
+            let imageUrl = user?.img || "";
+
+            if (selectedImageFile) {
+                const formData = new FormData();
+                formData.append("file", selectedImageFile);
+
+                const uploadRes = await fetch("/api/user/upload-image", {
+                    method: "POST",
+                    body: formData,
+                });
+
+                const uploadData = await uploadRes.json();
+                if (!uploadRes.ok) {
+                    throw new Error(uploadData.error || "Image upload failed");
+                }
+
+                imageUrl = uploadData.url;
+            }
+
+            const res = await fetch("/api/user/profile", {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    skills: skills.map((skill) => skill.name).filter(Boolean),
+                    img: imageUrl,
+                    socials: socialsToSave.map((social) => ({
+                        platform: social.platform,
+                        url: social.url,
+                    })),
+                }),
+            });
+
+            const data = await res.json();
+            if (!res.ok) {
+                throw new Error(data.error || "Failed to update profile");
+            }
+
+            setSocials(socialsToSave);
+            setNewSocialUrl("");
+            onSave?.(data.user);
+            onClose();
+        } catch (error) {
+            setSaveError(error.message || "Failed to save changes");
+        } finally {
+            setSaving(false);
+        }
     };
 
 
@@ -303,12 +409,8 @@ const ProfileEditModal = ({ onClose }) => {
                                             type="text"
                                             className="form-input"
                                             value={profileData.name}
-                                            onChange={(e) =>
-                                                setProfileData({
-                                                    ...profileData,
-                                                    name: e.target.value,
-                                                })
-                                            }
+                                            readOnly
+                                            disabled
                                         />
                                     </div>
                                     <div className="form-group">
@@ -317,42 +419,30 @@ const ProfileEditModal = ({ onClose }) => {
                                             type="email"
                                             className="form-input"
                                             value={profileData.email}
-                                            onChange={(e) =>
-                                                setProfileData({
-                                                    ...profileData,
-                                                    email: e.target.value,
-                                                })
-                                            }
+                                            readOnly
+                                            disabled
                                         />
                                     </div>
                                     <div className="form-group">
-                                        <label className="form-label">Major</label>
+                                        <label className="form-label">Branch</label>
                                         <input
                                             type="text"
                                             className="form-input"
-                                            value={profileData.major}
-                                            onChange={(e) =>
-                                                setProfileData({
-                                                    ...profileData,
-                                                    major: e.target.value,
-                                                })
-                                            }
+                                            value={profileData.branch}
+                                            readOnly
+                                            disabled
                                         />
                                     </div>
                                     <div className="form-group">
                                         <label className="form-label">
-                                            Graduation Year
+                                            Current Year
                                         </label>
                                         <input
                                             type="text"
                                             className="form-input"
                                             value={profileData.year}
-                                            onChange={(e) =>
-                                                setProfileData({
-                                                    ...profileData,
-                                                    year: e.target.value,
-                                                })
-                                            }
+                                            readOnly
+                                            disabled
                                         />
                                     </div>
 
@@ -740,13 +830,18 @@ const ProfileEditModal = ({ onClose }) => {
 
                 {/* Modal Footer */}
                 <div className="modal-footer">
+                    {saveError && (
+                        <p className="section-description" style={{ color: "#dc2626", marginBottom: "8px" }}>
+                            {saveError}
+                        </p>
+                    )}
                     <button
                         className="cancel-button"
                         onClick={onClose}
                     >
                         Cancel
                     </button>
-                    <button className="save-button" onClick={handleSave}>
+                    <button className="save-button" onClick={handleSave} disabled={saving}>
                         <svg
                             width="20"
                             height="20"
@@ -757,7 +852,7 @@ const ProfileEditModal = ({ onClose }) => {
                         >
                             <polyline points="20 6 9 17 4 12"></polyline>
                         </svg>
-                        Save Changes
+                        {saving ? "Saving..." : "Save Changes"}
                     </button>
                 </div>
             </div>
