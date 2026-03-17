@@ -129,6 +129,16 @@ const Userprofile = () => {
         return sessionUser._id === viewedProfile._id;
     }, [sessionUser, viewedProfile]);
 
+    const handleProfileUpdated = (updatedUser) => {
+        setSessionUser(updatedUser);
+        setViewedProfile((prev) => {
+            if (!prev || prev._id === updatedUser._id) {
+                return updatedUser;
+            }
+            return prev;
+        });
+    };
+
     const calculateSemesterFromYear = (year) => {
         if (!year) return "Not available";
 
@@ -390,7 +400,11 @@ const Userprofile = () => {
                                         </button>
 
                                         {showEditProfileModal && (
-                                            <ProfileEditModal onClose={() => setEditProfileModal(false)} />
+                                            <ProfileEditModal
+                                                user={sessionUser}
+                                                onSave={handleProfileUpdated}
+                                                onClose={() => setEditProfileModal(false)}
+                                            />
                                         )}
                                     </>
                                 ) : (
