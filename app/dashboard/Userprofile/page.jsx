@@ -451,6 +451,9 @@ const Userprofile = () => {
                                     title={social.platform}
                                 >
                                     <img src={SOCIAL_ICONS[social.platform] || "/social/portfolio.svg"} alt={social.platform} />
+                                    {userSocials.length === 1 && (
+                                        <span className="social-platform-name">{social.platform}</span>
+                                    )}
                                 </a>
                             )) : (
                                 <span style={{ color: "#6b7280" }}>No social links added</span>
