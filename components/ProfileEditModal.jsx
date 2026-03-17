@@ -80,19 +80,7 @@ const ProfileEditModal = ({ onClose, user, onSave }) => {
             id: `${skill}-${Math.random().toString(36).slice(2, 9)}`,
             name: skill,
         })));
-        setSocials((user.socials || []).map((social) => ({
-            id: `${social.platform}-${Math.random().toString(36).slice(2, 9)}`,
-            platform: social.platform,
-            url: social.url,
-        })));
     }, [user]);
-
-    useEffect(() => {
-        const existingSocial = socials.find((social) => social.platform === newSocialPlatform);
-        if (existingSocial && !newSocialUrl) {
-            setNewSocialUrl(existingSocial.url);
-        }
-    }, [newSocialPlatform, socials, newSocialUrl]);
 
 
     /* ================= IMAGE ================= */
@@ -182,28 +170,6 @@ const ProfileEditModal = ({ onClose, user, onSave }) => {
             setSaving(true);
             setSaveError("");
 
-            const pendingSocialUrl = buildSocialUrl(newSocialUrl);
-            const socialsToSave = pendingSocialUrl
-                ? (() => {
-                    const existingIndex = socials.findIndex((social) => social.platform === newSocialPlatform);
-                    if (existingIndex !== -1) {
-                        return socials.map((social, index) => (
-                            index === existingIndex
-                                ? { ...social, url: pendingSocialUrl }
-                                : social
-                        ));
-                    }
-                    return [
-                        ...socials,
-                        {
-                            id: Date.now().toString(),
-                            platform: newSocialPlatform,
-                            url: pendingSocialUrl,
-                        },
-                    ];
-                })()
-                : socials;
-
             let imageUrl = user?.img || "";
 
             if (selectedImageFile) {
@@ -227,12 +193,10 @@ const ProfileEditModal = ({ onClose, user, onSave }) => {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
+                    branch: profileData.branch,
+                    year: profileData.year,
                     skills: skills.map((skill) => skill.name).filter(Boolean),
                     img: imageUrl,
-                    socials: socialsToSave.map((social) => ({
-                        platform: social.platform,
-                        url: social.url,
-                    })),
                 }),
             });
 
@@ -241,8 +205,6 @@ const ProfileEditModal = ({ onClose, user, onSave }) => {
                 throw new Error(data.error || "Failed to update profile");
             }
 
-            setSocials(socialsToSave);
-            setNewSocialUrl("");
             onSave?.(data.user);
             onClose();
         } catch (error) {
@@ -429,8 +391,12 @@ const ProfileEditModal = ({ onClose, user, onSave }) => {
                                             type="text"
                                             className="form-input"
                                             value={profileData.branch}
-                                            readOnly
-                                            disabled
+                                            onChange={(e) =>
+                                                setProfileData({
+                                                    ...profileData,
+                                                    branch: e.target.value,
+                                                })
+                                            }
                                         />
                                     </div>
                                     <div className="form-group">
@@ -449,6 +415,8 @@ const ProfileEditModal = ({ onClose, user, onSave }) => {
                                 </div>
 
                             </div>
+
+                            {saveError && <p className="section-description" style={{ color: "#dc2626" }}>{saveError}</p>}
                         </div>
                     )}
 
