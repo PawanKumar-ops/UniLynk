@@ -20,6 +20,15 @@ const UserSchema = new mongoose.Schema({
     default: [],
     index: true
   },
+  socials: {
+    type: [
+      {
+        platform: String,
+        url: String,
+      },
+    ],
+    default: [],
+  },
 
   profileCompleted: {
     type: Boolean,
