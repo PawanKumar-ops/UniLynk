@@ -8,10 +8,7 @@ import { Plus } from "lucide-react";
 
 const ProfileEditModal = ({ onClose, user, onSave }) => {
 
-    const [socials, setSocials] = useState([
-        { id: "1", platform: "LinkedIn", url: "linkedin.com/in/krishna" },
-        { id: "2", platform: "GitHub", url: "github.com/krishna" },
-    ]);
+    const [socials, setSocials] = useState([]);
 
     const [activeTab, setActiveTab] = useState("profile");
     const [profileImage, setProfileImage] = useState(user?.img || "/Profilepic.png");
@@ -389,12 +386,8 @@ const ProfileEditModal = ({ onClose, user, onSave }) => {
                                             type="text"
                                             className="form-input"
                                             value={profileData.year}
-                                            onChange={(e) =>
-                                                setProfileData({
-                                                    ...profileData,
-                                                    year: e.target.value,
-                                                })
-                                            }
+                                            readOnly
+                                            disabled
                                         />
                                     </div>
 

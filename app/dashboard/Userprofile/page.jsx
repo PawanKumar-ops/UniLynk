@@ -11,6 +11,7 @@ import { Icon } from "@iconify/react";
 import { getSkillIcon } from "@/lib/skillIcons";
 import ProfileEditModal from '@/components/ProfileEditModal'
 import ReliableImage from '@/components/ReliableImage'
+import { SOCIAL_ICONS } from '@/lib/socialIcons'
 
 const Userprofile = () => {
 
@@ -198,6 +199,18 @@ const Userprofile = () => {
 
         return `${batchStart} - ${batchEnd}`;
     };
+
+    const normalizeSocialUrl = (url) => {
+        if (!url) return "#";
+        if (url.startsWith("http://") || url.startsWith("https://")) return url;
+        return `https://${url}`;
+    };
+
+    const userSocials = useMemo(() => {
+        return (viewedProfile?.socials || []).filter(
+            (social) => social?.platform && social?.url,
+        );
+    }, [viewedProfile]);
 
 
 
@@ -428,10 +441,20 @@ const Userprofile = () => {
                         </div>
                         <hr className='profilehr' />
                         <div className="social">
-                            <button className='applogo' ><img src="/social/LinkedIn.svg" alt="LinkedIn" /></button>
-                            <button className='applogo'><img src="/social/instagram.svg" alt="Instagram" /></button>
-                            <button className='applogo'><img src="/social/X.svg" alt="X" /></button>
-                            <button className='applogo'><img src="/social/github.svg" alt="GitHub" /></button>
+                            {userSocials.length > 0 ? userSocials.map((social) => (
+                                <a
+                                    key={`${social.platform}-${social.url}`}
+                                    className='applogo'
+                                    href={normalizeSocialUrl(social.url)}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    title={social.platform}
+                                >
+                                    <img src={SOCIAL_ICONS[social.platform] || "/social/portfolio.svg"} alt={social.platform} />
+                                </a>
+                            )) : (
+                                <span style={{ color: "#6b7280" }}>No social links added</span>
+                            )}
                         </div>
                     </section>
 
