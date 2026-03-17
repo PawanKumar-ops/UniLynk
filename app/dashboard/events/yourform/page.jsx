@@ -14,7 +14,7 @@ import { useEffect } from "react";
 import { useState } from 'react';
 import "./yourform.css"
 
-import { createDraft, listDrafts, deleteDraft } from "@/lib/drafts";
+import { createDraft, listDrafts, deleteDraft, saveDraft } from "@/lib/drafts";
 import { useRouter } from "next/navigation";
 
 
@@ -25,14 +25,20 @@ const Page = () => {
 
     useEffect(() => {
         const load = async () => {
-            const res = await fetch("/api/forms/mine", { cache: "no-store" });
-            const payload = await res.json();
+            let savedForms = [];
 
-            const savedForms = Array.isArray(payload)
-                ? payload
-                : Array.isArray(payload?.forms)
-                    ? payload.forms
-                    : [];
+            try {
+                const res = await fetch("/api/forms/MINE", { cache: "no-store" });
+                const payload = await res.json();
+
+                savedForms = Array.isArray(payload)
+                    ? payload
+                    : Array.isArray(payload?.forms)
+                        ? payload.forms
+                        : [];
+            } catch (error) {
+                console.error("Failed to load forms", error);
+            }
 
             const drafts = listDrafts();
 
@@ -104,7 +110,9 @@ const Page = () => {
         e.stopPropagation();
 
         // 🟡 Draft or local-only form
-        if (!id || id.startsWith("draft_")) {
+        const normalizedId = id?.toString?.() || "";
+
+        if (!normalizedId || normalizedId.startsWith("draft_")) {
             deleteDraft(id);
             setForms((prev) => prev.filter((f) => f._id !== id));
             return;
@@ -112,7 +120,7 @@ const Page = () => {
 
         // 🟢 MongoDB form
         try {
-            const res = await fetch(`/api/forms/delete/${id}`, {
+            const res = await fetch(`/api/forms/delete/${normalizedId}`, {
                 method: "DELETE",
             });
 
@@ -142,21 +150,25 @@ const Page = () => {
         e.preventDefault();
         e.stopPropagation();
 
-        const formToDuplicate = forms.find((form) => form._id === id);
+        const formToDuplicate = forms.find(
+            (form) => form._id?.toString?.() === id?.toString?.(),
+        );
 
         if (!formToDuplicate) return;
 
-        // Duplicate as NEW DRAFT
+        const createdDraft = createDraft();
+
         const newDraft = {
-            ...createDraft(),
             ...formToDuplicate,
+            _id: createdDraft._id,
 
             title: `${formToDuplicate.title} (Copy)`,
 
             isPublished: false,
+            createdAt: new Date().toISOString(),
         };
 
-        localStorage.setItem(`draft-${newDraft._id}`, JSON.stringify(newDraft));
+        saveDraft(newDraft);
 
         setForms((prev) => [newDraft, ...prev]);
     };
@@ -214,7 +226,7 @@ const Page = () => {
                                                     {form.title}
                                                 </h3>
                                             </div>
-                                            {form._id?.startsWith("draft_") && (
+                                            {form._id?.toString?.().startsWith("draft_") && (
                                                 <span className="draft-badge">Draft</span>
                                             )}
 
