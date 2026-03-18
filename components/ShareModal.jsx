@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Link as LinkIcon, Check, Search } from 'lucide-react';
+import { X, MessageCircle, Link as LinkIcon, Check, Search } from 'lucide-react';
 import ReliableImage from './ReliableImage';
 import './ShareModal.css';
 
@@ -31,10 +31,9 @@ const getInitials = (contact) => {
 const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
   const [copied, setCopied] = React.useState(false);
   const [chatMessage, setChatMessage] = React.useState('');
+  const [chatMessages, setChatMessages] = React.useState([]);
   const [topContacts, setTopContacts] = React.useState([]);
   const [loadingTopContacts, setLoadingTopContacts] = React.useState(false);
-  const [searchedContacts, setSearchedContacts] = React.useState([]);
-  const [loadingSearchedContacts, setLoadingSearchedContacts] = React.useState(false);
 
   React.useEffect(() => {
     if (!isOpen) return undefined;
@@ -74,6 +73,8 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
     return () => controller.abort();
   }, [isOpen]);
 
+  if (!isOpen) return null;
+
   const handleCopyLink = () => {
     navigator.clipboard.writeText(postUrl);
     setCopied(true);
@@ -98,62 +99,18 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
     }
   };
 
-  React.useEffect(() => {
-    if (!isOpen) return undefined;
-
-    const trimmedQuery = chatMessage.trim();
-
-    if (!trimmedQuery) {
-      setSearchedContacts([]);
-      setLoadingSearchedContacts(false);
-      return undefined;
+  const handleSendChat = () => {
+    if (chatMessage.trim()) {
+      setChatMessages([...chatMessages, chatMessage]);
+      setChatMessage('');
     }
+  };
 
-    const controller = new AbortController();
-
-    const loadSearchedContacts = async () => {
-      try {
-        setLoadingSearchedContacts(true);
-
-        const response = await fetch(`/api/users/search?q=${encodeURIComponent(trimmedQuery)}&limit=${QUICK_CONTACT_LIMIT}`, {
-          cache: 'no-store',
-          signal: controller.signal,
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to search users');
-        }
-
-        const results = Array.isArray(data.results) ? data.results : [];
-        setSearchedContacts(results.filter((result) => result?.type === 'user'));
-      } catch (error) {
-        if (error.name !== 'AbortError') {
-          console.error('USER SEARCH ERROR:', error);
-          setSearchedContacts([]);
-        }
-      } finally {
-        if (!controller.signal.aborted) {
-          setLoadingSearchedContacts(false);
-        }
-      }
-    };
-
-    const timeoutId = window.setTimeout(loadSearchedContacts, 250);
-
-    return () => {
-      controller.abort();
-      window.clearTimeout(timeoutId);
-    };
-  }, [chatMessage, isOpen]);
-
-
-  if (!isOpen) return null;
-
-  const quickPanelContacts = chatMessage.trim() ? searchedContacts : topContacts;
-  const quickPanelLoading = chatMessage.trim() ? loadingSearchedContacts : loadingTopContacts;
-  const quickPanelEmptyLabel = chatMessage.trim() ? 'No users found' : 'Search Users';
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter') {
+      handleSendChat();
+    }
+  };
 
   return (
     <>
@@ -218,7 +175,7 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
 
                 <button className="share-modal-app-button" onClick={() => handleShareToApp('email')}>
                   <div className="share-modal-app-icon email">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                       <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
                       <polyline points="22,6 12,13 2,6" />
                     </svg>
@@ -259,14 +216,32 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
             <div className="share-section">
               <h3>Share in Chat</h3>
               <div className="chat-container">
+                {chatMessages.length > 0 && (
+                  <div className="chat-messages">
+                    {chatMessages.map((msg, index) => (
+                      <div key={index} className="chat-message">
+                        <MessageCircle size={16} />
+                        <span>{msg}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
                 <div className="chat-input-container">
                   <input
                     type="text"
                     placeholder="Search user..."
                     value={chatMessage}
                     onChange={(e) => setChatMessage(e.target.value)}
+                    onKeyPress={handleKeyPress}
                     className="chat-input"
                   />
+                  <button
+                    className="send-button"
+                    onClick={handleSendChat}
+                    disabled={!chatMessage.trim()}
+                  >
+                    Send
+                  </button>
                 </div>
               </div>
             </div>
@@ -277,7 +252,7 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
           <div className="share-modal-side-box-content">
             <span className="share-modal-side-box-label">Quick panel</span>
 
-            {quickPanelLoading ? (
+            {loadingTopContacts ? (
               <div className="share-modal-side-box-empty">
                 <div className="userpostsloadani">
                   <div className="relative w-8 h-8">
@@ -286,9 +261,9 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
                   </div>
                 </div>
               </div>
-            ) : quickPanelContacts.length > 0 ? (
+            ) : topContacts.length > 0 ? (
               <div className="share-modal-top-users" role="list">
-                {quickPanelContacts.map((contact) => {
+                {topContacts.map((contact) => {
                   const email = contact?.email || 'No email available';
                   const displayName = getDisplayName(contact);
                   const tooltipId = `share-contact-tooltip-${contact.id}`;
@@ -335,7 +310,7 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
             ) : (
               <div className="share-modal-side-box-empty">
                 <Search width={32} height={32} />
-                {quickPanelEmptyLabel}
+                Search Users
               </div>
             )}
           </div>
