@@ -287,7 +287,7 @@
 
 /* Chat Section */
 .chat-container {
-  border: 1px solid #e5e5e5;
+
   border-radius: 12px;
   overflow: hidden;
 }
@@ -326,7 +326,7 @@
 .chat-input-container {
   display: flex;
   gap: 8px;
-  padding: 12px;
+  
   background-color: #ffffff;
 }
 
