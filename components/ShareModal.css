@@ -143,6 +143,7 @@
 .share-modal-top-user-avatar {
   width: 58px;
   height: 58px;
+  border: 1px solid black;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
