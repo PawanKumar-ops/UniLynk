@@ -38,7 +38,10 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
 
   React.useEffect(() => {
     if (!isOpen) {
+      setCopied(false);
       setChatMessage('');
+      setTopContacts([]);
+      setLoadingTopContacts(false);
       setSearchedContacts([]);
       setLoadingSearchedContacts(false);
       return undefined;
@@ -167,7 +170,8 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
   const hasSearchQuery = chatMessage.trim().length > 0;
   const quickPanelContacts = hasSearchQuery ? searchedContacts : topContacts;
   const quickPanelLoading = hasSearchQuery ? loadingSearchedContacts : loadingTopContacts;
-  const quickPanelEmptyLabel = hasSearchQuery ? 'No users found' : 'Search Users';
+  const quickPanelEmptyLabel = hasSearchQuery ? 'No users found' : 'Search users';
+  const showQuickPanelEmpty = !quickPanelLoading && quickPanelContacts.length === 0;
 
   return (
     <>
@@ -292,65 +296,73 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
         <aside className="share-modal-side-box" aria-label="Top contacts quick panel">
           <div className="share-modal-side-box-content">
             <span className="share-modal-side-box-label">Quick panel</span>
-            <div className="share-modal-side-box-panel">
-              {quickPanelContacts.length > 0 ? (
-                <div className="share-modal-top-users" role="list">
-                  {quickPanelContacts.map((contact, index) => {
-                    const contactId = contact?.id || contact?.email || `contact-${index}`;
-                    const email = contact?.email || 'No email available';
-                    const displayName = getDisplayName(contact);
 
-                    return (
-                      <div key={contactId} className="share-modal-top-user" role="listitem">
-                        <div className="share-modal-top-user-hover-card">
-                          <div className="share-modal-user-trigger-wrap">
-                            <button
-                              type="button"
-                              className="share-modal-top-user-trigger share-modal-top-user-avatar"
-                              title={email}
-                            >
-                              {contact.image ? (
-                                <ReliableImage
-                                  src={contact.image}
-                                  alt={`${displayName} profile`}
-                                  className="share-modal-top-user-image"
-                                />
-                              ) : (
-                                <span className="share-modal-top-user-fallback">{getInitials(contact)}</span>
-                              )}
-                            </button>
+            {quickPanelContacts.length > 0 ? (
+              <div className="share-modal-top-users" role="list">
+                {quickPanelContacts.map((contact, index) => {
+                  const contactId = contact?.id || contact?.email || `contact-${index}`;
+                  const email = contact?.email || 'No email available';
+                  const displayName = getDisplayName(contact);
+                  const tooltipId = `share-contact-tooltip-${contactId}`;
 
-                            <button
-                              type="button"
-                              className="share-modal-top-user-trigger share-modal-top-user-name"
-                              title={email}
-                            >
-                              {displayName}
-                            </button>
-                          </div>
+                  return (
+                    <div key={contactId} className="share-modal-top-user" role="listitem">
+                      <div className="share-modal-top-user-hover-card">
+                        <div className="share-modal-user-trigger-wrap">
+                          <button
+                            type="button"
+                            className="share-modal-top-user-trigger share-modal-top-user-avatar"
+                            aria-describedby={tooltipId}
+                            title={email}
+                          >
+                            {contact.image ? (
+                              <ReliableImage
+                                src={contact.image}
+                                alt={`${displayName} profile`}
+                                className="share-modal-top-user-image"
+                              />
+                            ) : (
+                              <span className="share-modal-top-user-fallback">{getInitials(contact)}</span>
+                            )}
+                          </button>
+
+                          <button
+                            type="button"
+                            className="share-modal-top-user-trigger share-modal-top-user-name"
+                            aria-describedby={tooltipId}
+                            title={email}
+                          >
+                            {displayName}
+                          </button>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="share-modal-side-box-empty">
-                  <Search width={32} height={32} />
-                  {quickPanelEmptyLabel}
-                </div>
-              )}
 
-              {quickPanelLoading ? (
-                <div className="share-modal-side-box-loading-overlay" aria-hidden="true">
-                  <div className="userpostsloadani">
-                    <div className="relative w-8 h-8">
-                      <div className="absolute inset-0 rounded-full border-2 border-gray-200"></div>
-                      <div className="absolute inset-0 rounded-full border-2 border-black border-t-transparent animate-spin"></div>
+                        <span id={tooltipId} className="share-modal-top-user-tooltip" role="tooltip">
+                          {email}
+                        </span>
+                      </div>
                     </div>
+                  );
+                })}
+              </div>
+            ) : null}
+
+            {showQuickPanelEmpty ? (
+              <div className="share-modal-side-box-empty">
+                <Search width={32} height={32} />
+                {quickPanelEmptyLabel}
+              </div>
+            ) : null}
+
+            {quickPanelLoading ? (
+              <div className="share-modal-side-box-loading-overlay" aria-hidden="true">
+                <div className="userpostsloadani">
+                  <div className="relative w-8 h-8">
+                    <div className="absolute inset-0 rounded-full border-2 border-gray-200"></div>
+                    <div className="absolute inset-0 rounded-full border-2 border-black border-t-transparent animate-spin"></div>
                   </div>
                 </div>
-              ) : null}
-            </div>
+              </div>
+            ) : null}
           </div>
         </aside>
       </div>
