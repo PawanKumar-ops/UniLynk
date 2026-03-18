@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, MessageCircle, Link as LinkIcon, Check, Search } from 'lucide-react';
+import { X, Link as LinkIcon, Check, Search } from 'lucide-react';
 import ReliableImage from './ReliableImage';
 import './ShareModal.css';
 
@@ -31,12 +31,18 @@ const getInitials = (contact) => {
 const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
   const [copied, setCopied] = React.useState(false);
   const [chatMessage, setChatMessage] = React.useState('');
-  const [chatMessages, setChatMessages] = React.useState([]);
   const [topContacts, setTopContacts] = React.useState([]);
   const [loadingTopContacts, setLoadingTopContacts] = React.useState(false);
+  const [searchedContacts, setSearchedContacts] = React.useState([]);
+  const [loadingSearchedContacts, setLoadingSearchedContacts] = React.useState(false);
 
   React.useEffect(() => {
-    if (!isOpen) return undefined;
+    if (!isOpen) {
+      setChatMessage('');
+      setSearchedContacts([]);
+      setLoadingSearchedContacts(false);
+      return undefined;
+    }
 
     const controller = new AbortController();
 
@@ -73,8 +79,6 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
     return () => controller.abort();
   }, [isOpen]);
 
-  if (!isOpen) return null;
-
   const handleCopyLink = () => {
     navigator.clipboard.writeText(postUrl);
     setCopied(true);
@@ -99,18 +103,64 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
     }
   };
 
-  const handleSendChat = () => {
-    if (chatMessage.trim()) {
-      setChatMessages([...chatMessages, chatMessage]);
-      setChatMessage('');
-    }
-  };
+  React.useEffect(() => {
+    if (!isOpen) return undefined;
 
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') {
-      handleSendChat();
+    const trimmedQuery = chatMessage.trim();
+
+    if (!trimmedQuery) {
+      setSearchedContacts([]);
+      setLoadingSearchedContacts(false);
+      return undefined;
     }
-  };
+
+    const controller = new AbortController();
+
+    const loadSearchedContacts = async () => {
+      try {
+        setLoadingSearchedContacts(true);
+
+        const response = await fetch(`/api/users/search?q=${encodeURIComponent(trimmedQuery)}&limit=${QUICK_CONTACT_LIMIT}`, {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to search users');
+        }
+
+        const results = Array.isArray(data.results) ? data.results : [];
+        setSearchedContacts(results.filter((result) => result?.type === 'user'));
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error('USER SEARCH ERROR:', error);
+          setSearchedContacts([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoadingSearchedContacts(false);
+        }
+      }
+    };
+
+    const timeoutId = window.setTimeout(loadSearchedContacts, 250);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeoutId);
+    };
+  }, [chatMessage, isOpen]);
+
+  if (!isOpen) return null;
+
+  const hasSearchQuery = Boolean(chatMessage.trim());
+  const quickPanelContacts = hasSearchQuery ? searchedContacts : topContacts;
+  const quickPanelLoading = hasSearchQuery ? loadingSearchedContacts : loadingTopContacts;
+  const quickPanelEmptyLabel = hasSearchQuery ? 'No users found' : 'Search Users';
+  const showQuickPanelList = quickPanelContacts.length > 0;
+  const showQuickPanelEmpty = !showQuickPanelList && !quickPanelLoading;
 
   return (
     <>
@@ -216,32 +266,14 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
             <div className="share-section">
               <h3>Share in Chat</h3>
               <div className="chat-container">
-                {chatMessages.length > 0 && (
-                  <div className="chat-messages">
-                    {chatMessages.map((msg, index) => (
-                      <div key={index} className="chat-message">
-                        <MessageCircle size={16} />
-                        <span>{msg}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
                 <div className="chat-input-container">
                   <input
                     type="text"
                     placeholder="Search user..."
                     value={chatMessage}
                     onChange={(e) => setChatMessage(e.target.value)}
-                    onKeyPress={handleKeyPress}
                     className="chat-input"
                   />
-                  <button
-                    className="send-button"
-                    onClick={handleSendChat}
-                    disabled={!chatMessage.trim()}
-                  >
-                    Send
-                  </button>
                 </div>
               </div>
             </div>
@@ -252,67 +284,73 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
           <div className="share-modal-side-box-content">
             <span className="share-modal-side-box-label">Quick panel</span>
 
-            {loadingTopContacts ? (
-              <div className="share-modal-side-box-empty">
-                <div className="userpostsloadani">
-                  <div className="relative w-8 h-8">
-                    <div className="absolute inset-0 rounded-full border-2 border-gray-200"></div>
-                    <div className="absolute inset-0 rounded-full border-2 border-black border-t-transparent animate-spin"></div>
+            <div className="share-modal-side-box-panel" aria-busy={quickPanelLoading}>
+              {showQuickPanelList ? (
+                <div className="share-modal-top-users" role="list">
+                  {quickPanelContacts.map((contact) => {
+                    const email = contact?.email || 'No email available';
+                    const displayName = getDisplayName(contact);
+                    const tooltipId = `share-contact-tooltip-${contact.id}`;
+
+                    return (
+                      <div key={contact.id} className="share-modal-top-user" role="listitem">
+                        <div className="share-modal-top-user-hover-card">
+                          <div className="share-modal-user-trigger-wrap">
+                            <button
+                              type="button"
+                              className="share-modal-top-user-trigger share-modal-top-user-avatar"
+                              aria-describedby={tooltipId}
+                              title={email}
+                            >
+                              {contact.image ? (
+                                <ReliableImage
+                                  src={contact.image}
+                                  alt={`${displayName} profile`}
+                                  className="share-modal-top-user-image"
+                                />
+                              ) : (
+                                <span className="share-modal-top-user-fallback">{getInitials(contact)}</span>
+                              )}
+                            </button>
+
+                            <button
+                              type="button"
+                              className="share-modal-top-user-trigger share-modal-top-user-name"
+                              aria-describedby={tooltipId}
+                              title={email}
+                            >
+                              {displayName}
+                            </button>
+                          </div>
+
+                          <span id={tooltipId} className="share-modal-top-user-tooltip" role="tooltip">
+                            {email}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
+
+              {showQuickPanelEmpty ? (
+                <div className="share-modal-side-box-empty">
+                  <Search width={32} height={32} />
+                  {quickPanelEmptyLabel}
+                </div>
+              ) : null}
+
+              {quickPanelLoading ? (
+                <div className="share-modal-side-box-loading-overlay" aria-hidden="true">
+                  <div className="userpostsloadani">
+                    <div className="relative w-8 h-8">
+                      <div className="absolute inset-0 rounded-full border-2 border-gray-200"></div>
+                      <div className="absolute inset-0 rounded-full border-2 border-black border-t-transparent animate-spin"></div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : topContacts.length > 0 ? (
-              <div className="share-modal-top-users" role="list">
-                {topContacts.map((contact) => {
-                  const email = contact?.email || 'No email available';
-                  const displayName = getDisplayName(contact);
-                  const tooltipId = `share-contact-tooltip-${contact.id}`;
-
-                  return (
-                    <div key={contact.id} className="share-modal-top-user" role="listitem">
-                      <div className="share-modal-top-user-hover-card">
-                        <div className="share-modal-user-trigger-wrap">
-                          <button
-                            type="button"
-                            className="share-modal-top-user-trigger share-modal-top-user-avatar"
-                            aria-describedby={tooltipId}
-                            title={email}
-                          >
-                            {contact.image ? (
-                              <ReliableImage
-                                src={contact.image}
-                                alt={`${displayName} profile`}
-                                className="share-modal-top-user-image"
-                              />
-                            ) : (
-                              <span className="share-modal-top-user-fallback">{getInitials(contact)}</span>
-                            )}
-                          </button>
-
-                          <button
-                            type="button"
-                            className="share-modal-top-user-trigger share-modal-top-user-name"
-                            aria-describedby={tooltipId}
-                            title={email}
-                          >
-                            {displayName}
-                          </button>
-                        </div>
-
-                        <span id={tooltipId} className="share-modal-top-user-tooltip" role="tooltip">
-                          {email}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="share-modal-side-box-empty">
-                <Search width={32} height={32} />
-                Search Users
-              </div>
-            )}
+              ) : null}
+            </div>
           </div>
         </aside>
       </div>
