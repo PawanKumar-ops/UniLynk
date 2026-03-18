@@ -40,7 +40,7 @@
   display: flex;
   align-items: stretch;
   gap: 20px;
-  width: min(calc(100vw - 32px), 700px);
+  width: min(calc(100vw - 32px), 620px);
   z-index: 2001;
   animation: shareModalSlideUp 0.3s ease-out;
 }
@@ -58,10 +58,10 @@
 .share-modal-side-box {
   display: flex;
   flex-direction: column;
-  width: 180px;
+  width: 120px;
   height: auto;
-  min-width: 180px;
-  min-height: 280px;
+  min-width: 120px;
+  min-height: 240px;
   background-color: #ffffff;
   border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
@@ -73,8 +73,8 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 14px;
-  padding: 18px 14px;
+  gap: 12px;
+  padding: 16px 10px;
   color: #333333;
   max-height: 85vh;
   overflow-y: auto;
@@ -90,7 +90,7 @@
 
 .share-modal-side-box-title {
   margin: 0;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 700;
   color: #111827;
 }
@@ -105,7 +105,7 @@
 .share-modal-top-users {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
 }
 
 .share-modal-top-user {
@@ -118,16 +118,19 @@
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   width: 100%;
+  min-height: 96px;
 }
 
 .share-modal-user-trigger-wrap {
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
+  width: 100%;
 }
+
 
 .share-modal-top-user-trigger {
   border: none;
@@ -137,8 +140,8 @@
 }
 
 .share-modal-top-user-avatar {
-  width: 84px;
-  height: 84px;
+  width: 58px;
+  height: 58px;
   border-radius: 999px;
   display: inline-flex;
   align-items: center;
@@ -170,19 +173,25 @@
 }
 
 .share-modal-top-user-fallback {
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 700;
   letter-spacing: 0.04em;
 }
 
 .share-modal-top-user-name {
   max-width: 100%;
-  font-size: 14px;
+  display: -webkit-box;
+  width: 100%;
+  min-height: 32px;
+  font-size: 12px;
   line-height: 1.3;
   font-weight: 600;
   color: #111827;
   text-align: center;
+  overflow: hidden;
   word-break: break-word;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
 }
 
 .share-modal-top-user-tooltip {
@@ -191,7 +200,7 @@
   top: calc(100% + 2px);
   transform: translate(-50%, 8px);
   min-width: max-content;
-  max-width: 160px;
+  max-width: 180px;
   padding: 8px 10px;
   border-radius: 10px;
   background: #111827;
@@ -506,7 +515,7 @@
   .share-modal-shell {
     flex-direction: column;
     width: calc(100vw - 24px);
-    gap: 16px;
+    gap: 14px;
   }
 
   .share-modal {
