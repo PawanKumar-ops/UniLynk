@@ -390,7 +390,7 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
             ) : null}
 
             {quickPanelLoading ? (
-              <div className="share-modal-side-box-loading-overlay" aria-hidden="true">
+              <div className="share-modal-side-box-empty" aria-hidden="true">
                 <div className="userpostsloadani">
                   <div className="relative w-8 h-8">
                     <div className="absolute inset-0 rounded-full border-2 border-gray-200"></div>
