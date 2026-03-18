@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, MessageCircle, Link as LinkIcon, Check } from 'lucide-react';
+import { X, MessageCircle, Link as LinkIcon, Check, Search } from 'lucide-react';
 import ReliableImage from './ReliableImage';
 import './ShareModal.css';
 
@@ -229,7 +229,7 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
                 <div className="chat-input-container">
                   <input
                     type="text"
-                    placeholder="Type a message..."
+                    placeholder="Search user..."
                     value={chatMessage}
                     onChange={(e) => setChatMessage(e.target.value)}
                     onKeyPress={handleKeyPress}
@@ -251,10 +251,16 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
         <aside className="share-modal-side-box" aria-label="Top contacts quick panel">
           <div className="share-modal-side-box-content">
             <span className="share-modal-side-box-label">Quick panel</span>
-            <h3 className="share-modal-side-box-title">Top chats</h3>
 
             {loadingTopContacts ? (
-              <p className="share-modal-side-box-empty">Loading your top contacts…</p>
+              <div className="share-modal-side-box-empty">
+                <div className="userpostsloadani">
+                  <div className="relative w-8 h-8">
+                    <div className="absolute inset-0 rounded-full border-2 border-gray-200"></div>
+                    <div className="absolute inset-0 rounded-full border-2 border-black border-t-transparent animate-spin"></div>
+                  </div>
+                </div>
+              </div>
             ) : topContacts.length > 0 ? (
               <div className="share-modal-top-users" role="list">
                 {topContacts.map((contact) => {
@@ -302,9 +308,10 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
                 })}
               </div>
             ) : (
-              <p className="share-modal-side-box-empty">
-                Start chatting to see your most-contacted users here.
-              </p>
+              <div className="share-modal-side-box-empty">
+                <Search width={32} height={32} />
+                Search Users
+              </div>
             )}
           </div>
         </aside>

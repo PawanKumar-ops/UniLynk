@@ -66,7 +66,6 @@
   border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
   border: 1px solid rgba(229, 229, 229, 0.9);
-  overflow: hidden;
 }
 
 .share-modal-side-box-content {
@@ -77,10 +76,13 @@
   padding: 16px 10px;
   color: #333333;
   max-height: 85vh;
-  overflow-y: auto;
 }
 
 .share-modal-side-box-label {
+  margin-bottom: 14px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
   font-size: 11px;
   font-weight: 700;
   color: #666666;
@@ -88,18 +90,17 @@
   letter-spacing: 0.08em;
 }
 
-.share-modal-side-box-title {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 700;
-  color: #111827;
-}
-
 .share-modal-side-box-empty {
+  height: 80%;
   margin: 0;
   font-size: 13px;
   line-height: 1.5;
   color: #4b5563;
+  display: flex;
+  gap: 8px;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 
 .share-modal-top-users {
@@ -127,7 +128,7 @@
   display: inline-flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
   width: 100%;
 }
 
@@ -151,13 +152,6 @@
   color: #ffffff;
   box-shadow: 0 10px 25px rgba(17, 24, 39, 0.16);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.share-modal-top-user-avatar:hover,
-.share-modal-top-user-avatar:focus-visible,
-.share-modal-top-user-name:hover,
-.share-modal-top-user-name:focus-visible {
-  transform: translateY(-2px);
 }
 
 .share-modal-top-user-avatar:focus-visible,
@@ -192,6 +186,7 @@
   word-break: break-word;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 .share-modal-top-user-tooltip {
@@ -425,12 +420,6 @@
 }
 
 /* Chat Section */
-.chat-container {
-
-  border-radius: 12px;
-  overflow: hidden;
-}
-
 .chat-messages {
   padding: 16px;
   background-color: #f9f9f9;
@@ -465,7 +454,6 @@
 .chat-input-container {
   display: flex;
   gap: 8px;
-  
   background-color: #ffffff;
 }
 
