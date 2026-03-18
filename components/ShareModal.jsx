@@ -37,7 +37,12 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
   const [loadingSearchedContacts, setLoadingSearchedContacts] = React.useState(false);
 
   React.useEffect(() => {
-    if (!isOpen) return undefined;
+    if (!isOpen) {
+      setChatMessage('');
+      setSearchedContacts([]);
+      setLoadingSearchedContacts(false);
+      return undefined;
+    }
 
     const controller = new AbortController();
 
@@ -323,11 +328,25 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
                             {displayName}
                           </button>
                         </div>
-
-                        <span id={tooltipId} className="share-modal-top-user-tooltip" role="tooltip">
-                          {email}
-                        </span>
                       </div>
+                    );
+                  })}
+                </div>
+              ) : null}
+
+              {showQuickPanelEmpty ? (
+                <div className="share-modal-side-box-empty">
+                  <Search width={32} height={32} />
+                  {quickPanelEmptyLabel}
+                </div>
+              ) : null}
+
+              {quickPanelLoading ? (
+                <div className="share-modal-side-box-loading-overlay" aria-hidden="true">
+                  <div className="userpostsloadani">
+                    <div className="relative w-8 h-8">
+                      <div className="absolute inset-0 rounded-full border-2 border-gray-200"></div>
+                      <div className="absolute inset-0 rounded-full border-2 border-black border-t-transparent animate-spin"></div>
                     </div>
                   );
                 })}
