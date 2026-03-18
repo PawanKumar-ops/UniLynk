@@ -420,40 +420,12 @@
 }
 
 /* Chat Section */
-.chat-messages {
-  padding: 16px;
-  background-color: #f9f9f9;
-  max-height: 200px;
-  overflow-y: auto;
-  border-bottom: 1px solid #e5e5e5;
-}
-
-.chat-message {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  padding: 10px 12px;
+.chat-container {
   background-color: #ffffff;
-  border-radius: 8px;
-  margin-bottom: 8px;
-  font-size: 14px;
-  color: #333333;
-  border: 1px solid #e5e5e5;
-}
-
-.chat-message:last-child {
-  margin-bottom: 0;
-}
-
-.chat-message svg {
-  flex-shrink: 0;
-  margin-top: 2px;
-  color: #666666;
 }
 
 .chat-input-container {
   display: flex;
-  gap: 8px;
   background-color: #ffffff;
 }
 
@@ -474,28 +446,6 @@
 
 .chat-input::placeholder {
   color: #999999;
-}
-
-.send-button {
-  padding: 10px 20px;
-  background-color: #000000;
-  color: #ffffff;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.send-button:hover:not(:disabled) {
-  background-color: #333333;
-}
-
-.send-button:disabled {
-  background-color: #e5e5e5;
-  color: #999999;
-  cursor: not-allowed;
 }
 
 /* Responsive Design */
