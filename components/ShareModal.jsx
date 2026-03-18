@@ -34,12 +34,14 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
   const [chatMessages, setChatMessages] = React.useState([]);
   const [topContacts, setTopContacts] = React.useState([]);
   const [loadingTopContacts, setLoadingTopContacts] = React.useState(false);
-  
+  const [searchedContacts, setSearchedContacts] = React.useState([]);
+  const [loadingSearchedContacts, setLoadingSearchedContacts] = React.useState(false);
 
   React.useEffect(() => {
     if (!isOpen) {
       setCopied(false);
       setChatMessage('');
+      setChatMessages([]);
       setTopContacts([]);
       setLoadingTopContacts(false);
       setSearchedContacts([]);
@@ -82,6 +84,59 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
     return () => controller.abort();
   }, [isOpen]);
 
+  React.useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const trimmedQuery = chatMessage.trim();
+
+    if (!trimmedQuery) {
+      setSearchedContacts([]);
+      setLoadingSearchedContacts(false);
+      return undefined;
+    }
+
+    const controller = new AbortController();
+
+    const loadSearchedContacts = async () => {
+      try {
+        setLoadingSearchedContacts(true);
+
+        const response = await fetch(
+          `/api/users/search?q=${encodeURIComponent(trimmedQuery)}&limit=${QUICK_CONTACT_LIMIT}`,
+          {
+            cache: 'no-store',
+            signal: controller.signal,
+          },
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to search users');
+        }
+
+        const results = Array.isArray(data.results) ? data.results : [];
+        setSearchedContacts(results.filter((result) => result?.type === 'user'));
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error('USER SEARCH ERROR:', error);
+          setSearchedContacts([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoadingSearchedContacts(false);
+        }
+      }
+    };
+
+    const timeoutId = window.setTimeout(loadSearchedContacts, 250);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeoutId);
+    };
+  }, [chatMessage, isOpen]);
+
   const handleCopyLink = async () => {
     if (!postUrl) return;
 
@@ -120,46 +175,13 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
       setChatMessage('');
     }
   };
-
-    const controller = new AbortController();
-
-    const loadSearchedContacts = async () => {
-      try {
-        setLoadingSearchedContacts(true);
-
-        const response = await fetch(`/api/users/search?q=${encodeURIComponent(trimmedQuery)}&limit=${QUICK_CONTACT_LIMIT}`, {
-          cache: 'no-store',
-          signal: controller.signal,
-        });
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to search users');
-        }
-
-      const results = Array.isArray(data.results) ? data.results : [];
-      setSearchedContacts(results.filter((result) => result?.type === 'user'));
-    } catch (error) {
-      if (error.name !== 'AbortError') {
-        console.error('USER SEARCH ERROR:', error);
-        setSearchedContacts([]);
-      }
-    } finally {
-      if (!controller.signal.aborted) {
-        setLoadingSearchedContacts(false);
-      }
+  
+  const handleKeyPress = (event) => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      handleSendChat();
     }
   };
-
-  const timeoutId = window.setTimeout(loadSearchedContacts, 250);
-
-    return () => {
-      controller.abort();
-      window.clearTimeout(timeoutId);
-    };
-  }, [chatMessage, isOpen]);
-
 
   if (!isOpen) return null;
 
@@ -363,7 +385,7 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
             {showQuickPanelEmpty ? (
               <div className="share-modal-side-box-empty">
                 <Search width={32} height={32} />
-                Search Users
+                {quickPanelEmptyLabel}
               </div>
             ) : null}
 
