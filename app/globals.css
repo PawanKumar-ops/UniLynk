@@ -44,6 +44,5 @@ html, body {
 
 img, svg, video, canvas {
   max-width: 100%;
-  color: black;
   height: auto;
 }

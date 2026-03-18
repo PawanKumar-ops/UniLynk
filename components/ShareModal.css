@@ -38,7 +38,7 @@
   left: 50%;
   transform: translate(-50%, -50%);
   display: flex;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 20px;
   width: min(calc(100vw - 32px), 620px);
   z-index: 2001;
@@ -56,7 +56,10 @@
 }
 
 .share-modal-side-box {
+  display: flex;
+  flex-direction: column;
   width: 120px;
+  height: auto;
   min-width: 120px;
   min-height: 180px;
   background-color: #ffffff;
@@ -68,10 +71,12 @@
 
 .share-modal-side-box-content {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 10px;
   padding: 18px 14px;
   color: #333333;
+  max-height: 85vh;
 }
 
 .share-modal-side-box-label {

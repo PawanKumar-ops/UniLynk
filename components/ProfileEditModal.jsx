@@ -408,12 +408,8 @@ const ProfileEditModal = ({ onClose, user, onSave }) => {
                                             type="text"
                                             className="form-input"
                                             value={profileData.branch}
-                                            onChange={(e) =>
-                                                setProfileData({
-                                                    ...profileData,
-                                                    branch: e.target.value,
-                                                })
-                                            }
+                                            readOnly
+                                            disabled
                                         />
                                     </div>
                                     <div className="form-group">
