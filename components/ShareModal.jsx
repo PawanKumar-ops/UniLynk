@@ -1,11 +1,77 @@
 import React from 'react';
 import { X, MessageCircle, Link as LinkIcon, Check } from 'lucide-react';
+import ReliableImage from './ReliableImage';
 import './ShareModal.css';
+
+const QUICK_CONTACT_LIMIT = 5;
+
+const getDisplayName = (contact) => {
+  const name = typeof contact?.name === 'string' ? contact.name.trim() : '';
+  if (name) return name;
+
+  const email = typeof contact?.email === 'string' ? contact.email.trim() : '';
+  if (!email) return 'Unknown user';
+
+  return email.split('@')[0];
+};
+
+const getInitials = (contact) => {
+  const displayName = getDisplayName(contact);
+  const parts = displayName
+    .split(/\s+/)
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .slice(0, 2);
+
+  if (!parts.length) return '?';
+
+  return parts.map((part) => part[0]?.toUpperCase() || '').join('');
+};
 
 const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
   const [copied, setCopied] = React.useState(false);
   const [chatMessage, setChatMessage] = React.useState('');
   const [chatMessages, setChatMessages] = React.useState([]);
+  const [topContacts, setTopContacts] = React.useState([]);
+  const [loadingTopContacts, setLoadingTopContacts] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!isOpen) return undefined;
+
+    const controller = new AbortController();
+
+    const loadTopContacts = async () => {
+      try {
+        setLoadingTopContacts(true);
+
+        const response = await fetch(`/api/chat/top-contacts?limit=${QUICK_CONTACT_LIMIT}`, {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to load top contacts');
+        }
+
+        setTopContacts(Array.isArray(data.contacts) ? data.contacts : []);
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error('TOP CONTACTS LOAD ERROR:', error);
+          setTopContacts([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setLoadingTopContacts(false);
+        }
+      }
+    };
+
+    loadTopContacts();
+
+    return () => controller.abort();
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -182,10 +248,64 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
           </div>
         </div>
 
-        <aside className="share-modal-side-box" aria-label="Share modal side panel">
+        <aside className="share-modal-side-box" aria-label="Top contacts quick panel">
           <div className="share-modal-side-box-content">
             <span className="share-modal-side-box-label">Quick panel</span>
-            <p>120px companion box aligned to the right side of the share modal.</p>
+            <h3 className="share-modal-side-box-title">Top chats</h3>
+
+            {loadingTopContacts ? (
+              <p className="share-modal-side-box-empty">Loading your top contacts…</p>
+            ) : topContacts.length > 0 ? (
+              <div className="share-modal-top-users" role="list">
+                {topContacts.map((contact) => {
+                  const email = contact?.email || 'No email available';
+                  const displayName = getDisplayName(contact);
+                  const tooltipId = `share-contact-tooltip-${contact.id}`;
+
+                  return (
+                    <div key={contact.id} className="share-modal-top-user" role="listitem">
+                      <div className="share-modal-top-user-hover-card">
+                        <div className="share-modal-user-trigger-wrap">
+                          <button
+                            type="button"
+                            className="share-modal-top-user-trigger share-modal-top-user-avatar"
+                            aria-describedby={tooltipId}
+                            title={email}
+                          >
+                            {contact.image ? (
+                              <ReliableImage
+                                src={contact.image}
+                                alt={`${displayName} profile`}
+                                className="share-modal-top-user-image"
+                              />
+                            ) : (
+                              <span className="share-modal-top-user-fallback">{getInitials(contact)}</span>
+                            )}
+                          </button>
+
+                          <button
+                            type="button"
+                            className="share-modal-top-user-trigger share-modal-top-user-name"
+                            aria-describedby={tooltipId}
+                            title={email}
+                          >
+                            {displayName}
+                          </button>
+                        </div>
+
+                        <span id={tooltipId} className="share-modal-top-user-tooltip" role="tooltip">
+                          {email}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <p className="share-modal-side-box-empty">
+                Start chatting to see your most-contacted users here.
+              </p>
+            )}
           </div>
         </aside>
       </div>

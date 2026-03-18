@@ -40,7 +40,7 @@
   display: flex;
   align-items: stretch;
   gap: 20px;
-  width: min(calc(100vw - 32px), 620px);
+  width: min(calc(100vw - 32px), 700px);
   z-index: 2001;
   animation: shareModalSlideUp 0.3s ease-out;
 }
@@ -58,10 +58,10 @@
 .share-modal-side-box {
   display: flex;
   flex-direction: column;
-  width: 120px;
+  width: 180px;
   height: auto;
-  min-width: 120px;
-  min-height: 180px;
+  min-width: 180px;
+  min-height: 280px;
   background-color: #ffffff;
   border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.22);
@@ -73,10 +73,11 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 10px;
+  gap: 14px;
   padding: 18px 14px;
   color: #333333;
   max-height: 85vh;
+  overflow-y: auto;
 }
 
 .share-modal-side-box-label {
@@ -87,11 +88,140 @@
   letter-spacing: 0.08em;
 }
 
-.share-modal-side-box-content p {
+.share-modal-side-box-title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.share-modal-side-box-empty {
   margin: 0;
   font-size: 13px;
   line-height: 1.5;
   color: #4b5563;
+}
+
+.share-modal-top-users {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.share-modal-top-user {
+  display: flex;
+  justify-content: center;
+}
+
+.share-modal-top-user-hover-card {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.share-modal-user-trigger-wrap {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.share-modal-top-user-trigger {
+  border: none;
+  background: transparent;
+  padding: 0;
+  cursor: pointer;
+}
+
+.share-modal-top-user-avatar {
+  width: 84px;
+  height: 84px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  background: linear-gradient(135deg, #111827, #4b5563);
+  color: #ffffff;
+  box-shadow: 0 10px 25px rgba(17, 24, 39, 0.16);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.share-modal-top-user-avatar:hover,
+.share-modal-top-user-avatar:focus-visible,
+.share-modal-top-user-name:hover,
+.share-modal-top-user-name:focus-visible {
+  transform: translateY(-2px);
+}
+
+.share-modal-top-user-avatar:focus-visible,
+.share-modal-top-user-name:focus-visible {
+  outline: 2px solid #111827;
+  outline-offset: 4px;
+}
+
+.share-modal-top-user-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.share-modal-top-user-fallback {
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.share-modal-top-user-name {
+  max-width: 100%;
+  font-size: 14px;
+  line-height: 1.3;
+  font-weight: 600;
+  color: #111827;
+  text-align: center;
+  word-break: break-word;
+}
+
+.share-modal-top-user-tooltip {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 2px);
+  transform: translate(-50%, 8px);
+  min-width: max-content;
+  max-width: 160px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #111827;
+  color: #ffffff;
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.24);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  z-index: 2;
+  word-break: break-word;
+}
+
+.share-modal-top-user-tooltip::before {
+  content: '';
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  width: 10px;
+  height: 10px;
+  background: #111827;
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.share-modal-top-user-hover-card:hover .share-modal-top-user-tooltip,
+.share-modal-top-user-hover-card:focus-within .share-modal-top-user-tooltip {
+  opacity: 1;
+  transform: translate(-50%, 0);
 }
 
 /* Modal Header */
