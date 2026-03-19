@@ -11,6 +11,8 @@ import CommentModal from '@/components/CommentModal';
 import ShareModal from '@/components/ShareModal';
 import { ReportPostModal } from '@/components/ReportPostModal';
 
+const DASHBOARD_SCROLL_STORAGE_KEY = 'dashboard-feed-scroll-position';
+
 const Loading = () => (
   <div className="userpostsloadani">
     <div className="relative w-12 h-12">
@@ -83,6 +85,17 @@ const likePost = async (postId, method) => {
   return fetch(`/api/posts/${postId}/like`, { method });
 };
 
+const isElementVisibleWithinContainer = (element, container) => {
+  if (!(element instanceof HTMLElement) || !(container instanceof HTMLElement)) return false;
+
+  const elementTop = element.offsetTop;
+  const elementBottom = elementTop + element.offsetHeight;
+  const containerTop = container.scrollTop;
+  const containerBottom = containerTop + container.clientHeight;
+
+  return elementTop >= containerTop && elementBottom <= containerBottom;
+};
+
 export default function DashboardClient() {
   const { data: session } = useSession();
   const [isAnnual, setIsAnnual] = useState(true);
@@ -98,6 +111,11 @@ export default function DashboardClient() {
 
   const likeTimersRef = useRef({});
   const pendingLikePostIdsRef = useRef(new Set());
+  const feedRef = useRef(null);
+  const postRefs = useRef({});
+  const restoreFeedScrollRef = useRef(0);
+  const pendingRestorePostIdRef = useRef(null);
+  const hasRestoredInitialFeedScrollRef = useRef(false);
 
   const selectedAudience = useMemo(() => (isAnnual ? "for-you" : "clubs"), [isAnnual]);
   const selectedThreadPost = useMemo(
@@ -107,6 +125,13 @@ export default function DashboardClient() {
 
   useEffect(() => () => {
     Object.values(likeTimersRef.current).forEach((timer) => clearTimeout(timer));
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const savedFeedScroll = Number(window.sessionStorage.getItem(DASHBOARD_SCROLL_STORAGE_KEY) || 0);
+    restoreFeedScrollRef.current = Number.isFinite(savedFeedScroll) ? savedFeedScroll : 0;
   }, []);
 
   useEffect(() => {
@@ -133,6 +158,50 @@ export default function DashboardClient() {
     setMenuPostId(null);
     loadPosts();
   }, [selectedAudience]);
+
+  const persistFeedScroll = (scrollTop) => {
+    if (typeof window === 'undefined') return;
+
+    const safeScrollTop = Number.isFinite(scrollTop) ? Math.max(0, scrollTop) : 0;
+    restoreFeedScrollRef.current = safeScrollTop;
+    window.sessionStorage.setItem(DASHBOARD_SCROLL_STORAGE_KEY, String(safeScrollTop));
+  };
+
+  useEffect(() => {
+    if (loadingPosts || selectedThreadPost || !feedRef.current) return;
+
+    const feedElement = feedRef.current;
+    const shouldRestoreInitialScroll = !hasRestoredInitialFeedScrollRef.current;
+    const shouldRestoreClickedPost = Boolean(pendingRestorePostIdRef.current);
+
+    if (!shouldRestoreInitialScroll && !shouldRestoreClickedPost) return;
+
+    const restorePostId = pendingRestorePostIdRef.current;
+
+    const restoreFeedPosition = () => {
+      const savedScrollTop = Number.isFinite(restoreFeedScrollRef.current) ? restoreFeedScrollRef.current : 0;
+      feedElement.scrollTop = savedScrollTop;
+
+      if (restorePostId) {
+        const restorePostElement = postRefs.current[restorePostId];
+        if (restorePostElement && !isElementVisibleWithinContainer(restorePostElement, feedElement)) {
+          restorePostElement.scrollIntoView({ block: 'center' });
+        }
+      }
+
+      hasRestoredInitialFeedScrollRef.current = true;
+      pendingRestorePostIdRef.current = null;
+    };
+
+    const frameId = window.requestAnimationFrame(restoreFeedPosition);
+
+    return () => window.cancelAnimationFrame(frameId);
+  }, [loadingPosts, posts, selectedThreadPost]);
+
+  const handleFeedScroll = () => {
+    if (selectedThreadPost || !feedRef.current) return;
+    persistFeedScroll(feedRef.current.scrollTop);
+  };
 
   const handlePosted = (createdPost) => {
     const normalizedPost = normalizePost(createdPost);
@@ -444,19 +513,110 @@ export default function DashboardClient() {
           <div className={`toggle-track ${!isAnnual ? "right" : ""}`}>
             <div className="toggle-bg"></div>
             <button
-              className={`toggle-btn ${isAnnual ? "active" : ""}`}
-              onClick={() => setIsAnnual(true)}
+              className='posth-right-btn'
+              onClick={(event) => {
+                event.stopPropagation();
+                setMenuPostId(menuPostId === post.id ? null : post.id);
+              }}
+              aria-label="Post options"
+              type="button"
             >
-              For You
+              <EllipsisVertical />
             </button>
-            <button
-              className={`toggle-btn ${!isAnnual ? "active" : ""}`}
-              onClick={() => setIsAnnual(false)}
-            >
-              Clubs
-            </button>
+            {menuPostId === post.id && (
+              <div className="post-dropdown-menu" onClick={(event) => event.stopPropagation()}>
+                <button className="menu-item" onClick={() => {
+                  handleReportClick(post.id);
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                  Report Post
+                </button>
+                <button className="menu-item" type="button">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                  </svg>
+                  Save Post
+                </button>
+                <button className="menu-item" onClick={() => {
+                  setMenuPostId(null);
+                  setSharePost(post);
+                  setOpenShare(true);
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="18" cy="5" r="3" />
+                    <circle cx="6" cy="12" r="3" />
+                    <circle cx="18" cy="19" r="3" />
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                  </svg>
+                  Share
+                </button>
+              </div>
+            )}
           </div>
         </div>
+
+        <div className="post-content">
+          {post.content}
+          {!!post.images?.length && (
+            <div className="image-post">
+              <div className={getImageGridClass(post.images.length)}>
+                {post.images.map((imageUrl, idx) => (
+                  <img key={`${post.id}-${idx}`} src={imageUrl} alt="Post image" />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="post-foot" onClick={(event) => event.stopPropagation()}>
+          <div className="post-foot-iconcont">
+            <button
+              onClick={() => {
+                if (!post?.id) {
+                  console.error("Invalid post id:", post);
+                  return;
+                }
+
+                queueLikeToggle(post.id, Boolean(post.likedByCurrentUser));
+              }}
+              disabled={Boolean(post.likePending)}
+              aria-label={post.likedByCurrentUser ? "Unlike post" : "Like post"}
+              className={`like-button ${post.likedByCurrentUser ? 'liked' : ''}`}
+              type="button"
+            >
+              <img className='post-foot-icon' src="Postimg/thumb.svg" alt="Like" />
+            </button>
+            <span className='post-like-count'>{Number(post.likeCount || 0)}</span>
+          </div>
+          <div className="post-foot-iconcont">
+            <button onClick={() => {
+              if (!post?.id) return;
+              handleOpenThread(post.id);
+              setActivePostId(post.id);
+            }} type="button">
+              <img className='post-foot-icon' src="Postimg/comment.svg" alt="Comment" />
+            </button>
+            <span className='post-comment-count'>{Number(post.commentCount || 0)}</span>
+          </div>
+          <div className="post-foot-iconcont">
+            <button onClick={() => { setSharePost(post); setOpenShare(true); }} type="button">
+              <img className="post-foot-icon" src="Postimg/share.svg" alt="Share" />
+            </button>
+            <span className='post-share-count'>0</span>
+          </div>
+          <div className="post-foot-iconcont">
+            <img className='post-foot-icon' src="Postimg/bookmark.svg" alt="bookmark" />
+            <span className='post-bookmark-count'>0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 
         <div className="feed">
           <div className="userposts">
