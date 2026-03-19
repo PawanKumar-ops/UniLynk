@@ -1,20 +1,11 @@
 import mongoose from "mongoose";
 
-const hasTextOrImages = function hasTextOrImages() {
-  const safeContent = typeof this.content === "string" ? this.content.trim() : "";
-  return Boolean(safeContent || (Array.isArray(this.images) && this.images.length > 0));
-};
-
 const PostCommentSchema = new mongoose.Schema(
   {
     content: {
       type: String,
       trim: true,
       default: "",
-      validate: {
-        validator: hasTextOrImages,
-        message: "Comment content or image is required",
-      },
     },
     authorName: {
       type: String,

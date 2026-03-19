@@ -1,4 +1,3 @@
-import mongoose from "mongoose";
 import { connectDB } from "@/lib/mongodb";
 import Post from "@/models/post";
 import User from "@/models/user";
@@ -43,13 +42,9 @@ export async function POST(req, { params }) {
   try {
     await connectDB();
 
-    const { postId } = params;
+    const { postId } = await params;
     if (!postId) {
       return Response.json({ error: "Post id is required" }, { status: 400 });
-    }
-
-    if (!mongoose.Types.ObjectId.isValid(postId)) {
-      return Response.json({ error: "Invalid post id" }, { status: 400 });
     }
 
     const session = await getServerSession(authOptions);
