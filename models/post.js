@@ -1,5 +1,14 @@
 import mongoose from "mongoose";
 
+function hasTextOrImages(content) {
+  const safeContent = typeof content === "string" ? content.trim() : "";
+  const safeImages = Array.isArray(this?.images)
+    ? this.images.filter((image) => typeof image === "string" && image.trim())
+    : [];
+
+  return Boolean(safeContent) || safeImages.length > 0;
+}
+
 const PostCommentSchema = new mongoose.Schema(
   {
     content: {
