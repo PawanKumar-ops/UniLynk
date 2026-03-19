@@ -30,8 +30,8 @@
   border-radius: 16px;
   position: relative;
   z-index: 1;
-  /* contain: paint; */
   box-shadow: 0 6px 18px rgba(15, 20, 25, 0.05);
+  cursor: pointer;
 }
 
 .userpost.menu-open {
