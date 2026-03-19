@@ -111,6 +111,13 @@ const normalizePosts = (posts) =>
   posts.map((post) => ({
     ...post,
     id: post.id ?? post._id?.toString?.() ?? String(post._id || ""),
+    comments: Array.isArray(post.comments)
+      ? post.comments.map((comment) => ({
+          ...comment,
+          id: comment.id ?? comment._id?.toString?.() ?? String(comment._id || ""),
+        }))
+      : [],
+    commentCount: Array.isArray(post.comments) ? post.comments.length : 0,
   }));
 
 export async function GET(req) {
@@ -144,7 +151,7 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
-const {
+    const {
       content,
       audience,
       authorName,
@@ -170,7 +177,7 @@ const {
 
     await connectDB();
 
-   const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions);
     const sessionEmail = normalizeEmail(session?.user?.email);
 
     const safeAuthorEmail = normalizeEmail(authorEmail) || sessionEmail;
@@ -197,6 +204,8 @@ const {
     const normalizedPost = {
       ...post.toObject(),
       id: post._id.toString(),
+      comments: [],
+      commentCount: 0,
     };
 
     return Response.json({ post: normalizedPost }, { status: 201 });
