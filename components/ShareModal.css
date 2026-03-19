@@ -182,6 +182,16 @@
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+.share-modal-top-user-avatar:hover,
+.share-modal-top-user-name:hover {
+  transform: translateY(-1px);
+}
+
+.share-modal-top-user-avatar.selected {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.18), 0 10px 25px rgba(17, 24, 39, 0.16);
+}
+
 .share-modal-top-user-avatar:focus-visible,
 .share-modal-top-user-name:focus-visible {
   outline: 2px solid #111827;
@@ -215,6 +225,30 @@
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
+}
+
+.share-modal-top-user-name.selected {
+  color: #2563eb;
+}
+
+.share-modal-top-user-check {
+  width: 22px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #2563eb;
+  border: 1px solid #93c5fd;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+
+.share-modal-top-user-check.visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .share-modal-top-user-tooltip {
@@ -460,9 +494,40 @@
   background-color: #059669;
 }
 
+.send-button:disabled,
+.copy-button:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+.send-button:disabled:hover,
+.copy-button:disabled:hover {
+  background-color: #9ca3af;
+}
+
 /* Chat Section */
 .chat-container {
   background-color: #ffffff;
+}
+
+.chat-message {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.chat-message-error {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.chat-message-success {
+  background: #ecfdf5;
+  color: #047857;
 }
 
 .chat-input-container {

@@ -31,7 +31,10 @@ const getInitials = (contact) => {
 const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
   const [copied, setCopied] = React.useState(false);
   const [chatMessage, setChatMessage] = React.useState('');
-  const [chatMessages, setChatMessages] = React.useState([]);
+  const [selectedContactIds, setSelectedContactIds] = React.useState([]);
+  const [sendingToChat, setSendingToChat] = React.useState(false);
+  const [chatShareError, setChatShareError] = React.useState('');
+  const [chatShareSuccess, setChatShareSuccess] = React.useState('');
   const [topContacts, setTopContacts] = React.useState([]);
   const [loadingTopContacts, setLoadingTopContacts] = React.useState(false);
   const [searchedContacts, setSearchedContacts] = React.useState([]);
@@ -41,7 +44,10 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
     if (!isOpen) {
       setCopied(false);
       setChatMessage('');
-      setChatMessages([]);
+      setSelectedContactIds([]);
+      setSendingToChat(false);
+      setChatShareError('');
+      setChatShareSuccess('');
       setTopContacts([]);
       setLoadingTopContacts(false);
       setSearchedContacts([]);
@@ -169,22 +175,78 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
     }
   };
 
-  const handleSendChat = () => {
-    if (chatMessage.trim()) {
-      setChatMessages([...chatMessages, chatMessage]);
+  const toggleContactSelection = (contactId) => {
+    if (!contactId) return;
+
+    setSelectedContactIds((prev) =>
+      prev.includes(contactId)
+        ? prev.filter((id) => id !== contactId)
+        : [...prev, contactId],
+    );
+
+    setChatShareError('');
+    setChatShareSuccess('');
+  };
+
+  const handleSendChat = async () => {
+    if (!selectedContactIds.length || !shareText || sendingToChat) {
+      return;
+    }
+
+    try {
+      setSendingToChat(true);
+      setChatShareError('');
+      setChatShareSuccess('');
+
+      const responses = await Promise.all(
+        selectedContactIds.map(async (receiverId) => {
+          const response = await fetch('/api/chat/messages', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              receiverId,
+              text: shareText,
+              messageType: 'text',
+            }),
+          });
+
+          const data = await response.json();
+
+          if (!response.ok) {
+            throw new Error(data.error || 'Failed to send post');
+          }
+
+          return data;
+        }),
+      );
+
+      if (responses.length) {
+        const recipientLabel = responses.length === 1 ? 'chat' : 'chats';
+        setChatShareSuccess(`Post sent to ${responses.length} ${recipientLabel}.`);
+      }
+
+      setSelectedContactIds([]);
       setChatMessage('');
+      setSearchedContacts([]);
+    } catch (error) {
+      console.error('CHAT SHARE ERROR:', error);
+      setChatShareError(error.message || 'Failed to send post');
+    } finally {
+      setSendingToChat(false);
     }
   };
-  
+
   const handleKeyPress = (event) => {
     if (event.key === 'Enter') {
       event.preventDefault();
-      handleSendChat();
     }
   };
 
   if (!isOpen) return null;
 
+  const shareText = [postContent?.trim(), postUrl?.trim()].filter(Boolean).join('\n');
   const hasSearchQuery = chatMessage.trim().length > 0;
   const quickPanelContacts = hasSearchQuery ? searchedContacts : topContacts;
   const quickPanelLoading = hasSearchQuery ? loadingSearchedContacts : loadingTopContacts;
@@ -297,31 +359,38 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
             <div className="share-section">
               <h3>Share in Chat</h3>
               <div className="chat-container">
-                {chatMessages.length > 0 && (
-                  <div className="chat-messages">
-                    {chatMessages.map((msg, index) => (
-                      <div key={index} className="chat-message">
-                        <MessageCircle size={16} />
-                        <span>{msg}</span>
-                      </div>
-                    ))}
+                {chatShareError ? (
+                  <div className="chat-message chat-message-error">
+                    <MessageCircle size={16} />
+                    <span>{chatShareError}</span>
                   </div>
-                )}
+                ) : null}
+
+                {chatShareSuccess ? (
+                  <div className="chat-message chat-message-success">
+                    <Check size={16} />
+                    <span>{chatShareSuccess}</span>
+                  </div>
+                ) : null}
                 <div className="chat-input-container">
                   <input
                     type="text"
                     placeholder="Search user..."
                     value={chatMessage}
-                    onChange={(e) => setChatMessage(e.target.value)}
+                    onChange={(e) => {
+                      setChatMessage(e.target.value);
+                      setChatShareError('');
+                      setChatShareSuccess('');
+                    }}
                     onKeyPress={handleKeyPress}
                     className="chat-input"
                   />
                   <button
                     className="send-button"
                     onClick={handleSendChat}
-                    disabled={!chatMessage.trim()}
+                    disabled={!selectedContactIds.length || sendingToChat || !shareText}
                   >
-                    Send
+                    {sendingToChat ? 'Sending...' : 'Send'}
                   </button>
                 </div>
               </div>
@@ -340,6 +409,7 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
                   const email = contact?.email || 'No email available';
                   const displayName = getDisplayName(contact);
                   const tooltipId = `share-contact-tooltip-${contactId}`;
+                  const isSelected = selectedContactIds.includes(contactId);
 
                   return (
                     <div key={contactId} className="share-modal-top-user" role="listitem">
@@ -347,9 +417,11 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
                         <div className="share-modal-user-trigger-wrap">
                           <button
                             type="button"
-                            className="share-modal-top-user-trigger share-modal-top-user-avatar"
+                            className={`share-modal-top-user-trigger share-modal-top-user-avatar ${isSelected ? 'selected' : ''}`}
                             aria-describedby={tooltipId}
+                            aria-pressed={isSelected}
                             title={email}
+                            onClick={() => toggleContactSelection(contactId)}
                           >
                             {contact.image ? (
                               <ReliableImage
@@ -362,11 +434,17 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
                             )}
                           </button>
 
+                          <span className={`share-modal-top-user-check ${isSelected ? 'visible' : ''}`} aria-hidden={!isSelected}>
+                            <Check size={14} />
+                          </span>
+
                           <button
                             type="button"
-                            className="share-modal-top-user-trigger share-modal-top-user-name"
+                            className={`share-modal-top-user-trigger share-modal-top-user-name ${isSelected ? 'selected' : ''}`}
                             aria-describedby={tooltipId}
+                            aria-pressed={isSelected}
                             title={email}
+                            onClick={() => toggleContactSelection(contactId)}
                           >
                             {displayName}
                           </button>
