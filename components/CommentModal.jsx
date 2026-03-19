@@ -125,16 +125,13 @@ const CommentModal = ({ isOpen, onClose, onSubmit }) => {
     const handleSubmit = () => {
         if (!hasContent) return;
 
-        const payloadText = comment.trim();
-        const mediaUrls = [gifAttachment, ...imageAttachments].filter(Boolean);
+        const payload = {
+            content: comment.trim(),
+            images: [gifAttachment, ...imageAttachments].filter(Boolean),
+        };
 
         if (typeof onSubmit === 'function') {
-            if (mediaUrls.length) {
-                const combined = [payloadText, ...mediaUrls].filter(Boolean).join('\n');
-                onSubmit(combined);
-            } else {
-                onSubmit(payloadText);
-            }
+            onSubmit(payload);
         }
 
         onClose?.();

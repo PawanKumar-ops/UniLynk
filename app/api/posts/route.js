@@ -111,6 +111,13 @@ const normalizePosts = (posts) =>
   posts.map((post) => ({
     ...post,
     id: post.id ?? post._id?.toString?.() ?? String(post._id || ""),
+    comments: Array.isArray(post.comments)
+      ? post.comments.map((comment) => ({
+          ...comment,
+          id: comment.id ?? comment._id?.toString?.() ?? String(comment._id || ""),
+        }))
+      : [],
+    commentCount: Array.isArray(post.comments) ? post.comments.length : 0,
   }));
 
 export async function GET(req) {
