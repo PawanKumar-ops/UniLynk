@@ -4,7 +4,7 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/user";
 import ChatMessage from "@/models/chatMessage";
 
-const ALLOWED_MESSAGE_TYPES = ["text", "emoji", "gif", "document", "media"];
+const ALLOWED_MESSAGE_TYPES = ["text", "emoji", "gif", "document", "media", "shared_post"];
 
 function normalizeAttachment(file) {
   return {
@@ -15,6 +15,28 @@ function normalizeAttachment(file) {
   };
 }
 
+function normalizeSharedPost(sharedPost) {
+  if (!sharedPost || typeof sharedPost !== "object") return null;
+
+  const normalizedImages = Array.isArray(sharedPost.images)
+    ? sharedPost.images.filter((image) => typeof image === "string" && image.trim()).slice(0, 4)
+    : [];
+
+  return {
+    id: typeof sharedPost.id === "string" ? sharedPost.id.trim() : "",
+    content: typeof sharedPost.content === "string" ? sharedPost.content.trim() : "",
+    authorName:
+      typeof sharedPost.authorName === "string" && sharedPost.authorName.trim()
+        ? sharedPost.authorName.trim()
+        : "UniLynk User",
+    authorImage: typeof sharedPost.authorImage === "string" ? sharedPost.authorImage.trim() : "",
+    images: normalizedImages,
+    audience: sharedPost.audience === "clubs" ? "clubs" : "for-you",
+    createdAt: sharedPost.createdAt ? new Date(sharedPost.createdAt) : null,
+    url: typeof sharedPost.url === "string" ? sharedPost.url.trim() : "",
+  };
+}
+
 function formatMessage(message) {
   return {
     id: message._id.toString(),
@@ -22,6 +44,7 @@ function formatMessage(message) {
     messageType: message.messageType || "text",
     attachment: message.attachment || null,
     attachments: message.attachments || [],
+    sharedPost: message.sharedPost || null,
     sender: message.sender.toString(),
     receiver: message.receiver.toString(),
     createdAt: message.createdAt,
@@ -57,6 +80,7 @@ export default function handler(req, res) {
             messageType = "text",
             attachment = null,
             attachments = [],
+            sharedPost = null,
           } = payload || {};
 
           const normalizedType = ALLOWED_MESSAGE_TYPES.includes(messageType)
@@ -68,6 +92,7 @@ export default function handler(req, res) {
           const normalizedAttachments = Array.isArray(attachments)
             ? attachments.filter((item) => item?.url).map(normalizeAttachment)
             : [];
+          const normalizedSharedPost = normalizeSharedPost(sharedPost);
 
           if (!senderId || !receiverId || (!trimmedText && normalizedType === "text")) {
             callback?.({ ok: false, error: "Invalid payload" });
@@ -81,6 +106,11 @@ export default function handler(req, res) {
 
           if (normalizedType === "media" && !normalizedAttachments.length) {
             callback?.({ ok: false, error: "At least one media file is required" });
+            return;
+          }
+
+          if (normalizedType === "shared_post" && !normalizedSharedPost?.id) {
+            callback?.({ ok: false, error: "Shared post data is required" });
             return;
           }
 
@@ -109,6 +139,7 @@ export default function handler(req, res) {
             messageType: normalizedType,
             attachment: normalizedAttachment || undefined,
             attachments: normalizedType === "media" ? normalizedAttachments : undefined,
+            sharedPost: normalizedType === "shared_post" ? normalizedSharedPost : undefined,
             deliveredAt: new Date(),
             readAt: null,
             reactions: [],

@@ -20,8 +20,42 @@ const ChatMessageSchema = new mongoose.Schema(
 
     messageType: {
       type: String,
-      enum: ["text", "emoji", "gif", "document", "media"],
+      enum: ["text", "emoji", "gif", "document", "media", "shared_post"],
       default: "text",
+    },
+    sharedPost: {
+      id: {
+        type: String,
+        default: "",
+      },
+      content: {
+        type: String,
+        default: "",
+      },
+      authorName: {
+        type: String,
+        default: "UniLynk User",
+      },
+      authorImage: {
+        type: String,
+        default: "",
+      },
+      images: {
+        type: [String],
+        default: [],
+      },
+      audience: {
+        type: String,
+        default: "for-you",
+      },
+      createdAt: {
+        type: Date,
+        default: null,
+      },
+      url: {
+        type: String,
+        default: "",
+      },
     },
     attachment: {
       url: {

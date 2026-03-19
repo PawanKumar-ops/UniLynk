@@ -5,7 +5,7 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/user";
 import ChatMessage from "@/models/chatMessage";
 
-const ALLOWED_MESSAGE_TYPES = ["text", "emoji", "gif", "document", "media"];
+const ALLOWED_MESSAGE_TYPES = ["text", "emoji", "gif", "document", "media", "shared_post"];
 
 function normalizeAttachment(file) {
   return {
@@ -13,6 +13,28 @@ function normalizeAttachment(file) {
     fileName: file?.fileName || "",
     mimeType: file?.mimeType || "",
     size: file?.size || 0,
+  };
+}
+
+function normalizeSharedPost(sharedPost) {
+  if (!sharedPost || typeof sharedPost !== "object") return null;
+
+  const normalizedImages = Array.isArray(sharedPost.images)
+    ? sharedPost.images.filter((image) => typeof image === "string" && image.trim()).slice(0, 4)
+    : [];
+
+  return {
+    id: typeof sharedPost.id === "string" ? sharedPost.id.trim() : "",
+    content: typeof sharedPost.content === "string" ? sharedPost.content.trim() : "",
+    authorName:
+      typeof sharedPost.authorName === "string" && sharedPost.authorName.trim()
+        ? sharedPost.authorName.trim()
+        : "UniLynk User",
+    authorImage: typeof sharedPost.authorImage === "string" ? sharedPost.authorImage.trim() : "",
+    images: normalizedImages,
+    audience: sharedPost.audience === "clubs" ? "clubs" : "for-you",
+    createdAt: sharedPost.createdAt ? new Date(sharedPost.createdAt) : null,
+    url: typeof sharedPost.url === "string" ? sharedPost.url.trim() : "",
   };
 }
 
@@ -57,6 +79,7 @@ export async function GET(req) {
       messageType: msg.messageType || "text",
       attachment: msg.attachment || null,
       attachments: msg.attachments || [],
+      sharedPost: msg.sharedPost || null,
       sender: msg.sender.toString(),
       receiver: msg.receiver.toString(),
       createdAt: msg.createdAt,
@@ -88,6 +111,7 @@ export async function POST(req) {
       messageType = "text",
       attachment = null,
       attachments = [],
+      sharedPost = null,
     } = await req.json();
 
     if (!receiverId || !mongoose.Types.ObjectId.isValid(receiverId)) {
@@ -103,6 +127,7 @@ export async function POST(req) {
     const normalizedAttachments = Array.isArray(attachments)
       ? attachments.filter((item) => item?.url).map(normalizeAttachment)
       : [];
+    const normalizedSharedPost = normalizeSharedPost(sharedPost);
 
     if (!trimmedText && normalizedType === "text") {
       return Response.json({ error: "Message text is required" }, { status: 400 });
@@ -116,6 +141,10 @@ export async function POST(req) {
       return Response.json({ error: "At least one media file is required" }, { status: 400 });
     }
 
+    if (normalizedType === "shared_post" && !normalizedSharedPost?.id) {
+      return Response.json({ error: "Shared post data is required" }, { status: 400 });
+    }
+
     const message = await ChatMessage.create({
       sender: currentUser._id,
       receiver: receiverId,
@@ -123,6 +152,7 @@ export async function POST(req) {
       messageType: normalizedType,
       attachment: normalizedAttachment || undefined,
       attachments: normalizedType === "media" ? normalizedAttachments : undefined,
+      sharedPost: normalizedType === "shared_post" ? normalizedSharedPost : undefined,
       deliveredAt: new Date(),
       readAt: null,
       reactions: [],
@@ -136,6 +166,7 @@ export async function POST(req) {
           messageType: message.messageType || "text",
           attachment: message.attachment || null,
           attachments: message.attachments || [],
+          sharedPost: message.sharedPost || null,
           sender: message.sender.toString(),
           receiver: message.receiver.toString(),
           createdAt: message.createdAt,
