@@ -123,19 +123,6 @@
   padding-right: 4px;
 }
 
-.share-modal-top-users::-webkit-scrollbar {
-  width: 4px;
-}
-
-.share-modal-top-users::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.share-modal-top-users::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.65);
-  border-radius: 999px;
-}
-
 .share-modal-top-user {
   display: flex;
   justify-content: center;
@@ -180,11 +167,6 @@
   color: #ffffff;
   box-shadow: 0 10px 25px rgba(17, 24, 39, 0.16);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.share-modal-top-user-avatar:hover,
-.share-modal-top-user-name:hover {
-  transform: translateY(-1px);
 }
 
 .share-modal-top-user-avatar.selected {
@@ -232,8 +214,11 @@
 }
 
 .share-modal-top-user-check {
-  width: 22px;
-  height: 22px;
+  position: absolute;
+  top: 40px;
+  left: 58px;
+  width: 20px;
+  height: 20px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -242,7 +227,6 @@
   color: #2563eb;
   border: 1px solid #93c5fd;
   opacity: 0;
-  transform: translateY(-6px);
   transition: opacity 0.18s ease, transform 0.18s ease;
 }
 
@@ -496,13 +480,13 @@
 
 .send-button:disabled,
 .copy-button:disabled {
-  background-color: #9ca3af;
+  background-color: #666666;
   cursor: not-allowed;
 }
 
 .send-button:disabled:hover,
 .copy-button:disabled:hover {
-  background-color: #9ca3af;
+  background-color: #666666;
 }
 
 /* Chat Section */
