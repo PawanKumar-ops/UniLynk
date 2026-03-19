@@ -234,21 +234,7 @@ export default function DashboardClient() {
 
   const handleOpenThread = (postId) => {
     if (!postId) return;
-
-    const currentFeedScroll = feedRef.current?.scrollTop ?? 0;
-    persistFeedScroll(currentFeedScroll);
-    pendingRestorePostIdRef.current = postId;
-
     setThreadPostId(postId);
-    setMenuPostId(null);
-  };
-
-  const handleBackToFeed = () => {
-    if (selectedThreadPost?.id) {
-      pendingRestorePostIdRef.current = selectedThreadPost.id;
-    }
-
-    setThreadPostId(null);
     setMenuPostId(null);
   };
 
@@ -350,13 +336,6 @@ export default function DashboardClient() {
     <div
       className={`userpost ${menuPostId === post.id ? "menu-open" : ""} ${isThread ? 'thread-root-post' : ''}`}
       key={post.id}
-      ref={isThread ? undefined : (node) => {
-        if (node) {
-          postRefs.current[post.id] = node;
-        } else {
-          delete postRefs.current[post.id];
-        }
-      }}
       onClick={() => handleOpenThread(post.id)}
       role="button"
       tabIndex={0}
@@ -472,7 +451,7 @@ export default function DashboardClient() {
           <div className="post-foot-iconcont">
             <button onClick={() => {
               if (!post?.id) return;
-              handleOpenThread(post.id);
+              setThreadPostId(post.id);
               setActivePostId(post.id);
             }} type="button">
               <img className='post-foot-icon' src="Postimg/comment.svg" alt="Comment" />
@@ -530,27 +509,116 @@ export default function DashboardClient() {
   return (
     <div className="homebody">
       <main className='dashmain'>
-        {!selectedThreadPost && (
-          <div className="pricing-toggle">
-            <div className={`toggle-track ${!isAnnual ? "right" : ""}`}>
-              <div className="toggle-bg"></div>
-              <button
-                className={`toggle-btn ${isAnnual ? "active" : ""}`}
-                onClick={() => setIsAnnual(true)}
-              >
-                For You
-              </button>
-              <button
-                className={`toggle-btn ${!isAnnual ? "active" : ""}`}
-                onClick={() => setIsAnnual(false)}
-              >
-                Clubs
-              </button>
-            </div>
+        <div className="pricing-toggle">
+          <div className={`toggle-track ${!isAnnual ? "right" : ""}`}>
+            <div className="toggle-bg"></div>
+            <button
+              className='posth-right-btn'
+              onClick={(event) => {
+                event.stopPropagation();
+                setMenuPostId(menuPostId === post.id ? null : post.id);
+              }}
+              aria-label="Post options"
+              type="button"
+            >
+              <EllipsisVertical />
+            </button>
+            {menuPostId === post.id && (
+              <div className="post-dropdown-menu" onClick={(event) => event.stopPropagation()}>
+                <button className="menu-item" onClick={() => {
+                  handleReportClick(post.id);
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                  Report Post
+                </button>
+                <button className="menu-item" type="button">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                  </svg>
+                  Save Post
+                </button>
+                <button className="menu-item" onClick={() => {
+                  setMenuPostId(null);
+                  setSharePost(post);
+                  setOpenShare(true);
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="18" cy="5" r="3" />
+                    <circle cx="6" cy="12" r="3" />
+                    <circle cx="18" cy="19" r="3" />
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                  </svg>
+                  Share
+                </button>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
-        <div className="feed" ref={feedRef} onScroll={handleFeedScroll}>
+        <div className="post-content">
+          {post.content}
+          {!!post.images?.length && (
+            <div className="image-post">
+              <div className={getImageGridClass(post.images.length)}>
+                {post.images.map((imageUrl, idx) => (
+                  <img key={`${post.id}-${idx}`} src={imageUrl} alt="Post image" />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="post-foot" onClick={(event) => event.stopPropagation()}>
+          <div className="post-foot-iconcont">
+            <button
+              onClick={() => {
+                if (!post?.id) {
+                  console.error("Invalid post id:", post);
+                  return;
+                }
+
+                queueLikeToggle(post.id, Boolean(post.likedByCurrentUser));
+              }}
+              disabled={Boolean(post.likePending)}
+              aria-label={post.likedByCurrentUser ? "Unlike post" : "Like post"}
+              className={`like-button ${post.likedByCurrentUser ? 'liked' : ''}`}
+              type="button"
+            >
+              <img className='post-foot-icon' src="Postimg/thumb.svg" alt="Like" />
+            </button>
+            <span className='post-like-count'>{Number(post.likeCount || 0)}</span>
+          </div>
+          <div className="post-foot-iconcont">
+            <button onClick={() => {
+              if (!post?.id) return;
+              handleOpenThread(post.id);
+              setActivePostId(post.id);
+            }} type="button">
+              <img className='post-foot-icon' src="Postimg/comment.svg" alt="Comment" />
+            </button>
+            <span className='post-comment-count'>{Number(post.commentCount || 0)}</span>
+          </div>
+          <div className="post-foot-iconcont">
+            <button onClick={() => { setSharePost(post); setOpenShare(true); }} type="button">
+              <img className="post-foot-icon" src="Postimg/share.svg" alt="Share" />
+            </button>
+            <span className='post-share-count'>0</span>
+          </div>
+          <div className="post-foot-iconcont">
+            <img className='post-foot-icon' src="Postimg/bookmark.svg" alt="bookmark" />
+            <span className='post-bookmark-count'>0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+        <div className="feed">
           <div className="userposts">
             {(loadingPosts || !posts) && <Loading />}
 
@@ -566,7 +634,7 @@ export default function DashboardClient() {
                   <button
                     type="button"
                     className="thread-back-button"
-                    onClick={handleBackToFeed}
+                    onClick={() => setThreadPostId(null)}
                   >
                     <ArrowLeft size={18} />
                     <span>Back to feed</span>
