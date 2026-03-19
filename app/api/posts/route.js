@@ -151,7 +151,7 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
-const {
+    const {
       content,
       audience,
       authorName,
@@ -177,7 +177,7 @@ const {
 
     await connectDB();
 
-   const session = await getServerSession(authOptions);
+    const session = await getServerSession(authOptions);
     const sessionEmail = normalizeEmail(session?.user?.email);
 
     const safeAuthorEmail = normalizeEmail(authorEmail) || sessionEmail;
@@ -204,6 +204,8 @@ const {
     const normalizedPost = {
       ...post.toObject(),
       id: post._id.toString(),
+      comments: [],
+      commentCount: 0,
     };
 
     return Response.json({ post: normalizedPost }, { status: 201 });

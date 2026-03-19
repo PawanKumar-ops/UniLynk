@@ -37,7 +37,11 @@ const PostSchema = new mongoose.Schema(
     content: {
       type: String,
       trim: true,
-      required: true,
+      default: "",
+      validate: {
+        validator: hasTextOrImages,
+        message: "Post content or image is required",
+      },
     },
     audience: {
       type: String,
