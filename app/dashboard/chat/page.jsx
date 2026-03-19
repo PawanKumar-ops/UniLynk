@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { io } from "socket.io-client";
 import {
   Check,
@@ -20,6 +21,25 @@ import EmojiPicker from "emoji-picker-react";
 import "./chat.css";
 import ReliableImage from "@/components/ReliableImage";
 import ChatGiphyPicker from "@/components/shared/ChatGiphyPicker";
+
+function formatChatTimestamp(dateValue) {
+  if (!dateValue) return "";
+
+  return new Date(dateValue).toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+function formatPostMetaDate(dateValue) {
+  if (!dateValue) return "";
+
+  return new Date(dateValue).toLocaleDateString([], {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
 
 
 function formatBytes(size = 0) {
@@ -569,6 +589,10 @@ export default function ChatPage() {
       payload.attachments = forwardTargetMessage.attachments;
     }
 
+    if (forwardTargetMessage.messageType === "shared_post" && forwardTargetMessage.sharedPost?.id) {
+      payload.sharedPost = forwardTargetMessage.sharedPost;
+    }
+
     const responses = await Promise.all(
       selectedForwardUserIds.map((receiverId) => emitForwardMessage({ ...payload, receiverId }))
     );
@@ -783,12 +807,57 @@ export default function ChatPage() {
                           </small>
                         </div>
                       </a>
+                    ) : msg.messageType === "shared_post" && msg.sharedPost?.id ? (
+                      <div className="chat-shared-post-wrap">
+                        <div className="chat-shared-post-label">Shared post</div>
+                        <Link
+                          href={msg.sharedPost.url || `/dashboard?post=${msg.sharedPost.id}`}
+                          className="chat-shared-post-card"
+                        >
+                          <div className="chat-shared-post-head">
+                            <div className="chat-shared-post-avatar">
+                              <ReliableImage
+                                src={msg.sharedPost.authorImage}
+                                fallbackSrc="/Profilepic.png"
+                                alt={msg.sharedPost.authorName || "Post author"}
+                                width={40}
+                                height={40}
+                              />
+                            </div>
+                            <div className="chat-shared-post-author-block">
+                              <strong>{msg.sharedPost.authorName || "UniLynk User"}</strong>
+                              <span>{formatPostMetaDate(msg.sharedPost.createdAt)}</span>
+                            </div>
+                          </div>
+
+                          {msg.sharedPost.content ? (
+                            <p className="chat-shared-post-content">{msg.sharedPost.content}</p>
+                          ) : null}
+
+                          {!!msg.sharedPost.images?.length && (
+                            <div
+                              className={`chat-shared-post-media ${
+                                msg.sharedPost.images.length > 1 ? "chat-shared-post-media-grid" : ""
+                              }`}
+                            >
+                              {msg.sharedPost.images.slice(0, 4).map((imageUrl, index) => (
+                                <img
+                                  key={`${msg.id}-post-image-${index}`}
+                                  src={imageUrl}
+                                  alt={`Shared post media ${index + 1}`}
+                                  className="chat-shared-post-image"
+                                />
+                              ))}
+                            </div>
+                          )}
+                        </Link>
+                      </div>
                     ) : (
                       <p className="chat-text-message">{msg.text}</p>
                     )}
 
                     <span className="chat-meta-row">
-                      {new Date(msg.createdAt).toLocaleTimeString()}
+                      {formatChatTimestamp(msg.createdAt)}
                       {msg.sender === currentUserId ? (
                         <em className={`chat-status chat-status-${getMessageStatus(msg)}`}>
                           {getMessageStatus(msg) === "sent" ? <Check size={13} /> : <CheckCheck size={13} />}

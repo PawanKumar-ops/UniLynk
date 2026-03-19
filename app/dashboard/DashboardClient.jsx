@@ -391,8 +391,7 @@ export default function DashboardClient() {
 
         <ShareModal
           isOpen={openShare}
-          postUrl={sharePost?.id ? `https://yourapp.com/post/${sharePost.id}` : ''}
-          postContent={sharePost?.content || ''}
+          post={sharePost}
           onClose={() => {
             setOpenShare(false);
             setSharePost(null);

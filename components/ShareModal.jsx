@@ -28,7 +28,7 @@ const getInitials = (contact) => {
   return parts.map((part) => part[0]?.toUpperCase() || '').join('');
 };
 
-const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
+const ShareModal = ({ isOpen, onClose, post }) => {
   const [copied, setCopied] = React.useState(false);
   const [chatMessage, setChatMessage] = React.useState('');
   const [selectedContactIds, setSelectedContactIds] = React.useState([]);
@@ -39,6 +39,7 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
   const [loadingTopContacts, setLoadingTopContacts] = React.useState(false);
   const [searchedContacts, setSearchedContacts] = React.useState([]);
   const [loadingSearchedContacts, setLoadingSearchedContacts] = React.useState(false);
+  const [baseOrigin, setBaseOrigin] = React.useState('');
 
   React.useEffect(() => {
     if (!isOpen) {
@@ -53,6 +54,10 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
       setSearchedContacts([]);
       setLoadingSearchedContacts(false);
       return undefined;
+    }
+
+    if (typeof window !== 'undefined') {
+      setBaseOrigin(window.location.origin || '');
     }
 
     const controller = new AbortController();
@@ -189,7 +194,7 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
   };
 
   const handleSendChat = async () => {
-    if (!selectedContactIds.length || !shareText || sendingToChat) {
+    if (!selectedContactIds.length || !sharePayload || sendingToChat) {
       return;
     }
 
@@ -207,8 +212,9 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
             },
             body: JSON.stringify({
               receiverId,
-              text: shareText,
-              messageType: 'text',
+              text: post?.content || '',
+              messageType: 'shared_post',
+              sharedPost: sharePayload,
             }),
           });
 
@@ -246,7 +252,21 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
 
   if (!isOpen) return null;
 
-  const shareText = [postContent?.trim(), postUrl?.trim()].filter(Boolean).join('\n');
+  const postContent = typeof post?.content === 'string' ? post.content : '';
+  const relativePostUrl = post?.id ? `/dashboard?post=${post.id}` : '';
+  const postUrl = baseOrigin && relativePostUrl ? `${baseOrigin}${relativePostUrl}` : relativePostUrl;
+  const sharePayload = post?.id
+    ? {
+        id: post.id,
+        content: postContent,
+        authorName: post?.authorName || 'UniLynk User',
+        authorImage: post?.authorImage || '',
+        images: Array.isArray(post?.images) ? post.images : [],
+        audience: post?.audience === 'clubs' ? 'clubs' : 'for-you',
+        createdAt: post?.createdAt || null,
+        url: postUrl,
+      }
+    : null;
   const hasSearchQuery = chatMessage.trim().length > 0;
   const quickPanelContacts = hasSearchQuery ? searchedContacts : topContacts;
   const quickPanelLoading = hasSearchQuery ? loadingSearchedContacts : loadingTopContacts;
@@ -388,7 +408,7 @@ const ShareModal = ({ isOpen, onClose, postContent, postUrl }) => {
                   <button
                     className="send-button"
                     onClick={handleSendChat}
-                    disabled={!selectedContactIds.length || sendingToChat || !shareText}
+                    disabled={!selectedContactIds.length || sendingToChat || !sharePayload}
                   >
                     {sendingToChat ? 'Sending...' : 'Send'}
                   </button>
