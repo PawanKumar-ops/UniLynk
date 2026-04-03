@@ -573,7 +573,7 @@ export default function DashboardClient() {
                   </button>
                   <div>
                     <h2 className="thread-view-title">Post</h2>
-                    <p className="thread-view-subtitle">Replies are shown below the selected post, like a conversation thread.</p>
+                    
                   </div>
                 </div>
 
@@ -600,6 +600,7 @@ export default function DashboardClient() {
                     </div>
                   ) : (
                     <div className="thread-empty-state">
+                      <div className="nocomment-illuistration"><img src="./dashboard/nocomment.svg" alt="" /></div>
                       <h4>No replies yet</h4>
                       <p>Be the first person to reply to this post.</p>
                     </div>

@@ -818,13 +818,24 @@ body {
   flex-direction: column;
   gap: 16px;
   width: 100%;
+  bottom: 50px;
 }
 
 .thread-view-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+
+  padding: 5px 14px;
+
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+
+  border-bottom: 1px solid rgba(0,0,0,0.05);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 12px;
-  padding: 4px 4px 0;
 }
 
 .thread-back-button {
@@ -839,6 +850,7 @@ body {
   font-size: 14px;
   font-weight: 600;
   box-shadow: 0 4px 14px rgba(15, 20, 25, 0.06);
+  cursor: pointer;
 }
 
 .thread-view-title {
@@ -848,12 +860,18 @@ body {
   margin: 2px 0 4px;
 }
 
-.thread-view-subtitle,
 .thread-replies-subtitle,
 .thread-empty-state p {
   font-size: 14px;
   line-height: 1.5;
   color: #667781;
+}
+
+.nocomment-illuistration{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 10px;
 }
 
 .thread-replies-panel {
