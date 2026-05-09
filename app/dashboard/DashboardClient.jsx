@@ -10,6 +10,7 @@ import ReliableImage from '../../components/ReliableImage';
 import CommentModal from '@/components/CommentModal';
 import ShareModal from '@/components/ShareModal';
 import { ReportPostModal } from '@/components/ReportPostModal';
+import { ExplorePage } from '@/components/ExplorePage';
 
 const DASHBOARD_SCROLL_STORAGE_KEY = 'dashboard-feed-scroll-position';
 
@@ -108,6 +109,7 @@ export default function DashboardClient() {
   const [openShare, setOpenShare] = useState(false);
   const [menuPostId, setMenuPostId] = useState(null);
   const [reportPostId, setReportPostId] = useState(null);
+  const [dashboardView, setDashboardView] = useState('feed');
 
   const likeTimersRef = useRef({});
   const pendingLikePostIdsRef = useRef(new Set());
@@ -530,6 +532,10 @@ export default function DashboardClient() {
   return (
     <div className="homebody">
       <main className='dashmain'>
+        {dashboardView === 'explore' ? (
+          <ExplorePage />
+        ) : (
+          <>
         {!selectedThreadPost && (
           <div className="pricing-toggle">
             <div className={`toggle-track ${!isAnnual ? "right" : ""}`}>
@@ -639,6 +645,8 @@ export default function DashboardClient() {
           postId={reportPostId}
           onClose={() => setReportPostId(null)}
         />
+        </>
+        )}
       </main >
       <div className="msgsidebar">
         <div className="msgsidebarmain">
@@ -651,6 +659,8 @@ export default function DashboardClient() {
             />
           </div> */}
           <button
+          type="button"
+            onClick={() => setDashboardView('explore')}
             className="
                w-[325px] h-[54px]
                rounded-2xl border border-neutral-200

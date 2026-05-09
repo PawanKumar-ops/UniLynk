@@ -1,3 +1,5 @@
+"use client"
+
 import { useMemo, useState } from "react";
 import {
   Search,
@@ -17,29 +19,7 @@ import { Button } from "./ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
 import { Badge } from "./ui/badge";
 
-type Post = {
-  id: string;
-  author: string;
-  handle: string;
-  club?: boolean;
-  verified?: boolean;
-  time: string;
-  content: string;
-  image?: string;
-  likes: number;
-  comments: number;
-  tag?: string;
-};
-
-type Suggestion = {
-  id: string;
-  name: string;
-  handle: string;
-  meta: string;
-  type: "user" | "club";
-};
-
-const clubPosts: Post[] = [
+const clubPosts = [
   {
     id: "c1",
     author: "Innovation Cell",
@@ -70,7 +50,7 @@ const clubPosts: Post[] = [
   },
 ];
 
-const trendingPosts: Post[] = [
+const trendingPosts = [
   {
     id: "t1",
     author: "Anuj Sharma",
@@ -105,7 +85,7 @@ const trendingPosts: Post[] = [
   },
 ];
 
-const suggestions: Suggestion[] = [
+const suggestions = [
   { id: "s1", name: "Design Club", handle: "design_club", meta: "1.2k members", type: "club" },
   { id: "s2", name: "Riya Mehta", handle: "riya.m", meta: "Third Year · CSE", type: "user" },
   { id: "s3", name: "Photography Society", handle: "photo_soc", meta: "860 members", type: "club" },
@@ -120,7 +100,43 @@ const trendingTopics = [
   { tag: "#Placements", posts: "756 posts" },
 ];
 
-function PostCard({ post }: { post: Post }) {
+const tabItems = [
+  { value: "forYou", label: "For You" },
+  { value: "trending", label: "Trending" },
+  { value: "clubs", label: "Clubs" },
+  { value: "people", label: "People" },
+];
+
+function Avatar({ name, isClub, className = "h-10 w-10" }) {
+  return (
+    <div
+      className={`${className} flex shrink-0 items-center justify-center rounded-full ${
+        isClub ? "bg-black text-white" : "bg-neutral-100 text-neutral-800"
+      }`}
+      aria-hidden="true"
+    >
+      {name?.[0] || "U"}
+    </div>
+  );
+}
+
+function Badge({ children, className = "" }) {
+  return (
+    <span className={`inline-flex w-fit shrink-0 items-center justify-center rounded-full px-2 py-0.5 text-xs ${className}`}>
+      {children}
+    </span>
+  );
+}
+
+function PostImage({ src, alt = "", className = "" }) {
+  const [hasError, setHasError] = useState(false);
+
+  if (hasError) return null;
+
+  return <img src={src} alt={alt} className={className} onError={() => setHasError(true)} />;
+}
+
+function PostCard({ post }) {
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   return (
@@ -188,21 +204,21 @@ function PostCard({ post }: { post: Post }) {
   );
 }
 
-function SuggestionRow({ s }: { s: Suggestion }) {
+function SuggestionRow({ suggestion }) {
   const [following, setFollowing] = useState(false);
   return (
     <div className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-neutral-50">
       <Avatar className="h-10 w-10">
-        <AvatarFallback className={s.type === "club" ? "bg-black text-white" : ""}>
-          {s.name[0]}
+        <AvatarFallback className={suggestion.type === "club" ? "bg-black text-white" : ""}>
+          {suggestion.name[0]}
         </AvatarFallback>
       </Avatar>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1 truncate">
-          <span className="truncate">{s.name}</span>
-          {s.type === "club" && <BadgeCheck className="h-3.5 w-3.5 fill-black text-white" />}
+          <span className="truncate">{suggestion.name}</span>
+          {suggestion.type === "club" && <BadgeCheck className="h-3.5 w-3.5 fill-black text-white" />}
         </div>
-        <div className="truncate text-neutral-500">{s.meta}</div>
+        <div className="truncate text-neutral-500">{suggestion.meta}</div>
       </div>
       <Button
         onClick={() => setFollowing((v) => !v)}
@@ -213,7 +229,7 @@ function SuggestionRow({ s }: { s: Suggestion }) {
             : "bg-black text-white hover:bg-neutral-800"
         }`}
       >
-        {following ? "Following" : s.type === "club" ? "Join" : "Follow"}
+        {following ? "Following" : suggestion.type === "club" ? "Join" : "Follow"}
       </Button>
     </div>
   );
@@ -226,19 +242,19 @@ export function ExplorePage() {
   const allSearchable = useMemo(
     () => [
       ...suggestions,
-      ...clubPosts.map((p) => ({
-        id: p.id,
-        name: p.author,
-        handle: p.handle,
+      ...clubPosts.map((post) => ({
+        id: post.id,
+        name: post.author,
+        handle: post.handle,
         meta: "Club",
-        type: "club" as const,
+        type: "club",
       })),
-      ...trendingPosts.map((p) => ({
-        id: p.id,
-        name: p.author,
-        handle: p.handle,
+      ...trendingPosts.map((post) => ({
+        id: post.id,
+        name: post.author,
+        handle: post.handle,
         meta: "User",
-        type: "user" as const,
+        type: "user",
       })),
     ],
     []
