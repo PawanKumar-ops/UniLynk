@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './dashboard.css';
-import { ArrowLeft, EllipsisVertical, Search } from 'lucide-react';
+import { ArrowLeft, EllipsisVertical, ArrowRight } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import PostFAB from '../../components/PostFAB';
 import Post from '../../components/Post';
@@ -316,11 +316,11 @@ export default function DashboardClient() {
           prev.map((post) =>
             post.id === postId
               ? {
-                  ...post,
-                  likedByCurrentUser: Boolean(data.likedByCurrentUser),
-                  likeCount: Number(data.likeCount || 0),
-                  likePending: false,
-                }
+                ...post,
+                likedByCurrentUser: Boolean(data.likedByCurrentUser),
+                likeCount: Number(data.likeCount || 0),
+                likePending: false,
+              }
               : post
           )
         );
@@ -551,7 +551,7 @@ export default function DashboardClient() {
         )}
 
         <div className="feed" ref={feedRef} onScroll={handleFeedScroll}>
-          <div className="userposts">
+          <div className={`userposts ${selectedThreadPost ? "thread-userposts" : ""}`}>
             {(loadingPosts || !posts) && <Loading />}
 
             {!loadingPosts && Array.isArray(posts) && posts.length === 0 && <div className="noposts-illuistration">
@@ -573,7 +573,7 @@ export default function DashboardClient() {
                   </button>
                   <div>
                     <h2 className="thread-view-title">Post</h2>
-                    
+
                   </div>
                 </div>
 
@@ -642,14 +642,28 @@ export default function DashboardClient() {
       </main >
       <div className="msgsidebar">
         <div className="msgsidebarmain">
-          <div className="msgsearchbar">
+          {/* <div className="msgsearchbar">
             <Search className="searchicon" size={16} />
             <input
               className="searchinput"
               placeholder="Search"
               type="text"
             />
-          </div>
+          </div> */}
+          <button
+            className="
+               w-[325px] h-[54px]
+               rounded-2xl border border-neutral-200
+               bg-white/90 backdrop-blur-md
+               flex items-center justify-center gap-2
+               text-[16px] font-semibold text-neutral-900
+               shadow-sm transition-all duration-300
+               hover:bg-[#f5f8fa]
+             "
+          >
+            <span>Search Campus</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
           <hr className="mt-4" />
           <div className="msgbuttons">
             <button className="msgbutton">

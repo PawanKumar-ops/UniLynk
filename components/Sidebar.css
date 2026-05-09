@@ -4,8 +4,8 @@ header {
 }
 
 .menuhead {
+    width: 100%;
     display: flex;
-    gap: 120px;
 }
 
 .settings {
