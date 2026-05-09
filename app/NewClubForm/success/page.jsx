@@ -5,8 +5,8 @@ import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import './success.css';
 
-export default function success() {
-const router = useRouter();
+export default function Success() {
+  const router = useRouter();
 
   return (
     <div className="app-container">

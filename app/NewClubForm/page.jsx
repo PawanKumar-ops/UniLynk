@@ -7,13 +7,12 @@ import ContactInfo from './club-onboarding/ContactInfo';
 import WhatWeDo from './club-onboarding/WhatWeDo';
 import LeadershipTeam from './club-onboarding/LeadershipTeam';
 import PastActivities from './club-onboarding/PastActivities';
-import UpcomingEvents from './club-onboarding/UpcomingEvents';
 import './ClubOnboarding.css';
 
 export default function ClubOnboarding() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 6;
+  const totalSteps = 5;
   const [submitError, setSubmitError] = useState('');
 
   const [clubData, setClubData] = useState({
@@ -37,7 +36,7 @@ export default function ClubOnboarding() {
   });
 
   const updateClubData = (data) => {
-    setClubData({ ...clubData, ...data });
+    setClubData((currentData) => ({ ...currentData, ...data }));
   };
 
   const nextStep = () => {
@@ -52,16 +51,16 @@ export default function ClubOnboarding() {
     }
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (submittedData = clubData) => {
     setSubmitError('');
 
-   try {
+    try {
       const res = await fetch('/api/clubs', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(clubData),
+        body: JSON.stringify(submittedData),
       });
 
       if (!res.ok) {
@@ -85,9 +84,7 @@ export default function ClubOnboarding() {
       case 4:
         return <LeadershipTeam data={clubData} updateData={updateClubData} onNext={nextStep} onBack={prevStep} />;
       case 5:
-        return <PastActivities data={clubData} updateData={updateClubData} onNext={nextStep} onBack={prevStep} />;
-      case 6:
-        return <UpcomingEvents data={clubData} updateData={updateClubData} onBack={prevStep} onSubmit={handleSubmit} />;
+        return <PastActivities data={clubData} updateData={updateClubData} onSubmit={handleSubmit} onBack={prevStep} />;
       default:
         return null;
     }
@@ -114,7 +111,6 @@ export default function ClubOnboarding() {
                 {step === 3 && 'Activities'}
                 {step === 4 && 'Team'}
                 {step === 5 && 'Past Events'}
-                {step === 6 && 'Upcoming'}
               </div>
             </div>
           ))}
