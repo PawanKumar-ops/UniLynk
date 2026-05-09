@@ -13,11 +13,55 @@ import {
   Plus,
   X,
 } from "lucide-react";
-import { Input } from "./ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
-import { Button } from "./ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "./ui/tabs";
-import { Badge } from "./ui/badge";
+
+function Input({ className = "", ...props }) {
+  return (
+    <input
+      className={`flex w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-xs outline-none transition-[color,box-shadow] placeholder:text-neutral-500 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm ${className}`}
+      {...props}
+    />
+  );
+}
+
+function Avatar({ className = "", children }) {
+  return (
+    <div className={`relative flex size-10 shrink-0 overflow-hidden rounded-full ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+function AvatarImage({ src = "", alt = "", className = "" }) {
+  if (!src) return null;
+
+  return <img src={src} alt={alt} className={`aspect-square size-full ${className}`} />;
+}
+
+function AvatarFallback({ className = "", children }) {
+  return (
+    <div className={`flex size-full items-center justify-center rounded-full bg-neutral-100 ${className}`}>
+      {children}
+    </div>
+  );
+}
+
+function Button({ className = "", type = "button", variant, ...props }) {
+  return (
+    <button
+      type={type}
+      className={`inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 py-2 text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 ${className}`}
+      {...props}
+    />
+  );
+}
+
+function Badge({ className = "", children }) {
+  return (
+    <span className={`inline-flex w-fit shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-transparent px-2 py-0.5 text-xs font-medium ${className}`}>
+      {children}
+    </span>
+  );
+}
 
 const clubPosts = [
   {
@@ -107,27 +151,6 @@ const tabItems = [
   { value: "people", label: "People" },
 ];
 
-function Avatar({ name, isClub, className = "h-10 w-10" }) {
-  return (
-    <div
-      className={`${className} flex shrink-0 items-center justify-center rounded-full ${
-        isClub ? "bg-black text-white" : "bg-neutral-100 text-neutral-800"
-      }`}
-      aria-hidden="true"
-    >
-      {name?.[0] || "U"}
-    </div>
-  );
-}
-
-function Badge({ children, className = "" }) {
-  return (
-    <span className={`inline-flex w-fit shrink-0 items-center justify-center rounded-full px-2 py-0.5 text-xs ${className}`}>
-      {children}
-    </span>
-  );
-}
-
 function PostImage({ src, alt = "", className = "" }) {
   const [hasError, setHasError] = useState(false);
 
@@ -167,7 +190,7 @@ function PostCard({ post }) {
           <p className="mt-1 whitespace-pre-line text-neutral-800">{post.content}</p>
           {post.image && (
             <div className="mt-3 overflow-hidden rounded-2xl border border-neutral-200">
-              <ImageWithFallback
+              <PostImage
                 src={post.image}
                 alt=""
                 className="h-72 w-full object-cover"
@@ -320,24 +343,21 @@ export function ExplorePage() {
             </div>
           )}
         </div>
-        <Tabs value={tab} onValueChange={setTab} className="mt-3">
-          <TabsList className="w-full justify-start gap-1 bg-transparent p-0">
-            {[
-              { v: "forYou", l: "For You" },
-              { v: "trending", l: "Trending" },
-              { v: "clubs", l: "Clubs" },
-              { v: "people", l: "People" },
-            ].map((t) => (
-              <TabsTrigger
-                key={t.v}
-                value={t.v}
-                className="rounded-full px-3 py-1.5 data-[state=active]:bg-black data-[state=active]:text-white"
+        <div className="mt-3 flex flex-col gap-2">
+          <div className="inline-flex h-9 w-full items-center justify-start gap-1 rounded-xl bg-transparent p-0 text-neutral-500">
+            {tabItems.map((item) => (
+              <button
+                key={item.value}
+                type="button"
+                data-state={tab === item.value ? "active" : "inactive"}
+                onClick={() => setTab(item.value)}
+                className="inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-transparent px-3 py-1.5 text-sm font-medium text-neutral-900 transition-[color,box-shadow] data-[state=active]:bg-black data-[state=active]:text-white"
               >
-                {t.l}
-              </TabsTrigger>
+                {item.label}
+              </button>
             ))}
-          </TabsList>
-        </Tabs>
+          </div>
+        </div>
       </div>
 
       <div>
@@ -380,7 +400,7 @@ export function ExplorePage() {
             </div>
             <div className="divide-y divide-neutral-100">
               {suggestions.slice(0, 4).map((s) => (
-                <SuggestionRow key={s.id} s={s} />
+                <SuggestionRow key={s.id} suggestion={s} />
               ))}
             </div>
           </section>
