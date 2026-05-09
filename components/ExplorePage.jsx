@@ -295,91 +295,95 @@ export function ExplorePage() {
   }, [query, allSearchable]);
 
   return (
-    <div className="mx-auto w-full max-w-2xl">
-      <div className="sticky top-0 z-20 border-b border-neutral-200 bg-white/85 px-4 pb-3 pt-4 backdrop-blur">
-        <div className="flex items-center justify-between">
-          <h1 className="tracking-tight">Explore</h1>
-          <Sparkles className="h-5 w-5 text-neutral-500" />
-        </div>
-        <div className="relative mt-3">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
-          <Input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search users, clubs, posts"
-            className="h-11 rounded-full border-neutral-200 bg-neutral-100 pl-9 pr-9 focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-black"
-          />
-          {query && (
-            <button
-              onClick={() => setQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-neutral-500 hover:bg-neutral-200"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-          {filtered.length > 0 && (
-            <div className="absolute inset-x-0 top-12 z-30 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-lg">
-              <div className="px-4 py-2 text-neutral-500">Suggestions</div>
-              {filtered.map((s) => (
-                <button
-                  key={s.id}
-                  className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-neutral-50"
-                >
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback
-                      className={s.type === "club" ? "bg-black text-white" : ""}
-                    >
-                      {s.name[0]}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate">{s.name}</div>
-                    <div className="truncate text-neutral-500">
-                      @{s.handle} · {s.meta}
+    <div className="h-screen w-full overflow-y-auto bg-white overscroll-contain">
+      <div className="mx-auto min-h-full w-full max-w-2xl border-x border-neutral-100 bg-white">
+        <div className="sticky top-0 z-20 border-b border-neutral-200 bg-white/85 px-4 pb-3 pt-4 backdrop-blur">
+          <div className="flex items-center justify-between">
+            <h1 className="tracking-tight">Explore</h1>
+            <Sparkles className="h-5 w-5 text-neutral-500" />
+          </div>
+          <div className="relative mt-3">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search users, clubs, posts"
+              className="h-11 rounded-full border-neutral-200 bg-neutral-100 pl-9 pr-9 focus-visible:bg-white focus-visible:ring-1 focus-visible:ring-black"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-neutral-500 hover:bg-neutral-200"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+            {filtered.length > 0 && (
+              <div className="absolute inset-x-0 top-12 z-30 overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-lg">
+                <div className="px-4 py-2 text-neutral-500">Suggestions</div>
+                {filtered.map((s) => (
+                  <button
+                    key={s.id}
+                    type="button"
+                    className="flex w-full items-center gap-3 px-4 py-2 text-left hover:bg-neutral-50"
+                  >
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback
+                        className={s.type === "club" ? "bg-black text-white" : ""}
+                      >
+                        {s.name[0]}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate">{s.name}</div>
+                      <div className="truncate text-neutral-500">
+                        @{s.handle} · {s.meta}
+                      </div>
                     </div>
-                  </div>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="mt-3 flex flex-col gap-2">
+            <div className="inline-flex h-9 w-full items-center justify-start gap-1 rounded-xl bg-transparent p-0 text-neutral-500">
+              {tabItems.map((item) => (
+                <button
+                  key={item.value}
+                  type="button"
+                  data-state={tab === item.value ? "active" : "inactive"}
+                  onClick={() => setTab(item.value)}
+                  className="inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-transparent px-3 py-1.5 text-sm font-medium text-neutral-900 transition-[color,box-shadow] data-[state=active]:bg-black data-[state=active]:text-white"
+                >
+                  {item.label}
                 </button>
               ))}
             </div>
-          )}
-        </div>
-        <div className="mt-3 flex flex-col gap-2">
-          <div className="inline-flex h-9 w-full items-center justify-start gap-1 rounded-xl bg-transparent p-0 text-neutral-500">
-            {tabItems.map((item) => (
-              <button
-                key={item.value}
-                type="button"
-                data-state={tab === item.value ? "active" : "inactive"}
-                onClick={() => setTab(item.value)}
-                className="inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-full border border-transparent px-3 py-1.5 text-sm font-medium text-neutral-900 transition-[color,box-shadow] data-[state=active]:bg-black data-[state=active]:text-white"
-              >
-                {item.label}
-              </button>
-            ))}
           </div>
         </div>
-      </div>
 
-      <div>
-        {tab !== "people" && (
-          <section>
-            <div className="flex items-center gap-2 px-4 pt-4 text-neutral-500">
-              <TrendingUp className="h-4 w-4" />
-              <span>Trending on campus</span>
-            </div>
-            <div className="grid grid-cols-2 gap-2 px-4 pb-4 pt-2 sm:grid-cols-4">
-              {trendingTopics.map((t) => (
-                <button
-                  key={t.tag}
-                  className="rounded-2xl border border-neutral-200 px-3 py-2 text-left transition-colors hover:bg-neutral-50"
-                >
-                  <div className="truncate">{t.tag}</div>
-                  <div className="truncate text-neutral-500">{t.posts}</div>
-                </button>
-              ))}
-            </div>
-          </section>
-        )}
+        <div>
+          {tab !== "people" && (
+            <section>
+              <div className="flex items-center gap-2 px-4 pt-4 text-neutral-500">
+                <TrendingUp className="h-4 w-4" />
+                <span>Trending on campus</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 px-4 pb-4 pt-2 sm:grid-cols-4">
+                {trendingTopics.map((t) => (
+                  <button
+                    key={t.tag}
+                    type="button"
+                    className="rounded-2xl border border-neutral-200 px-3 py-2 text-left transition-colors hover:bg-neutral-50"
+                  >
+                    <div className="truncate">{t.tag}</div>
+                    <div className="truncate text-neutral-500">{t.posts}</div>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
 
         {(tab === "forYou" || tab === "clubs") && (
           <section>
@@ -396,7 +400,7 @@ export function ExplorePage() {
           <section>
             <div className="flex items-center justify-between border-y border-neutral-200 bg-neutral-50/60 px-4 py-2 text-neutral-600">
               <span>Suggested for you</span>
-              <button className="text-neutral-500 hover:text-black">See all</button>
+              <button type="button" className="text-neutral-500 hover:text-black">See all</button>
             </div>
             <div className="divide-y divide-neutral-100">
               {suggestions.slice(0, 4).map((s) => (
@@ -417,12 +421,13 @@ export function ExplorePage() {
           </section>
         )}
 
-        <div className="h-24 md:h-8" />
-      </div>
+          <div className="h-24 md:h-8" />
+        </div>
 
-      <button className="md:hidden fixed bottom-20 right-4 z-30 flex h-12 w-12 items-center justify-center rounded-full bg-black text-white shadow-lg">
-        <Plus className="h-5 w-5" />
-      </button>
+        <button type="button" className="fixed bottom-20 right-4 z-30 flex h-12 w-12 items-center justify-center rounded-full bg-black text-white shadow-lg md:hidden">
+          <Plus className="h-5 w-5" />
+        </button>
+      </div>
     </div>
   );
 }
