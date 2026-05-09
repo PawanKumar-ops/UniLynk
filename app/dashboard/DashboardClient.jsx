@@ -659,17 +659,20 @@ export default function DashboardClient() {
             />
           </div> */}
           <button
-          type="button"
+            type="button"
             onClick={() => setDashboardView('explore')}
-            className="
+            aria-pressed={dashboardView === 'explore'}
+            className={`
                w-[325px] h-[54px]
                rounded-2xl border border-neutral-200
-               bg-white/90 backdrop-blur-md
+               backdrop-blur-md
                flex items-center justify-center gap-2
-               text-[16px] font-semibold text-neutral-900
+               text-[16px] font-semibold
                shadow-sm transition-all duration-300
-               hover:bg-[#f5f8fa]
-             "
+               ${dashboardView === 'explore'
+                 ? 'bg-black text-white hover:bg-neutral-900'
+                 : 'bg-white/90 text-neutral-900 hover:bg-[#f5f8fa]'}
+             `}
           >
             <span>Search Campus</span>
             <ArrowRight className="w-4 h-4" />
