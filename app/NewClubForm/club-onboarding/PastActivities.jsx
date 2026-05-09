@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Camera } from 'lucide-react';
 import './PastActivities.css';
 
-export default function PastActivities({ data, updateData, onNext, onBack }) {
+export default function PastActivities({ data, updateData, onSubmit, onBack }) {
   const [pastEvents, setPastEvents] = useState(data.pastEvents || []);
   const [currentEvent, setCurrentEvent] = useState({
     title: '',
@@ -74,9 +74,11 @@ export default function PastActivities({ data, updateData, onNext, onBack }) {
     setPastEvents(pastEvents.filter((_, i) => i !== index));
   };
 
-  const handleNext = () => {
+  const handleSubmit = () => {
+    const updatedData = { ...data, pastEvents };
+
     updateData({ pastEvents });
-    onNext();
+    onSubmit(updatedData);
   };
 
   return (
@@ -255,10 +257,10 @@ export default function PastActivities({ data, updateData, onNext, onBack }) {
           Back
         </button>
         <button
-          className="btn-next"
-          onClick={handleNext}
+          className="btn-submit"
+          onClick={handleSubmit}
         >
-          Continue
+          Complete Registration
         </button>
       </div>
     </div>
