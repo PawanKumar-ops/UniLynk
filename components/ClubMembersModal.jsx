@@ -78,13 +78,14 @@ export function MembersModal({ MemberModalopen, onClose }) {
                 </h2>
                 <p className="mt-1 text-black/60">{members.length} active members</p>
               </div>
+              
               <button
-                onClick={onClose}
-                aria-label="Close"
-                className="group relative grid h-10 w-10 place-items-center rounded-full bg-black/[0.04] text-black/70 transition hover:bg-black hover:text-white"
-              >
-                <X className="h-4 w-4" strokeWidth={2} />
-              </button>
+          type="button"
+          onClick={onClose}
+          className="p-2 rounded-xl hover:bg-neutral-100 transition-colors text-neutral-400 hover:text-black"
+        >
+          <X size={20} />
+        </button>
             </div>
 
             <div className="px-7 pb-4">
