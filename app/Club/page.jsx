@@ -5,12 +5,14 @@ import "./Club.css"
 import { useState } from "react";
 import Link from 'next/link'
 import { Sparkle } from 'lucide-react';
-import AddMembersFab from '@/components/AddMembersFab'
+import AddMembersFab from '@/components/AddMembersFab';
+import { MembersModal } from "@/components/ClubMembersModal";
 
 const Clubpage = () => {
     const tabs = ["About", "Past Activities", "Upcoming Events"];
     const [active, setActive] = useState(0);
     const [showAddMembersFab, setAddMembersFab] = useState(false)
+    const [MemberModalopen, setMemberModalOpen] = useState(false);
 
 
 
@@ -46,8 +48,15 @@ const Clubpage = () => {
                         <li className='membersnum'>123 Members</li>
                         <li className='joiningdate'>Joined Jan 2026</li>
                     </ul>
-
-                    <button className='clubcontactbtn'>Contact</button>
+                    <div className='flex gap-3'>
+                        <button
+                            onClick={() => setMemberModalOpen(true)}
+                            className='clubcontactbtn rounded-full w-[130px]'>
+                            Members
+                        </button>
+                        <MembersModal MemberModalopen={open} onClose={() => setMemberModalOpen(false)} />
+                        <button className='clubcontactbtn rounded-full w-[130px]'>Posts</button>
+                    </div>
                 </div>
 
                 <hr />

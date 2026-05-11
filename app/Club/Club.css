@@ -131,7 +131,7 @@
     margin-bottom: 40px;
     border: 1px solid black;
     padding: 8px 30px;
-    border-radius: 8px;
+    /* border-radius: 8px; */
     background-color: #000;
     color: #fff;
 }

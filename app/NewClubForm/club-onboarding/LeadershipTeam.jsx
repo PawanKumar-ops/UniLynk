@@ -61,7 +61,6 @@ export default function LeadershipTeam({ data, updateData, onNext, onBack }) {
               <div className="leader-info">
                 <h3 className="leader-name">{leader.name}</h3>
                 <p className="leader-position">{leader.position}</p>
-                {leader.bio && <p className="leader-bio">{leader.bio}</p>}
               </div>
               <button
                 className="btn-remove-leader"
@@ -88,7 +87,7 @@ export default function LeadershipTeam({ data, updateData, onNext, onBack }) {
           
 
           <div className="form-row">
-            <div className="form-group">
+            <div className="form-group-l">
               <label className="form-label">Student Email</label>
               <input
                 type="name"
@@ -100,7 +99,7 @@ export default function LeadershipTeam({ data, updateData, onNext, onBack }) {
               />
             </div>
 
-            <div className="form-group">
+            <div className="form-group-l">
               <label className="form-label">Position</label>
               <input
                 type="text"
@@ -113,17 +112,7 @@ export default function LeadershipTeam({ data, updateData, onNext, onBack }) {
             </div>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Bio (Optional)</label>
-            <textarea
-              name="bio"
-              className="form-textarea"
-              placeholder="Brief bio or role description..."
-              value={currentLeader.bio}
-              onChange={handleLeaderChange}
-              style={{ minHeight: '80px' }}
-            />
-          </div>
+          
 
           <div className="leader-form-actions">
             <button

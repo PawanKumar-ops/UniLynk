@@ -674,7 +674,7 @@ export default function DashboardClient() {
                  : 'bg-white/90 text-neutral-900 hover:bg-[#f5f8fa]'}
              `}
           >
-            <span>Search Campus</span>
+            <span>Explore Campus</span>
             <ArrowRight className="w-4 h-4" />
           </button>
           <hr className="mt-4" />

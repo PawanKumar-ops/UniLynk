@@ -17,7 +17,7 @@ import {
 function Input({ className = "", ...props }) {
   return (
     <input
-      className={`flex w-full rounded-md border bg-transparent px-3 py-1 text-base shadow-xs outline-none transition-[color,box-shadow] placeholder:text-neutral-500 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm ${className}`}
+      className={`flex w-full border bg-transparent px-3 py-1 text-base shadow-xs outline-none transition-[color,box-shadow] placeholder:text-neutral-500 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm ${className}`}
       {...props}
     />
   );
@@ -298,10 +298,7 @@ export function ExplorePage() {
     <div className="h-screen w-full overflow-y-auto bg-white overscroll-contain">
       <div className="mx-auto min-h-full w-full max-w-2xl border-x border-neutral-100 bg-white">
         <div className="sticky top-0 z-20 border-b border-neutral-200 bg-white/85 px-4 pb-3 pt-4 backdrop-blur">
-          <div className="flex items-center justify-between">
-            <h1 className="tracking-tight">Explore</h1>
-            <Sparkles className="h-5 w-5 text-neutral-500" />
-          </div>
+          
           <div className="relative mt-3">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
             <Input
@@ -364,26 +361,7 @@ export function ExplorePage() {
         </div>
 
         <div>
-          {tab !== "people" && (
-            <section>
-              <div className="flex items-center gap-2 px-4 pt-4 text-neutral-500">
-                <TrendingUp className="h-4 w-4" />
-                <span>Trending on campus</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2 px-4 pb-4 pt-2 sm:grid-cols-4">
-                {trendingTopics.map((t) => (
-                  <button
-                    key={t.tag}
-                    type="button"
-                    className="rounded-2xl border border-neutral-200 px-3 py-2 text-left transition-colors hover:bg-neutral-50"
-                  >
-                    <div className="truncate">{t.tag}</div>
-                    <div className="truncate text-neutral-500">{t.posts}</div>
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
+          
 
         {(tab === "forYou" || tab === "clubs") && (
           <section>

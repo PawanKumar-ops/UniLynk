@@ -101,52 +101,6 @@ export default function ContactInfo({ data, updateData, onNext, onBack }) {
         />
       </div>
 
-      <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginTop: '2rem', marginBottom: '1.5rem' }}>
-        Social Media (Optional)
-      </h3>
-
-      <div className="form-group">
-        <label className="form-label">
-          Instagram Username
-        </label>
-        <input
-          type="text"
-          name="instagram"
-          className="form-input"
-          placeholder="@innovationcell"
-          value={formData.instagram}
-          onChange={handleChange}
-        />
-      </div>
-
-      <div className="form-group">
-        <label className="form-label">
-          Twitter Username
-        </label>
-        <input
-          type="text"
-          name="twitter"
-          className="form-input"
-          placeholder="@innovationcell"
-          value={formData.twitter}
-          onChange={handleChange}
-        />
-      </div>
-
-      <div className="form-group">
-        <label className="form-label">
-          LinkedIn Page URL
-        </label>
-        <input
-          type="url"
-          name="linkedin"
-          className="form-input"
-          placeholder="https://linkedin.com/company/innovationcell"
-          value={formData.linkedin}
-          onChange={handleChange}
-        />
-      </div>
-
       <div className="form-actions">
         <button className="btn-back" onClick={onBack}>
           Back
