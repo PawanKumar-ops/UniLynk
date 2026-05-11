@@ -30,7 +30,7 @@ export function MembersModal({ MemberModalopen, onClose }) {
     const handler = (e) => {
       if (e.key === "Escape") onClose();
     };
-    if (open) {
+    if (MemberModalopen) {
       document.addEventListener("keydown", handler);
       document.body.style.overflow = "hidden";
     }
@@ -38,12 +38,12 @@ export function MembersModal({ MemberModalopen, onClose }) {
       document.removeEventListener("keydown", handler);
       document.body.style.overflow = "";
     };
-  }, [open, onClose]);
+  }, [MemberModalopen, onClose]);
 
   return (
     <AnimatePresence>
-      {open && <style>{scrollStyles}</style>}
-      {open && (
+      {MemberModalopen && <style>{scrollStyles}</style>}
+      {MemberModalopen && (
         <motion.div
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           initial={{ opacity: 0 }}

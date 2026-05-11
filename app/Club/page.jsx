@@ -54,7 +54,7 @@ const Clubpage = () => {
                             className='clubcontactbtn rounded-full w-[130px]'>
                             Members
                         </button>
-                        <MembersModal MemberModalopen={open} onClose={() => setMemberModalOpen(false)} />
+                        <MembersModal MemberModalopen={MemberModalopen} onClose={() => setMemberModalOpen(false)} />
                         <button className='clubcontactbtn rounded-full w-[130px]'>Posts</button>
                     </div>
                 </div>
