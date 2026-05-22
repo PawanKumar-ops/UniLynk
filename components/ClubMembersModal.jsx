@@ -65,7 +65,7 @@ export function MembersModal({ MemberModalopen, onClose }) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="members-title"
-            className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-white shadow-[0_30px_80px_-20px_rgba(0,0,0,0.35)] ring-1 ring-black/5"
+            className="relative flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-[28px] bg-white shadow-[0_30px_80px_-20px_rgba(0,0,0,0.35)] ring-1 ring-black/5"
             initial={{ opacity: 0, scale: 0.94, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
@@ -74,9 +74,6 @@ export function MembersModal({ MemberModalopen, onClose }) {
             <div className="flex items-start justify-between px-7 pt-7 pb-5">
               <div>
                 <p className="tracking-[0.18em] uppercase text-black/50">The Club</p>
-                <h2 id="members-title" className="mt-1.5 tracking-tight text-black">
-                  Members
-                </h2>
                 <p className="mt-1 text-black/60">{members.length} active members</p>
               </div>
 
@@ -100,7 +97,7 @@ export function MembersModal({ MemberModalopen, onClose }) {
               </div>
             </div>
 
-            <div className="members-scroll max-h-[420px] overflow-y-auto px-3 pb-4">
+            <div className="members-scroll flex-1 overflow-y-auto px-3 pb-4">
               <ul className="space-y-1">
                 {members.map((m, i) => (
                   <motion.li
