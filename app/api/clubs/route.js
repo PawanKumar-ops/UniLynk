@@ -33,6 +33,16 @@ const sanitizeClubPayload = (data = {}) => ({
         }))
         .filter((item) => item.title && item.description)
     : [],
+  leaders: Array.isArray(data.leaders)
+    ? data.leaders
+        .filter((item) => item && typeof item === "object")
+        .map((item) => ({
+          email: typeof item.email === "string" ? item.email.trim().toLowerCase() : "",
+          position: typeof item.position === "string" ? item.position.trim() : "",
+          image: typeof item.image === "string" ? item.image.trim() : "/Profilepic.png",
+        }))
+        .filter((item) => item.email && item.position)
+    : [],
 });
 
 export async function POST(req) {
