@@ -72,8 +72,18 @@ const MyClubsPage = () => {
 
       {!loading && clubs.map((club) => (
         <div className="clubinfo" key={club._id}>
-          <div className="clubimg">
-            <img src={club.logo || "/Defaultclublogo.svg"} alt="" />
+          <div
+            className={`flex h-16 w-16 items-center justify-center rounded-2xl ${club.logo
+                ? ""
+                : "bg-gradient-to-br from-violet-500 to-fuchsia-500 p-2 shadow-md"
+              }`}
+          >
+            <img
+              src={club.logo || "/Defaultclublogo.svg"}
+              alt="Club Logo"
+              className={`object-contain ${club.logo ? "h-16 w-16 rounded-[15px]" : "h-10 w-10"
+                }`}
+            />
           </div>
           <div className="aboutclub">
             <div className="club-name">{club.clubName}
@@ -104,7 +114,22 @@ const MyClubsPage = () => {
         </div>
       ))}
 
-      {!loading && clubs.length === 0 && <div>No leadership clubs found.</div>}
+      {!loading && clubs.length === 0 && <div className="flex flex-col justify-center items-center h-[60vh]">
+  <img
+    src="/myclubs/NoClubs.svg"
+    alt="No Clubs"
+    className="mb-8"
+  />
+
+  <h2 className="text-2xl mb-3 text-black">
+    You Are Not In Any Club
+  </h2>
+
+  <p className="w-[464px] text-center text-gray-500">
+    You haven’t joined any clubs yet. Explore different communities and become
+    a part of exciting campus activities.
+  </p>
+</div>}
 
       <hr className='mb-8' />
 

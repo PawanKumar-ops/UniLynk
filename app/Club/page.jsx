@@ -8,6 +8,7 @@ import { Sparkle } from 'lucide-react';
 import AddMembersFab from '@/components/AddMembersFab';
 import { MembersModal } from "@/components/ClubMembersModal";
 import { PostsModal } from "@/components/ClubPostsModal";
+import { Calendar, Users, Trophy, Heart } from 'lucide-react';
 
 const Clubpage = () => {
     const tabs = ["About", "Past Activities", "Upcoming Events"];
@@ -39,7 +40,32 @@ const Clubpage = () => {
             comments: 4,
         },
     ];
-
+    const activities = [
+        {
+            id: 1,
+            icon: Calendar,
+            title: "Weekly Events",
+            description: "Join us for exciting weekly events and workshops designed to bring members together and explore new interests."
+        },
+        {
+            id: 2,
+            icon: Users,
+            title: "Community Building",
+            description: "Connect with like-minded individuals and build lasting friendships through our inclusive community programs."
+        },
+        {
+            id: 3,
+            icon: Trophy,
+            title: "Competitions",
+            description: "Participate in friendly competitions and challenges that showcase your skills and push you to grow."
+        },
+        {
+            id: 4,
+            icon: Heart,
+            title: "Volunteer Work",
+            description: "Give back to the community through meaningful volunteer opportunities and service projects."
+        }
+    ];
 
 
     return (
@@ -129,15 +155,37 @@ const Clubpage = () => {
 
                                 <div className="whatwedo">
                                     <h1 className="clubprofhead">What We Do</h1>
-                                    <div className="whatcardcont">
-                                        <div className="whatcard"></div>
-                                        <div className="whatcard"></div>
-                                        <div className="whatcard"></div>
-                                        <div className="whatcard"></div>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-[32px]">
+                                        {activities.map((activity) => {
+                                            const Icon = activity.icon;
+
+                                            return (
+                                                <div
+                                                    key={activity.id}
+                                                    className="w-full h-[200px] rounded-[15px] border border-[rgb(230,230,230)] bg-[#f4f4f4] p-6 transition-all duration-300 ease-in-out flex flex-row hover:shadow-[0px_6px_9px_#4242421f] hover:-translate-y-[2px]"
+                                                >
+                                                    <div className="flex flex-col gap-4">
+                                                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center transition-colors">
+                                                            <Icon className="w-6 h-6 text-primary" />
+                                                        </div>
+
+                                                        <div className="space-y-2">
+                                                            <h3 className="text-foreground">
+                                                                {activity.title}
+                                                            </h3>
+
+                                                            <p className="text-muted-foreground leading-relaxed">
+                                                                {activity.description}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
 
-
+                                
                                 <div className="leadershipteam">
                                     <h1 className="clubprofhead">Leadership Team</h1>
                                     <div className="leadershipcards">
