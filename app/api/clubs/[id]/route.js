@@ -6,7 +6,9 @@ export async function GET(_req, { params }) {
   try {
     await connectDB();
 
-    const club = await Club.findById(params.id).lean();
+    const { id } = await params;
+
+const club = await Club.findById(id).lean();
     if (!club) {
       return Response.json({ message: "Club not found" }, { status: 404 });
     }

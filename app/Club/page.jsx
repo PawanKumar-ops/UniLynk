@@ -79,7 +79,7 @@ const Clubpage = () => {
                 const response = await fetch(`/api/clubs/${clubId}`, { cache: "no-store" });
                 if (!response.ok) throw new Error("Failed to fetch club");
                 const data = await response.json();
-                setClubData(data?.club || null);
+                setClubData(data || null);
             } catch (error) {
                 console.error("CLUB FETCH ERROR:", error);
                 setClubData(null);
