@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Trash2 } from 'lucide-react';
 import './WhatWeDo.css';
 
-export default function WhatWeDo({ data, updateData, onSubmit, onBack }) {
+export default function WhatWeDo({ data, updateData, onNext, onBack }) {
   const [activities, setActivities] = useState(data.activities || []);
   const [currentActivity, setCurrentActivity] = useState({
     title: '',
@@ -30,10 +30,9 @@ export default function WhatWeDo({ data, updateData, onSubmit, onBack }) {
     setActivities(activities.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = () => {
-    const updatedData = { ...data, activities };
+  const handleNext = () => {
     updateData({ activities });
-    onSubmit(updatedData);
+    onNext();
   };
 
   return (
@@ -123,11 +122,11 @@ export default function WhatWeDo({ data, updateData, onSubmit, onBack }) {
           Back
         </button>
         <button
-          className="btn-submit"
-          onClick={handleSubmit}
+          className="btn-next"
+          onClick={handleNext}
           disabled={activities.length === 0}
         >
-          Complete Registration
+          Continue
         </button>
       </div>
     </div>

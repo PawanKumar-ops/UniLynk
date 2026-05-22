@@ -1,5 +1,18 @@
 import { connectDB } from "@/lib/mongodb";
 import Club from "@/models/Club";
+import cloudinary from "@/lib/cloudinary";
+
+
+const uploadDataUrlToCloudinary = async (dataUrl, folder) => {
+  if (typeof dataUrl !== "string" || !dataUrl.startsWith("data:image/")) return "";
+
+  const result = await cloudinary.uploader.upload(dataUrl, {
+    folder,
+    resource_type: "image",
+  });
+
+  return typeof result?.secure_url === "string" ? result.secure_url : "";
+};
 
 const sanitizeClubPayload = (data = {}) => ({
   banner: typeof data.banner === "string" ? data.banner : "",
@@ -28,6 +41,9 @@ export async function POST(req) {
 
     const body = await req.json();
     const payload = sanitizeClubPayload(body);
+
+    payload.banner = await uploadDataUrlToCloudinary(payload.banner, "club-banners");
+    payload.logo = await uploadDataUrlToCloudinary(payload.logo, "club-logos");
 
     if (
       !payload.clubName ||

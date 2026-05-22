@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation';
 import BasicInfo from './club-onboarding/BasicInfo';
 import ContactInfo from './club-onboarding/ContactInfo';
 import WhatWeDo from './club-onboarding/WhatWeDo';
+import LeadershipTeam from './club-onboarding/LeadershipTeam';
+import PastActivities from './club-onboarding/PastActivities';
 import './ClubOnboarding.css';
 
 export default function ClubOnboarding() {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
-  const totalSteps = 3;
+  const totalSteps = 5;
   const [submitError, setSubmitError] = useState('');
 
   const [clubData, setClubData] = useState({
@@ -24,6 +26,9 @@ export default function ClubOnboarding() {
     email: '',
     website: '',
     activities: [],
+    leaders: [],
+    pastEvents: [],
+    upcomingEvents: [],
   });
 
   const updateClubData = (data) => {
@@ -71,7 +76,11 @@ export default function ClubOnboarding() {
       case 2:
         return <ContactInfo data={clubData} updateData={updateClubData} onNext={nextStep} onBack={prevStep} />;
       case 3:
-        return <WhatWeDo data={clubData} updateData={updateClubData} onSubmit={handleSubmit} onBack={prevStep} />;
+        return <WhatWeDo data={clubData} updateData={updateClubData} onNext={nextStep} onBack={prevStep} />;
+      case 4:
+        return <LeadershipTeam data={clubData} updateData={updateClubData} onNext={nextStep} onBack={prevStep} />;
+      case 5:
+        return <PastActivities data={clubData} updateData={updateClubData} onSubmit={handleSubmit} onBack={prevStep} />;
       default:
         return null;
     }
@@ -96,6 +105,8 @@ export default function ClubOnboarding() {
                 {step === 1 && 'Basic Info'}
                 {step === 2 && 'Contact'}
                 {step === 3 && 'Activities'}
+                {step === 4 && 'Team'}
+                {step === 5 && 'Past Events'}
               </div>
             </div>
           ))}
