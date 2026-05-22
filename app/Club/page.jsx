@@ -2,7 +2,8 @@
 
 import Image from 'next/image'
 import "./Club.css"
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link'
 import { Sparkle } from 'lucide-react';
 import AddMembersFab from '@/components/AddMembersFab';
@@ -11,11 +12,13 @@ import { PostsModal } from "@/components/ClubPostsModal";
 import { Calendar, Users, Trophy, Heart } from 'lucide-react';
 
 const Clubpage = () => {
+    const searchParams = useSearchParams();
     const tabs = ["About", "Past Activities", "Upcoming Events"];
     const [active, setActive] = useState(0);
     const [showAddMembersFab, setAddMembersFab] = useState(false)
     const [MemberModalopen, setMemberModalOpen] = useState(false);
     const [postsModalOpen, setPostsModalOpen] = useState(false);
+    const [clubData, setClubData] = useState(null);
     const clubPosts = [
         {
             id: "club-post-1",
@@ -40,32 +43,60 @@ const Clubpage = () => {
             comments: 4,
         },
     ];
-    const activities = [
+    const activityCards = [
         {
             id: 1,
             icon: Calendar,
-            title: "Weekly Events",
-            description: "Join us for exciting weekly events and workshops designed to bring members together and explore new interests."
+            title: "",
+            description: ""
         },
         {
             id: 2,
             icon: Users,
-            title: "Community Building",
-            description: "Connect with like-minded individuals and build lasting friendships through our inclusive community programs."
+            title: "",
+            description: ""
         },
         {
             id: 3,
             icon: Trophy,
-            title: "Competitions",
-            description: "Participate in friendly competitions and challenges that showcase your skills and push you to grow."
+            title: "",
+            description: ""
         },
         {
             id: 4,
             icon: Heart,
-            title: "Volunteer Work",
-            description: "Give back to the community through meaningful volunteer opportunities and service projects."
+            title: "",
+            description: ""
         }
     ];
+
+    useEffect(() => {
+        const clubId = searchParams.get("clubId");
+        if (!clubId) return;
+
+        const fetchClub = async () => {
+            try {
+                const response = await fetch(`/api/clubs/${clubId}`, { cache: "no-store" });
+                if (!response.ok) throw new Error("Failed to fetch club");
+                const data = await response.json();
+                setClubData(data?.club || null);
+            } catch (error) {
+                console.error("CLUB FETCH ERROR:", error);
+                setClubData(null);
+            }
+        };
+
+        fetchClub();
+    }, [searchParams]);
+
+    const sourceActivities = Array.isArray(clubData?.activities) ? clubData.activities : [];
+    const populatedActivities = activityCards.map((card, idx) => ({
+        ...card,
+        title: sourceActivities[idx]?.title || "",
+        description: sourceActivities[idx]?.description || "",
+    }));
+
+    const joinedLabel = clubData?.foundedDate ? `Joined ${clubData.foundedDate}` : "Joined recently";
 
 
     return (
@@ -75,10 +106,10 @@ const Clubpage = () => {
 
             {/* ===========================Club banner and logo============================= */}
             <div className="clubbanner">
-                <img src="Background.jpg" alt="" />
+                <img src={clubData?.banner || "Background.jpg"} alt="" />
             </div>
             <div className="clublogocont">
-                <div className="clublogo"><img src="Defaultclublogo.svg" alt="Clublogo" /></div>
+                <div className="clublogo"><img src={clubData?.logo || "Defaultclublogo.svg"} alt="Clublogo" /></div>
             </div>
             <div className="club-edit-add-btncont">
                 <button className='club-edit-add-btn club-add-btn'
@@ -94,11 +125,11 @@ const Clubpage = () => {
             {/* ===================================Club Name====================================== */}
             <div className="clubmain">
                 <div className="clubnameinfo">
-                    <h1 className='clubname'>Innovation Cell</h1>
+                    <h1 className='clubname'>{clubData?.clubName || "Club"}</h1>
                     <ul className='infoclub'>
-                        <li className='clubgener'>Innovation</li>
-                        <li className='membersnum'>123 Members</li>
-                        <li className='joiningdate'>Joined Jan 2026</li>
+                        <li className='clubgener'>{clubData?.category || "General"}</li>
+                        <li className='membersnum'>{clubData?.memberCount || 0} Members</li>
+                        <li className='joiningdate'>{joinedLabel}</li>
                     </ul>
                     <div className='flex gap-3'>
                         <button
@@ -116,7 +147,7 @@ const Clubpage = () => {
                         <PostsModal
                             open={postsModalOpen}
                             onOpenChange={setPostsModalOpen}
-                            clubName="Innovation Cell"
+                            clubName={clubData?.clubName || "Club"}
                             posts={clubPosts}
                         />
                     </div>
@@ -147,8 +178,8 @@ const Clubpage = () => {
                         {active === 0 && (
                             <div className="tab-panel">
                                 <div className="aboutclub">
-                                    <h1 className="clubprofhead">About Innovation Cell</h1>
-                                    <p className="abtclubp">Innovation Cell is a dynamic community of creative minds passionate about pushing boundaries in arts, technology, and media. We bring together students from diverse backgrounds to collaborate on groundbreaking projects, participate in workshops, and create meaningful impact through innovation.</p>
+                                    <h1 className="clubprofhead">About {clubData?.clubName || "Club"}</h1>
+                                    <p className="abtclubp">{clubData?.description || ""}</p>
                                 </div>
 
                                 {/*================================== What we do============================== */}
@@ -156,7 +187,7 @@ const Clubpage = () => {
                                 <div className="whatwedo">
                                     <h1 className="clubprofhead">What We Do</h1>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-[32px]">
-                                        {activities.map((activity) => {
+                                        {populatedActivities.map((activity) => {
                                             const Icon = activity.icon;
 
                                             return (
@@ -170,13 +201,8 @@ const Clubpage = () => {
                                                         </div>
 
                                                         <div className="space-y-2">
-                                                            <h3 className="text-xl">
-                                                                {activity.title}
-                                                            </h3>
-
-                                                            <p className="text-gray-500 leading-relaxed">
-                                                                {activity.description}
-                                                            </p>
+                                                            <h3 className="text-xl">{activity.title}</h3>
+                                                            <p className="text-gray-500 leading-relaxed">{activity.description}</p>
                                                         </div>
                                                     </div>
                                                 </div>
@@ -189,10 +215,20 @@ const Clubpage = () => {
                                 <div className="leadershipteam">
                                     <h1 className="clubprofhead">Leadership Team</h1>
                                     <div className="leadershipcards">
-                                        <div className="leadershipcard"></div>
-                                        <div className="leadershipcard"></div>
-                                        <div className="leadershipcard"></div>
-                                        <div className="leadershipcard"></div>
+                                        {[0, 1, 2, 3].map((index) => {
+                                            const leader = clubData?.leaders?.[index];
+                                            return (
+                                                <div className="leadershipcard" key={index}>
+                                                    {leader && (
+                                                        <>
+                                                            <img src={leader.image || "/Profilepic.png"} alt={leader.name} className="w-16 h-16 rounded-full object-cover mb-3" />
+                                                            <h3 className="text-lg">{leader.name || ""}</h3>
+                                                            <p className="text-gray-500">{leader.position || ""}</p>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 </div>
                             </div>

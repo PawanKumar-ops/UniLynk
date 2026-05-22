@@ -106,7 +106,7 @@ const MyClubsPage = () => {
               <div className="lastpost">{getLastPostLabel(club.updatedAt)}</div>
             </div>
             <div className="clubinfobtns">
-              <button className='open' onClick={() => window.location.href = "/Club"}>Open</button>
+              <button className='open' onClick={() => window.location.href = `/Club?clubId=${club._id}`}>Open</button>
               <button className='viewfeed'>View Feed</button>
               <button className='events'>Events</button>
             </div>
