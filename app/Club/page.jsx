@@ -165,16 +165,16 @@ const Clubpage = () => {
                                                     className="w-full h-[200px] rounded-[15px] border border-[rgb(230,230,230)] bg-[#f4f4f4] p-6 transition-all duration-300 ease-in-out flex flex-row hover:shadow-[0px_6px_9px_#4242421f] hover:-translate-y-[2px]"
                                                 >
                                                     <div className="flex flex-col gap-4">
-                                                        <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center transition-colors">
+                                                        <div className="w-12 h-12 rounded-full bg-[#e1e1e3] flex items-center justify-center group-hover:bg-[#d2d2d9] transition-colors">
                                                             <Icon className="w-6 h-6 text-primary" />
                                                         </div>
 
                                                         <div className="space-y-2">
-                                                            <h3 className="text-foreground">
+                                                            <h3 className="text-xl">
                                                                 {activity.title}
                                                             </h3>
 
-                                                            <p className="text-muted-foreground leading-relaxed">
+                                                            <p className="text-gray-500 leading-relaxed">
                                                                 {activity.description}
                                                             </p>
                                                         </div>
