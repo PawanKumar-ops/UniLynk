@@ -52,6 +52,78 @@ const [isNotify, setIsNotify] = useState(false)
         </div>
       </div>
 
+
+
+
+
+      <div className="clubinfo">
+        <div className="clubimg">
+          <img src="/Defaultclublogo.svg" alt="" />
+        </div>
+        <div className="aboutclub">
+          <div className="club-name">Innovation Cell
+            <button onClick={() => setIsNotify(true)}>
+            <div className="notify">
+              <img src="/myclubs/bell.svg" alt="notification" />
+              3
+            </div>
+            </button>
+             {isNotify && <Notification onClose={() => setIsNotify(false)}/>}
+          </div>
+          <ul>
+            <li className='clubgenre'>Arts & Media</li>
+            <li>87 members</li>
+            <li>Joined Sept 2025</li>
+          </ul>
+          <div className="post-time">
+            <div className="userpostcapsule">Member</div>
+            <img src="/myclubs/pulse.svg" alt="pulse" />
+            <div className="lastpost">Last post 3h ago</div>
+          </div>
+          <div className="clubinfobtns">
+            <button className='open' onClick={() => window.location.href= "/Club"}>Open</button>
+            <button className='viewfeed'>View Feed</button>
+            <button className='events'>Events</button>
+          </div>
+        </div>
+      </div>
+
+
+
+
+
+      <div className="clubinfo">
+        <div className="clubimg">
+          <img src="/Defaultclublogo.svg" alt="" />
+        </div>
+        <div className="aboutclub">
+          <div className="club-name">Innovation Cell
+            <button onClick={() => setIsNotify(true)}>
+            <div className="notify">
+              <img src="/myclubs/bell.svg" alt="notification" />
+              3
+            </div>
+            </button>
+             {isNotify && <Notification onClose={() => setIsNotify(false)}/>}
+          </div>
+          <ul>
+            <li className='clubgenre'>Arts & Media</li>
+            <li>87 members</li>
+            <li>Joined Sept 2025</li>
+          </ul>
+          <div className="post-time">
+            <div className="userpostcapsule">Member</div>
+            <img src="/myclubs/pulse.svg" alt="pulse" />
+            <div className="lastpost">Last post 3h ago</div>
+          </div>
+          <div className="clubinfobtns">
+            <button className='open' onClick={() => window.location.href= "/Club"}>Open</button>
+            <button className='viewfeed'>View Feed</button>
+            <button className='events'>Events</button>
+          </div>
+        </div>
+      </div>
+
       <hr className='mb-8' />
 
       <div className="exploremore">Explore More</div>
