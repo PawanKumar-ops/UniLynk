@@ -8,11 +8,7 @@ export default function ContactInfo({ data, updateData, onNext, onBack }) {
     memberCount: data.memberCount || 0,
     foundedDate: data.foundedDate || '',
     email: data.email || '',
-    phone: data.phone || '',
     website: data.website || '',
-    instagram: data.instagram || '',
-    twitter: data.twitter || '',
-    linkedin: data.linkedin || '',
   });
 
   const handleChange = (e) => {

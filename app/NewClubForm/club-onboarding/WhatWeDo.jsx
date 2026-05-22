@@ -9,7 +9,6 @@ export default function WhatWeDo({ data, updateData, onNext, onBack }) {
   const [currentActivity, setCurrentActivity] = useState({
     title: '',
     description: '',
-    image: '',
   });
 
   const [isAdding, setIsAdding] = useState(false);
@@ -19,21 +18,10 @@ export default function WhatWeDo({ data, updateData, onNext, onBack }) {
     setCurrentActivity({ ...currentActivity, [name]: value });
   };
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setCurrentActivity({ ...currentActivity, image: reader.result });
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   const addActivity = () => {
     if (currentActivity.title && currentActivity.description) {
       setActivities([...activities, currentActivity]);
-      setCurrentActivity({ title: '', description: '', image: '' });
+      setCurrentActivity({ title: '', description: '' });
       setIsAdding(false);
     }
   };
@@ -58,9 +46,6 @@ export default function WhatWeDo({ data, updateData, onNext, onBack }) {
         <div className="activities-list">
           {activities.map((activity, index) => (
             <div key={index} className="activity-card">
-              {activity.image && (
-                <img src={activity.image} alt={activity.title} className="activity-image" />
-              )}
               <div className="activity-content">
                 <h3 className="activity-title">{activity.title}</h3>
                 <p className="activity-description">{activity.description}</p>
@@ -116,7 +101,7 @@ export default function WhatWeDo({ data, updateData, onNext, onBack }) {
               className="btn-cancel"
               onClick={() => {
                 setIsAdding(false);
-                setCurrentActivity({ title: '', description: '', image: '' });
+                setCurrentActivity({ title: '', description: '' });
               }}
             >
               Cancel

@@ -1,26 +1,38 @@
 import { connectDB } from "@/lib/mongodb";
 import Club from "@/models/Club";
+import cloudinary from "@/lib/cloudinary";
+
+
+const uploadDataUrlToCloudinary = async (dataUrl, folder) => {
+  if (typeof dataUrl !== "string" || !dataUrl.startsWith("data:image/")) return "";
+
+  const result = await cloudinary.uploader.upload(dataUrl, {
+    folder,
+    resource_type: "image",
+  });
+
+  return typeof result?.secure_url === "string" ? result.secure_url : "";
+};
 
 const sanitizeClubPayload = (data = {}) => ({
+  banner: typeof data.banner === "string" ? data.banner : "",
+  logo: typeof data.logo === "string" ? data.logo : "",
   clubName: typeof data.clubName === "string" ? data.clubName.trim() : "",
   category: typeof data.category === "string" ? data.category.trim() : "",
   description: typeof data.description === "string" ? data.description.trim() : "",
-  logo: typeof data.logo === "string" ? data.logo : "",
-  banner: typeof data.banner === "string" ? data.banner : "",
   memberCount: Number.isFinite(Number(data.memberCount)) ? Number(data.memberCount) : 0,
   foundedDate: typeof data.foundedDate === "string" ? data.foundedDate : "",
   email: typeof data.email === "string" ? data.email.trim() : "",
-  phone: typeof data.phone === "string" ? data.phone.trim() : "",
   website: typeof data.website === "string" ? data.website.trim() : "",
-  instagram: typeof data.instagram === "string" ? data.instagram.trim() : "",
-  twitter: typeof data.twitter === "string" ? data.twitter.trim() : "",
-  linkedin: typeof data.linkedin === "string" ? data.linkedin.trim() : "",
   activities: Array.isArray(data.activities)
-    ? data.activities.filter((item) => typeof item === "string" && item.trim()).map((item) => item.trim())
+    ? data.activities
+        .filter((item) => item && typeof item === "object")
+        .map((item) => ({
+          title: typeof item.title === "string" ? item.title.trim() : "",
+          description: typeof item.description === "string" ? item.description.trim() : "",
+        }))
+        .filter((item) => item.title && item.description)
     : [],
-  leaders: Array.isArray(data.leaders) ? data.leaders : [],
-  pastEvents: Array.isArray(data.pastEvents) ? data.pastEvents : [],
-  upcomingEvents: Array.isArray(data.upcomingEvents) ? data.upcomingEvents : [],
 });
 
 export async function POST(req) {
@@ -30,9 +42,20 @@ export async function POST(req) {
     const body = await req.json();
     const payload = sanitizeClubPayload(body);
 
-    if (!payload.clubName || !payload.category || !payload.description) {
+    payload.banner = await uploadDataUrlToCloudinary(payload.banner, "club-banners");
+    payload.logo = await uploadDataUrlToCloudinary(payload.logo, "club-logos");
+
+    if (
+      !payload.clubName ||
+      !payload.category ||
+      !payload.description ||
+      payload.memberCount < 1 ||
+      !payload.foundedDate ||
+      !payload.email ||
+      payload.activities.length === 0
+    ) {
       return Response.json(
-        { error: "clubName, category and description are required" },
+        { error: "Required fields are missing or invalid" },
         { status: 400 }
       );
     }
