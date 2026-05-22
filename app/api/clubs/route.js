@@ -1,7 +1,8 @@
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/mongodb";
 import Club from "@/models/Club";
 import cloudinary from "@/lib/cloudinary";
-
 
 const uploadDataUrlToCloudinary = async (dataUrl, folder) => {
   if (typeof dataUrl !== "string" || !dataUrl.startsWith("data:image/")) return "";
@@ -44,6 +45,35 @@ const sanitizeClubPayload = (data = {}) => ({
         .filter((item) => item.email && item.position)
     : [],
 });
+
+export async function GET(req) {
+  const session = await getServerSession(authOptions);
+
+  if (!session?.user?.email) {
+    return Response.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    await connectDB();
+
+    const url = new URL(req.url);
+    const leadershipOnly = url.searchParams.get("leadershipOnly") === "true";
+
+    const filter = leadershipOnly
+      ? { "leaders.email": session.user.email.toLowerCase().trim() }
+      : {};
+
+    const clubs = await Club.find(filter)
+      .sort({ updatedAt: -1 })
+      .select("clubName category memberCount foundedDate logo createdAt updatedAt")
+      .lean();
+
+    return Response.json({ clubs }, { status: 200 });
+  } catch (error) {
+    console.error("FETCH CLUBS ERROR:", error);
+    return Response.json({ message: "Failed to fetch clubs" }, { status: 500 });
+  }
+}
 
 export async function POST(req) {
   try {
