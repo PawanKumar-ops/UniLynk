@@ -7,12 +7,38 @@ import Link from 'next/link'
 import { Sparkle } from 'lucide-react';
 import AddMembersFab from '@/components/AddMembersFab';
 import { MembersModal } from "@/components/ClubMembersModal";
+import { PostsModal } from "@/components/ClubPostsModal";
 
 const Clubpage = () => {
     const tabs = ["About", "Past Activities", "Upcoming Events"];
     const [active, setActive] = useState(0);
     const [showAddMembersFab, setAddMembersFab] = useState(false)
     const [MemberModalopen, setMemberModalOpen] = useState(false);
+    const [postsModalOpen, setPostsModalOpen] = useState(false);
+    const clubPosts = [
+        {
+            id: "club-post-1",
+            author: "Alexandra Chen",
+            role: "President",
+            timeAgo: "2h ago",
+            category: "Announcement",
+            title: "Welcome to Innovation Cell!",
+            content: "Kickstarting the semester with maker sessions and idea jams. Stay tuned for weekly activities.",
+            likes: 34,
+            comments: 8,
+        },
+        {
+            id: "club-post-2",
+            author: "Marcus Rivera",
+            role: "Vice President",
+            timeAgo: "1d ago",
+            category: "Event",
+            title: "Design Sprint this Saturday",
+            content: "Join us in Lab-3 at 10 AM. Bring your laptop and your best product ideas.",
+            likes: 21,
+            comments: 4,
+        },
+    ];
 
 
 
@@ -55,7 +81,18 @@ const Clubpage = () => {
                             Members
                         </button>
                         <MembersModal MemberModalopen={MemberModalopen} onClose={() => setMemberModalOpen(false)} />
-                        <button className='clubcontactbtn rounded-full w-[130px]'>Posts</button>
+                        <button
+                            onClick={() => setPostsModalOpen(true)}
+                            className='clubcontactbtn rounded-full w-[130px]'
+                        >
+                            Posts
+                        </button>
+                        <PostsModal
+                            open={postsModalOpen}
+                            onOpenChange={setPostsModalOpen}
+                            clubName="Innovation Cell"
+                            posts={clubPosts}
+                        />
                     </div>
                 </div>
 

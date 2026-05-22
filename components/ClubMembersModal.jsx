@@ -42,9 +42,10 @@ export function MembersModal({ MemberModalopen, onClose }) {
 
   return (
     <AnimatePresence>
-      {MemberModalopen && <style>{scrollStyles}</style>}
+      {MemberModalopen && <style key="members-scroll-style">{scrollStyles}</style>}
       {MemberModalopen && (
         <motion.div
+          key="members-modal"
           className="fixed inset-0 z-50 flex items-center justify-center p-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}

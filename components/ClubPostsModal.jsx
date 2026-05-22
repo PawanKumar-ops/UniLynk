@@ -28,7 +28,7 @@ export function PostsModal({ open, onOpenChange, clubName, posts }) {
         <ScrollArea className="max-h-[70vh]">
           <div className="px-7 py-5 space-y-5">
             {posts.map((post, idx) => (
-              <article key={post.id} className="group">
+              <article key={`${post.id}-${idx}`} className="group">
                 <div className="flex items-start gap-3">
                   <Avatar className="size-10 border border-black/10">
                     {post.avatar && <AvatarImage src={post.avatar} alt={post.author} />}
