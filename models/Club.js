@@ -1,49 +1,27 @@
 import mongoose from "mongoose";
 
-const EventSchema = new mongoose.Schema(
+const ActivitySchema = new mongoose.Schema(
   {
-    title: String,
-    date: String,
-    startTime: String,
-    endTime: String,
-    location: String,
-    description: String,
-    seats: Number,
-    seatsAvailable: Number,
-  },
-  { _id: false }
-);
-
-const LeaderSchema = new mongoose.Schema(
-  {
-    name: String,
-    position: String,
-    image: String,
+    title: { type: String, required: true, trim: true },
+    description: { type: String, required: true, trim: true },
   },
   { _id: false }
 );
 
 const ClubSchema = new mongoose.Schema(
   {
+    banner: { type: String, default: "" },
+    logo: { type: String, default: "" },
     clubName: { type: String, required: true, trim: true },
     category: { type: String, required: true, trim: true },
     description: { type: String, required: true, trim: true },
-    logo: String,
-    banner: String,
-    memberCount: { type: Number, default: 0 },
-    foundedDate: String,
-    email: String,
-    phone: String,
-    website: String,
-    instagram: String,
-    twitter: String,
-    linkedin: String,
-    activities: { type: [String], default: [] },
-    leaders: { type: [LeaderSchema], default: [] },
-    pastEvents: { type: [EventSchema], default: [] },
-    upcomingEvents: { type: [EventSchema], default: [] },
+    memberCount: { type: Number, required: true, min: 1 },
+    foundedDate: { type: String, required: true },
+    email: { type: String, required: true, trim: true },
+    website: { type: String, default: "", trim: true },
+    activities: { type: [ActivitySchema], default: [] },
   },
-  { timestamps: true }
+  { timestamps: true, strict: true }
 );
 
 export default mongoose.models.Club || mongoose.model("Club", ClubSchema, "clubs");
