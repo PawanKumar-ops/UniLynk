@@ -3,6 +3,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  color-scheme: light;
 }
 
 :root inline {
@@ -12,12 +13,6 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
 
 hr{
   border-top: 1px solid #e4eaec;
@@ -45,4 +40,8 @@ html, body {
 img, svg, video, canvas {
   max-width: 100%;
   height: auto;
+}
+
+html, body {
+  forced-color-adjust: none;
 }
