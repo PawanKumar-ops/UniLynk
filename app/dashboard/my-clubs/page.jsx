@@ -1,6 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import "./my-clubs.css"
 import Notification from '@/components/Notification'
 
@@ -33,6 +34,7 @@ const getLastPostLabel = (updatedAt) => {
 };
 
 const MyClubsPage = () => {
+  const router = useRouter()
   const [isNotify, setIsNotify] = useState(false)
   const [clubs, setClubs] = useState([])
   const [loading, setLoading] = useState(true)
@@ -106,7 +108,7 @@ const MyClubsPage = () => {
               <div className="lastpost">{getLastPostLabel(club.updatedAt)}</div>
             </div>
             <div className="clubinfobtns">
-              <button className='open' onClick={() => window.location.href = "/Club"}>Open</button>
+              <button className='open' onClick={() => router.push(`/Club?clubId=${club._id}`)}>Open</button>
               <button className='viewfeed'>View Feed</button>
               <button className='events'>Events</button>
             </div>
