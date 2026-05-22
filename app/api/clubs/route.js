@@ -58,6 +58,19 @@ export async function GET(req) {
 
     const url = new URL(req.url);
     const leadershipOnly = url.searchParams.get("leadershipOnly") === "true";
+    const clubId = url.searchParams.get("clubId");
+
+    if (clubId) {
+      const club = await Club.findById(clubId)
+        .select("banner logo clubName category description memberCount foundedDate activities leaders createdAt")
+        .lean();
+
+      if (!club) {
+        return Response.json({ message: "Club not found" }, { status: 404 });
+      }
+
+      return Response.json({ club }, { status: 200 });
+    }
 
     const filter = leadershipOnly
       ? { "leaders.email": session.user.email.toLowerCase().trim() }
