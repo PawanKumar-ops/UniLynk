@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Search,
   UserPlus,
@@ -107,6 +107,8 @@ export function ExplorePage({ onBack }) {
   const [query, setQuery] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
   const [results, setResults] = useState([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const searchContainerRef = useRef(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -138,7 +140,19 @@ export function ExplorePage({ onBack }) {
     };
   }, [query]);
 
-  const showSearchResults = useMemo(() => Boolean(query.trim()), [query]);
+  const showSearchResults = useMemo(() => Boolean(query.trim()) && isDropdownOpen, [query, isDropdownOpen]);
+
+  useEffect(() => {
+    const handleOutsideClick = (event) => {
+      if (!searchContainerRef.current?.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
+
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -150,14 +164,19 @@ export function ExplorePage({ onBack }) {
         >
           <ArrowLeft size={18} />
         </button>
-        <div className="relative w-[85%]">
+        <div className="relative w-[85%]" ref={searchContainerRef}>
           <Search
             size={18}
             className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400"
           />
           <input
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onFocus={() => setIsDropdownOpen(Boolean(query.trim()))}
+            onChange={(e) => {
+              const nextQuery = e.target.value;
+              setQuery(nextQuery);
+              setIsDropdownOpen(Boolean(nextQuery.trim()));
+            }}
             placeholder="Search students, clubs, events…"
             className="w-full pl-11 pr-4 py-3 rounded-full bg-neutral-100 border border-transparent focus:bg-white focus:border-neutral-300 outline-none text-sm transition"
           />
@@ -182,7 +201,10 @@ export function ExplorePage({ onBack }) {
                       <button
                         type="button"
                         className="flex w-full items-center gap-4 rounded-xl px-3 py-3 text-left transition-colors hover:bg-neutral-50"
-                        onClick={() => router.push(`/dashboard/search/id=${user.id}`)}
+                        onClick={() => {
+                          setIsDropdownOpen(false);
+                          router.push(`/dashboard/search/id=${user.id}`);
+                        }}
                       >
                         <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full bg-neutral-100 ring-2 ring-white shadow-sm">
                           {user.image ? (
