@@ -279,16 +279,18 @@ const Userprofile = () => {
                             <Icon icon="mdi:arrow-left" width={22} />
                         </button>
                     ) : (
-                        <div />
+                        <div className="top-bar-spacer" />
                     )}
 
-                    <button
-                        className="icon-btn top-nav-btn"
-                        type="button"
-                        aria-label="Save profile"
-                    >
-                        <Icon icon="mdi:content-save-outline" width={22} />
-                    </button>
+                    {isOwnProfile && (
+                        <button
+                            className="icon-btn top-nav-btn top-save-btn"
+                            type="button"
+                            aria-label="Save profile"
+                        >
+                            <Icon icon="mdi:content-save-outline" width={22} />
+                        </button>
+                    )}
                 </header>
 
 
