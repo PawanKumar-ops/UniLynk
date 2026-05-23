@@ -39,7 +39,7 @@
   gap: 1rem;
 }
 
-.loadcont{
+.loadcont {
   width: 100%;
   height: 100%;
   display: flex;
@@ -113,11 +113,11 @@
   width: 100%;
 }
 
-.user-profile-page{
+.user-profile-page {
   height: 100%;
 }
 
-.user-profile-errorpage{
+.user-profile-errorpage {
   width: 100%;
   height: 100%;
   display: flex;
@@ -126,7 +126,7 @@
   align-items: center;
 }
 
-.user-profile-error-msg{
+.user-profile-error-msg {
   margin-top: 24px;
   font-size: 30px;
   font-weight: 600;
@@ -279,30 +279,31 @@
   background: #e8e8e8;
 }
 
-.profilehr{
-    margin: 32px 0;
+.profilehr {
+  margin: 32px 0;
 }
 
-.social{
+.social {
   display: flex;
   gap: 12px;
   margin-top: 5px;
 }
 
 
-.applogo{
+.applogo {
   display: inline-flex;
   align-items: center;
   gap: 10px;
   text-decoration: none;
 }
 
-.social-platform-name{
+.social-platform-name {
   font-size: 1rem;
   font-weight: 600;
   color: #1f2937;
 }
-.applogo img{
+
+.applogo img {
   height: 40px;
   width: auto;
   padding: 5px;
@@ -312,7 +313,7 @@
   transition: transform 0.3s ease, background-color 0.3s ease;
 }
 
-.applogo img:hover{
+.applogo img:hover {
   background-color: #dddddd;
   transform: scale(1.07);
 }
@@ -329,7 +330,7 @@
 }
 
 .info-card:hover {
-  box-shadow: 0 8px 30px rgba(0,0,0,0.06);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
   border-color: #d0d0d0;
 }
 
@@ -373,7 +374,7 @@
   color: #ffffff;
 }
 
-.skills-card{
+.skills-card {
   background: #ffffff;
   border-radius: 20px;
   padding: 3rem;
@@ -381,7 +382,7 @@
   border: 1px solid #e8e8e8;
 }
 
-.skillscard-heading{
+.skillscard-heading {
   display: flex;
   gap: 10px;
   font-size: 1.5rem;
@@ -428,7 +429,7 @@
 }
 
 
-.clubs-card{
+.clubs-card {
   background: #ffffff;
   border-radius: 20px;
   padding: 3rem;
@@ -436,7 +437,7 @@
   border: 1px solid #e8e8e8;
 }
 
-.achievements-card{
+.achievements-card {
   background: #ffffff;
   border-radius: 20px;
   padding: 3rem;
@@ -479,6 +480,7 @@
   .menu-item span {
     display: none;
   }
+
   .hero-grid {
     grid-template-columns: 1fr;
     gap: 2rem;
@@ -494,35 +496,36 @@
 
   @media (max-width: 768px) {
 
-  .main-area {
-    margin-left: 0;
-    margin-bottom: 80px;
-  }
+    .main-area {
+      margin-left: 0;
+      margin-bottom: 80px;
+    }
 
-  .top-bar {
-    padding: 1rem;
-  }
+    .top-bar {
+      padding: 1rem;
+    }
 
-  .profile-content {
-    padding: 1.5rem;
-  }
+    .profile-content {
+      padding: 1.5rem;
+    }
 
-  .hero-section {
-    padding: 2rem;
-  }
+    .hero-section {
+      padding: 2rem;
+    }
 
-  .profile-img {
-    width: 100px;
-    height: 100px;
-  }
+    .profile-img {
+      width: 100px;
+      height: 100px;
+    }
 
-  .profile-name {
-    font-size: 2rem;
-  }
+    .profile-name {
+      font-size: 2rem;
+    }
 
-  .quick-stats {
-    flex-wrap: wrap;
-    gap: 1rem;
-  }
+    .quick-stats {
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
 
+  }
 }

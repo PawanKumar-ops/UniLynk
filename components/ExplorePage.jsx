@@ -179,9 +179,9 @@ export function ExplorePage({ onBack }) {
                       <ImageWithFallback src={item.image} alt={item.name} className="w-full h-full object-cover" />
                     </div>
                     <div className="min-w-0">
-                      <div className="text-base font-semibold text-neutral-900 truncate flex items-center gap-1">
+                      <div className="text-base font-semibold text-neutral-900 truncate flex items-center">
                         {item.name}
-                        <BadgeCheck size={16} className="text-sky-500 shrink-0" />
+                        
                       </div>
                       <div className="text-sm text-neutral-500 truncate">@{item.username || "user"}</div>
                     </div>
