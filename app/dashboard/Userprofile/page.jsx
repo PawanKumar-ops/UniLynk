@@ -269,26 +269,26 @@ const Userprofile = () => {
             <main className="main-area">
                 {/* Top Bar */}
                 <header className="userprofile-top-bar">
-                    {!isOwnProfile && (
+                    {!isOwnProfile ? (
                         <button
-                            className="icon-btn top-nav-btn top-nav-left"
+                            className="icon-btn top-nav-btn"
                             type="button"
                             onClick={() => router.back()}
                             aria-label="Go back"
                         >
                             <Icon icon="mdi:arrow-left" width={22} />
                         </button>
+                    ) : (
+                        <div />
                     )}
 
-                    {isOwnProfile && (
-                        <button
-                            className="icon-btn top-nav-btn top-nav-right"
-                            type="button"
-                            aria-label="Save profile"
-                        >
-                            <Icon icon="mdi:content-save-outline" width={22} />
-                        </button>
-                    )}
+                    <button
+                        className="icon-btn top-nav-btn"
+                        type="button"
+                        aria-label="Save profile"
+                    >
+                        <Icon icon="mdi:content-save-outline" width={22} />
+                    </button>
                 </header>
 
 
