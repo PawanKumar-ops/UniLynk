@@ -153,6 +153,16 @@
   background: #000000;
 }
 
+
+.top-nav-btn {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.top-nav-btn:hover {
+  background: #e5e7eb;
+}
+
 .editprofile-icon {
   color: #ffffff;
 }
