@@ -5,7 +5,7 @@ import "./userprofile.css"
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useSession } from "next-auth/react";
 import { useMemo } from 'react';
 import { Icon } from "@iconify/react";
@@ -19,6 +19,7 @@ const Userprofile = () => {
     const { data: session, status } = useSession();
     const searchParams = useSearchParams();
     const pathname = usePathname();
+    const router = useRouter();
     const routeUserId = useMemo(() => {
         const byQuery = searchParams.get('userId');
         if (byQuery) return byQuery;
@@ -268,17 +269,26 @@ const Userprofile = () => {
             <main className="main-area">
                 {/* Top Bar */}
                 <header className="userprofile-top-bar">
-
-
                     {!isOwnProfile && (
                         <button
-                            className="action-btn secondary-btn"
-                            onClick={() => setViewedProfile(sessionUser)}
+                            className="icon-btn top-nav-btn top-nav-left"
+                            type="button"
+                            onClick={() => router.back()}
+                            aria-label="Go back"
                         >
-                            ← Back to My Profile
+                            <Icon icon="mdi:arrow-left" width={22} />
                         </button>
                     )}
 
+                    {isOwnProfile && (
+                        <button
+                            className="icon-btn top-nav-btn top-nav-right"
+                            type="button"
+                            aria-label="Save profile"
+                        >
+                            <Icon icon="mdi:content-save-outline" width={22} />
+                        </button>
+                    )}
                 </header>
 
 
