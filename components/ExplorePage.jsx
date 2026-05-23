@@ -45,7 +45,6 @@ const users = [
 
 const trending = [
   {
-    tag: "#HackathonWeek",
     title: "48-hour Build Marathon kicks off",
     author: "Innovation Cell",
     image:
@@ -54,7 +53,6 @@ const trending = [
     comments: 73,
   },
   {
-    tag: "#FreshersNight",
     title: "Inside the rooftop celebration of '26",
     author: "Cultural Society",
     image:
@@ -63,7 +61,6 @@ const trending = [
     comments: 44,
   },
   {
-    tag: "#OpenMic",
     title: "Voices of the quad — Friday lineup",
     author: "Music Club",
     image:
@@ -73,14 +70,26 @@ const trending = [
   },
 ];
 
-const categories = [
-  { icon: Code, label: "Tech" },
-  { icon: Music, label: "Music" },
-  { icon: Camera, label: "Photo" },
-  { icon: BookOpen, label: "Academics" },
-  { icon: Calendar, label: "Events" },
-  { icon: Flame, label: "Sports" },
+const avatars = [
+  {
+    id: 1,
+    src: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMHBvcnRyYWl0fGVufDF8fHx8MTc3OTUxMzg3Mnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+    alt: "User 1"
+  },
+  {
+    id: 2,
+    src: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMHdvbWFuJTIwcG9ydHJhaXR8ZW58MXx8fHwxNzc5NDg3NDA2fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+    alt: "User 2"
+  },
+  {
+    id: 3,
+    src: "https://images.unsplash.com/photo-1554765345-6ad6a5417cde?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBtYW4lMjBwb3J0cmFpdHxlbnwxfHx8fDE3NzkzOTI5NDJ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
+    alt: "User 3"
+  }
 ];
+
+const extraCount = 3;
+
 
 const ImageWithFallback = ({ src, alt, className = "" }) => (
   <ReliableImage
@@ -100,21 +109,12 @@ export function ExplorePage({ onBack }) {
       <div className="flex items-center gap-3 px-6 py-4 border-b border-neutral-100">
         <button
           onClick={onBack}
-          className="w-9 h-9 grid place-items-center rounded-full hover:bg-neutral-100 transition"
+          className="w-9 h-9 shrink-0 grid place-items-center rounded-full hover:bg-neutral-100 transition"
           aria-label="Back"
         >
           <ArrowLeft size={18} />
         </button>
-        <div>
-          <div>Explore Campus</div>
-          <div className="text-xs text-neutral-500">
-            Discover people, clubs and what&apos;s buzzing today
-          </div>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-8">
-        <div className="relative">
+        <div className="relative w-[85%]">
           <Search
             size={18}
             className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400"
@@ -126,24 +126,16 @@ export function ExplorePage({ onBack }) {
             className="w-full pl-11 pr-4 py-3 rounded-full bg-neutral-100 border border-transparent focus:bg-white focus:border-neutral-300 outline-none text-sm transition"
           />
         </div>
+      </div>
 
-        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-          {categories.map(({ icon: Icon, label }) => (
-            <button
-              key={label}
-              className="shrink-0 flex items-center gap-2 px-4 py-2 rounded-full border border-neutral-200 hover:border-black hover:bg-black hover:text-white transition text-sm"
-            >
-              <Icon size={14} />
-              {label}
-            </button>
-          ))}
-        </div>
+      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-8">
+
 
         <section>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <TrendingUp size={16} />
-              <h3>Trending on Campus</h3>
+
+              <h3 className="text-[1.125rem] font-bold">Trending on Campus</h3>
             </div>
             <button className="text-xs text-neutral-500 hover:text-black">View all</button>
           </div>
@@ -157,9 +149,32 @@ export function ExplorePage({ onBack }) {
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
               <div className="relative h-full min-h-72 flex flex-col justify-end p-4 text-white">
-                <span className="self-start text-xs px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-sm mb-2">
-                  {trending[0].tag}
-                </span>
+
+
+                <div className="flex items-center">
+                  {avatars.map((avatar, index) => (
+                    <div
+                      key={avatar.id}
+                      className={`relative w-7 h-7 rounded-full overflow-hidden border-2 border-zinc-900 bg-white shrink-0 ${index !== 0 ? "-ml-3" : ""
+                        }`}
+                    >
+                      <img
+                        src={avatar.src}
+                        alt={avatar.alt}
+                        className="w-full h-full object-cover object-center scale-110"
+                      />
+                    </div>
+                  ))}
+
+                  <div className="relative w-7 h-7 -ml-3 rounded-full bg-zinc-700 border-2 border-zinc-900 flex items-center justify-center shrink-0">
+                    <span className="text-white text-sm font-medium">
+                      +{extraCount}
+                    </span>
+                  </div>
+                </div>
+
+
+
                 <div className="text-sm leading-snug">{trending[0].title}</div>
                 <div className="text-xs text-white/70 mt-1">by {trending[0].author}</div>
                 <div className="flex items-center gap-3 mt-3 text-xs text-white/80">
@@ -181,9 +196,33 @@ export function ExplorePage({ onBack }) {
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/75 to-transparent" />
                 <div className="relative min-h-36 flex flex-col justify-end p-3 text-white">
-                  <span className="self-start text-[10px] px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-sm mb-1.5">
-                    {t.tag}
-                  </span>
+
+
+
+                  <div className="flex items-center">
+                    {avatars.map((avatar, index) => (
+                      <div
+                        key={avatar.id}
+                        className={`relative w-7 h-7 rounded-full overflow-hidden border-2 border-zinc-900 bg-white shrink-0 ${index !== 0 ? "-ml-3" : ""
+                          }`}
+                      >
+                        <img
+                          src={avatar.src}
+                          alt={avatar.alt}
+                          className="w-full h-full object-cover object-center scale-110"
+                        />
+                      </div>
+                    ))}
+
+                    <div className="relative w-7 h-7 -ml-3 rounded-full bg-zinc-700 border-2 border-zinc-900 flex items-center justify-center shrink-0">
+                      <span className="text-white text-sm font-medium">
+                        +{extraCount}
+                      </span>
+                    </div>
+                  </div>
+
+
+
                   <div className="text-xs leading-snug line-clamp-2">{t.title}</div>
                 </div>
               </article>
@@ -194,8 +233,8 @@ export function ExplorePage({ onBack }) {
         <section>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <Sparkles size={16} />
-              <h3>Suggested for you</h3>
+
+              <h3 className="text-[1.125rem] font-bold">Suggested for you</h3>
             </div>
             <button className="text-xs text-neutral-500 hover:text-black">Refresh</button>
           </div>
