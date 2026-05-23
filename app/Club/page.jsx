@@ -79,7 +79,7 @@ const Clubpage = () => {
                 const response = await fetch(`/api/clubs/${clubId}`, { cache: "no-store" });
                 if (!response.ok) throw new Error("Failed to fetch club");
                 const data = await response.json();
-                setClubData(data || null);
+                setClubData(data?.club || data || null);
             } catch (error) {
                 console.error("CLUB FETCH ERROR:", error);
                 setClubData(null);
@@ -211,21 +211,41 @@ const Clubpage = () => {
                                     </div>
                                 </div>
 
-                                
+
                                 <div className="leadershipteam">
-                                    <h1 className="clubprofhead">Leadership Team</h1>
-                                    <div className="leadershipcards">
+                                    <h1 className="clubprofhead mb-6">
+                                        Leadership Team
+                                    </h1>
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                                         {[0, 1, 2, 3].map((index) => {
                                             const leader = clubData?.leaders?.[index];
+
+                                            if (!leader) return null;
+
                                             return (
-                                                <div className="leadershipcard" key={index}>
-                                                    {leader && (
-                                                        <>
-                                                            <img src={leader.image || "/Profilepic.png"} alt={leader.name} className="w-16 h-16 rounded-full object-cover mb-3" />
-                                                            <h3 className="text-lg">{leader.name || ""}</h3>
-                                                            <p className="text-gray-500">{leader.position || ""}</p>
-                                                        </>
-                                                    )}
+                                                <div
+                                                    key={index}
+                                                    className="bg-[#f4f4f4] border border-[rgb(230,230,230)] rounded-[20px] p-6 flex flex-col items-center text-center transition-all duration-300 hover:-translate-y-[2px] hover:shadow-[0px_6px_9px_#4242421f]"
+                                                >
+                                                    <div className="mb-4">
+                                                        <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-md flex items-center justify-center bg-white">
+                                                            <img
+                                                                src={leader.image || "/Profilepic.png"}
+                                                                alt={leader.name}
+                                                                className="w-full h-full object-cover object-center"
+                                                            />
+                                                        </div>
+
+                                                    </div>
+
+                                                    <h3 className="text-lg font-semibold text-black">
+                                                        {leader.name || "Unknown"}
+                                                    </h3>
+
+                                                    <p className="text-gray-500 text-sm mt-1">
+                                                        {leader.position || "Member"}
+                                                    </p>
                                                 </div>
                                             );
                                         })}
