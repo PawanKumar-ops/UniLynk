@@ -5,6 +5,7 @@ import "./userprofile.css"
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import { useState, useEffect } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useSession } from "next-auth/react";
 import { useMemo } from 'react';
 import { Icon } from "@iconify/react";
@@ -16,11 +17,18 @@ import { SOCIAL_ICONS } from '@/lib/socialIcons'
 const Userprofile = () => {
 
     const { data: session, status } = useSession();
+    const searchParams = useSearchParams();
+    const pathname = usePathname();
+    const routeUserId = useMemo(() => {
+        const byQuery = searchParams.get('userId');
+        if (byQuery) return byQuery;
+        const match = pathname?.match(/\/dashboard\/search\/id=(.+)$/);
+        return match ? decodeURIComponent(match[1]) : null;
+    }, [searchParams, pathname]);
     const [sessionUser, setSessionUser] = useState(null);
     const [viewedProfile, setViewedProfile] = useState(null);
     const [showEditProfileModal, setEditProfileModal] = useState(false)
     const [profileLoading, setProfileLoading] = useState(true);
-    const [searchLoading, setSearchLoading] = useState(false);
     const [error, setError] = useState("");
     const YEAR_OFFSET = {
         "First Year": 0,
@@ -29,73 +37,6 @@ const Userprofile = () => {
         "Fourth Year": 3,
         "Fifth Year": 4,
     };
-
-
-
-
-
-
-    const [searchTerm, setSearchTerm] = useState("");
-    const [results, setResults] = useState([]);
-    const [selectedItem, setSelectedItem] = useState(null);
-
-    useEffect(() => {
-        if (!searchTerm.trim()) {
-            setResults([]);
-            return;
-        }
-
-        const controller = new AbortController();
-        setSearchLoading(true);
-
-        const timer = setTimeout(async () => {
-            try {
-                const res = await fetch(
-                    `/api/users/search?q=${encodeURIComponent(searchTerm)}`,
-                    { signal: controller.signal }
-                );
-                const data = await res.json();
-                setResults(data.results || []);
-            } catch (err) {
-                if (err.name !== "AbortError") setResults([]);
-            } finally {
-                setSearchLoading(false);
-            }
-        }, 300);
-
-        return () => {
-            controller.abort();
-            clearTimeout(timer);
-        };
-    }, [searchTerm]);
-
-
-    const suggestions = useMemo(() => {
-        if (!searchTerm.trim()) return [];
-        return results;
-    }, [results, searchTerm]);
-
-    const handleSuggestionClick = async (item) => {
-        if (item.type !== "user") return;
-
-        try {
-            setProfileLoading(true);
-
-            const res = await fetch(`/api/users/${item.id}`);
-            const data = await res.json();
-
-            if (!res.ok) throw new Error(data.message);
-
-            setViewedProfile(data.user); //  switch profile
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setProfileLoading(false);
-            setSearchTerm("");
-            setResults([]);
-        }
-    };
-
 
 
 
@@ -114,7 +55,15 @@ const Userprofile = () => {
                 if (!res.ok) throw new Error(data.message);
 
                 setSessionUser(data.user);
-                setViewedProfile(data.user); // default profile
+
+                if (routeUserId) {
+                    const profileRes = await fetch(`/api/users/${routeUserId}`, { cache: 'no-store' });
+                    const profileData = await profileRes.json();
+                    if (!profileRes.ok) throw new Error(profileData.message);
+                    setViewedProfile(profileData.user);
+                } else {
+                    setViewedProfile(data.user);
+                }
             } catch (err) {
                 setError(err.message);
             } finally {
@@ -123,7 +72,7 @@ const Userprofile = () => {
         };
 
         getUserProfile();
-    }, [status]);
+    }, [status, routeUserId]);
 
     const isOwnProfile = useMemo(() => {
         if (!sessionUser || !viewedProfile) return false;
@@ -330,47 +279,6 @@ const Userprofile = () => {
                         </button>
                     )}
 
-
-
-                    <div className="userprofile-search-wrapper">
-                        <div className="userprofile-search-box">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                            </svg>
-
-                            <input
-                                type="text"
-                                placeholder="Search students, clubs, events..."
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
-                        </div>
-
-                        {searchTerm.trim() && (
-                            <div className="profile-suggestions">
-                                {searchLoading ? (
-                                    <div className="suggestion-empty">Searching...</div>
-                                ) : results.length === 0 ? (
-                                    <div className="suggestion-empty">No users or clubs found.</div>
-                                ) : (
-                                    results.map((item) => (
-                                        <button
-                                            key={`${item.type}-${item.id}`}
-                                            className="suggestion-item"
-                                            onClick={() => handleSuggestionClick(item)}
-                                        >
-                                            <img src={item.image} alt={item.name} />
-                                            <div className="suggestion-text">
-                                                <strong>{item.name}</strong>
-                                                <span>{item.type === "club" ? "Club" : "User"}</span>
-                                            </div>
-                                        </button>
-                                    ))
-                                )}
-                            </div>
-                        )}
-                    </div>
                 </header>
 
 
