@@ -14,8 +14,7 @@ import {
   Camera,
   BookOpen,
 } from "lucide-react";
-
-type Props = { onBack: () => void };
+import ReliableImage from "./ReliableImage";
 
 const users = [
   {
@@ -83,7 +82,17 @@ const categories = [
   { icon: Flame, label: "Sports" },
 ];
 
-export function ExplorePage({ onBack }: Props) {
+const ImageWithFallback = ({ src, alt, className = "" }) => (
+  <ReliableImage
+    src={src}
+    alt={alt}
+    className={className}
+    maxRetries={2}
+    fallbackSrc="/Profilepic.png"
+  />
+);
+
+export function ExplorePage({ onBack }) {
   const [query, setQuery] = useState("");
 
   return (
@@ -99,13 +108,12 @@ export function ExplorePage({ onBack }: Props) {
         <div>
           <div>Explore Campus</div>
           <div className="text-xs text-neutral-500">
-            Discover people, clubs and what's buzzing today
+            Discover people, clubs and what&apos;s buzzing today
           </div>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto px-6 py-5 space-y-8">
-        {/* Search */}
         <div className="relative">
           <Search
             size={18}
@@ -119,7 +127,6 @@ export function ExplorePage({ onBack }: Props) {
           />
         </div>
 
-        {/* Categories */}
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
           {categories.map(({ icon: Icon, label }) => (
             <button
@@ -132,20 +139,16 @@ export function ExplorePage({ onBack }: Props) {
           ))}
         </div>
 
-        {/* Trending */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <TrendingUp size={16} />
               <h3>Trending on Campus</h3>
             </div>
-            <button className="text-xs text-neutral-500 hover:text-black">
-              View all
-            </button>
+            <button className="text-xs text-neutral-500 hover:text-black">View all</button>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            {/* Hero trending card */}
             <article className="row-span-2 relative rounded-2xl overflow-hidden border border-neutral-200 group cursor-pointer">
               <ImageWithFallback
                 src={trending[0].image}
@@ -158,16 +161,10 @@ export function ExplorePage({ onBack }: Props) {
                   {trending[0].tag}
                 </span>
                 <div className="text-sm leading-snug">{trending[0].title}</div>
-                <div className="text-xs text-white/70 mt-1">
-                  by {trending[0].author}
-                </div>
+                <div className="text-xs text-white/70 mt-1">by {trending[0].author}</div>
                 <div className="flex items-center gap-3 mt-3 text-xs text-white/80">
-                  <span className="flex items-center gap-1">
-                    <Heart size={12} /> {trending[0].likes}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <MessageCircle size={12} /> {trending[0].comments}
-                  </span>
+                  <span className="flex items-center gap-1"><Heart size={12} /> {trending[0].likes}</span>
+                  <span className="flex items-center gap-1"><MessageCircle size={12} /> {trending[0].comments}</span>
                 </div>
               </div>
             </article>
@@ -194,16 +191,13 @@ export function ExplorePage({ onBack }: Props) {
           </div>
         </section>
 
-        {/* Suggested connections */}
         <section>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
               <Sparkles size={16} />
               <h3>Suggested for you</h3>
             </div>
-            <button className="text-xs text-neutral-500 hover:text-black">
-              Refresh
-            </button>
+            <button className="text-xs text-neutral-500 hover:text-black">Refresh</button>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -222,9 +216,7 @@ export function ExplorePage({ onBack }: Props) {
                 <div className="min-w-0 flex-1">
                   <div className="text-sm truncate">{u.name}</div>
                   <div className="text-xs text-neutral-500 truncate">{u.role}</div>
-                  <div className="text-[11px] text-neutral-400 mt-0.5">
-                    {u.mutual} mutual
-                  </div>
+                  <div className="text-[11px] text-neutral-400 mt-0.5">{u.mutual} mutual</div>
                 </div>
                 <button className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full bg-black text-white text-xs hover:bg-neutral-800 transition">
                   <UserPlus size={12} />
