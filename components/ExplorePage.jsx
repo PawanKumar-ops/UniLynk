@@ -1,19 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Search,
-  TrendingUp,
-  Sparkles,
   UserPlus,
   Heart,
   MessageCircle,
   ArrowLeft,
-  Flame,
-  Calendar,
-  Code,
-  Music,
-  Camera,
-  BookOpen,
-  BadgeCheck,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import ReliableImage from "./ReliableImage";
@@ -103,6 +94,15 @@ const ImageWithFallback = ({ src, alt, className = "" }) => (
   />
 );
 
+const initials = (name = "") =>
+  name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || "")
+    .join("");
+
 export function ExplorePage({ onBack }) {
   const [query, setQuery] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
@@ -163,30 +163,50 @@ export function ExplorePage({ onBack }) {
           />
 
           {showSearchResults && (
-            <div className="absolute top-[calc(100%+8px)] left-0 w-full max-h-[520px] overflow-y-auto rounded-2xl border border-neutral-200 bg-[#f4f4f4] shadow-xl z-30">
+            <div
+              className="absolute top-[calc(100%+8px)] left-0 z-30 max-h-[520px] overflow-y-auto overflow-hidden rounded-2xl border border-neutral-200/80 bg-white p-2 shadow-[0_8px_30px_rgb(0,0,0,0.06)]"
+              style={{ width: 484 }}
+            >
               {searchLoading ? (
-                <div className="px-4 py-4 text-sm text-neutral-500">Searching users...</div>
+                <div className="px-4 py-8 text-center text-neutral-500">
+                  Searching users...
+                </div>
               ) : results.length === 0 ? (
-                <div className="px-4 py-4 text-sm text-neutral-500">No users found.</div>
+                <div className="px-4 py-8 text-center text-neutral-500">
+                  No users found for "{query}"
+                </div>
               ) : (
-                results.map((item) => (
-                  <button
-                    key={`${item.type}-${item.id}`}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-neutral-200/70 transition"
-                    onClick={() => router.push(`/dashboard/search/id=${item.id}`)}
-                  >
-                    <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 bg-neutral-200">
-                      <ImageWithFallback src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="text-base font-semibold text-neutral-900 truncate flex items-center">
-                        {item.name}
-                        
-                      </div>
-                      <div className="text-sm text-neutral-500 truncate">@{item.username || "user"}</div>
-                    </div>
-                  </button>
-                ))
+                <ul className="flex flex-col">
+                  {results.map((user) => (
+                    <li key={user.id}>
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-4 rounded-xl px-3 py-3 text-left transition-colors hover:bg-neutral-50"
+                        onClick={() => router.push(`/dashboard/search/id=${user.id}`)}
+                      >
+                        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full bg-neutral-100 ring-2 ring-white shadow-sm">
+                          {user.image ? (
+                            <ImageWithFallback
+                              src={user.image}
+                              alt={user.name}
+                              className="h-full w-full object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-neutral-700">
+                              {initials(user.name)}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex min-w-0 flex-1 flex-col">
+                          <span className="truncate text-neutral-900">{user.name}</span>
+                          <span className="truncate text-neutral-500">
+                            {user.email || `@${user.username || "user"}`}
+                          </span>
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
           )}
