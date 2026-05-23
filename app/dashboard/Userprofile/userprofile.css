@@ -33,42 +33,6 @@
   z-index: 50;
 }
 
-.userprofile-search-box {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  background: #f5f5f5;
-  padding: 0.75rem 1.25rem;
-  border-radius: 12px;
-  width: 450px;
-  transition: all 0.3s ease;
-}
-
-.userprofile-search-box:focus-within {
-  background: #ffffff;
-  box-shadow: 0 0 0 2px #000000;
-}
-
-.userprofile-search-box svg {
-  width: 20px;
-  height: 20px;
-  color: #666666;
-  stroke-width: 2;
-}
-
-.userprofile-search-box input {
-  border: none;
-  background: transparent;
-  outline: none;
-  flex: 1;
-  font-size: 0.95rem;
-  color: #000000;
-}
-
-.userprofile-search-box input::placeholder {
-  color: #999999;
-}
-
 .top-bar-actions {
   display: flex;
   align-items: center;
@@ -488,76 +452,6 @@
 
 
 
-.userprofile-search-wrapper {
-  position: relative;
-  width: 450px;
-  z-index: 1000;
-}
-
-.profile-suggestions {
-  margin-top: 8px;
-  border-radius: 14px;
-  border: 1px solid #e6e6e6;
-  background: #fff;
-  overflow: hidden;
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  width: 100%;
-  max-height: 420px;
-  z-index: 9999;
-}
-
-.suggestion-item {
-  width: 100%;
-  border: none;
-  border-bottom: 1px solid #f0f0f0;
-  background: transparent;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  cursor: pointer;
-  text-align: left;
-}
-
-.suggestion-item:last-child {
-  border-bottom: none;
-}
-
-.suggestion-item:hover {
-  background: #f7f8ff;
-}
-
-.suggestion-item img {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 1px solid #ddd;
-}
-
-.suggestion-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.suggestion-text strong {
-  font-size: 14px;
-}
-
-.suggestion-text span {
-  font-size: 12px;
-  color: #666;
-}
-
-.suggestion-empty {
-  padding: 16px;
-  color: #666;
-  font-size: 14px;
-}
-
 
 
 
@@ -598,13 +492,7 @@
     flex: 1;
   }
 
-  .userprofile-search-box {
-    width: auto;
-    flex: 1;
-  }
-}
-
-@media (max-width: 768px) {
+  @media (max-width: 768px) {
 
   .main-area {
     margin-left: 0;

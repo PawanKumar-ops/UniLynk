@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Search,
   TrendingUp,
@@ -13,7 +13,9 @@ import {
   Music,
   Camera,
   BookOpen,
+  BadgeCheck,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import ReliableImage from "./ReliableImage";
 
 const users = [
@@ -94,6 +96,40 @@ const ImageWithFallback = ({ src, alt, className = "" }) => (
 
 export function ExplorePage({ onBack }) {
   const [query, setQuery] = useState("");
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [results, setResults] = useState([]);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!query.trim()) {
+      setResults([]);
+      return;
+    }
+
+    const controller = new AbortController();
+    setSearchLoading(true);
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`, {
+          signal: controller.signal,
+        });
+        const data = await res.json();
+        setResults((data.results || []).filter((item) => item.type === "user"));
+      } catch (err) {
+        if (err.name !== "AbortError") setResults([]);
+      } finally {
+        setSearchLoading(false);
+      }
+    }, 300);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [query]);
+
+  const showSearchResults = useMemo(() => Boolean(query.trim()), [query]);
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -125,6 +161,35 @@ export function ExplorePage({ onBack }) {
             placeholder="Search students, clubs, events…"
             className="w-full pl-11 pr-4 py-3 rounded-full bg-neutral-100 border border-transparent focus:bg-white focus:border-neutral-300 outline-none text-sm transition"
           />
+
+          {showSearchResults && (
+            <div className="absolute top-[calc(100%+8px)] left-0 w-full max-h-[520px] overflow-y-auto rounded-2xl border border-neutral-200 bg-[#f4f4f4] shadow-xl z-30">
+              {searchLoading ? (
+                <div className="px-4 py-4 text-sm text-neutral-500">Searching users...</div>
+              ) : results.length === 0 ? (
+                <div className="px-4 py-4 text-sm text-neutral-500">No users found.</div>
+              ) : (
+                results.map((item) => (
+                  <button
+                    key={`${item.type}-${item.id}`}
+                    className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-neutral-200/70 transition"
+                    onClick={() => router.push(`/dashboard/search/id=${item.id}`)}
+                  >
+                    <div className="w-12 h-12 rounded-full overflow-hidden shrink-0 bg-neutral-200">
+                      <ImageWithFallback src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="text-base font-semibold text-neutral-900 truncate flex items-center gap-1">
+                        {item.name}
+                        <BadgeCheck size={16} className="text-sky-500 shrink-0" />
+                      </div>
+                      <div className="text-sm text-neutral-500 truncate">@{item.username || "user"}</div>
+                    </div>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
