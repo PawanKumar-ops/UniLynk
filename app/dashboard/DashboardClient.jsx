@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import './dashboard.css';
 import { ArrowLeft, EllipsisVertical, ArrowRight } from 'lucide-react';
 import { useSession } from 'next-auth/react';
+import { usePathname, useRouter } from 'next/navigation';
 import PostFAB from '../../components/PostFAB';
 import Post from '../../components/Post';
 import ReliableImage from '../../components/ReliableImage';
@@ -109,7 +110,13 @@ export default function DashboardClient() {
   const [openShare, setOpenShare] = useState(false);
   const [menuPostId, setMenuPostId] = useState(null);
   const [reportPostId, setReportPostId] = useState(null);
-  const [dashboardView, setDashboardView] = useState('feed');
+  const router = useRouter();
+  const pathname = usePathname();
+  const [dashboardView, setDashboardView] = useState(pathname === '/dashboard/explore' ? 'explore' : 'feed');
+
+  useEffect(() => {
+    setDashboardView(pathname === '/dashboard/explore' ? 'explore' : 'feed');
+  }, [pathname]);
 
   const likeTimersRef = useRef({});
   const pendingLikePostIdsRef = useRef(new Set());
@@ -533,7 +540,7 @@ export default function DashboardClient() {
     <div className="homebody">
       <main className='dashmain'>
         {dashboardView === 'explore' ? (
-          <ExplorePage />
+          <ExplorePage onBack={() => router.push('/dashboard')} />
         ) : (
           <>
         {!selectedThreadPost && (
@@ -660,7 +667,7 @@ export default function DashboardClient() {
           </div> */}
           <button
             type="button"
-            onClick={() => setDashboardView('explore')}
+            onClick={() => router.push('/dashboard/explore')}
             aria-pressed={dashboardView === 'explore'}
             className={`
                w-[325px] h-[54px]
