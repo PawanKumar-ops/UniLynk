@@ -4,9 +4,12 @@ import { useState, useRef, useEffect } from "react";
 import "./ProfileEditModal.css";
 import { SOCIAL_ICONS, SOCIAL_PLACEHOLDERS } from "@/lib/socialIcons";
 import { Plus } from "lucide-react";
+import { useSession } from "next-auth/react";
 
 
 const ProfileEditModal = ({ onClose, user, onSave }) => {
+    const { update: updateSession } = useSession();
+
 
     const [socials, setSocials] = useState([]);
 
@@ -223,6 +226,7 @@ const ProfileEditModal = ({ onClose, user, onSave }) => {
             }
 
             onSave?.(data.user);
+            await updateSession?.();
             onClose();
         } catch (error) {
             setSaveError(error.message || "Failed to save changes");

@@ -122,13 +122,12 @@ export const authOptions = {
     },
 
 
-   async jwt({ token, trigger }) {
+   async jwt({ token }) {
       if (!token?.email) return token;
 
-    const shouldHydrate = trigger === "signIn" || !token.picture;
-      if (!shouldHydrate) return token;
-
-       return hydrateTokenFromDb(token);
+      // Keep profile fields (especially avatar) in sync across the app
+      // so every session refresh reflects the latest DB value.
+      return hydrateTokenFromDb(token);
     },
 
     async session({ session, token }) {
