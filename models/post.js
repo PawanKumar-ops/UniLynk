@@ -1,12 +1,16 @@
 import mongoose from "mongoose";
 
-function hasTextOrImages(content) {
+function hasPostBody(content) {
   const safeContent = typeof content === "string" ? content.trim() : "";
   const safeImages = Array.isArray(this?.images)
     ? this.images.filter((image) => typeof image === "string" && image.trim())
     : [];
 
-  return Boolean(safeContent) || safeImages.length > 0;
+  const hasPollOptions = Array.isArray(this?.poll?.options)
+    ? this.poll.options.filter((option) => typeof option?.text === "string" && option.text.trim()).length >= 2
+    : false;
+
+  return Boolean(safeContent) || safeImages.length > 0 || hasPollOptions;
 }
 
 const PostCommentSchema = new mongoose.Schema(
@@ -48,8 +52,8 @@ const PostSchema = new mongoose.Schema(
       trim: true,
       default: "",
       validate: {
-        validator: hasTextOrImages,
-        message: "Post content or image is required",
+        validator: hasPostBody,
+        message: "Post content, image, or poll is required",
       },
     },
     audience: {
