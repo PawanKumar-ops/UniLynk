@@ -1,17 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Crown, Search } from "lucide-react";
-
-const members = [
-  { id: "1", name: "Alexandra Chen", role: "President", avatar: "AC", joined: "2021" },
-  { id: "2", name: "Marcus Rivera", role: "Vice President", avatar: "MR", joined: "2021" },
-  { id: "3", name: "Sophia Bennett", role: "Secretary", avatar: "SB", joined: "2022" },
-  { id: "4", name: "Ethan Walker", role: "Treasurer", avatar: "EW", joined: "2022" },
-  { id: "5", name: "Isabella Moreau", role: "Member", avatar: "IM", joined: "2023" },
-  { id: "6", name: "Julian Park", role: "Member", avatar: "JP", joined: "2023" },
-  { id: "7", name: "Olivia Hartwell", role: "Member", avatar: "OH", joined: "2024" },
-  { id: "8", name: "Nathaniel Cross", role: "Member", avatar: "NC", joined: "2024" },
-];
 
 const scrollStyles = `
   .members-scroll::-webkit-scrollbar { width: 6px; }
@@ -25,7 +14,60 @@ const scrollStyles = `
   .members-scroll { scrollbar-width: thin; scrollbar-color: rgba(0,0,0,0.18) transparent; }
 `;
 
-export function MembersModal({ MemberModalopen, onClose }) {
+const getInitials = (name = "") =>
+  String(name)
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || "")
+    .join("") || "M";
+
+export function MembersModal({ MemberModalopen, onClose, clubData }) {
+  const [query, setQuery] = useState("");
+
+  const members = useMemo(() => {
+    const leaders = Array.isArray(clubData?.leaders) ? clubData.leaders : [];
+    const clubMembers = Array.isArray(clubData?.members) ? clubData.members : [];
+
+    const leaderEmailSet = new Set(
+      leaders.map((leader) => String(leader.email || "").trim().toLowerCase()).filter(Boolean)
+    );
+
+    const normalizedLeaders = leaders.map((leader, index) => ({
+      id: `leader-${index}-${leader.email || ""}`,
+      email: String(leader.email || "").trim().toLowerCase(),
+      name: leader.name || String(leader.email || "").split("@")[0] || "Member",
+      role: leader.position || "Leader",
+      image: leader.image || "/Profilepic.png",
+      isLeader: true,
+    }));
+
+    const normalizedMembers = clubMembers
+      .filter((member) => !leaderEmailSet.has(String(member.email || "").trim().toLowerCase()))
+      .map((member, index) => ({
+        id: `member-${index}-${member.email || ""}`,
+        email: String(member.email || "").trim().toLowerCase(),
+        name: member.name || String(member.email || "").split("@")[0] || "Member",
+        role: "Member",
+        image: member.profilePicture || "/Profilepic.png",
+        isLeader: false,
+      }));
+
+    return [...normalizedLeaders, ...normalizedMembers];
+  }, [clubData]);
+
+  const filteredMembers = useMemo(() => {
+    const normalizedQuery = query.trim().toLowerCase();
+    if (!normalizedQuery) return members;
+
+    return members.filter((member) =>
+      [member.name, member.email, member.role]
+        .join(" ")
+        .toLowerCase()
+        .includes(normalizedQuery)
+    );
+  }, [members, query]);
   useEffect(() => {
     const handler = (e) => {
       if (e.key === "Escape") onClose();
@@ -92,6 +134,8 @@ export function MembersModal({ MemberModalopen, onClose }) {
                 <input
                   type="text"
                   placeholder="Search members..."
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
                   className="w-full bg-transparent text-black placeholder:text-black/40 outline-none"
                 />
               </div>
@@ -99,7 +143,7 @@ export function MembersModal({ MemberModalopen, onClose }) {
 
             <div className="members-scroll flex-1 overflow-y-auto px-3 pb-4">
               <ul className="space-y-1">
-                {members.map((m, i) => (
+                {filteredMembers.map((m, i) => (
                   <motion.li
                     key={m.id}
                     initial={{ opacity: 0, y: 8 }}
@@ -107,18 +151,26 @@ export function MembersModal({ MemberModalopen, onClose }) {
                     transition={{ delay: 0.08 + i * 0.035, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                     className="group flex items-center gap-4 rounded-2xl px-4 py-3 transition hover:bg-black/[0.04]"
                   >
-                    <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-black text-white tracking-wide">
-                      {m.avatar}
-                    </div>
+                    {m.image ? (
+                      <img
+                        src={m.image}
+                        alt={m.name}
+                        className="h-11 w-11 shrink-0 rounded-full object-cover object-center"
+                      />
+                    ) : (
+                      <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-black text-white tracking-wide">
+                        {getInitials(m.name)}
+                      </div>
+                    )}
 
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
                         <p className="truncate text-black">{m.name}</p>
-                        {m.role === "President" && (
+                        {m.isLeader && (
                           <Crown className="h-3.5 w-3.5 text-black" strokeWidth={2.5} />
                         )}
                       </div>
-                      <p className="truncate text-black/55">{m.role} · Joined {m.joined}</p>
+                      <p className="truncate text-black/55">{m.role}</p>
                     </div>
 
                     <button className="rounded-full border border-black/10 px-4 py-1.5 text-black/70 opacity-0 transition group-hover:opacity-100 hover:border-black hover:bg-black hover:text-white">
