@@ -107,7 +107,7 @@ export function MembersModal({ MemberModalopen, onClose, clubData }) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="members-title"
-            className="relative flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-[28px] bg-white shadow-[0_30px_80px_-20px_rgba(0,0,0,0.35)] ring-1 ring-black/5"
+            className="relative flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-2xl bg-white shadow-[0_30px_80px_-20px_rgba(0,0,0,0.35)] ring-1 ring-black/5"
             initial={{ opacity: 0, scale: 0.94, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
@@ -152,11 +152,13 @@ export function MembersModal({ MemberModalopen, onClose, clubData }) {
                     className="group flex items-center gap-4 rounded-2xl px-4 py-3 transition hover:bg-black/[0.04]"
                   >
                     {m.image ? (
-                      <img
-                        src={m.image}
-                        alt={m.name}
-                        className="h-11 w-11 shrink-0 rounded-full object-cover object-center"
-                      />
+                      <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-neutral-200">
+                        <img
+                          src={m.image}
+                          alt={m.name}
+                          className="block h-full w-full scale-110 object-cover object-center"
+                        />
+                      </div>
                     ) : (
                       <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-black text-white tracking-wide">
                         {getInitials(m.name)}
@@ -174,7 +176,7 @@ export function MembersModal({ MemberModalopen, onClose, clubData }) {
                     </div>
 
                     <button className="rounded-full border border-black/10 px-4 py-1.5 text-black/70 opacity-0 transition group-hover:opacity-100 hover:border-black hover:bg-black hover:text-white">
-                      View
+                      Connect
                     </button>
                   </motion.li>
                 ))}
@@ -183,9 +185,7 @@ export function MembersModal({ MemberModalopen, onClose, clubData }) {
 
             <div className="flex items-center justify-between border-t border-black/[0.06] px-7 py-4">
               <p className="text-black/50">Updated just now</p>
-              <button className="rounded-full bg-black px-5 py-2 text-white transition hover:bg-black/85">
-                Invite member
-              </button>
+              
             </div>
           </motion.div>
         </motion.div>
