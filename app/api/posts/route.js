@@ -1,6 +1,7 @@
 import { connectDB } from "@/lib/mongodb";
 import Post from "@/models/post";
 import User from "@/models/user";
+import Club from "@/models/Club";
 import PostLike from "@/models/postLike";
 import { getLikeCount } from "@/lib/postLikeCache";
 import { getServerSession } from "next-auth";
@@ -128,7 +129,9 @@ export async function GET(req) {
     const audience = searchParams.get("audience");
 
     const query =
-      audience === "for-you" || audience === "clubs" ? { audience } : {};
+      audience === "for-you" || audience === "clubs"
+        ? { visibility: audience }
+        : {};
 
     const posts = await Post.find(query).sort({ createdAt: -1 }).lean();
     const hydratedPosts = await resolvePostAuthorImages(posts);
@@ -158,6 +161,8 @@ export async function POST(req) {
       authorImage,
       authorEmail,
       images = [],
+      postAs = "user",
+      clubId = "",
     } = await req.json();
 
     const safeContent = content?.trim() || "";
@@ -192,12 +197,42 @@ export async function POST(req) {
 
     safeAuthorImage = safeAuthorImage || buildAvatarFallback(safeAuthorName);
 
+    const normalizedPostAs = postAs === "club" ? "club" : "user";
+    const requestedClubId = typeof clubId === "string" ? clubId.trim() : "";
+    let postAuthorName = safeAuthorName;
+    let postAuthorImage = safeAuthorImage;
+    let postClubId = "";
+    let postVisibility = [safeAudience];
+
+    if (normalizedPostAs === "club") {
+      if (!sessionEmail) {
+        return new Response("Unauthorized", { status: 401 });
+      }
+
+      const club = await Club.findOne(
+        { _id: requestedClubId, "leaders.email": sessionEmail },
+        { _id: 1, clubName: 1, logo: 1 }
+      ).lean();
+
+      if (!club) {
+        return new Response("You are not authorized to post as this club", { status: 403 });
+      }
+
+      postAuthorName = club.clubName || safeAuthorName;
+      postAuthorImage = normalizeImage(club.logo) || safeAuthorImage;
+      postClubId = club._id.toString();
+      postVisibility = ["for-you", "clubs"];
+    }
+
     const post = await Post.create({
       content: safeContent,
       audience: safeAudience,
-      authorName: safeAuthorName,
+      visibility: postVisibility,
+      postAs: normalizedPostAs,
+      clubId: postClubId,
+      authorName: postAuthorName,
       authorEmail: safeAuthorEmail,
-      authorImage: safeAuthorImage,
+      authorImage: postAuthorImage,
       images: safeImages,
     });
 

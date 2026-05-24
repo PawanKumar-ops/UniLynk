@@ -151,6 +151,15 @@
   color: #000;
   font-weight: 700;
   font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.club-verified-tick {
+  color: #1d9bf0;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .post-time {

@@ -57,6 +57,23 @@ const PostSchema = new mongoose.Schema(
       enum: ["for-you", "clubs"],
       default: "for-you",
     },
+    visibility: {
+      type: [String],
+      enum: ["for-you", "clubs"],
+      default: function () {
+        return [this.audience === "clubs" ? "clubs" : "for-you"];
+      },
+    },
+    postAs: {
+      type: String,
+      enum: ["user", "club"],
+      default: "user",
+    },
+    clubId: {
+      type: String,
+      default: "",
+      index: true,
+    },
     authorName: {
       type: String,
       trim: true,
