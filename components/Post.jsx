@@ -31,6 +31,8 @@ const Post = ({ setIspost, audience = "for-you", onPosted }) => {
     const [showGifPicker, setShowGifPicker] = useState(false);
     const [pickerPosition, setPickerPosition] = useState({ top: 0, left: 0, width: 320 });
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [leadershipClubs, setLeadershipClubs] = useState([]);
+    const [showPostAsDrawer, setShowPostAsDrawer] = useState(false);
 
     const handleAutoGrow = (e) => {
         const el = e.target;
@@ -50,6 +52,21 @@ const Post = ({ setIspost, audience = "for-you", onPosted }) => {
         const top = Math.max(8, rect.top - (isGif ? 430 : 370));
         setPickerPosition({ top, left, width: panelWidth });
     };
+
+    useEffect(() => {
+        const fetchLeadershipClubs = async () => {
+            try {
+                const res = await fetch("/api/clubs?leadershipOnly=true", { cache: "no-store" });
+                const data = await res.json();
+                if (!res.ok) return;
+                setLeadershipClubs(Array.isArray(data?.clubs) ? data.clubs : []);
+            } catch (error) {
+                console.error("Failed to load leadership clubs", error);
+            }
+        };
+
+        fetchLeadershipClubs();
+    }, []);
 
     useEffect(() => {
         if (!isPickerVisible) return;
@@ -170,7 +187,7 @@ const Post = ({ setIspost, audience = "for-you", onPosted }) => {
             )
         : null;
 
-    const handleSubmit = async () => {
+    const submitPost = async ({ postAs = "user", clubId = "" } = {}) => {
         if (isSubmitting) return;
         if (!content.trim() && images.length === 0) {
             alert("Write something or upload at least one image");
@@ -189,6 +206,8 @@ const Post = ({ setIspost, audience = "for-you", onPosted }) => {
                     authorName: session?.user?.name,
                     authorImage: session?.user?.image,
                     authorEmail: session?.user?.email,
+                    postAs,
+                    clubId,
                 }),
             });
             const data = await res.json();
@@ -199,6 +218,7 @@ const Post = ({ setIspost, audience = "for-you", onPosted }) => {
             setImages([]);
             setShowEmojiPicker(false);
             setShowGifPicker(false);
+            setShowPostAsDrawer(false);
             setIspost(false);
         } catch (error) {
             console.error(error);
@@ -206,6 +226,14 @@ const Post = ({ setIspost, audience = "for-you", onPosted }) => {
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const handleSubmit = async () => {
+        if (leadershipClubs.length === 0) {
+            await submitPost({ postAs: "user" });
+            return;
+        }
+        setShowPostAsDrawer(true);
     };
 
 
@@ -273,6 +301,32 @@ const Post = ({ setIspost, audience = "for-you", onPosted }) => {
                 hidden
                 onChange={handleImageChange}
             />
+            {showPostAsDrawer && (
+                <div className="post-as-backdrop" onClick={() => setShowPostAsDrawer(false)}>
+                    <div className="post-as-drawer" onClick={(event) => event.stopPropagation()}>
+                        <h3>Post as</h3>
+                        <button type="button" className="post-as-option" onClick={() => submitPost({ postAs: "user" })}>
+                            <div>
+                                <strong>{session?.user?.name || "User"}</strong>
+                                <p>Post as your personal profile</p>
+                            </div>
+                        </button>
+                        {leadershipClubs.map((club) => (
+                            <button
+                                key={club._id}
+                                type="button"
+                                className="post-as-option"
+                                onClick={() => submitPost({ postAs: "club", clubId: club._id })}
+                            >
+                                <div>
+                                    <strong>{club.clubName || "Club"}</strong>
+                                    <p>Post as club</p>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

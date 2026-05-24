@@ -116,6 +116,35 @@
     color: white;
 }
 
+.post-as-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.25);
+    z-index: 200;
+}
+
+.post-as-drawer {
+    position: fixed;
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    width: min(520px, calc(100vw - 20px));
+    background: #fff;
+    border-radius: 16px 16px 0 0;
+    padding: 14px;
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.post-as-option {
+    width: 100%;
+    text-align: left;
+    padding: 12px;
+    border-radius: 10px;
+}
+
+.post-as-option:hover {
+    background: #f4f7ff;
+}
 
 
 

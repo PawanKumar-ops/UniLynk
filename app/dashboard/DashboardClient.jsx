@@ -403,7 +403,10 @@ export default function DashboardClient() {
       <div className="post-right">
         <div className="posth">
           <div className="posth-left">
-            <div className="user-name">{post.authorName || "UniLynk User"}</div>
+            <div className="user-name">
+              {post.authorName || "UniLynk User"}
+              {post.postAs === "club" && <span className="club-verified-tick">✓</span>}
+            </div>
             <div className="post-time"><span className='post-dot'><svg width="8" height="8" viewBox="0 0 8 8" xmlns="http://www.w3.org/2000/svg">
               <circle cx="4" cy="4" r="1.5" fill="grey" />
             </svg></span><div className='post-timeli'>{formatRelativeTime(post.createdAt)}</div></div>
