@@ -76,6 +76,7 @@ const normalizePost = (post) => {
     id: safeId,
     comments: normalizedComments,
     commentCount: Number(post.commentCount ?? normalizedComments.length ?? 0),
+    poll: post.poll || null,
   };
 };
 
@@ -110,6 +111,7 @@ export default function DashboardClient() {
   const [openShare, setOpenShare] = useState(false);
   const [menuPostId, setMenuPostId] = useState(null);
   const [reportPostId, setReportPostId] = useState(null);
+  const [pollLoadingPostId, setPollLoadingPostId] = useState(null);
   const router = useRouter();
   const pathname = usePathname();
   const [dashboardView, setDashboardView] = useState(pathname === '/dashboard/explore' ? 'explore' : 'feed');
@@ -447,6 +449,48 @@ export default function DashboardClient() {
 
         <div className="post-content">
           {post.content}
+          {!!post.poll?.options?.length && (
+            <div className="poll-card" onClick={(event) => event.stopPropagation()}>
+              {!!post.poll.question && <div className="poll-question-text">{post.poll.question}</div>}
+              <div className="poll-options-list">
+                {post.poll.options.map((option, optionIndex) => {
+                  const totalVotes = post.poll.options.reduce((acc, item) => acc + Number(item.voteCount || 0), 0);
+                  const percent = totalVotes ? Math.round((Number(option.voteCount || 0) / totalVotes) * 100) : 0;
+                  const userVoted = post.poll?.votes?.some((vote) => vote.voterEmail === session?.user?.email?.toLowerCase());
+                  return (
+                    <button
+                      key={`${post.id}-opt-${optionIndex}`}
+                      className="poll-option-btn"
+                      disabled={userVoted || pollLoadingPostId === post.id}
+                      type="button"
+                      onClick={async () => {
+                        if (userVoted) return;
+                        try {
+                          setPollLoadingPostId(post.id);
+                          const res = await fetch(`/api/posts/${post.id}/poll-vote`, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ optionIndex }),
+                          });
+                          const data = await res.json();
+                          if (!res.ok) throw new Error(data?.error || "Vote failed");
+                          setPosts((prev) => prev.map((item) => (item.id === post.id ? { ...item, poll: data.poll } : item)));
+                        } catch (error) {
+                          alert(error.message || "Unable to vote");
+                        } finally {
+                          setPollLoadingPostId(null);
+                        }
+                      }}
+                    >
+                      <div className="poll-option-fill" style={{ width: `${percent}%` }} />
+                      <span>{option.text}</span>
+                      <span>{Number(option.voteCount || 0)}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           {!!post.images?.length && (
             <div className="image-post">
               <div className={getImageGridClass(post.images.length)}>

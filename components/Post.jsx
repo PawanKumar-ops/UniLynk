@@ -31,6 +31,9 @@ const Post = ({ setIspost, audience = "for-you", onPosted }) => {
     const [showGifPicker, setShowGifPicker] = useState(false);
     const [pickerPosition, setPickerPosition] = useState({ top: 0, left: 0, width: 320 });
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [showPollBuilder, setShowPollBuilder] = useState(false);
+    const [pollQuestion, setPollQuestion] = useState("");
+    const [pollOptions, setPollOptions] = useState(["", ""]);
 
     const handleAutoGrow = (e) => {
         const el = e.target;
@@ -172,7 +175,13 @@ const Post = ({ setIspost, audience = "for-you", onPosted }) => {
 
     const handleSubmit = async () => {
         if (isSubmitting) return;
-        if (!content.trim() && images.length === 0) {
+        const cleanPollOptions = pollOptions.map((option) => option.trim()).filter(Boolean);
+        const pollPayload =
+            showPollBuilder && cleanPollOptions.length >= 2
+                ? { question: pollQuestion.trim(), options: cleanPollOptions }
+                : null;
+
+        if (!content.trim() && images.length === 0 && !pollPayload) {
             alert("Write something or upload at least one image");
             return;
         }
@@ -189,6 +198,7 @@ const Post = ({ setIspost, audience = "for-you", onPosted }) => {
                     authorName: session?.user?.name,
                     authorImage: session?.user?.image,
                     authorEmail: session?.user?.email,
+                    poll: pollPayload,
                 }),
             });
             const data = await res.json();
@@ -199,6 +209,9 @@ const Post = ({ setIspost, audience = "for-you", onPosted }) => {
             setImages([]);
             setShowEmojiPicker(false);
             setShowGifPicker(false);
+            setShowPollBuilder(false);
+            setPollQuestion("");
+            setPollOptions(["", ""]);
             setIspost(false);
         } catch (error) {
             console.error(error);
@@ -256,7 +269,7 @@ const Post = ({ setIspost, audience = "for-you", onPosted }) => {
                             setShowEmojiPicker(false);
                         }}
                     ><img src="./Postimg/gif.svg" alt="" /></button>
-                    <button type="button" className='pollicon'><img src="./Postimg/poll.svg" alt="" /></button>
+                    <button type="button" className='pollicon' onClick={() => setShowPollBuilder((prev) => !prev)}><img src="./Postimg/poll.svg" alt="" /></button>
             </div>
 
             <button onClick={handleSubmit} disabled={isSubmitting}>
@@ -264,6 +277,32 @@ const Post = ({ setIspost, audience = "for-you", onPosted }) => {
                 </button>
 
             </div>
+            {showPollBuilder && (
+                <div className="poll-builder">
+                    <input
+                        className="poll-question"
+                        placeholder="Ask a poll question"
+                        value={pollQuestion}
+                        onChange={(e) => setPollQuestion(e.target.value)}
+                    />
+                    {pollOptions.map((option, index) => (
+                        <input
+                            key={index}
+                            className="poll-option"
+                            placeholder={`Option ${index + 1}`}
+                            value={option}
+                            onChange={(e) =>
+                                setPollOptions((prev) => prev.map((item, idx) => (idx === index ? e.target.value : item)))
+                            }
+                        />
+                    ))}
+                    {pollOptions.length < 8 && (
+                        <button type="button" className="poll-add-option" onClick={() => setPollOptions((prev) => [...prev, ""])}>
+                            + Add option
+                        </button>
+                    )}
+                </div>
+            )}
             {pickerNode}
             <input
                 ref={fileInputRef}
