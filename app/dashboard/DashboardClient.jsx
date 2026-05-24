@@ -12,6 +12,16 @@ import CommentModal from '@/components/CommentModal';
 import ShareModal from '@/components/ShareModal';
 import { ReportPostModal } from '@/components/ReportPostModal';
 import { ExplorePage } from '@/components/ExplorePage';
+import { AnimatePresence, motion } from "framer-motion";
+import {
+    Check,
+    FileSpreadsheet,
+    Mail,
+    Plus,
+    Sparkles,
+    Bell,
+    BookOpen,
+} from "lucide-react";
 
 const DASHBOARD_SCROLL_STORAGE_KEY = 'dashboard-feed-scroll-position';
 
@@ -113,6 +123,8 @@ export default function DashboardClient() {
   const router = useRouter();
   const pathname = usePathname();
   const [dashboardView, setDashboardView] = useState(pathname === '/dashboard/explore' ? 'explore' : 'feed');
+  const [error, setError] = useState(null);
+    const [mode, setMode] = useState("newsletter");
 
   useEffect(() => {
     setDashboardView(pathname === '/dashboard/explore' ? 'explore' : 'feed');
@@ -684,21 +696,36 @@ export default function DashboardClient() {
             <span>Explore Campus</span>
             <ArrowRight className="w-4 h-4" />
           </button>
-          <hr className="mt-4" />
-          <div className="msgbuttons">
-            <button className="msgbutton">
-              <img src="/Chat/Recent.svg" alt="Recent icon" />
-              Recent
-            </button>
-            <button className="msgbutton">
-              <img src="/Chat/Chats.svg" alt="Chats icon" />
-              Chats
-            </button>
-            <button className="msgbutton">
-              <img src="/Chat/Clubs.svg" alt="Clubs icon" />
-              Clubs
-            </button>
-          </div>
+          <hr className="mt-4 mb-4" />
+          <div className="relative flex rounded-lg bg-black/[0.06] p-0.5">
+                                            <motion.div
+                                                layout
+                                                transition={{
+                                                    type: "spring",
+                                                    stiffness: 400,
+                                                    damping: 32,
+                                                }}
+                                                className="absolute inset-y-0.5 w-[calc(50%-2px)] rounded-md bg-white shadow-sm"
+                                                style={{ left: mode === "newsletter" ? 2 : "50%" }}
+                                            />
+                                            {[
+                                                { id: "newsletter", label: "News Letter", Icon: BookOpen },
+                                                { id: "notification", label: "Notification", Icon: Bell },
+                                            ].map(({ id, label, Icon }) => (
+                                                <button
+                                                    key={id}
+                                                    onClick={() => {
+                                                        setMode(id);
+                                                        setError(null);
+                                                    }}
+                                                    className={`relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 text-xs transition ${mode === id ? "text-black" : "text-black/50"
+                                                        }`}
+                                                >
+                                                    <Icon className="h-3.5 w-3.5" />
+                                                    {label}
+                                                </button>
+                                            ))}
+                                        </div>
           <hr className="mt-4 mb-4" />
 
           <div className="chat">
