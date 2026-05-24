@@ -116,9 +116,10 @@ const Clubpage = () => {
                     onClick={() => setAddMembersFab(true)}>
                     Add Members
                 </button>
-                {showAddMembersFab && (
-                    <AddMembersModal onClose={() => setAddMembersFab(false)} />
-                )}
+                <AddMembersModal
+                    open={showAddMembersFab}
+                    onOpenChange={setAddMembersFab}
+                />
 
                 <button className='club-edit-add-btn club-edit-btn'>Edit Profile</button>
             </div>
