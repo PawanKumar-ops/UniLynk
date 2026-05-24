@@ -98,6 +98,28 @@ const Clubpage = () => {
 
     const joinedLabel = clubData?.foundedDate ? `Joined ${clubData.foundedDate}` : "Joined recently";
 
+    const handleAddMembers = async (emails = []) => {
+        try {
+            const clubId = searchParams.get("clubId");
+            if (!clubId || !Array.isArray(emails) || emails.length === 0) return;
+
+            const response = await fetch(`/api/clubs/${clubId}`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ members: emails }),
+            });
+
+            if (!response.ok) {
+                throw new Error("Failed to add members");
+            }
+
+            const data = await response.json();
+            setClubData(data?.club || null);
+        } catch (error) {
+            console.error("ADD MEMBERS ERROR:", error);
+        }
+    };
+
 
     return (
         <div className='clubbody'>
@@ -119,6 +141,7 @@ const Clubpage = () => {
                 <AddMembersModal
                     open={showAddMembersFab}
                     onOpenChange={setAddMembersFab}
+                    onAdd={handleAddMembers}
                 />
 
                 <button className='club-edit-add-btn club-edit-btn'>Edit Profile</button>

@@ -17,6 +17,15 @@ const LeadershipMemberSchema = new mongoose.Schema(
   { _id: false }
 );
 
+const ClubMemberSchema = new mongoose.Schema(
+  {
+    email: { type: String, required: true, trim: true, lowercase: true },
+    name: { type: String, required: true, trim: true },
+    profilePicture: { type: String, default: "/Profilepic.png" },
+  },
+  { _id: false }
+);
+
 const ClubSchema = new mongoose.Schema(
   {
     banner: { type: String, default: "" },
@@ -30,6 +39,7 @@ const ClubSchema = new mongoose.Schema(
     website: { type: String, default: "", trim: true },
     activities: { type: [ActivitySchema], default: [] },
     leaders: { type: [LeadershipMemberSchema], default: [] },
+    members: { type: [ClubMemberSchema], default: [] },
   },
   { timestamps: true, strict: true }
 );
