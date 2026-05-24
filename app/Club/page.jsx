@@ -161,7 +161,7 @@ const Clubpage = () => {
                             className='clubcontactbtn rounded-full w-[130px]'>
                             Members
                         </button>
-                        <MembersModal MemberModalopen={MemberModalopen} onClose={() => setMemberModalOpen(false)} />
+                        <MembersModal MemberModalopen={MemberModalopen} onClose={() => setMemberModalOpen(false)} clubData={clubData} />
                         <button
                             onClick={() => setPostsModalOpen(true)}
                             className='clubcontactbtn rounded-full w-[130px]'
