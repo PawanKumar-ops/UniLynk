@@ -118,6 +118,7 @@ const normalizePosts = (posts) =>
         }))
       : [],
     commentCount: Array.isArray(post.comments) ? post.comments.length : 0,
+    poll: post.poll || null,
   }));
 
 export async function GET(req) {
@@ -158,6 +159,7 @@ export async function POST(req) {
       authorImage,
       authorEmail,
       images = [],
+      poll,
     } = await req.json();
 
     const safeContent = content?.trim() || "";
@@ -168,7 +170,23 @@ export async function POST(req) {
           .slice(0, 4)
       : [];
 
-    if (!safeContent && safeImages.length === 0) {
+    const safePoll =
+      poll &&
+      typeof poll === "object" &&
+      Array.isArray(poll.options) &&
+      poll.options.length >= 2
+        ? {
+            question: typeof poll.question === "string" ? poll.question.trim().slice(0, 160) : "",
+            options: poll.options
+              .map((opt) => (typeof opt === "string" ? opt.trim() : ""))
+              .filter(Boolean)
+              .slice(0, 8)
+              .map((text) => ({ text, voteCount: 0 })),
+            votes: [],
+          }
+        : null;
+
+    if (!safeContent && safeImages.length === 0 && !safePoll) {
       return new Response("Post content or image is required", { status: 400 });
     }
 
@@ -199,6 +217,7 @@ export async function POST(req) {
       authorEmail: safeAuthorEmail,
       authorImage: safeAuthorImage,
       images: safeImages,
+      poll: safePoll,
     });
 
     const normalizedPost = {
@@ -206,6 +225,7 @@ export async function POST(req) {
       id: post._id.toString(),
       comments: [],
       commentCount: 0,
+      poll: post.poll || null,
     };
 
     return Response.json({ post: normalizedPost }, { status: 201 });

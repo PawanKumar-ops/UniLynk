@@ -77,6 +77,31 @@ const PostSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    poll: {
+      question: {
+        type: String,
+        trim: true,
+        default: "",
+      },
+      options: {
+        type: [
+          {
+            text: { type: String, trim: true, required: true },
+            voteCount: { type: Number, default: 0, min: 0 },
+          },
+        ],
+        default: [],
+      },
+      votes: {
+        type: [
+          {
+            voterEmail: { type: String, trim: true, lowercase: true, required: true },
+            optionIndex: { type: Number, required: true, min: 0 },
+          },
+        ],
+        default: [],
+      },
+    },
     comments: {
       type: [PostCommentSchema],
       default: [],
