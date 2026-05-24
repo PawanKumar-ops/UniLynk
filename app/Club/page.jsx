@@ -253,11 +253,11 @@ const Clubpage = () => {
                                                     className="bg-[#f4f4f4] border border-[rgb(230,230,230)] rounded-[20px] p-6 flex flex-col items-center text-center transition-all duration-300 hover:-translate-y-[2px] hover:shadow-[0px_6px_9px_#4242421f]"
                                                 >
                                                     <div className="mb-4">
-                                                        <div className="w-20 h-20 rounded-full overflow-hidden border-4 border-white shadow-md flex items-center justify-center bg-white">
+                                                        <div className="h-20 w-20 overflow-hidden rounded-full border-4 border-white bg-white shadow-md">
                                                             <img
                                                                 src={leader.image || "/Profilepic.png"}
                                                                 alt={leader.name}
-                                                                className="w-full h-full object-cover object-center"
+                                                                className="block h-full w-full scale-110 object-cover object-center"
                                                             />
                                                         </div>
 

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Crown, Search } from "lucide-react";
 
@@ -25,6 +26,7 @@ const getInitials = (name = "") =>
 
 export function MembersModal({ MemberModalopen, onClose, clubData }) {
   const [query, setQuery] = useState("");
+  const router = useRouter();
 
   const members = useMemo(() => {
     const leaders = Array.isArray(clubData?.leaders) ? clubData.leaders : [];
@@ -40,6 +42,7 @@ export function MembersModal({ MemberModalopen, onClose, clubData }) {
       name: leader.name || String(leader.email || "").split("@")[0] || "Member",
       role: leader.position || "Leader",
       image: leader.image || "/Profilepic.png",
+      userId: leader.userId || null,
       isLeader: true,
     }));
 
@@ -51,6 +54,7 @@ export function MembersModal({ MemberModalopen, onClose, clubData }) {
         name: member.name || String(member.email || "").split("@")[0] || "Member",
         role: "Member",
         image: member.profilePicture || "/Profilepic.png",
+        userId: member.userId || null,
         isLeader: false,
       }));
 
@@ -143,20 +147,39 @@ export function MembersModal({ MemberModalopen, onClose, clubData }) {
 
             <div className="members-scroll flex-1 overflow-y-auto px-3 pb-4">
               <ul className="space-y-1">
-                {filteredMembers.map((m, i) => (
+                {filteredMembers.map((m, i) => {
+                  const openProfile = () => {
+                    if (!m.userId) return;
+                    onClose();
+                    router.push(`/dashboard/Userprofile?userId=${m.userId}`);
+                  };
+
+                  return (
                   <motion.li
                     key={m.id}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.08 + i * 0.035, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
                     className="group flex items-center gap-4 rounded-2xl px-4 py-3 transition hover:bg-black/[0.04]"
+                    onClick={openProfile}
+                    role="button"
+                    tabIndex={m.userId ? 0 : -1}
+                    onKeyDown={(e) => {
+                      if (!m.userId) return;
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        openProfile();
+                      }
+                    }}
                   >
                     {m.image ? (
-                      <img
-                        src={m.image}
-                        alt={m.name}
-                        className="h-11 w-11 shrink-0 rounded-full object-cover object-center"
-                      />
+                      <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-neutral-200">
+                        <img
+                          src={m.image}
+                          alt={m.name}
+                          className="block h-full w-full scale-110 object-cover object-center"
+                        />
+                      </div>
                     ) : (
                       <div className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-black text-white tracking-wide">
                         {getInitials(m.name)}
@@ -173,11 +196,20 @@ export function MembersModal({ MemberModalopen, onClose, clubData }) {
                       <p className="truncate text-black/55">{m.role}</p>
                     </div>
 
-                    <button className="rounded-full border border-black/10 px-4 py-1.5 text-black/70 opacity-0 transition group-hover:opacity-100 hover:border-black hover:bg-black hover:text-white">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openProfile();
+                      }}
+                      disabled={!m.userId}
+                      className="rounded-full border border-black/10 px-4 py-1.5 text-black/70 opacity-0 transition group-hover:opacity-100 hover:border-black hover:bg-black hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                    >
                       View
                     </button>
                   </motion.li>
-                ))}
+                  );
+                })}
               </ul>
             </div>
 

@@ -24,8 +24,14 @@ const club = await Club.findById(id).lean();
       ? club.leaders.map((leader) => leader.email).filter(Boolean)
       : [];
 
-    const users = leaderEmails.length
-      ? await User.find({ email: { $in: leaderEmails } }).select("email name img").lean()
+    const memberEmails = Array.isArray(club.members)
+      ? club.members.map((member) => member.email).filter(Boolean)
+      : [];
+
+    const allEmails = [...new Set([...leaderEmails, ...memberEmails].map((email) => String(email || "").toLowerCase()))];
+
+    const users = allEmails.length
+      ? await User.find({ email: { $in: allEmails } }).select("_id email name img").lean()
       : [];
 
     const userMap = new Map(users.map((user) => [user.email?.toLowerCase(), user]));
@@ -33,6 +39,7 @@ const club = await Club.findById(id).lean();
     const leaders = (club.leaders || []).map((leader) => {
       const user = userMap.get(leader.email?.toLowerCase());
       return {
+        userId: user?._id?.toString() || null,
         email: leader.email,
         position: leader.position,
         image: leader.image || user?.img || "/Profilepic.png",
@@ -40,10 +47,21 @@ const club = await Club.findById(id).lean();
       };
     });
 
+    const members = (club.members || []).map((member) => {
+      const user = userMap.get(member.email?.toLowerCase());
+      return {
+        ...member,
+        userId: user?._id?.toString() || null,
+        name: user?.name || member.name,
+        profilePicture: member.profilePicture || user?.img || "/Profilepic.png",
+      };
+    });
+
     return Response.json({
       club: {
         ...club,
         leaders,
+        members,
       },
     });
   } catch (error) {
