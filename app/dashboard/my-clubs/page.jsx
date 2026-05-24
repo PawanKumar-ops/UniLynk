@@ -33,9 +33,9 @@ const getLastPostLabel = (updatedAt) => {
 };
 
 const MyClubsPage = () => {
-  const [isNotify, setIsNotify] = useState(false)
-  const [clubs, setClubs] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [isNotify, setIsNotify] = useState(false);
+  const [clubs, setClubs] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchMyClubs = async () => {

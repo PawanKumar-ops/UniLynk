@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link'
 import { Sparkle } from 'lucide-react';
-import AddMembersFab from '@/components/AddMembersFab';
+import { AddMembersModal } from '@/components/AddMembersFab';
 import { MembersModal } from "@/components/ClubMembersModal";
 import { PostsModal } from "@/components/ClubPostsModal";
 import { Calendar, Users, Trophy, Heart } from 'lucide-react';
@@ -117,7 +117,7 @@ const Clubpage = () => {
                     Add Members
                 </button>
                 {showAddMembersFab && (
-                    <AddMembersFab onClose={() => setAddMembersFab(false)} />
+                    <AddMembersModal onClose={() => setAddMembersFab(false)} />
                 )}
 
                 <button className='club-edit-add-btn club-edit-btn'>Edit Profile</button>

@@ -9,6 +9,7 @@ import { usePathname } from 'next/navigation';
 import SignOutModal from './SignOutModal';
 import { Mail } from 'lucide-react'
 import ReliableImage from './ReliableImage';
+import { Icon } from "@iconify/react";
 
 const Sidebar = () => {
   const { data: session, status } = useSession()
@@ -67,13 +68,20 @@ const Sidebar = () => {
             <header>
               <div className="menu">
                 <div className="menuhead">
+
                   <div className="logo">
                     <img src="/ULynk.svg" alt="ULynk Logo" />
                   </div>
 
-                  <div className="settings" onClick={() => setSettings(false)}>
-                    <img src="/dashboard/Settings.svg" alt="settings" />
+                  <div className="flex gap-2.5">
+                    <button className="settings flex items-center justify-center">
+                      <Icon icon="iconamoon:notification-thin" width={22} />
+                    </button>
+                    <button className="settings" onClick={() => setSettings(false)}>
+                      <img src="/dashboard/Settings.svg" alt="settings" />
+                    </button>
                   </div>
+
                 </div>
                 <div className="dashboard">
 

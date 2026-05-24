@@ -4,8 +4,10 @@ header {
 }
 
 .menuhead {
-    width: 100%;
+    width: 270px;
     display: flex;
+    align-items: center;
+    justify-content: space-between;
 }
 
 .settings {
@@ -135,10 +137,10 @@ header {
 }
 
 .logo {
-    width: 100%;
+    width: 270px;
     display: flex;
-    justify-content: center;
-    margin-right: 0px;
+    align-items: center;
+    justify-content: flex-start;
 }
 
 .logo img {

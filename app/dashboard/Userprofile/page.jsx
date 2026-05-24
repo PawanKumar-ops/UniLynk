@@ -231,44 +231,13 @@ const Userprofile = () => {
         </div>;
     }
 
-    // const profile = {
-    //     name: 'Pawan Kumar',
-    //     title: 'Production and Industrial Engineering',
-    //     avatar: 'https://akm-img-a-in.tosshub.com/sites/dailyo/story/embed/201809/painting_of_lord_kri_090118090030.jpg',
-    //     course: 'Production and Industrial Engineering',
-    //     branch: 'PIE',
-    //     year: 'Third Year',
-    //     semester: '5',
-    //     batch: '2025-2029',
-    //     club: 'Innovation Cell',
-    //     skills: [
-    //         { name: 'Python' },
-    //         { name: 'React.js' },
-    //         { name: 'Node.js' },
-    //         { name: 'Machine Learning' },
-    //         { name: 'SQL' },
-    //         { name: 'Docker' }
-    //     ],
-    //     clubs: [
-    //         { name: 'Innovatiion Cell', role: 'Technical Lead', year: '2024-Present' },
-    //         { name: 'BIS', role: 'Vice President', year: '2024-Present' },
-    //         { name: 'Photography Club', role: 'Member', year: '2023-Present' }
-    //     ],
-    //     achievements: [
-    //         { title: 'Smart India Hackathon Winner', year: '2025', desc: 'First Prize - AI Category' },
-    //         { title: 'Research Publication', year: '2024', desc: 'Published in IEEE Conference' },
-    //         { title: 'Dean\'s List', year: '2024', desc: 'Academic Excellence Award' },
-    //         { title: 'Competitive Programming', year: '2024', desc: 'Codeforces Expert (1600+)' }
-    //     ]
-    // };
-
     return (
         <div className="app-container">
 
             {/* Main Content Area */}
             <main className="main-area">
                 {/* Top Bar */}
-                <header className="userprofile-top-bar">
+                <header className="userprofile-top-bar top-back-btn">
                     {!isOwnProfile ? (
                         <button
                             className="icon-btn top-nav-btn"
@@ -279,16 +248,19 @@ const Userprofile = () => {
                             <Icon icon="mdi:arrow-left" width={22} />
                         </button>
                     ) : (
-                        <div />
+                        <div className="top-bar-spacer" />
                     )}
 
-                    <button
-                        className="icon-btn top-nav-btn"
-                        type="button"
-                        aria-label="Save profile"
-                    >
-                        <Icon icon="mdi:content-save-outline" width={22} />
-                    </button>
+                    {isOwnProfile && (
+                        <button
+                            className="icon-btn top-nav-btn top-save-btn "
+                            type="button"
+                            aria-label="Save profile"
+                        >
+                            <Icon icon="mage:bookmark" width={22} />
+                            Saved
+                        </button>
+                    )}
                 </header>
 
 

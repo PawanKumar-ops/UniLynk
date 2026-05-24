@@ -151,6 +151,7 @@
     border-radius: 12px;
     color: #fff;
     background-color: #000;
+    cursor: pointer;
 }
 
 .open:hover{
@@ -175,6 +176,7 @@
 }
 
 .myclubsmore{
+    cursor: pointer;
     width: 100%;
     height: 80px;
     border: 1px solid rgb(230, 230, 230);
@@ -185,12 +187,10 @@
     justify-content: space-between;
     transition:
     background-color 0.2s ease,
-    border-color 0.2s ease,
 }
 
 .myclubsmore:hover{
     background-color: #f8fafc; /* slate-50 */
-  border-color: #0f172a;     /* slate-900 */
 }
 
 .myclubsmoreimg img{
