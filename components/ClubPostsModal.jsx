@@ -13,29 +13,7 @@ const formatRelativeTime = (value) => {
 
 export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts }) {
   const [localPosts, setLocalPosts] = useState([]);
-  const normalizedPosts = useMemo(
-    () =>
-      (Array.isArray(posts) ? posts : []).map((post, index) => {
-        const safeAuthorName =
-          (typeof post?.authorName === "string" && post.authorName.trim()) ||
-          (typeof post?.author === "string" && post.author.trim()) ||
-          "UniLynk User";
-
-        return {
-          ...post,
-          id: post?.id || post?._id || `club-post-${index}`,
-          authorName: safeAuthorName,
-          authorImage:
-            (typeof post?.authorImage === "string" && post.authorImage.trim()) ||
-            (typeof post?.avatar === "string" && post.avatar.trim()) ||
-            "",
-          category:
-            (typeof post?.category === "string" && post.category.trim()) ||
-            (post?.postAs === "club" ? "club" : "post"),
-        };
-      }),
-    [posts]
-  );
+  const normalizedPosts = useMemo(() => (Array.isArray(posts) ? posts : []), [posts]);
 
   useEffect(() => {
     setLocalPosts(normalizedPosts);
@@ -118,7 +96,7 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts }) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-baseline gap-1.5 min-w-0">
-                        <span className="text-black truncate tracking-tight">{post.authorName}</span>
+                        <span className="text-black truncate tracking-tight">{post.author}</span>
                         <span className="text-black/35 truncate">· {post.postAs === "club" ? "Club Post" : "Member Post"}</span>
                       </div>
                       <button className="size-7 inline-flex items-center justify-center rounded-full text-black/40 hover:text-black hover:bg-black/[0.06] transition opacity-0 group-hover:opacity-100">
