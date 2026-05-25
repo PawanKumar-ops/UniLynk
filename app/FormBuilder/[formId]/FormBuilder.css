@@ -284,26 +284,6 @@
   border-color: #000000;
 }
 
-.form-seats-input:disabled {
-  background-color: #f3f4f6;
-  color: #9ca3af;
-  cursor: not-allowed;
-}
-
-.form-seats-unlimited-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 10px;
-  font-size: 13px;
-  color: #4b5563;
-}
-
-.form-seats-unlimited-toggle input {
-  width: 14px;
-  height: 14px;
-}
-
 .form-genre-label-wrapper {
   display: flex;
   align-items: center;

@@ -55,7 +55,6 @@ export default function FormBuilder() {
     time: "",
     location: "",
     seats: "",
-    seatsUnlimited: false,
     questions: [],
   });
 
@@ -88,7 +87,6 @@ export default function FormBuilder() {
             description: "",
             questions: [],
             seats: "",
-            seatsUnlimited: false,
             createdAt: new Date().toISOString(),
           };
 
@@ -113,7 +111,6 @@ export default function FormBuilder() {
           description: "",
           questions: [],
           seats: "",
-          seatsUnlimited: false,
           createdAt: new Date().toISOString(),
         };
 
@@ -426,23 +423,11 @@ const saveChanges = async () => {
               <input
                 type="number"
                 min="0"
-                value={formData.seatsUnlimited ? '' : (formData.seats ?? '')}
+                value={formData.seats ?? ''}
                 onChange={(e) => updateForm({ seats: e.target.value === '' ? '' : Number(e.target.value) })}
                 className="form-seats-input"
                 placeholder="Enter number of seats"
-                disabled={formData.seatsUnlimited}
               />
-              <label className="form-seats-unlimited-toggle">
-                <input
-                  type="checkbox"
-                  checked={Boolean(formData.seatsUnlimited)}
-                  onChange={(e) => updateForm({
-                    seatsUnlimited: e.target.checked,
-                    seats: e.target.checked ? '' : formData.seats,
-                  })}
-                />
-                <span>No limit</span>
-              </label>
             </div>
           </div>
 
