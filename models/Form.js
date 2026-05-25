@@ -14,6 +14,8 @@ const FormSchema = new mongoose.Schema(
     title: String,
     description: String,
     genre: String,
+    seats: Number,
+    seatsUnlimited: { type: Boolean, default: false },
     date: String,
     time: String,
     location: String,
