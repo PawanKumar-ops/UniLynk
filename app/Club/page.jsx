@@ -16,30 +16,6 @@ const Clubpage = () => {
     const [MemberModalopen, setMemberModalOpen] = useState(false);
     const [postsModalOpen, setPostsModalOpen] = useState(false);
     const [clubData, setClubData] = useState(null);
-    const clubPosts = [
-        {
-            id: "club-post-1",
-            author: "Alexandra Chen",
-            role: "President",
-            timeAgo: "2h ago",
-            category: "Announcement",
-            title: "Welcome to Innovation Cell!",
-            content: "Kickstarting the semester with maker sessions and idea jams. Stay tuned for weekly activities.",
-            likes: 34,
-            comments: 8,
-        },
-        {
-            id: "club-post-2",
-            author: "Marcus Rivera",
-            role: "Vice President",
-            timeAgo: "1d ago",
-            category: "Event",
-            title: "Design Sprint this Saturday",
-            content: "Join us in Lab-3 at 10 AM. Bring your laptop and your best product ideas.",
-            likes: 21,
-            comments: 4,
-        },
-    ];
     const activityCards = [
         {
             id: 1,
@@ -169,7 +145,8 @@ const Clubpage = () => {
                             open={postsModalOpen}
                             onOpenChange={setPostsModalOpen}
                             clubName={clubData?.clubName || "Club"}
-                            posts={clubPosts}
+                            clubLogo={clubData?.logo || "/Defaultclublogo.svg"}
+                            clubId={clubData?._id || searchParams.get("clubId") || ""}
                         />
                     </div>
                 </div>
