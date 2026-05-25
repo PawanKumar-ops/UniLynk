@@ -127,11 +127,16 @@ export async function GET(req) {
 
     const { searchParams } = new URL(req.url);
     const audience = searchParams.get("audience");
+    const clubId = searchParams.get("clubId");
 
-    const query =
+    const query = {
+      ...(clubId ? { clubId: clubId.trim() } : {}),
+      ...(
       audience === "for-you" || audience === "clubs"
         ? { visibility: audience }
-        : {};
+        : {}
+      ),
+    };
 
     const posts = await Post.find(query).sort({ createdAt: -1 }).lean();
     const hydratedPosts = await resolvePostAuthorImages(posts);
