@@ -85,10 +85,10 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts }) {
                 <div className="flex items-start gap-3">
                   <div className="relative flex-shrink-0">
                     <div className="size-9 rounded-full overflow-hidden bg-black text-white flex items-center justify-center ring-2 ring-white shadow-[0_2px_8px_-2px_rgba(0,0,0,0.25)]">
-                      {post.avatar ? (
-                        <img src={post.avatar} alt={post.author} className="size-full object-cover" />
+                      {post.authorImage ? (
+                        <img src={post.authorImage} alt={post.authorName} className="size-full object-cover" />
                       ) : (
-                        <span className="tracking-tight">{post.author.slice(0, 2).toUpperCase()}</span>
+                        <span className="tracking-tight">{post.authorName.slice(0, 2).toUpperCase()}</span>
                       )}
                     </div>
                   </div>
@@ -170,7 +170,7 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts }) {
                   </div>
                 </div>
 
-                {idx < posts.length - 1 && (
+                {idx < localPosts.length - 1 && (
                   <div className="absolute left-14 right-0 -bottom-px h-px bg-gradient-to-r from-black/[0.08] via-black/[0.05] to-transparent" />
                 )}
               </article>
