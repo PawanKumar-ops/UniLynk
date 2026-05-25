@@ -14,14 +14,10 @@ import { ReportPostModal } from '@/components/ReportPostModal';
 import { ExplorePage } from '@/components/ExplorePage';
 import { AnimatePresence, motion } from "framer-motion";
 import {
-    Check,
-    FileSpreadsheet,
-    Mail,
-    Plus,
-    Sparkles,
     Bell,
     BookOpen,
 } from "lucide-react";
+import { Icon } from '@iconify/react';
 
 const DASHBOARD_SCROLL_STORAGE_KEY = 'dashboard-feed-scroll-position';
 
@@ -405,7 +401,7 @@ export default function DashboardClient() {
           <div className="posth-left">
             <div className="user-name">
               {post.authorName || "UniLynk User"}
-              {post.postAs === "club" && <span className="club-verified-tick">✓</span>}
+              {post.postAs === "club" && <Icon icon="heroicons-solid:badge-check" color='#1d9bf0' width={18} />}
             </div>
             <div className="post-time"><span className='post-dot'><svg width="8" height="8" viewBox="0 0 8 8" xmlns="http://www.w3.org/2000/svg">
               <circle cx="4" cy="4" r="1.5" fill="grey" />

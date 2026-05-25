@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, X } from "lucide-react";
+import { Icon } from "@iconify/react";
 
 const formatRelativeTime = (value) => {
   const date = new Date(value);
@@ -96,8 +97,8 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts }) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-baseline gap-1.5 min-w-0">
-                        <span className="text-black truncate tracking-tight">{post.author}</span>
-                        <span className="text-black/35 truncate">· {post.postAs === "club" ? "Club Post" : "Member Post"}</span>
+                        <span className="text-black truncate tracking-tight flex flex-row gap-1">{clubName}<Icon icon="heroicons-solid:badge-check" color='#1d9bf0' width={18} /></span>
+                        <span className="text-black/35 truncate text-[14px]">· {formatRelativeTime(post.createdAt)}</span>
                       </div>
                       <button className="size-7 inline-flex items-center justify-center rounded-full text-black/40 hover:text-black hover:bg-black/[0.06] transition opacity-0 group-hover:opacity-100">
                         <MoreHorizontal className="size-3.5" />
@@ -105,9 +106,9 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts }) {
                     </div>
 
                     <div className="flex items-center gap-1.5 text-black/35 mt-0.5">
-                      <span>{formatRelativeTime(post.createdAt)}</span>
-                      <span className="size-0.5 rounded-full bg-black/25" />
-                      <span className="uppercase tracking-[0.08em]">{post.category}</span>
+                      <span></span>
+                    
+                      
                     </div>
 
                     <div className="mt-2.5">
@@ -119,7 +120,7 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts }) {
                         <img
                           src={post.images[0]}
                           alt="Post media"
-                          className="w-full h-44 object-cover transition-transform duration-500 group-hover:scale-[1.02]"
+                          className="w-full h-44 object-cover"
                         />
                       </div>
                     )}

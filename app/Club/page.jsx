@@ -20,27 +20,19 @@ const Clubpage = () => {
     const activityCards = [
         {
             id: 1,
-            icon: Calendar,
-            title: "",
-            description: ""
+            icon: Calendar
         },
         {
             id: 2,
-            icon: Users,
-            title: "",
-            description: ""
+            icon: Users
         },
         {
             id: 3,
-            icon: Trophy,
-            title: "",
-            description: ""
+            icon: Trophy
         },
         {
             id: 4,
             icon: Heart,
-            title: "",
-            description: ""
         }
     ];
 
