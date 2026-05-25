@@ -45,6 +45,7 @@ export default function FormBuilder() {
   const router = useRouter();
   // FIXED: Added mounted state to prevent hydration errors
   const [mounted, setMounted] = useState(false);
+  const descriptionRef = useRef(null);
   // FIXED: Initialize with completely static structure to prevent hydration mismatch
   const [formData, setFormData] = useState({
     _id: '',
@@ -53,6 +54,7 @@ export default function FormBuilder() {
     date: "",
     time: "",
     location: "",
+    seats: "",
     questions: [],
   });
 
@@ -84,6 +86,7 @@ export default function FormBuilder() {
             title: "Untitled Form",
             description: "",
             questions: [],
+            seats: "",
             createdAt: new Date().toISOString(),
           };
 
@@ -107,6 +110,7 @@ export default function FormBuilder() {
           title: "Untitled Form",
           description: "",
           questions: [],
+          seats: "",
           createdAt: new Date().toISOString(),
         };
 
@@ -125,6 +129,14 @@ export default function FormBuilder() {
 
   }, [mounted, params?.formId]);
 
+
+
+
+  useEffect(() => {
+    if (!descriptionRef.current) return;
+    descriptionRef.current.style.height = "auto";
+    descriptionRef.current.style.height = `${descriptionRef.current.scrollHeight}px`;
+  }, [formData.description]);
 
   const publishForm = async () => {
     if (!formData) return;
@@ -370,6 +382,7 @@ const saveChanges = async () => {
             placeholder="Form Title"
           />
           <textarea
+            ref={descriptionRef}
             value={formData.description}
             onChange={(e) => updateForm({ description: e.target.value })}
             className="form-description-input"
@@ -377,29 +390,45 @@ const saveChanges = async () => {
             rows={2}
           />
 
-          {/* Genre/Category Field */}
-          <div className="form-genre-section">
-            <div className="form-genre-label-wrapper">
-              <Tag />
-              <label className="form-genre-label">Form Category</label>
+          {/* Genre/Category + Seats */}
+          <div className="form-genre-grid">
+            <div className="form-genre-section">
+              <div className="form-genre-label-wrapper">
+                <Tag />
+                <label className="form-genre-label">Form Category</label>
+              </div>
+              <select
+                value={formData.genre || ''}
+                onChange={(e) => updateForm({ genre: e.target.value })}
+                className="form-genre-select"
+              >
+                <option value="">Select a category</option>
+                <option value="Event Registration">Event Registration</option>
+                <option value="Survey">Survey</option>
+                <option value="Feedback">Feedback</option>
+                <option value="Contact Form">Contact Form</option>
+                <option value="RSVP">RSVP</option>
+                <option value="Application">Application</option>
+                <option value="Quiz/Test">Quiz/Test</option>
+                <option value="Order Form">Order Form</option>
+                <option value="Booking/Reservation">Booking/Reservation</option>
+                <option value="Other">Other</option>
+              </select>
             </div>
-            <select
-              value={formData.genre || ''}
-              onChange={(e) => updateForm({ genre: e.target.value })}
-              className="form-genre-select"
-            >
-              <option value="">Select a category</option>
-              <option value="Event Registration">Event Registration</option>
-              <option value="Survey">Survey</option>
-              <option value="Feedback">Feedback</option>
-              <option value="Contact Form">Contact Form</option>
-              <option value="RSVP">RSVP</option>
-              <option value="Application">Application</option>
-              <option value="Quiz/Test">Quiz/Test</option>
-              <option value="Order Form">Order Form</option>
-              <option value="Booking/Reservation">Booking/Reservation</option>
-              <option value="Other">Other</option>
-            </select>
+
+            <div className="form-seats-section">
+              <div className="form-genre-label-wrapper">
+                <label className="form-genre-label">No. of seats</label>
+              </div>
+              <input
+                type="number"
+                min="0"
+                value={formData.seats ?? ''}
+                onChange={(e) => updateForm({ seats: e.target.value === '' ? '' : Number(e.target.value) })}
+                className="form-seats-input"
+                placeholder="Enter number of seats"
+              />
+            </div>
           </div>
 
           {/* Date, Time, Location Section */}
