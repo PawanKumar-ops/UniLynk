@@ -14,6 +14,16 @@ export async function PUT(req) {
 
     const { formId, formData } = await req.json();
 
+    const parsedSeats =
+      formData?.seats === "" || formData?.seats === null || formData?.seats === undefined
+        ? undefined
+        : Number(formData.seats);
+
+    const normalizedFormData = {
+      ...formData,
+      ...(Number.isFinite(parsedSeats) ? { seats: parsedSeats } : { seats: undefined }),
+    };
+
     if (!formId) {
       return Response.json(
         { error: "Missing formId" },
@@ -26,7 +36,7 @@ export async function PUT(req) {
         _id: formId,
         createdBy: session.user.email.toLowerCase(),
       },
-      formData,
+      normalizedFormData,
       {
         new: true,
         runValidators: true,

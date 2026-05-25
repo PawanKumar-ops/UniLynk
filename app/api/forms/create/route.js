@@ -19,8 +19,14 @@ export async function POST(req) {
 
      const normalizedEmail = session.user.email.toLowerCase();
 
+    const parsedSeats =
+      data?.seats === "" || data?.seats === null || data?.seats === undefined
+        ? undefined
+        : Number(data.seats);
+
     const payload = {
       ...data,
+      ...(Number.isFinite(parsedSeats) ? { seats: parsedSeats } : { seats: undefined }),
       createdBy: normalizedEmail,
     };
     
