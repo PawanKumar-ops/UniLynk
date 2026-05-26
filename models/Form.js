@@ -22,6 +22,18 @@ const FormSchema = new mongoose.Schema(
 
     createdBy: String,
 
+    clubId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Club",
+      default: null,
+    },
+
+    visibility: {
+      type: String,
+      enum: ["everyone", "members"],
+      default: "everyone",
+    },
+
     isPublic: {
       type: Boolean,
       default: false,

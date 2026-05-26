@@ -11,7 +11,7 @@ export async function POST(req) {
     if (!session?.user?.email) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
-    const { formId } = await req.json();
+    const { formId, clubId, visibility } = await req.json();
 
     if (!formId) {
       return Response.json(
@@ -26,7 +26,9 @@ export async function POST(req) {
         createdBy: session.user.email.toLowerCase(),
       },
       {
-        isPublic: true,
+        isPublic: visibility !== "members",
+        visibility: visibility === "members" ? "members" : "everyone",
+        clubId: clubId || null,
         isPublished: true,
         publishedAt: new Date(),
       },

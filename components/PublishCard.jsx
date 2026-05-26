@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Check, Globe, Lock, ChevronDown, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -6,6 +6,12 @@ export function PublishCard({ open, clubs, onPublish }) {
   const [audience, setAudience] = useState("members");
   const [clubId, setClubId] = useState(clubs[0]?.id ?? "");
   const [clubOpen, setClubOpen] = useState(false);
+
+  useEffect(() => {
+    if (!clubId && clubs[0]?.id) {
+      setClubId(clubs[0].id);
+    }
+  }, [clubs, clubId]);
 
   const selectedClub = clubs.find((c) => c.id === clubId);
   const multipleClubs = clubs.length > 1;
@@ -129,7 +135,8 @@ export function PublishCard({ open, clubs, onPublish }) {
             <div className="px-5 pb-5 pt-1">
               <button
                 onClick={() => onPublish(audience, clubId)}
-                className="w-full rounded-xl bg-neutral-900 hover:bg-neutral-800 active:bg-black text-white text-sm font-medium py-2.5 transition-colors shadow-[0_4px_12px_-2px_rgba(0,0,0,0.25)]"
+                disabled={!clubId}
+                className="w-full rounded-xl bg-neutral-900 enabled:hover:bg-neutral-800 enabled:active:bg-black disabled:bg-neutral-400 text-white text-sm font-medium py-2.5 transition-colors shadow-[0_4px_12px_-2px_rgba(0,0,0,0.25)] disabled:cursor-not-allowed"
               >
                 Publish form
               </button>
