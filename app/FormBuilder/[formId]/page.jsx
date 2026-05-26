@@ -5,27 +5,23 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { getDraft, saveDraft } from "@/lib/drafts";
 import {
-  ArrowLeft,
   Plus,
   Trash2,
-  GripVertical,
   Eye,
   Type,
-  ListOrdered,
   CheckSquare,
   Circle,
   ChevronDown,
   Calendar as CalendarIcon,
+  UserRound,
   Clock,
   Mail,
   Phone,
   MapPin,
   ChevronUp,
   ChevronDown as ChevronDownIcon,
-
   Tag,
 } from 'lucide-react';
-import { format } from 'date-fns';
 import './FormBuilder.css';
 
 const questionTypes = [
@@ -418,7 +414,7 @@ const saveChanges = async () => {
 
             <div className="form-seats-section">
               <div className="form-genre-label-wrapper">
-                <label className="form-genre-label">No. of seats</label>
+                <label className="form-genre-label event-field-label"><UserRound />No. of seats</label>
               </div>
               <input
                 type="number"
