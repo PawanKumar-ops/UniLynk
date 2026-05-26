@@ -58,10 +58,21 @@ export async function GET(req) {
 
     const url = new URL(req.url);
     const leadershipOnly = url.searchParams.get("leadershipOnly") === "true";
+    const memberOf = url.searchParams.get("memberOf") === "true";
+    const userEmail = session.user.email.toLowerCase().trim();
 
-    const filter = leadershipOnly
-      ? { "leaders.email": session.user.email.toLowerCase().trim() }
-      : {};
+    let filter = {};
+
+    if (leadershipOnly) {
+      filter = { "leaders.email": userEmail };
+    } else if (memberOf) {
+      filter = {
+        $or: [
+          { "leaders.email": userEmail },
+          { "members.email": userEmail },
+        ],
+      };
+    }
 
     const clubs = await Club.find(filter)
       .sort({ updatedAt: -1 })

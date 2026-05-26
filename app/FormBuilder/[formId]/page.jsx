@@ -23,6 +23,7 @@ import {
   Tag,
 } from 'lucide-react';
 import './FormBuilder.css';
+import { PublishCard } from '@/components/PublishCard';
 
 const questionTypes = [
   { value: 'short', label: 'Short Answer', icon: Type },
@@ -54,6 +55,10 @@ export default function FormBuilder() {
     questions: [],
   });
 
+
+  const [isPublishCardOpen, setIsPublishCardOpen] = useState(false);
+  const [userClubs, setUserClubs] = useState([]);
+  const [publishing, setPublishing] = useState(false);
   // FIXED: Set mounted to true after component mounts to prevent hydration mismatch
   useEffect(() => {
     setMounted(true);
@@ -134,10 +139,38 @@ export default function FormBuilder() {
     descriptionRef.current.style.height = `${descriptionRef.current.scrollHeight}px`;
   }, [formData.description]);
 
-  const publishForm = async () => {
+
+  useEffect(() => {
+    if (!mounted) return;
+
+    const loadUserClubs = async () => {
+      try {
+        const res = await fetch('/api/clubs?memberOf=true', { cache: 'no-store' });
+        if (!res.ok) return;
+        const payload = await res.json();
+
+        const clubs = Array.isArray(payload?.clubs)
+          ? payload.clubs.map((club) => ({
+              id: club._id,
+              name: club.clubName,
+              members: Number(club.memberCount) || 0,
+            }))
+          : [];
+
+        setUserClubs(clubs);
+      } catch (error) {
+        console.error('Failed to load user clubs', error);
+      }
+    };
+
+    loadUserClubs();
+  }, [mounted]);
+
+  const publishForm = async (audience = 'everyone', clubId = '') => {
     if (!formData) return;
 
     try {
+      setPublishing(true);
       const isDraft = formData._id?.startsWith("draft_");
       const isExistingMongoForm = Boolean(formData._id) && !isDraft;
       let res;
@@ -159,12 +192,19 @@ export default function FormBuilder() {
         res = await fetch("/api/forms/publish", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ formId: _id }),
+          body: JSON.stringify({
+            formId: _id,
+            clubId: clubId || null,
+            visibility: audience,
+          }),
         });
       } else {
         const payload = {
           ...formData,
           isPublished: true,
+          isPublic: audience === 'everyone',
+          visibility: audience,
+          clubId: clubId || null,
         };
 
        // Remove draft id → Mongo creates real _id
@@ -186,10 +226,13 @@ export default function FormBuilder() {
         localStorage.removeItem(`draft-${formData._id}`);
       }
 
-      router.push("/dashboard/events/yourform");
+      setIsPublishCardOpen(false);
+      router.push('/dashboard/events/yourform');
 
     } catch (err) {
       console.error(err);
+    } finally {
+      setPublishing(false);
     }
   };
 
@@ -344,13 +387,22 @@ const saveChanges = async () => {
 
             <div style={{ display: "flex", gap: "10px" }}>
 
+              <div className="relative">
               <button
-                onClick={formData.isPublished ? saveChanges : publishForm}
+                onClick={formData.isPublished ? saveChanges : () => setIsPublishCardOpen((open) => !open)}
                 className="btn-preview-mode"
                 type="button"
               >
-                {formData.isPublished ? "Save Changes" : "Publish"}
+                {publishing ? "Publishing..." : formData.isPublished ? "Save Changes" : "Publish"}
               </button>
+              {!formData.isPublished && (
+                <PublishCard
+                  open={isPublishCardOpen}
+                  clubs={userClubs}
+                  onPublish={publishForm}
+                />
+              )}
+              </div>
               <button
                 disabled={!formData?._id}
                 onClick={() => router.push(`/FormPreview/${formData._id}`)}
