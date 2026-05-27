@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Check, Globe, Lock, ChevronDown, Sparkles } from "lucide-react";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence } from "framer-motion";
 
 export function PublishCard({ open, clubs, onPublish }) {
   const [audience, setAudience] = useState("members");
@@ -32,12 +32,10 @@ export function PublishCard({ open, clubs, onPublish }) {
 
             <div className="relative px-5 pt-5 pb-4">
               <div className="flex items-center gap-2 mb-1">
-                <div className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-neutral-900 to-neutral-700">
-                  <Sparkles className="h-3.5 w-3.5 text-white" />
-                </div>
+                
                 <span className="text-[15px] font-semibold text-neutral-900">Publish form</span>
               </div>
-              <p className="text-xs text-neutral-500 ml-8">Choose where this form goes live.</p>
+              <p className="text-xs text-neutral-500">Choose where this form goes live.</p>
             </div>
 
             {multipleClubs && (

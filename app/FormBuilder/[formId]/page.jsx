@@ -40,10 +40,9 @@ const questionTypes = [
 export default function FormBuilder() {
   const params = useParams();
   const router = useRouter();
-  // FIXED: Added mounted state to prevent hydration errors
   const [mounted, setMounted] = useState(false);
-  const descriptionRef = useRef(null);
-  // FIXED: Initialize with completely static structure to prevent hydration mismatch
+ const descriptionRef = useRef(null);
+const publishCardRef = useRef(null);
   const [formData, setFormData] = useState({
     _id: '',
     title: "Untitled Form",
@@ -138,6 +137,23 @@ export default function FormBuilder() {
     descriptionRef.current.style.height = "auto";
     descriptionRef.current.style.height = `${descriptionRef.current.scrollHeight}px`;
   }, [formData.description]);
+
+  useEffect(() => {
+  const handleClickOutside = (event) => {
+    if (
+      publishCardRef.current &&
+      !publishCardRef.current.contains(event.target)
+    ) {
+      setIsPublishCardOpen(false);
+    }
+  };
+
+  document.addEventListener("mousedown", handleClickOutside);
+
+  return () => {
+    document.removeEventListener("mousedown", handleClickOutside);
+  };
+}, []);
 
 
   useEffect(() => {
@@ -387,7 +403,7 @@ const saveChanges = async () => {
 
             <div style={{ display: "flex", gap: "10px" }}>
 
-              <div className="relative">
+              <div className="relative" ref={publishCardRef}>
               <button
                 onClick={formData.isPublished ? saveChanges : () => setIsPublishCardOpen((open) => !open)}
                 className="btn-preview-mode"
