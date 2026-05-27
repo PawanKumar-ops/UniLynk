@@ -7,6 +7,7 @@ import { AddMembersModal } from '@/components/AddMembersFab';
 import { MembersModal } from "@/components/ClubMembersModal";
 import { PostsModal } from "@/components/ClubPostsModal";
 import { Calendar, Users, Trophy, Heart } from 'lucide-react';
+import Link from "next/link";
 
 const Clubpage = () => {
     const searchParams = useSearchParams();
@@ -17,6 +18,45 @@ const Clubpage = () => {
     const [postsModalOpen, setPostsModalOpen] = useState(false);
     const [clubData, setClubData] = useState(null);
     const [clubPosts, setClubPosts] = useState([]);
+    const [upcomingEvents, setUpcomingEvents] = useState([]);
+    const [eventsLoading, setEventsLoading] = useState(true);
+
+    useEffect(() => {
+        const clubId = searchParams.get("clubId");
+        if (!clubId) return;
+
+        const fetchUpcomingEvents = async () => {
+            try {
+                setEventsLoading(true);
+                const response = await fetch(`/api/forms/publics?clubId=${clubId}`, { cache: "no-store" });
+                if (!response.ok) throw new Error("Failed to fetch upcoming events");
+                const data = await response.json();
+                const eventsList = Array.isArray(data) ? data : [];
+
+                const eventsWithApplied = await Promise.all(
+                    eventsList.map(async (event) => {
+                        try {
+                            const applyRes = await fetch(`/api/forms/check-applied?formId=${event._id}`);
+                            const applyData = await applyRes.json();
+                            return { ...event, isApplied: !!applyData.applied };
+                        } catch {
+                            return { ...event, isApplied: false };
+                        }
+                    })
+                );
+
+                setUpcomingEvents(eventsWithApplied);
+            } catch (error) {
+                console.error("UPCOMING EVENTS FETCH ERROR:", error);
+                setUpcomingEvents([]);
+            } finally {
+                setEventsLoading(false);
+            }
+        };
+
+        fetchUpcomingEvents();
+    }, [searchParams]);
+
     const activityCards = [
         {
             id: 1,
@@ -354,95 +394,89 @@ const Clubpage = () => {
                                 <h2 className="section-title">Upcoming Events</h2>
 
                                 <div className="events-list">
-                                    {[
-                                        {
-                                            title: "Web3 & Blockchain Workshop",
-                                            date: "Feb 20, 2026",
-                                            time: "2:00 PM - 5:00 PM",
-                                            location: "Computer Lab 3",
-                                            seats: 40,
-                                            registered: 28,
-                                            description: "Learn the fundamentals of blockchain technology and explore Web3 development opportunities."
-                                        },
-                                        {
-                                            title: "Creative Photography Walk",
-                                            date: "Feb 25, 2026",
-                                            time: "6:00 AM - 9:00 AM",
-                                            location: "Campus & Nearby Areas",
-                                            seats: 30,
-                                            registered: 22,
-                                            description: "Join us for an early morning photography session capturing the beauty of campus life and nature."
-                                        },
-                                        {
-                                            title: "Startup Pitch Competition",
-                                            date: "Mar 5, 2026",
-                                            time: "10:00 AM - 4:00 PM",
-                                            location: "Innovation Hub",
-                                            seats: 50,
-                                            registered: 35,
-                                            description: "Present your startup ideas to a panel of investors and entrepreneurs. Winners get seed funding!"
-                                        },
-                                        {
-                                            title: "Digital Art Masterclass",
-                                            date: "Mar 12, 2026",
-                                            time: "3:00 PM - 6:00 PM",
-                                            location: "Design Studio",
-                                            seats: 25,
-                                            registered: 18,
-                                            description: "Advanced techniques in digital illustration and motion graphics with industry professional."
-                                        }
-                                    ].map((event, index) => (
-                                        <article key={index} className="event-card">
-                                            <div className="event-header">
-                                                <div className="event-info">
-                                                    <h3 className="event-title">{event.title}</h3>
-                                                    <div className="event-meta">
-                                                        <span className="meta-item">
-                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                                                <line x1="16" y1="2" x2="16" y2="6"></line>
-                                                                <line x1="8" y1="2" x2="8" y2="6"></line>
-                                                                <line x1="3" y1="10" x2="21" y2="10"></line>
-                                                            </svg>
-                                                            {event.date}
-                                                        </span>
-                                                        <span className="meta-item">
-                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                                <circle cx="12" cy="12" r="10"></circle>
-                                                                <polyline points="12 6 12 12 16 14"></polyline>
-                                                            </svg>
-                                                            {event.time}
-                                                        </span>
-                                                        <span className="meta-item">
-                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                                                <circle cx="12" cy="10" r="3"></circle>
-                                                            </svg>
-                                                            {event.location}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                                <span className="event-badge">Upcoming</span>
-                                            </div>
+                                    {eventsLoading ? (
+                                        <div className="text-center py-12 text-gray-500 font-medium">
+                                            Loading upcoming events...
+                                        </div>
+                                    ) : upcomingEvents.length === 0 ? (
+                                        <div className="text-center py-12 text-gray-500 font-medium">
+                                            No upcoming events scheduled.
+                                        </div>
+                                    ) : (
+                                        upcomingEvents.map((event, index) => {
+                                            const totalSeats = Number(event.seats) || 0;
+                                            const registeredSeats = Number(event.registered) || 0;
+                                            const percent = totalSeats > 0 ? Math.min(100, Math.round((registeredSeats / totalSeats) * 100)) : 0;
+                                            const formattedDate = event.date
+                                                ? new Date(event.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
+                                                : "Date TBA";
 
-                                            <p className="event-description">{event.description}</p>
+                                            return (
+                                                <article key={event._id || index} className="event-card">
+                                                    <div className="event-header">
+                                                        <div className="event-info">
+                                                            <h3 className="event-title">{event.title || "Untitled Event"}</h3>
+                                                            <div className="event-meta">
+                                                                <span className="meta-item">
+                                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                                                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                                                                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                                                                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                                                                    </svg>
+                                                                    {formattedDate}
+                                                                </span>
+                                                                <span className="meta-item">
+                                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                        <circle cx="12" cy="12" r="10"></circle>
+                                                                        <polyline points="12 6 12 12 16 14"></polyline>
+                                                                    </svg>
+                                                                    {event.time || "Time TBA"}
+                                                                </span>
+                                                                <span className="meta-item">
+                                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                                                        <circle cx="12" cy="10" r="3"></circle>
+                                                                    </svg>
+                                                                    {event.location || "Venue TBA"}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <span className="event-badge">Upcoming</span>
+                                                    </div>
 
-                                            <div className="event-footer">
-                                                <div className="seats-info">
-                                                    <div className="seats-text">
-                                                        Seats: <strong>{event.registered}/{event.seats}</strong>
+                                                    <p className="event-description" title={event.description}>
+                                                        {event.description || "No description available."}
+                                                    </p>
+
+                                                    <div className="event-footer">
+                                                        <div className="seats-info">
+                                                            <div className="seats-text">
+                                                                Seats: <strong>{registeredSeats}/{totalSeats > 0 ? totalSeats : "∞"}</strong>
+                                                            </div>
+                                                            {totalSeats > 0 && (
+                                                                <div className="progress-bar">
+                                                                    <div
+                                                                        className="progress-fill"
+                                                                        style={{ width: `${percent}%` }}
+                                                                    ></div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        {event.isApplied ? (
+                                                            <button className="btn-register" disabled>
+                                                                Applied
+                                                            </button>
+                                                        ) : (
+                                                            <Link href={`/FormPreview/${event._id}`}>
+                                                                <button className="btn-register">Register Now</button>
+                                                            </Link>
+                                                        )}
                                                     </div>
-                                                    <div className="progress-bar">
-                                                        <div
-                                                            className="progress-fill"
-                                                            style={{ width: `${(event.registered / event.seats) * 100}%` }}
-                                                        ></div>
-                                                    </div>
-                                                </div>
-                                                <button className="btn-register">Register Now</button>
-                                            </div>
-                                        </article>
-                                    ))}
+                                                </article>
+                                            );
+                                        })
+                                    )}
                                 </div>
                             </div>
                         )}
