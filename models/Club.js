@@ -4,6 +4,11 @@ const ActivitySchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true },
     description: { type: String, required: true, trim: true },
+    date: { type: String, default: "" },
+    location: { type: String, default: "" },
+    participants: { type: Number, default: 0 },
+    images: { type: [String], default: [] },
+    formId: { type: mongoose.Schema.Types.ObjectId, ref: "Form", default: null },
   },
   { _id: false }
 );

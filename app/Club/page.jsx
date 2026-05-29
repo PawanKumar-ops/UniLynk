@@ -1,7 +1,7 @@
 "use client"
 
 import "./Club.css"
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from 'next/navigation';
 import { AddMembersModal } from '@/components/AddMembersFab';
 import { MembersModal } from "@/components/ClubMembersModal";
@@ -9,7 +9,7 @@ import { PostsModal } from "@/components/ClubPostsModal";
 import { Calendar, Users, Trophy, Heart } from 'lucide-react';
 import Link from "next/link";
 
-const Clubpage = () => {
+const ClubPageContent = () => {
     const searchParams = useSearchParams();
     const tabs = ["About", "Past Activities", "Upcoming Events"];
     const [active, setActive] = useState(0);
@@ -115,10 +115,12 @@ const Clubpage = () => {
     }, [searchParams]);
 
     const sourceActivities = Array.isArray(clubData?.activities) ? clubData.activities : [];
+    const coreActivities = sourceActivities.filter(act => !act.date && !act.formId);
+    const pastActivities = sourceActivities.filter(act => act.date || act.formId);
     const populatedActivities = activityCards.map((card, idx) => ({
         ...card,
-        title: sourceActivities[idx]?.title || "",
-        description: sourceActivities[idx]?.description || "",
+        title: coreActivities[idx]?.title || "",
+        description: coreActivities[idx]?.description || "",
     }));
 
     const joinedLabel = clubData?.foundedDate ? `Joined ${clubData.foundedDate}` : "Joined recently";
@@ -311,79 +313,70 @@ const Clubpage = () => {
                                 <h2 className="section-title">Past Activities</h2>
 
                                 <div className="activities-list">
-                                    {[
-                                        {
-                                            title: "Design Thinking Workshop 2025",
-                                            date: "Jan 15, 2026",
-                                            location: "Main Auditorium",
-                                            participants: 120,
-                                            description: "An intensive workshop on design thinking methodology with hands-on activities and real-world case studies."
-                                        },
-                                        {
-                                            title: "Innovation Hackathon",
-                                            date: "Dec 10-12, 2025",
-                                            location: "Tech Lab",
-                                            participants: 85,
-                                            description: "A 48-hour hackathon focused on solving campus and community problems through innovative technology solutions."
-                                        },
-                                        {
-                                            title: "AI in Creative Arts Seminar",
-                                            date: "Nov 20, 2025",
-                                            location: "Lecture Hall B",
-                                            participants: 150,
-                                            description: "Explored the intersection of artificial intelligence and creative industries with guest speakers from leading tech companies."
-                                        },
-                                        {
-                                            title: "Annual Innovation Fest",
-                                            date: "Oct 5-7, 2025",
-                                            location: "Campus Grounds",
-                                            participants: 300,
-                                            description: "Our flagship event showcasing student projects, exhibitions, performances, and innovation challenges."
-                                        }
-                                    ].map((activity, index) => (
-                                        <article key={index} className="activity-card">
-                                            <div className="activity-header">
-                                                <div className="activity-info">
-                                                    <h3 className="activity-title">{activity.title}</h3>
-                                                    <div className="activity-meta">
-                                                        <span className="meta-item">
-                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                                <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                                                <line x1="16" y1="2" x2="16" y2="6"></line>
-                                                                <line x1="8" y1="2" x2="8" y2="6"></line>
-                                                                <line x1="3" y1="10" x2="21" y2="10"></line>
-                                                            </svg>
-                                                            {activity.date}
-                                                        </span>
-                                                        <span className="meta-item">
-                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                                                                <circle cx="12" cy="10" r="3"></circle>
-                                                            </svg>
-                                                            {activity.location}
-                                                        </span>
-                                                        <span className="meta-item">
-                                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                                                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                                                                <circle cx="9" cy="7" r="4"></circle>
-                                                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                                                                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                                                            </svg>
-                                                            {activity.participants} participants
-                                                        </span>
+                                    {pastActivities.length === 0 ? (
+                                        <div className="text-center py-12 text-gray-500 font-medium bg-[#f9f9f9] rounded-2xl border border-dashed border-gray-200">
+                                            No past activities recorded yet.
+                                        </div>
+                                    ) : (
+                                        pastActivities.map((activity, index) => (
+                                            <article key={index} className="activity-card">
+                                                <div className="activity-header">
+                                                    <div className="activity-info">
+                                                        <h3 className="activity-title">{activity.title}</h3>
+                                                        <div className="activity-meta">
+                                                            {activity.date && (
+                                                                <span className="meta-item">
+                                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                                                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                                                                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                                                                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                                                                    </svg>
+                                                                    {activity.date}
+                                                                </span>
+                                                            )}
+                                                            {activity.location && (
+                                                                <span className="meta-item">
+                                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                        <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                                                                        <circle cx="12" cy="10" r="3"></circle>
+                                                                    </svg>
+                                                                    {activity.location}
+                                                                </span>
+                                                            )}
+                                                            {activity.participants !== undefined && (
+                                                                <span className="meta-item">
+                                                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                                                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                                                                        <circle cx="9" cy="7" r="4"></circle>
+                                                                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                                                                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                                                                    </svg>
+                                                                    {activity.participants} participants
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                     </div>
+                                                    <span className="activity-badge">Completed</span>
                                                 </div>
-                                                <span className="activity-badge">Completed</span>
-                                            </div>
-                                            <p className="activity-description">{activity.description}</p>
+                                                <p className="activity-description">{activity.description}</p>
 
-                                            <div className="photo-gallery">
-                                                {[1, 2, 3, 4].map((i) => (
-                                                    <div key={i} className="photo-placeholder"></div>
-                                                ))}
-                                            </div>
-                                        </article>
-                                    ))}
+                                                <div className="photo-gallery">
+                                                    {Array.isArray(activity.images) && activity.images.length > 0 ? (
+                                                        activity.images.map((imgUrl, i) => (
+                                                            <div key={i} className="photo-placeholder overflow-hidden border border-neutral-100">
+                                                                <img src={imgUrl} alt={`${activity.title} ${i + 1}`} className="w-full h-full object-cover" />
+                                                            </div>
+                                                        ))
+                                                    ) : (
+                                                        [1, 2, 3, 4].map((i) => (
+                                                            <div key={i} className="photo-placeholder"></div>
+                                                        ))
+                                                    )}
+                                                </div>
+                                            </article>
+                                        ))
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -490,4 +483,14 @@ const Clubpage = () => {
     )
 }
 
-export default Clubpage
+export default function Clubpage() {
+    return (
+        <Suspense fallback={
+            <div className="flex items-center justify-center min-h-screen text-gray-500 font-medium">
+                Loading...
+            </div>
+        }>
+            <ClubPageContent />
+        </Suspense>
+    );
+}

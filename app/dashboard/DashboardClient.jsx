@@ -11,13 +11,15 @@ import ReliableImage from '../../components/ReliableImage';
 import CommentModal from '@/components/CommentModal';
 import ShareModal from '@/components/ShareModal';
 import { ReportPostModal } from '@/components/ReportPostModal';
+import PastEventNotifiModal from '@/components/PastEventNotifiModal';
 import { ExplorePage } from '@/components/ExplorePage';
 import { AnimatePresence, motion } from "framer-motion";
 import {
-    Bell,
-    BookOpen,
+  Bell,
+  BookOpen,
 } from "lucide-react";
 import { Icon } from '@iconify/react';
+import ImageWithFallback from '../../components/ReliableImage';
 
 const DASHBOARD_SCROLL_STORAGE_KEY = 'dashboard-feed-scroll-position';
 
@@ -120,7 +122,27 @@ export default function DashboardClient() {
   const pathname = usePathname();
   const [dashboardView, setDashboardView] = useState(pathname === '/dashboard/explore' ? 'explore' : 'feed');
   const [error, setError] = useState(null);
-    const [mode, setMode] = useState("newsletter");
+  const [mode, setMode] = useState("newsletter");
+  const [pendingNotifications, setPendingNotifications] = useState([]);
+  const [activePastEvent, setActivePastEvent] = useState(null);
+
+  useEffect(() => {
+    if (!session?.user?.email) return;
+
+    const fetchPendingNotifications = async () => {
+      try {
+        const res = await fetch("/api/clubs/past-pending");
+        if (res.ok) {
+          const data = await res.json();
+          setPendingNotifications(data || []);
+        }
+      } catch (err) {
+        console.error("Failed to fetch pending notifications:", err);
+      }
+    };
+
+    fetchPendingNotifications();
+  }, [session]);
 
   useEffect(() => {
     setDashboardView(pathname === '/dashboard/explore' ? 'explore' : 'feed');
@@ -554,116 +576,130 @@ export default function DashboardClient() {
           <ExplorePage onBack={() => router.push('/dashboard')} />
         ) : (
           <>
-        {!selectedThreadPost && (
-          <div className="pricing-toggle">
-            <div className={`toggle-track ${!isAnnual ? "right" : ""}`}>
-              <div className="toggle-bg"></div>
-              <button
-                className={`toggle-btn ${isAnnual ? "active" : ""}`}
-                onClick={() => setIsAnnual(true)}
-              >
-                For You
-              </button>
-              <button
-                className={`toggle-btn ${!isAnnual ? "active" : ""}`}
-                onClick={() => setIsAnnual(false)}
-              >
-                Clubs
-              </button>
-            </div>
-          </div>
-        )}
-
-        <div className="feed" ref={feedRef} onScroll={handleFeedScroll}>
-          <div className={`userposts ${selectedThreadPost ? "thread-userposts" : ""}`}>
-            {(loadingPosts || !posts) && <Loading />}
-
-            {!loadingPosts && Array.isArray(posts) && posts.length === 0 && <div className="noposts-illuistration">
-              <img src="./dashboard/NoPosts.svg" alt="No Posts" />
-              <h1 className='noposts-illuistrationh'>No Posts Yet</h1>
-              <p className='noposts-illuistrationp'>It looks a little empty here. Check back later or be the first to create something amazing!</p>
-            </div>}
-
-            {!loadingPosts && selectedThreadPost && (
-              <section className="thread-view" aria-label="Post thread view">
-                <div className="thread-view-header">
+            {!selectedThreadPost && (
+              <div className="pricing-toggle">
+                <div className={`toggle-track ${!isAnnual ? "right" : ""}`}>
+                  <div className="toggle-bg"></div>
                   <button
-                    type="button"
-                    className="thread-back-button"
-                    onClick={handleBackToFeed}
+                    className={`toggle-btn ${isAnnual ? "active" : ""}`}
+                    onClick={() => setIsAnnual(true)}
                   >
-                    <ArrowLeft size={18} />
-                    <span>Back to feed</span>
+                    For You
                   </button>
-                  <div>
-                    <h2 className="thread-view-title">Post</h2>
-
-                  </div>
+                  <button
+                    className={`toggle-btn ${!isAnnual ? "active" : ""}`}
+                    onClick={() => setIsAnnual(false)}
+                  >
+                    Clubs
+                  </button>
                 </div>
-
-                {renderPostCard(selectedThreadPost, { isThread: true })}
-
-                <div className="thread-replies-panel">
-                  <div className="thread-replies-header-row">
-                    <div>
-                      <h3 className="thread-replies-title">Replies</h3>
-                      <p className="thread-replies-subtitle">Join the conversation under this post.</p>
-                    </div>
-                    <button
-                      type="button"
-                      className="thread-reply-button"
-                      onClick={() => setActivePostId(selectedThreadPost.id)}
-                    >
-                      Reply
-                    </button>
-                  </div>
-
-                  {!!selectedThreadPost.comments?.length ? (
-                    <div className="thread-comments-list">
-                      {selectedThreadPost.comments.map(renderComment)}
-                    </div>
-                  ) : (
-                    <div className="thread-empty-state">
-                      <div className="nocomment-illuistration"><img src="./dashboard/nocomment.svg" alt="" /></div>
-                      <h4>No replies yet</h4>
-                      <p>Be the first person to reply to this post.</p>
-                    </div>
-                  )}
-                </div>
-              </section>
+              </div>
             )}
 
-            {!loadingPosts && Array.isArray(posts) && !selectedThreadPost && posts.map((post) => renderPostCard(post))}
-          </div>
+            <div className="feed" ref={feedRef} onScroll={handleFeedScroll}>
+              <div className={`userposts ${selectedThreadPost ? "thread-userposts" : ""}`}>
+                {(loadingPosts || !posts) && <Loading />}
 
-          {ispost ? (<Post setIspost={setIspost} audience={selectedAudience} onPosted={handlePosted} />) : (
-            <PostFAB setIspost={setIspost} />)}
-        </div>
-        <CommentModal
-          isOpen={Boolean(activePostId)}
-          onClose={() => setActivePostId(null)}
-          onSubmit={(payload) => {
-            if (!activePostId) return;
-            handleCommentSubmit(activePostId, payload);
-          }}
-          currentUser={session?.user}
-        />
+                {!loadingPosts && Array.isArray(posts) && posts.length === 0 && <div className="noposts-illuistration">
+                  <img src="./dashboard/NoPosts.svg" alt="No Posts" />
+                  <h1 className='noposts-illuistrationh'>No Posts Yet</h1>
+                  <p className='noposts-illuistrationp'>It looks a little empty here. Check back later or be the first to create something amazing!</p>
+                </div>}
 
-        <ShareModal
-          isOpen={openShare}
-          post={sharePost}
-          onClose={() => {
-            setOpenShare(false);
-            setSharePost(null);
-          }}
-        />
+                {!loadingPosts && selectedThreadPost && (
+                  <section className="thread-view" aria-label="Post thread view">
+                    <div className="thread-view-header">
+                      <button
+                        type="button"
+                        className="thread-back-button"
+                        onClick={handleBackToFeed}
+                      >
+                        <ArrowLeft size={18} />
+                        <span>Back to feed</span>
+                      </button>
+                      <div>
+                        <h2 className="thread-view-title">Post</h2>
 
-        <ReportPostModal
-          isOpen={Boolean(reportPostId)}
-          postId={reportPostId}
-          onClose={() => setReportPostId(null)}
-        />
-        </>
+                      </div>
+                    </div>
+
+                    {renderPostCard(selectedThreadPost, { isThread: true })}
+
+                    <div className="thread-replies-panel">
+                      <div className="thread-replies-header-row">
+                        <div>
+                          <h3 className="thread-replies-title">Replies</h3>
+                          <p className="thread-replies-subtitle">Join the conversation under this post.</p>
+                        </div>
+                        <button
+                          type="button"
+                          className="thread-reply-button"
+                          onClick={() => setActivePostId(selectedThreadPost.id)}
+                        >
+                          Reply
+                        </button>
+                      </div>
+
+                      {!!selectedThreadPost.comments?.length ? (
+                        <div className="thread-comments-list">
+                          {selectedThreadPost.comments.map(renderComment)}
+                        </div>
+                      ) : (
+                        <div className="thread-empty-state">
+                          <div className="nocomment-illuistration"><img src="./dashboard/nocomment.svg" alt="" /></div>
+                          <h4>No replies yet</h4>
+                          <p>Be the first person to reply to this post.</p>
+                        </div>
+                      )}
+                    </div>
+                  </section>
+                )}
+
+                {!loadingPosts && Array.isArray(posts) && !selectedThreadPost && posts.map((post) => renderPostCard(post))}
+              </div>
+
+              {ispost ? (<Post setIspost={setIspost} audience={selectedAudience} onPosted={handlePosted} />) : (
+                <PostFAB setIspost={setIspost} />)}
+            </div>
+            <CommentModal
+              isOpen={Boolean(activePostId)}
+              onClose={() => setActivePostId(null)}
+              onSubmit={(payload) => {
+                if (!activePostId) return;
+                handleCommentSubmit(activePostId, payload);
+              }}
+              currentUser={session?.user}
+            />
+
+            <ShareModal
+              isOpen={openShare}
+              post={sharePost}
+              onClose={() => {
+                setOpenShare(false);
+                setSharePost(null);
+              }}
+            />
+
+            <ReportPostModal
+              isOpen={Boolean(reportPostId)}
+              postId={reportPostId}
+              onClose={() => setReportPostId(null)}
+            />
+
+            <PastEventNotifiModal
+              isOpen={Boolean(activePastEvent)}
+              onClose={() => setActivePastEvent(null)}
+              event={activePastEvent}
+              onSuccess={() => {
+                if (activePastEvent) {
+                  setPendingNotifications((prev) =>
+                    prev.filter((evt) => evt._id !== activePastEvent._id)
+                  );
+                }
+                setActivePastEvent(null);
+              }}
+            />
+          </>
         )}
       </main >
       <div className="msgsidebar">
@@ -688,8 +724,8 @@ export default function DashboardClient() {
                text-[16px] font-semibold
                shadow-sm transition-all duration-300
                ${dashboardView === 'explore'
-                 ? 'bg-black text-white hover:bg-neutral-900'
-                 : 'bg-white/90 text-neutral-900 hover:bg-[#f5f8fa]'}
+                ? 'bg-black text-white hover:bg-neutral-900'
+                : 'bg-white/90 text-neutral-900 hover:bg-[#f5f8fa]'}
              `}
           >
             <span>Explore Campus</span>
@@ -697,55 +733,69 @@ export default function DashboardClient() {
           </button>
           <hr className="mt-4 mb-4" />
           <div className="relative flex rounded-lg bg-black/[0.06] p-0.5">
-                                            <motion.div
-                                                layout
-                                                transition={{
-                                                    type: "spring",
-                                                    stiffness: 400,
-                                                    damping: 32,
-                                                }}
-                                                className="absolute inset-y-0.5 w-[calc(50%-2px)] rounded-md bg-white shadow-sm"
-                                                style={{ left: mode === "newsletter" ? 2 : "50%" }}
-                                            />
-                                            {[
-                                                { id: "newsletter", label: "News Letter", Icon: BookOpen },
-                                                { id: "notification", label: "Notification", Icon: Bell },
-                                            ].map(({ id, label, Icon }) => (
-                                                <button
-                                                    key={id}
-                                                    onClick={() => {
-                                                        setMode(id);
-                                                        setError(null);
-                                                    }}
-                                                    className={`relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 text-xs transition ${mode === id ? "text-black" : "text-black/50"
-                                                        }`}
-                                                >
-                                                    <Icon className="h-3.5 w-3.5" />
-                                                    {label}
-                                                </button>
-                                            ))}
-                                        </div>
+            <motion.div
+              layout
+              transition={{
+                type: "spring",
+                stiffness: 400,
+                damping: 32,
+              }}
+              className="absolute inset-y-0.5 w-[calc(50%-2px)] rounded-md bg-white shadow-sm"
+              style={{ left: mode === "newsletter" ? 2 : "50%" }}
+            />
+            {[
+              { id: "newsletter", label: "News Letter", Icon: BookOpen },
+              { id: "notification", label: "Notification", Icon: Bell },
+            ].map(({ id, label, Icon }) => (
+              <button
+                key={id}
+                onClick={() => {
+                  setMode(id);
+                  setError(null);
+                }}
+                className={`relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 text-xs transition ${mode === id ? "text-black" : "text-black/50"
+                  }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+              </button>
+            ))}
+          </div>
           <hr className="mt-4 mb-4" />
 
-          <div className="chat">
-            <div className="chatheader">
-              <div className="clublogo">
-                <img src="/NITLOGO.webp" alt="NIT Logo" />
-              </div>
-              <div className="clubname">Innovation Cell</div>
-            </div>
-
-            <div className="allchats">
-              <div className="msges">
-                <div className="msgbar">
-                  <input type="text" placeholder='Message' />
-                  <button>
-                    <img className='arrow-up' src="./Chat/Arrow-up.svg" alt="" />
-                  </button>
+          {mode === "notification" ? (
+            <div className="notifi-box p-1.5 space-y-2">
+              {pendingNotifications.length > 0 ? (
+                pendingNotifications.map((notif) => (
+                  <div
+                    key={notif._id}
+                    onClick={() => setActivePastEvent(notif)}
+                    className="flex w-full h-[60px] items-center gap-3 p-3 rounded-2xl border border-neutral-200 hover:border-neutral-300 hover:shadow-sm cursor-pointer transition bg-white"
+                  >
+                    <div className="w-11 h-11 rounded-full overflow-hidden bg-neutral-100 shrink-0">
+                      <ImageWithFallback
+                        src={notif.clubLogo}
+                        alt={notif.clubName}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-semibold truncate text-black">{notif.title}</div>
+                      <div className="text-xs text-neutral-500 truncate">Please update Past Activities Page</div>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8 text-xs text-neutral-400">
+                  No new notifications
                 </div>
-              </div>
+              )}
             </div>
-          </div>
+          ) : (
+            <div className="p-3 text-center text-xs text-neutral-400">
+              No newsletter articles right now
+            </div>
+          )}
         </div>
       </div>
     </div >

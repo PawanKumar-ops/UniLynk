@@ -12,6 +12,7 @@
     "@giphy/js-fetch-api": "^5.7.0",
     "@giphy/react-components": "^10.1.1",
     "@iconify/react": "^6.0.2",
+    "@radix-ui/react-dialog": "^1.1.15",
     "async_hooks": "^1.0.0",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",
