@@ -284,10 +284,6 @@ export function ExplorePage({ onBack }) {
 
                 <div className="text-sm leading-snug">{trending[0].title}</div>
                 <div className="text-xs text-white/70 mt-1">by {trending[0].author}</div>
-                <div className="flex items-center gap-3 mt-3 text-xs text-white/80">
-                  <span className="flex items-center gap-1"><Heart size={12} /> {trending[0].likes}</span>
-                  <span className="flex items-center gap-1"><MessageCircle size={12} /> {trending[0].comments}</span>
-                </div>
               </div>
             </article>
 

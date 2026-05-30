@@ -314,8 +314,13 @@ const ClubPageContent = () => {
 
                                 <div className="activities-list">
                                     {pastActivities.length === 0 ? (
-                                        <div className="text-center py-12 text-gray-500 font-medium bg-[#f9f9f9] rounded-2xl border border-dashed border-gray-200">
-                                            No past activities recorded yet.
+                                        <div className="flex flex-col py-12 bg-[#f9f9f9] rounded-2xl border border-dashed border-gray-200">
+                                            <div className="w-full flex justify-center">
+                                                <img src="/myclubs/nopastevents.svg" alt="" />
+                                            </div>
+                                            <div className="text-center pt-12 text-gray-500 font-medium">
+                                                No past activities recorded yet.
+                                            </div>
                                         </div>
                                     ) : (
                                         pastActivities.map((activity, index) => (
@@ -392,8 +397,13 @@ const ClubPageContent = () => {
                                             Loading upcoming events...
                                         </div>
                                     ) : upcomingEvents.length === 0 ? (
-                                        <div className="text-center py-12 text-gray-500 font-medium">
-                                            No upcoming events scheduled.
+                                        <div className="text-center font-medium">
+                                            <div className="w-full flex justify-center">
+                                                <img src="/myclubs/noupcomingevents.svg" alt="" />
+                                            </div>
+                                            <div className="text-center py-12 text-gray-500 font-medium">
+                                                No upcoming events scheduled.
+                                            </div>
                                         </div>
                                     ) : (
                                         upcomingEvents.map((event, index) => {
