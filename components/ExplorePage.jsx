@@ -36,54 +36,6 @@ const users = [
   },
 ];
 
-const trending = [
-  {
-    title: "48-hour Build Marathon kicks off",
-    author: "Innovation Cell",
-    image:
-      "https://images.unsplash.com/photo-1701709304274-bd9e5402d979?w=800",
-    likes: 482,
-    comments: 73,
-  },
-  {
-    title: "Inside the rooftop celebration of '26",
-    author: "Cultural Society",
-    image:
-      "https://images.unsplash.com/photo-1736496503629-2d64fafca24e?w=800",
-    likes: 311,
-    comments: 44,
-  },
-  {
-    title: "Voices of the quad — Friday lineup",
-    author: "Music Club",
-    image:
-      "https://images.unsplash.com/photo-1764920265158-500a6e60c487?w=800",
-    likes: 256,
-    comments: 28,
-  },
-];
-
-const avatars = [
-  {
-    id: 1,
-    src: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBoZWFkc2hvdCUyMHBvcnRyYWl0fGVufDF8fHx8MTc3OTUxMzg3Mnww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-    alt: "User 1"
-  },
-  {
-    id: 2,
-    src: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMHdvbWFuJTIwcG9ydHJhaXR8ZW58MXx8fHwxNzc5NDg3NDA2fDA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-    alt: "User 2"
-  },
-  {
-    id: 3,
-    src: "https://images.unsplash.com/photo-1554765345-6ad6a5417cde?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxwcm9mZXNzaW9uYWwlMjBtYW4lMjBwb3J0cmFpdHxlbnwxfHx8fDE3NzkzOTI5NDJ8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral",
-    alt: "User 3"
-  }
-];
-
-const extraCount = 3;
-
-
 const ImageWithFallback = ({ src, alt, className = "" }) => (
   <ReliableImage
     src={src}
@@ -103,13 +55,88 @@ const initials = (name = "") =>
     .map((part) => part[0]?.toUpperCase() || "")
     .join("");
 
+const ParticipantAvatarStack = ({ event }) => {
+  const avatars = Array.isArray(event.participantAvatars) ? event.participantAvatars : [];
+  const count = Number(event.responseParticipantCount) || 0;
+
+  if (count <= 3 || avatars.length < 3) return null;
+
+  return (
+    <div className="mb-3 flex items-center">
+      {avatars.slice(0, 3).map((avatar, index) => (
+        <div
+          key={avatar.email || `${event.id}-avatar-${index}`}
+          className={`relative w-7 h-7 rounded-full overflow-hidden border-2 border-zinc-900 bg-white shrink-0 ${index !== 0 ? "-ml-3" : ""}`}
+          title={avatar.name}
+        >
+          <ImageWithFallback
+            src={avatar.image || "/Profilepic.png"}
+            alt={avatar.name || "Participant"}
+            className="w-full h-full object-cover object-center"
+          />
+        </div>
+      ))}
+
+      <div className="relative w-7 h-7 -ml-3 rounded-full bg-zinc-700 border-2 border-zinc-900 flex items-center justify-center shrink-0">
+        <span className="text-white text-xs font-medium">+{count - 3}</span>
+      </div>
+    </div>
+  );
+};
+
+const TrendingCard = ({ event, featured = false }) => (
+  <article
+    className={`${featured ? "row-span-2" : ""} relative rounded-2xl overflow-hidden border border-neutral-200 group cursor-pointer bg-neutral-100`}
+  >
+    <ImageWithFallback
+      src={event.image}
+      alt={event.title}
+      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-500"
+    />
+    <div className={`absolute inset-0 ${featured ? "bg-gradient-to-t from-black/80 via-black/20 to-transparent" : "bg-gradient-to-t from-black/75 to-transparent"}`} />
+    <div className={`relative flex h-full flex-col justify-end text-white ${featured ? "min-h-72 p-4" : "min-h-36 p-3"}`}>
+      <ParticipantAvatarStack event={event} />
+      <div className={featured ? "text-sm leading-snug" : "text-xs leading-snug line-clamp-2"}>
+        {event.title}
+      </div>
+      <div className="mt-1 text-xs text-white/70">
+        by {event.clubName} · {event.participants} participants
+      </div>
+    </div>
+  </article>
+);
+
 export function ExplorePage({ onBack }) {
   const [query, setQuery] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
   const [results, setResults] = useState([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [campusTrending, setCampusTrending] = useState([]);
+  const [trendingLoading, setTrendingLoading] = useState(true);
   const searchContainerRef = useRef(null);
   const router = useRouter();
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const fetchTrendingCampus = async () => {
+      try {
+        setTrendingLoading(true);
+        const res = await fetch("/api/explore/trending-campus", { signal: controller.signal });
+        if (!res.ok) throw new Error("Failed to fetch trending campus events");
+        const data = await res.json();
+        setCampusTrending(Array.isArray(data.events) ? data.events : []);
+      } catch (err) {
+        if (err.name !== "AbortError") setCampusTrending([]);
+      } finally {
+        if (!controller.signal.aborted) setTrendingLoading(false);
+      }
+    };
+
+    fetchTrendingCampus();
+
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     if (!query.trim()) {
@@ -241,96 +268,39 @@ export function ExplorePage({ onBack }) {
         <section>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-
               <h3 className="text-[1.125rem] font-bold">Trending on Campus</h3>
             </div>
             <button className="text-xs text-neutral-500 hover:text-black">View all</button>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <article className="row-span-2 relative rounded-2xl overflow-hidden border border-neutral-200 group cursor-pointer">
-              <ImageWithFallback
-                src={trending[0].image}
-                alt={trending[0].title}
-                className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-500"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-              <div className="relative h-full min-h-72 flex flex-col justify-end p-4 text-white">
-
-
-                <div className="flex items-center">
-                  {avatars.map((avatar, index) => (
-                    <div
-                      key={avatar.id}
-                      className={`relative w-7 h-7 rounded-full overflow-hidden border-2 border-zinc-900 bg-white shrink-0 ${index !== 0 ? "-ml-3" : ""
-                        }`}
-                    >
-                      <img
-                        src={avatar.src}
-                        alt={avatar.alt}
-                        className="w-full h-full object-cover object-center scale-110"
-                      />
-                    </div>
-                  ))}
-
-                  <div className="relative w-7 h-7 -ml-3 rounded-full bg-zinc-700 border-2 border-zinc-900 flex items-center justify-center shrink-0">
-                    <span className="text-white text-sm font-medium">
-                      +{extraCount}
-                    </span>
-                  </div>
-                </div>
-
-
-
-                <div className="text-sm leading-snug">{trending[0].title}</div>
-                <div className="text-xs text-white/70 mt-1">by {trending[0].author}</div>
-              </div>
-            </article>
-
-            {trending.slice(1).map((t) => (
-              <article
-                key={t.title}
-                className="relative rounded-2xl overflow-hidden border border-neutral-200 group cursor-pointer"
-              >
-                <ImageWithFallback
-                  src={t.image}
-                  alt={t.title}
-                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-500"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/75 to-transparent" />
-                <div className="relative min-h-36 flex flex-col justify-end p-3 text-white">
-
-
-
-                  <div className="flex items-center">
-                    {avatars.map((avatar, index) => (
-                      <div
-                        key={avatar.id}
-                        className={`relative w-7 h-7 rounded-full overflow-hidden border-2 border-zinc-900 bg-white shrink-0 ${index !== 0 ? "-ml-3" : ""
-                          }`}
-                      >
-                        <img
-                          src={avatar.src}
-                          alt={avatar.alt}
-                          className="w-full h-full object-cover object-center scale-110"
-                        />
-                      </div>
-                    ))}
-
-                    <div className="relative w-7 h-7 -ml-3 rounded-full bg-zinc-700 border-2 border-zinc-900 flex items-center justify-center shrink-0">
-                      <span className="text-white text-sm font-medium">
-                        +{extraCount}
-                      </span>
-                    </div>
-                  </div>
-
-
-
-                  <div className="text-xs leading-snug line-clamp-2">{t.title}</div>
-                </div>
-              </article>
-            ))}
-          </div>
+          {trendingLoading ? (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="row-span-2 min-h-72 rounded-2xl bg-neutral-100 animate-pulse" />
+              <div className="min-h-36 rounded-2xl bg-neutral-100 animate-pulse" />
+              <div className="min-h-36 rounded-2xl bg-neutral-100 animate-pulse" />
+            </div>
+          ) : campusTrending.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-8 text-center text-sm text-neutral-500">
+              Past activity photos will appear here after club leaders publish them.
+            </div>
+          ) : campusTrending.length === 1 ? (
+            <div className="grid grid-cols-1 gap-3">
+              <TrendingCard event={campusTrending[0]} featured />
+            </div>
+          ) : campusTrending.length === 2 ? (
+            <div className="grid grid-cols-2 gap-3">
+              {campusTrending.map((event) => (
+                <TrendingCard key={event.id} event={event} featured />
+              ))}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-3">
+              <TrendingCard event={campusTrending[0]} featured />
+              {campusTrending.slice(1, 3).map((event) => (
+                <TrendingCard key={event.id} event={event} />
+              ))}
+            </div>
+          )}
         </section>
 
         <section>

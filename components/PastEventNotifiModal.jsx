@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect, useId } from "react";
 import { MapPin, Users, X, Plus, ArrowRight } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { motion, AnimatePresence } from "framer-motion";
@@ -303,7 +303,8 @@ export default function PastEventNotifiModal({ isOpen, onClose, event, onSuccess
 }
 
 function ImageSlot({ image, onUpload, onRemove, disabled }) {
-  const id = useRef(`img-${Math.random().toString(36).slice(2)}`).current;
+  const reactId = useId();
+  const id = `img-${reactId.replace(/:/g, "")}`;
 
   return (
     <div className="relative group aspect-[16/9]">
