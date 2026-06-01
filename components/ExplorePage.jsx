@@ -406,11 +406,13 @@ export function ExplorePage({ onBack }) {
 
                 <div className="flex items-center gap-3 px-3 pb-3 pt-4">
                   <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full ring-2 ring-white shadow-[0_4px_12px_-4px_rgba(0,0,0,0.25)]">
-                    <img
-                      src={randomClub?.logo || ''}
-                      alt={randomClub?.clubName || ''}
-                      className="h-full w-full object-cover"
-                    />
+                    {randomClub?.logo ? (
+                      <img
+                        src={randomClub.logo}
+                        alt={`${randomClub.clubName} logo`}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : null}
                   </div>
 
                   <div className="min-w-0 flex-1">
