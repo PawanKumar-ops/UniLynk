@@ -73,14 +73,9 @@ const Sidebar = () => {
                     <img src="/ULynk.svg" alt="ULynk Logo" />
                   </div>
 
-                  <div className="flex gap-2.5">
-                    <button className="settings flex items-center justify-center">
-                      <Icon icon="iconamoon:notification-thin" width={22} />
-                    </button>
                     <button className="settings" onClick={() => setSettings(false)}>
                       <img src="/dashboard/Settings.svg" alt="settings" />
                     </button>
-                  </div>
 
                 </div>
                 <div className="dashboard">

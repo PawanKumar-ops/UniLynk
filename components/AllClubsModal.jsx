@@ -10,7 +10,7 @@ const clubs = [
   { name: "Obsidian Circle", members: "1.0k members", tag: "Writing" },
 ];
 
-export function ClubsModal({ open, onClose }) {
+export function AllClubsModal({ open, onClose }) {
   useEffect(() => {
     const onKey = (e) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
