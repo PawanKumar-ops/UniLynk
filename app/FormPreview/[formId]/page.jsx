@@ -3,10 +3,11 @@
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, CheckCircle2, Calendar as CalendarIcon, Clock, MapPin, Tag } from 'lucide-react';
+import { CheckCircle2, Calendar as CalendarIcon, Clock, MapPin, Tag } from 'lucide-react';
 import { format } from 'date-fns';
 import './FormPreview.css';
 import { getDraft } from "@/lib/drafts";
+import { TeamFinderCard } from "@/components/TeamFinderCard";
 
 export default function FormPreview() {
   const { formId } = useParams();
@@ -178,9 +179,10 @@ export default function FormPreview() {
         </div>
       </header> */}
 
-      {/* Form */}
-      <main className="form-preview-main">
-        <form onSubmit={handleSubmit}>
+      <div className="form-preview-content-shell">
+        {/* Form */}
+        <main className="form-preview-main">
+          <form onSubmit={handleSubmit}>
           {/* Form Header */}
           <div className="form-preview-header-card">
             <div className="form-preview-accent"></div>
@@ -382,8 +384,13 @@ export default function FormPreview() {
           >
             {alreadyApplied ? "Submitted" : "Submit"}
           </button>
-        </form>
-      </main>
+          </form>
+        </main>
+
+        <aside className="team-finder-preview-aside" aria-label="Find a team">
+          <TeamFinderCard />
+        </aside>
+      </div>
     </div>
   );
 }
