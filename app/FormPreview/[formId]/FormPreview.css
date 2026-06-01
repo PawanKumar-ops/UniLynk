@@ -17,10 +17,54 @@
   padding: 16px 24px;
 } */
 
-.form-preview-main {
-  max-width: 672px;
+.form-preview-content-shell {
+  width: 100%;
   margin: 0 auto;
   padding: 32px 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 672px) minmax(0, 1fr);
+  align-items: start;
+}
+
+.form-preview-main {
+  grid-column: 2;
+  width: 100%;
+  max-width: 672px;
+}
+
+.team-finder-preview-aside {
+  grid-column: 3;
+  position: sticky;
+  top: 32px;
+  width: 300px;
+  margin-left: 46px;
+}
+
+@media (max-width: 1359px) {
+  .form-preview-content-shell {
+    grid-template-columns: minmax(0, 672px);
+    gap: 24px;
+    justify-content: center;
+  }
+
+  .form-preview-main,
+  .team-finder-preview-aside {
+    grid-column: 1;
+  }
+
+  .team-finder-preview-aside {
+    position: static;
+    width: 100%;
+    margin-left: 0;
+    display: flex;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 767px) {
+  .form-preview-content-shell {
+    padding: 24px 16px;
+  }
 }
 .draft-banner {
   background: #fde68a;
