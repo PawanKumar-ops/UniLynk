@@ -74,8 +74,8 @@ const MyClubsPage = () => {
         <div className="clubinfo" key={club._id}>
           <div
             className={`flex h-16 w-16 items-center justify-center rounded-2xl ${club.logo
-                ? ""
-                : "bg-gradient-to-br from-violet-500 to-fuchsia-500 p-2 shadow-md"
+              ? ""
+              : "bg-gradient-to-br from-violet-500 to-fuchsia-500 p-2 shadow-md"
               }`}
           >
             <img
@@ -115,27 +115,27 @@ const MyClubsPage = () => {
       ))}
 
       {!loading && clubs.length === 0 && <div className="flex flex-col justify-center items-center h-[60vh]">
-  <img
-    src="/myclubs/NoClubs.svg"
-    alt="No Clubs"
-    className="mb-8"
-  />
+        <img
+          src="/myclubs/NoClubs.svg"
+          alt="No Clubs"
+          className="mb-8"
+        />
 
-  <h2 className="text-2xl mb-3 text-black">
-    You Are Not In Any Club
-  </h2>
+        <h2 className="text-2xl mb-3 text-black">
+          You Are Not In Any Club
+        </h2>
 
-  <p className="w-[464px] text-center text-gray-500">
-    You haven’t joined any clubs yet. Explore different communities and become
-    a part of exciting campus activities.
-  </p>
-</div>}
+        <p className="w-[464px] text-center text-gray-500">
+          You haven’t joined any clubs yet. Explore different communities and become
+          a part of exciting campus activities.
+        </p>
+      </div>}
 
       <hr className='mb-8' />
 
       <div className="exploremore">Explore More</div>
       <div className="myclubsmorecont">
-        <div className="myclubsmore">
+        <button className="myclubsmore" onClick={()=> window.location.href = "/dashboard/explore"}>
           <div className="myclubsmorer">
             <div className="myclubsmoreimg myclubsmoreimgsearch">
               <img src="/myclubs/Search.svg" alt="Search" />
@@ -149,9 +149,9 @@ const MyClubsPage = () => {
           <div className="myclubsarrow">
             <img src="/myclubs/arrow.svg" alt="" />
           </div>
-        </div>
+        </button>
 
-        <div className="myclubsmore">
+        <button className="myclubsmore" onClick={()=> window.location.href = "/dashboard/explore"}>
           <div className="myclubsmorer">
             <div className="myclubsmoreimg myclubsmoreimgtrending">
               <img src="/myclubs/trending.svg" alt="trending" />
@@ -165,7 +165,7 @@ const MyClubsPage = () => {
           <div className="myclubsarrow">
             <img src="/myclubs/arrow.svg" alt="" />
           </div>
-        </div>
+        </button>
       </div>
 
     </div>

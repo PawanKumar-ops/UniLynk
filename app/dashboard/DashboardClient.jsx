@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Icon } from '@iconify/react';
 import ImageWithFallback from '../../components/ReliableImage';
+import { NewsLetterCard } from "@/components/NewsLetterCard";
 
 const DASHBOARD_SCROLL_STORAGE_KEY = 'dashboard-feed-scroll-position';
 
@@ -792,8 +793,8 @@ export default function DashboardClient() {
               )}
             </div>
           ) : (
-            <div className="p-3 text-center text-xs text-neutral-400">
-              No newsletter articles right now
+            <div className="">
+             <NewsLetterCard/>
             </div>
           )}
         </div>

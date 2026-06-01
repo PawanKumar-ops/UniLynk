@@ -2,8 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Search,
   UserPlus,
-  Heart,
-  MessageCircle,
+  EllipsisVertical,
   ArrowLeft,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -35,6 +34,22 @@ const users = [
     mutual: 21,
   },
 ];
+
+const club = {
+  name: "Innovation cell",
+  category: "Innovation",
+  members: 1284,
+  initials: "PS",
+  coverImage:
+    "https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=800&q=80",
+  avatarImage:
+    "https://images.unsplash.com/photo-1606983340126-99ab4feaa64a?w=200&q=80",
+};
+
+const formatted =
+  club.members >= 1000
+    ? `${(club.members / 1000).toFixed(1).replace(/\.0$/, "")}k`
+    : club.members.toLocaleString();
 
 const ImageWithFallback = ({ src, alt, className = "" }) => (
   <ReliableImage
@@ -307,6 +322,98 @@ export function ExplorePage({ onBack }) {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
 
+              <h3 className="text-[1.125rem] font-bold">Suggested Clubs</h3>
+            </div>
+            <button className="text-xs text-neutral-500 hover:text-black">View all</button>
+          </div>
+
+          <div className="size-full flex items-center justify-center">
+            <div className="w-full max-w-2xl">
+
+
+              <div className="relative w-full overflow-hidden rounded-3xl border p-2 border-neutral-200 hover:border-neutral-300 hover:shadow-sm transition bg-white">
+                <div className="relative h-36 w-full overflow-hidden rounded-2xl bg-neutral-100">
+                  <img
+                    src={club.coverImage}
+                    alt={`${club.name} cover`}
+                    className="h-full w-full object-cover"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+
+                  <div className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 backdrop-blur-sm">
+                    <span className="h-1.5 w-1.5 rounded-full bg-black" />
+                    <span
+                      className="text-black uppercase"
+                      style={{ fontSize: 10, letterSpacing: "0.08em" }}
+                    >
+                      {club.category}
+                    </span>
+                  </div>
+
+                  <button
+                    aria-label="View club"
+                    className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-black transition hover:bg-black hover:text-white"
+                  >
+                    <svg
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M7 17L17 7" />
+                      <path d="M7 7h10v10" />
+                    </svg>
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-3 px-3 pb-3 pt-4">
+                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full ring-2 ring-white shadow-[0_4px_12px_-4px_rgba(0,0,0,0.25)]">
+                    <img
+                      src={club.avatarImage}
+                      alt={club.name}
+                      className="h-full w-full object-cover"
+                    />
+                  </div>
+
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate text-black leading-tight">{club.name}</h3>
+                    <div className="mt-0.5 flex items-center gap-1.5 text-neutral-500">
+                      <svg
+                        width="14"
+                        height="14"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                        <circle cx="9" cy="7" r="4" />
+                        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                      </svg>
+                      <span>{formatted} members</span>
+                    </div>
+                  </div>
+
+                  <button className="shrink-0 rounded-full bg-black px-4 py-2 text-white transition hover:bg-neutral-800 active:scale-95">
+                    Visit
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+
               <h3 className="text-[1.125rem] font-bold">Suggested for you</h3>
             </div>
             <button className="text-xs text-neutral-500 hover:text-black">Refresh</button>
@@ -338,6 +445,100 @@ export function ExplorePage({ onBack }) {
             ))}
           </div>
         </section>
+
+        <section>
+          <div className="flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+
+              <h3 className="text-[1.125rem] font-bold">Suggested posts</h3>
+            </div>
+
+
+            <div className="userpost">
+              <div className="post-left">
+                <div className="profilepic">
+                  <img className='profileimg' src="https://images.fineartamerica.com/images-medium-large-5/krishna-balarama-lila-shravani.jpg" alt="profile pic" />
+                </div>
+              </div>
+              <div className="post-right">
+                <div className="posth">
+                  <div className="posth-left">
+                    <div className="user-name">Pawan</div>
+                    <div className="post-time"><ul><li className='post-timeli'>2h</li></ul></div>
+                  </div>
+                  <div className="posth-right"><button className='posth-right-btn'><EllipsisVertical /></button></div>
+                </div>
+
+                <div className="post-content">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Ullam aspernatur nihil id deleniti sed hic, odio adipisci saepe nostrum sequi! Eaque, qui tempore pariatur aperiam omnis adipisci voluptatem vel facere, nisi sapiente aut harum quaerat. Esse, sunt accusamus consequatur, blanditiis beatae provident nesciunt ullam doloribus optio sapiente eius qui doloremque tempora vitae totam quasi inventore? Voluptate eius quos saepe dolores omnis assumenda odit obcaecati, ipsam reprehenderit atque sit ut ex sint placeat dolorum laboriosam? Unde est porro minima maxime repellendus alias corrupti commodi sed velit tempora quam illum natus, fugiat assumenda voluptatibus reiciendis asperiores cum pariatur. Culpa, delectus nisi! Tempore!</div>
+
+                {/* ===========================Post foot================================= */}
+                <div className="post-foot">
+                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="/Postimg/thumb.svg" alt="Like" /><span className='post-like-count'>230</span></div>
+                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="/Postimg/comment.svg" alt="Comment" /><span className='post-comment-count'>100</span></div>
+                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="/Postimg/share.svg" alt="Share" /><span className='post-share-count'>30</span></div>
+                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="/Postimg/bookmark.svg" alt="Share" /><span className='post-share-count'>30</span></div>
+                </div>
+              </div>
+            </div>
+            <div className="userpost">
+              <div className="post-left">
+                <div className="profilepic">
+                  <img className='profileimg' src="https://images.fineartamerica.com/images-medium-large-5/krishna-balarama-lila-shravani.jpg" alt="profile pic" />
+                </div>
+              </div>
+              <div className="post-right">
+                <div className="posth">
+                  <div className="posth-left">
+                    <div className="user-name">Pawan</div>
+                    <div className="post-time"><ul><li className='post-timeli'>2h</li></ul></div>
+                  </div>
+                  <div className="posth-right"><button className='posth-right-btn'><EllipsisVertical /></button></div>
+                </div>
+
+                <div className="post-content">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Ullam aspernatur nihil id deleniti sed hic, odio adipisci saepe nostrum sequi! Eaque, qui tempore pariatur aperiam omnis adipisci voluptatem vel facere, nisi sapiente aut harum quaerat. Esse, sunt accusamus consequatur, blanditiis beatae provident nesciunt ullam doloribus optio sapiente eius qui doloremque tempora vitae totam quasi inventore? Voluptate eius quos saepe dolores omnis assumenda odit obcaecati, ipsam reprehenderit atque sit ut ex sint placeat dolorum laboriosam? Unde est porro minima maxime repellendus alias corrupti commodi sed velit tempora quam illum natus, fugiat assumenda voluptatibus reiciendis asperiores cum pariatur. Culpa, delectus nisi! Tempore!</div>
+
+                {/* ===========================Post foot================================= */}
+                <div className="post-foot">
+                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="/Postimg/thumb.svg" alt="Like" /><span className='post-like-count'>230</span></div>
+                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="/Postimg/comment.svg" alt="Comment" /><span className='post-comment-count'>100</span></div>
+                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="/Postimg/share.svg" alt="Share" /><span className='post-share-count'>30</span></div>
+                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="/Postimg/bookmark.svg" alt="Share" /><span className='post-share-count'>30</span></div>
+                </div>
+              </div>
+            </div>
+            <div className="userpost">
+              <div className="post-left">
+                <div className="profilepic">
+                  <img className='profileimg' src="https://images.fineartamerica.com/images-medium-large-5/krishna-balarama-lila-shravani.jpg" alt="profile pic" />
+                </div>
+              </div>
+              <div className="post-right">
+                <div className="posth">
+                  <div className="posth-left">
+                    <div className="user-name">Pawan</div>
+                    <div className="post-time"><ul><li className='post-timeli'>2h</li></ul></div>
+                  </div>
+                  <div className="posth-right"><button className='posth-right-btn'><EllipsisVertical /></button></div>
+                </div>
+
+                <div className="post-content">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Ullam aspernatur nihil id deleniti sed hic, odio adipisci saepe nostrum sequi! Eaque, qui tempore pariatur aperiam omnis adipisci voluptatem vel facere, nisi sapiente aut harum quaerat. Esse, sunt accusamus consequatur, blanditiis beatae provident nesciunt ullam doloribus optio sapiente eius qui doloremque tempora vitae totam quasi inventore? Voluptate eius quos saepe dolores omnis assumenda odit obcaecati, ipsam reprehenderit atque sit ut ex sint placeat dolorum laboriosam? Unde est porro minima maxime repellendus alias corrupti commodi sed velit tempora quam illum natus, fugiat assumenda voluptatibus reiciendis asperiores cum pariatur. Culpa, delectus nisi! Tempore!</div>
+
+                {/* ===========================Post foot================================= */}
+                <div className="post-foot">
+                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="/Postimg/thumb.svg" alt="Like" /><span className='post-like-count'>230</span></div>
+                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="/Postimg/comment.svg" alt="Comment" /><span className='post-comment-count'>100</span></div>
+                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="/Postimg/share.svg" alt="Share" /><span className='post-share-count'>30</span></div>
+                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="/Postimg/bookmark.svg" alt="Share" /><span className='post-share-count'>30</span></div>
+                </div>
+              </div>
+            </div>
+
+
+          </div>
+
+          
+        </section>
+        
       </div>
     </div>
   );
