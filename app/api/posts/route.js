@@ -128,6 +128,11 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const audience = searchParams.get("audience");
     const clubId = searchParams.get("clubId");
+    const sort = searchParams.get("sort");
+    const requestedLimit = Number(searchParams.get("limit") || 0);
+    const limit = Number.isFinite(requestedLimit) && requestedLimit > 0
+      ? Math.min(Math.floor(requestedLimit), 10)
+      : 0;
 
     const query = {
       ...(clubId ? { clubId: clubId.trim() } : {}),
@@ -138,7 +143,14 @@ export async function GET(req) {
       ),
     };
 
-    const posts = await Post.find(query).sort({ createdAt: -1 }).lean();
+    const sortQuery = sort === "top"
+      ? { likeCount: -1, createdAt: -1 }
+      : { createdAt: -1 };
+
+    let postsQuery = Post.find(query).sort(sortQuery);
+    if (limit) postsQuery = postsQuery.limit(limit);
+
+    const posts = await postsQuery.lean();
     const hydratedPosts = await resolvePostAuthorImages(posts);
 
     const session = await getServerSession(authOptions);

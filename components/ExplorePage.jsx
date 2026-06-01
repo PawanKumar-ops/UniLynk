@@ -6,7 +6,12 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { Icon } from "@iconify/react";
 import ReliableImage from "./ReliableImage";
+import CommentModal from "./CommentModal";
+import ShareModal from "./ShareModal";
+import { ReportPostModal } from "./ReportPostModal";
 import { AllClubsModal } from "./AllClubsModal";
 
 const users = [
@@ -58,6 +63,85 @@ const initials = (name = "") =>
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase() || "")
     .join("");
+
+const Loading = () => (
+  <div className="userpostsloadani">
+    <div className="relative w-12 h-12">
+      <div className="absolute inset-0 rounded-full border-3 border-gray-200"></div>
+      <div className="absolute inset-0 rounded-full border-3 border-black border-t-transparent animate-spin"></div>
+    </div>
+  </div>
+);
+
+const formatRelativeTime = (dateString) => {
+  const date = new Date(dateString);
+  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+  if (seconds < 60) return "now";
+  const mins = Math.floor(seconds / 60);
+  if (mins < 60) return `${mins}m`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h`;
+  const days = Math.floor(hrs / 24);
+  return `${days}d`;
+};
+
+const buildAvatarFallback = (name) => {
+  const safeName = (name || "UniLynk User").trim() || "UniLynk User";
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(safeName)}&background=random&color=fff&size=128&bold=true`;
+};
+
+const normalizeComment = (comment, index = 0) => {
+  if (!comment || typeof comment !== "object") return null;
+
+  const candidateId = comment.id ?? comment._id ?? `comment-${index}`;
+  const safeId = typeof candidateId === "string" ? candidateId.trim() : String(candidateId || "").trim();
+
+  return {
+    ...comment,
+    id: safeId || `comment-${index}`,
+    images: Array.isArray(comment.images)
+      ? comment.images.filter((image) => typeof image === "string" && image.trim())
+      : [],
+  };
+};
+
+const normalizePost = (post) => {
+  if (!post || typeof post !== "object") return null;
+
+  const candidateId = post.id ?? post._id ?? post.postId;
+  const safeId = typeof candidateId === "string" ? candidateId.trim() : "";
+
+  if (!safeId) {
+    console.error("Invalid post id:", candidateId);
+    return null;
+  }
+
+  const normalizedComments = Array.isArray(post.comments)
+    ? post.comments.map(normalizeComment).filter(Boolean)
+    : [];
+
+  return {
+    ...post,
+    id: safeId,
+    comments: normalizedComments,
+    commentCount: Number(post.commentCount ?? normalizedComments.length ?? 0),
+  };
+};
+
+const likePost = async (postId, method) => {
+  if (!postId || typeof postId !== "string" || !postId.trim()) {
+    throw new Error("Attempted like without postId");
+  }
+
+  return fetch(`/api/posts/${postId}/like`, { method });
+};
+
+const getImageGridClass = (count) => {
+  if (count <= 1) return "image-grid count-1";
+  if (count === 2) return "image-grid count-2";
+  if (count === 3) return "image-grid count-3";
+  return "image-grid count-4";
+};
 
 const ParticipantAvatarStack = ({ event }) => {
   const avatars = Array.isArray(event.participantAvatars) ? event.participantAvatars : [];
@@ -111,6 +195,7 @@ const TrendingCard = ({ event, featured = false }) => (
 );
 
 export function ExplorePage({ onBack }) {
+  const { data: session } = useSession();
   const [query, setQuery] = useState("");
   const [searchLoading, setSearchLoading] = useState(false);
   const [results, setResults] = useState([]);
@@ -120,6 +205,16 @@ export function ExplorePage({ onBack }) {
   const [isAllClubsModalOpen, setIsAllClubsModalOpen] = useState(false);
   const searchContainerRef = useRef(null);
   const [randomClub, setRandomClub] = useState(null);
+  const [suggestedPosts, setSuggestedPosts] = useState(null);
+  const [suggestedPostsLoading, setSuggestedPostsLoading] = useState(true);
+  const [activePostId, setActivePostId] = useState(null);
+  const [threadPostId, setThreadPostId] = useState(null);
+  const [sharePost, setSharePost] = useState(null);
+  const [openShare, setOpenShare] = useState(false);
+  const [menuPostId, setMenuPostId] = useState(null);
+  const [reportPostId, setReportPostId] = useState(null);
+  const likeTimersRef = useRef({});
+  const pendingLikePostIdsRef = useRef(new Set());
   useEffect(() => {
     const fetchRandomClub = async () => {
       try {
@@ -208,6 +303,348 @@ export function ExplorePage({ onBack }) {
     return () => document.removeEventListener("mousedown", handleOutsideClick);
   }, []);
 
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    const loadSuggestedPosts = async () => {
+      try {
+        setSuggestedPostsLoading(true);
+        const res = await fetch("/api/posts?sort=top&limit=10", { signal: controller.signal });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "Failed to fetch suggested posts");
+
+        const normalizedPosts = (data.posts || [])
+          .map(normalizePost)
+          .filter(Boolean);
+
+        setSuggestedPosts(normalizedPosts);
+      } catch (error) {
+        if (error.name !== "AbortError") {
+          console.error(error);
+          setSuggestedPosts([]);
+        }
+      } finally {
+        if (!controller.signal.aborted) setSuggestedPostsLoading(false);
+      }
+    };
+
+    loadSuggestedPosts();
+
+    return () => controller.abort();
+  }, []);
+
+  useEffect(() => () => {
+    Object.values(likeTimersRef.current).forEach((timer) => clearTimeout(timer));
+  }, []);
+
+  const selectedThreadPost = useMemo(
+    () => (Array.isArray(suggestedPosts) ? suggestedPosts.find((post) => post.id === threadPostId) ?? null : null),
+    [suggestedPosts, threadPostId]
+  );
+
+  const updateSingleSuggestedPost = (updatedPost) => {
+    const normalizedUpdatedPost = normalizePost(updatedPost);
+    if (!normalizedUpdatedPost) return;
+
+    setSuggestedPosts((prev) =>
+      Array.isArray(prev)
+        ? prev.map((post) => (post.id === normalizedUpdatedPost.id ? normalizedUpdatedPost : post))
+        : prev
+    );
+  };
+
+  const handleReportClick = (postId) => {
+    setMenuPostId(null);
+    setReportPostId(postId);
+  };
+
+  const handleOpenThread = (postId) => {
+    if (!postId) return;
+
+    setThreadPostId(postId);
+    setMenuPostId(null);
+  };
+
+  const handleBackToSuggestedPosts = () => {
+    setThreadPostId(null);
+    setMenuPostId(null);
+  };
+
+  const handleCommentSubmit = async (postId, payload) => {
+    try {
+      const res = await fetch(`/api/posts/${postId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Failed to add comment");
+
+      updateSingleSuggestedPost(data.post);
+      setActivePostId(null);
+      setThreadPostId(postId);
+    } catch (error) {
+      console.error(error);
+      alert("Could not publish comment");
+    }
+  };
+
+  const queueLikeToggle = (postId, currentlyLiked) => {
+    if (!postId || typeof postId !== "string") {
+      console.error("Invalid post id:", postId);
+      return;
+    }
+
+    if (pendingLikePostIdsRef.current.has(postId)) return;
+
+    setSuggestedPosts((prev) =>
+      Array.isArray(prev)
+        ? prev.map((post) => {
+            if (post.id !== postId) return post;
+
+            const nextLiked = !currentlyLiked;
+            const nextLikeCount = Math.max(0, Number(post.likeCount || 0) + (nextLiked ? 1 : -1));
+
+            return {
+              ...post,
+              likedByCurrentUser: nextLiked,
+              likeCount: nextLikeCount,
+              likePending: true,
+            };
+          })
+        : prev
+    );
+
+    if (likeTimersRef.current[postId]) {
+      clearTimeout(likeTimersRef.current[postId]);
+    }
+
+    likeTimersRef.current[postId] = setTimeout(async () => {
+      pendingLikePostIdsRef.current.add(postId);
+
+      try {
+        const method = currentlyLiked ? "DELETE" : "POST";
+        const res = await likePost(postId, method);
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data?.error || "Failed to update like");
+        }
+
+        setSuggestedPosts((prev) =>
+          Array.isArray(prev)
+            ? prev.map((post) =>
+                post.id === postId
+                  ? {
+                      ...post,
+                      likedByCurrentUser: Boolean(data.likedByCurrentUser),
+                      likeCount: Number(data.likeCount || 0),
+                      likePending: false,
+                    }
+                  : post
+              )
+            : prev
+        );
+      } catch (error) {
+        console.error(error);
+        setSuggestedPosts((prev) =>
+          Array.isArray(prev)
+            ? prev.map((post) => {
+                if (post.id !== postId) return post;
+
+                const rollbackLiked = currentlyLiked;
+                return {
+                  ...post,
+                  likedByCurrentUser: rollbackLiked,
+                  likeCount: Math.max(0, Number(post.likeCount || 0) + (rollbackLiked ? 1 : -1)),
+                  likePending: false,
+                };
+              })
+            : prev
+        );
+      } finally {
+        pendingLikePostIdsRef.current.delete(postId);
+        delete likeTimersRef.current[postId];
+      }
+    }, 220);
+  };
+
+  const renderPostCard = (post, { isThread = false } = {}) => (
+    <div
+      className={`userpost ${menuPostId === post.id ? "menu-open" : ""} ${isThread ? "thread-root-post" : ""}`}
+      key={post.id}
+      onClick={() => handleOpenThread(post.id)}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          handleOpenThread(post.id);
+        }
+      }}
+    >
+      <div className="post-left">
+        <div className="profilepic">
+          <ReliableImage
+            className="profileimg"
+            src={post.authorImage}
+            alt={post.authorName || "User"}
+            fallbackSrc={buildAvatarFallback(post.authorName)}
+            maxRetries={3}
+          />
+        </div>
+      </div>
+
+      <div className="post-right">
+        <div className="posth">
+          <div className="posth-left">
+            <div className="user-name">
+              {post.authorName || "UniLynk User"}
+              {post.postAs === "club" && <Icon icon="heroicons-solid:badge-check" color="#1d9bf0" width={18} />}
+            </div>
+            <div className="post-time"><span className="post-dot"><svg width="8" height="8" viewBox="0 0 8 8" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="4" cy="4" r="1.5" fill="grey" />
+            </svg></span><div className="post-timeli">{formatRelativeTime(post.createdAt)}</div></div>
+          </div>
+          <div className="posth-right">
+            <button
+              className="posth-right-btn"
+              onClick={(event) => {
+                event.stopPropagation();
+                setMenuPostId(menuPostId === post.id ? null : post.id);
+              }}
+              aria-label="Post options"
+              type="button"
+            >
+              <EllipsisVertical />
+            </button>
+            {menuPostId === post.id && (
+              <div className="post-dropdown-menu" onClick={(event) => event.stopPropagation()}>
+                <button className="menu-item" onClick={() => handleReportClick(post.id)}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                  Report Post
+                </button>
+                <button className="menu-item" type="button">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                  </svg>
+                  Save Post
+                </button>
+                <button className="menu-item" onClick={() => {
+                  setMenuPostId(null);
+                  setSharePost(post);
+                  setOpenShare(true);
+                }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <circle cx="18" cy="5" r="3" />
+                    <circle cx="6" cy="12" r="3" />
+                    <circle cx="18" cy="19" r="3" />
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                  </svg>
+                  Share
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="post-content">
+          {post.content}
+          {!!post.images?.length && (
+            <div className="image-post">
+              <div className={getImageGridClass(post.images.length)}>
+                {post.images.map((imageUrl, idx) => (
+                  <img key={`${post.id}-${idx}`} src={imageUrl} alt="Post image" />
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="post-foot" onClick={(event) => event.stopPropagation()}>
+          <div className="post-foot-iconcont">
+            <button
+              onClick={() => {
+                if (!post?.id) {
+                  console.error("Invalid post id:", post);
+                  return;
+                }
+
+                queueLikeToggle(post.id, Boolean(post.likedByCurrentUser));
+              }}
+              disabled={Boolean(post.likePending)}
+              aria-label={post.likedByCurrentUser ? "Unlike post" : "Like post"}
+              className={`like-button ${post.likedByCurrentUser ? "liked" : ""}`}
+              type="button"
+            >
+              <img className="post-foot-icon" src="/Postimg/thumb.svg" alt="Like" />
+            </button>
+            <span className="post-like-count">{Number(post.likeCount || 0)}</span>
+          </div>
+          <div className="post-foot-iconcont">
+            <button onClick={() => {
+              if (!post?.id) return;
+              setThreadPostId(post.id);
+              setActivePostId(post.id);
+            }} type="button">
+              <img className="post-foot-icon" src="/Postimg/comment.svg" alt="Comment" />
+            </button>
+            <span className="post-comment-count">{Number(post.commentCount || 0)}</span>
+          </div>
+          <div className="post-foot-iconcont">
+            <button onClick={() => { setSharePost(post); setOpenShare(true); }} type="button">
+              <img className="post-foot-icon" src="/Postimg/share.svg" alt="Share" />
+            </button>
+            <span className="post-share-count">0</span>
+          </div>
+          <div className="post-foot-iconcont">
+            <img className="post-foot-icon" src="/Postimg/bookmark.svg" alt="bookmark" />
+            <span className="post-bookmark-count">0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderComment = (comment) => (
+    <div className="thread-comment" key={comment.id}>
+      <div className="thread-comment-avatar">
+        <ReliableImage
+          className="profileimg"
+          src={comment.authorImage}
+          alt={comment.authorName || "User"}
+          fallbackSrc={buildAvatarFallback(comment.authorName)}
+          maxRetries={3}
+        />
+      </div>
+      <div className="thread-comment-body">
+        <div className="thread-comment-meta">
+          <span className="user-name">{comment.authorName || "UniLynk User"}</span>
+          <span className="post-time">
+            <span className="post-dot"><svg width="8" height="8" viewBox="0 0 8 8" xmlns="http://www.w3.org/2000/svg"><circle cx="4" cy="4" r="1.5" fill="grey" /></svg></span>
+            <span className="post-timeli">{formatRelativeTime(comment.createdAt)}</span>
+          </span>
+        </div>
+        {!!comment.content && <div className="thread-comment-content">{comment.content}</div>}
+        {!!comment.images?.length && (
+          <div className="thread-comment-media">
+            <div className={getImageGridClass(comment.images.length)}>
+              {comment.images.map((imageUrl, index) => (
+                <img key={`${comment.id}-${index}`} src={imageUrl} alt="Reply media" />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
@@ -483,97 +920,97 @@ export function ExplorePage({ onBack }) {
         <section>
           <div className="flex flex-col gap-3">
             <div className="flex items-center gap-2">
-
               <h3 className="text-[1.125rem] font-bold">Suggested posts</h3>
             </div>
 
+            <div className={`userposts ${selectedThreadPost ? "thread-userposts" : ""} !m-0 !w-full !p-0`}>
+              {(suggestedPostsLoading || !suggestedPosts) && <Loading />}
 
-            <div className="userpost">
-              <div className="post-left">
-                <div className="profilepic">
-                  <img className='profileimg' src="https://images.fineartamerica.com/images-medium-large-5/krishna-balarama-lila-shravani.jpg" alt="profile pic" />
+              {!suggestedPostsLoading && Array.isArray(suggestedPosts) && suggestedPosts.length === 0 && (
+                <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-8 text-center text-sm text-neutral-500">
+                  No suggested posts yet. The most-liked campus posts will appear here.
                 </div>
-              </div>
-              <div className="post-right">
-                <div className="posth">
-                  <div className="posth-left">
-                    <div className="user-name">Pawan</div>
-                    <div className="post-time"><ul><li className='post-timeli'>2h</li></ul></div>
+              )}
+
+              {!suggestedPostsLoading && selectedThreadPost && (
+                <section className="thread-view" aria-label="Post thread view">
+                  <div className="thread-view-header">
+                    <button
+                      type="button"
+                      className="thread-back-button"
+                      onClick={handleBackToSuggestedPosts}
+                    >
+                      <ArrowLeft size={18} />
+                      <span>Back to suggested posts</span>
+                    </button>
+                    <div>
+                      <h2 className="thread-view-title">Post</h2>
+                    </div>
                   </div>
-                  <div className="posth-right"><button className='posth-right-btn'><EllipsisVertical /></button></div>
-                </div>
 
-                <div className="post-content">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Ullam aspernatur nihil id deleniti sed hic, odio adipisci saepe nostrum sequi! Eaque, qui tempore pariatur aperiam omnis adipisci voluptatem vel facere, nisi sapiente aut harum quaerat. Esse, sunt accusamus consequatur, blanditiis beatae provident nesciunt ullam doloribus optio sapiente eius qui doloremque tempora vitae totam quasi inventore? Voluptate eius quos saepe dolores omnis assumenda odit obcaecati, ipsam reprehenderit atque sit ut ex sint placeat dolorum laboriosam? Unde est porro minima maxime repellendus alias corrupti commodi sed velit tempora quam illum natus, fugiat assumenda voluptatibus reiciendis asperiores cum pariatur. Culpa, delectus nisi! Tempore!</div>
+                  {renderPostCard(selectedThreadPost, { isThread: true })}
 
-                {/* ===========================Post foot================================= */}
-                <div className="post-foot">
-                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="/Postimg/thumb.svg" alt="Like" /><span className='post-like-count'>230</span></div>
-                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="/Postimg/comment.svg" alt="Comment" /><span className='post-comment-count'>100</span></div>
-                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="/Postimg/share.svg" alt="Share" /><span className='post-share-count'>30</span></div>
-                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="/Postimg/bookmark.svg" alt="Share" /><span className='post-share-count'>30</span></div>
-                </div>
-              </div>
-            </div>
-            <div className="userpost">
-              <div className="post-left">
-                <div className="profilepic">
-                  <img className='profileimg' src="https://images.fineartamerica.com/images-medium-large-5/krishna-balarama-lila-shravani.jpg" alt="profile pic" />
-                </div>
-              </div>
-              <div className="post-right">
-                <div className="posth">
-                  <div className="posth-left">
-                    <div className="user-name">Pawan</div>
-                    <div className="post-time"><ul><li className='post-timeli'>2h</li></ul></div>
+                  <div className="thread-replies-panel">
+                    <div className="thread-replies-header-row">
+                      <div>
+                        <h3 className="thread-replies-title">Replies</h3>
+                        <p className="thread-replies-subtitle">Join the conversation under this post.</p>
+                      </div>
+                      <button
+                        type="button"
+                        className="thread-reply-button"
+                        onClick={() => setActivePostId(selectedThreadPost.id)}
+                      >
+                        Reply
+                      </button>
+                    </div>
+
+                    {!!selectedThreadPost.comments?.length ? (
+                      <div className="thread-comments-list">
+                        {selectedThreadPost.comments.map(renderComment)}
+                      </div>
+                    ) : (
+                      <div className="thread-empty-state">
+                        <div className="nocomment-illuistration"><img src="/dashboard/nocomment.svg" alt="" /></div>
+                        <h4>No replies yet</h4>
+                        <p>Be the first person to reply to this post.</p>
+                      </div>
+                    )}
                   </div>
-                  <div className="posth-right"><button className='posth-right-btn'><EllipsisVertical /></button></div>
-                </div>
+                </section>
+              )}
 
-                <div className="post-content">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Ullam aspernatur nihil id deleniti sed hic, odio adipisci saepe nostrum sequi! Eaque, qui tempore pariatur aperiam omnis adipisci voluptatem vel facere, nisi sapiente aut harum quaerat. Esse, sunt accusamus consequatur, blanditiis beatae provident nesciunt ullam doloribus optio sapiente eius qui doloremque tempora vitae totam quasi inventore? Voluptate eius quos saepe dolores omnis assumenda odit obcaecati, ipsam reprehenderit atque sit ut ex sint placeat dolorum laboriosam? Unde est porro minima maxime repellendus alias corrupti commodi sed velit tempora quam illum natus, fugiat assumenda voluptatibus reiciendis asperiores cum pariatur. Culpa, delectus nisi! Tempore!</div>
-
-                {/* ===========================Post foot================================= */}
-                <div className="post-foot">
-                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="/Postimg/thumb.svg" alt="Like" /><span className='post-like-count'>230</span></div>
-                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="/Postimg/comment.svg" alt="Comment" /><span className='post-comment-count'>100</span></div>
-                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="/Postimg/share.svg" alt="Share" /><span className='post-share-count'>30</span></div>
-                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="/Postimg/bookmark.svg" alt="Share" /><span className='post-share-count'>30</span></div>
-                </div>
-              </div>
+              {!suggestedPostsLoading && Array.isArray(suggestedPosts) && !selectedThreadPost && suggestedPosts.map((post) => renderPostCard(post))}
             </div>
-            <div className="userpost">
-              <div className="post-left">
-                <div className="profilepic">
-                  <img className='profileimg' src="https://images.fineartamerica.com/images-medium-large-5/krishna-balarama-lila-shravani.jpg" alt="profile pic" />
-                </div>
-              </div>
-              <div className="post-right">
-                <div className="posth">
-                  <div className="posth-left">
-                    <div className="user-name">Pawan</div>
-                    <div className="post-time"><ul><li className='post-timeli'>2h</li></ul></div>
-                  </div>
-                  <div className="posth-right"><button className='posth-right-btn'><EllipsisVertical /></button></div>
-                </div>
-
-                <div className="post-content">Lorem ipsum dolor sit amet consectetur, adipisicing elit. Ullam aspernatur nihil id deleniti sed hic, odio adipisci saepe nostrum sequi! Eaque, qui tempore pariatur aperiam omnis adipisci voluptatem vel facere, nisi sapiente aut harum quaerat. Esse, sunt accusamus consequatur, blanditiis beatae provident nesciunt ullam doloribus optio sapiente eius qui doloremque tempora vitae totam quasi inventore? Voluptate eius quos saepe dolores omnis assumenda odit obcaecati, ipsam reprehenderit atque sit ut ex sint placeat dolorum laboriosam? Unde est porro minima maxime repellendus alias corrupti commodi sed velit tempora quam illum natus, fugiat assumenda voluptatibus reiciendis asperiores cum pariatur. Culpa, delectus nisi! Tempore!</div>
-
-                {/* ===========================Post foot================================= */}
-                <div className="post-foot">
-                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="/Postimg/thumb.svg" alt="Like" /><span className='post-like-count'>230</span></div>
-                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="/Postimg/comment.svg" alt="Comment" /><span className='post-comment-count'>100</span></div>
-                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="/Postimg/share.svg" alt="Share" /><span className='post-share-count'>30</span></div>
-                  <div className="post-foot-iconcont"><img className='post-foot-icon' src="/Postimg/bookmark.svg" alt="Share" /><span className='post-share-count'>30</span></div>
-                </div>
-              </div>
-            </div>
-
-
           </div>
-
-          
         </section>
         
       </div>
+
+      <CommentModal
+        isOpen={Boolean(activePostId)}
+        onClose={() => setActivePostId(null)}
+        onSubmit={(payload) => {
+          if (!activePostId) return;
+          handleCommentSubmit(activePostId, payload);
+        }}
+        currentUser={session?.user}
+      />
+
+      <ShareModal
+        isOpen={openShare}
+        post={sharePost}
+        onClose={() => {
+          setOpenShare(false);
+          setSharePost(null);
+        }}
+      />
+
+      <ReportPostModal
+        isOpen={Boolean(reportPostId)}
+        postId={reportPostId}
+        onClose={() => setReportPostId(null)}
+      />
 
       <AllClubsModal
         open={isAllClubsModalOpen}
