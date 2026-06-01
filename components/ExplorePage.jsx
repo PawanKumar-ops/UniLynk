@@ -36,21 +36,9 @@ const users = [
   },
 ];
 
-const club = {
-  name: "Innovation cell",
-  category: "Innovation",
-  members: 1284,
-  initials: "PS",
-  coverImage:
-    "https://images.unsplash.com/photo-1502920917128-1aa500764cbd?w=800&q=80",
-  avatarImage:
-    "https://images.unsplash.com/photo-1606983340126-99ab4feaa64a?w=200&q=80",
-};
+// Random club will be fetched from the API
 
-const formatted =
-  club.members >= 1000
-    ? `${(club.members / 1000).toFixed(1).replace(/\.0$/, "")}k`
-    : club.members.toLocaleString();
+
 
 const ImageWithFallback = ({ src, alt, className = "" }) => (
   <ReliableImage
@@ -131,7 +119,30 @@ export function ExplorePage({ onBack }) {
   const [trendingLoading, setTrendingLoading] = useState(true);
   const [isAllClubsModalOpen, setIsAllClubsModalOpen] = useState(false);
   const searchContainerRef = useRef(null);
+  const [randomClub, setRandomClub] = useState(null);
+  useEffect(() => {
+    const fetchRandomClub = async () => {
+      try {
+        const res = await fetch('/api/clubs');
+        if (!res.ok) throw new Error('Failed to fetch clubs');
+        const data = await res.json();
+        const clubs = data.clubs;
+        if (Array.isArray(clubs) && clubs.length > 0) {
+          const random = clubs[Math.floor(Math.random() * clubs.length)];
+          setRandomClub(random);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    fetchRandomClub();
+  }, []);
   const router = useRouter();
+  const formatted = randomClub?.memberCount
+    ? randomClub.memberCount >= 1000
+      ? `${(randomClub.memberCount / 1000).toFixed(1).replace(/\\.0$/, '')}k`
+      : randomClub.memberCount.toLocaleString()
+    : '';
 
   useEffect(() => {
     const controller = new AbortController();
@@ -339,13 +350,28 @@ export function ExplorePage({ onBack }) {
             <div className="w-full max-w-2xl">
 
 
-              <div className="relative w-full overflow-hidden rounded-3xl border p-2 border-neutral-200 hover:border-neutral-300 hover:shadow-sm transition bg-white">
+              <div
+                className="relative w-full overflow-hidden rounded-3xl border p-2 border-neutral-200 hover:border-neutral-300 hover:shadow-sm transition bg-white cursor-pointer"
+                onClick={() => {
+                  if (randomClub?._id) {
+                    router.push(`/Club?clubId=${randomClub._id}`);
+                  }
+                }}
+              >
                 <div className="relative h-36 w-full overflow-hidden rounded-2xl bg-neutral-100">
-                  <img
-                    src={club.coverImage}
-                    alt={`${club.name} cover`}
-                    className="h-full w-full object-cover"
-                  />
+                  {randomClub?.banner ? (
+                    <img
+                      src={randomClub.banner}
+                      alt={`${randomClub.clubName || ''} cover`}
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50">
+                      <span className="text-4xl font-bold text-neutral-300">
+                        {initials(randomClub?.clubName)}
+                      </span>
+                    </div>
+                  )}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
 
                   <div className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 backdrop-blur-sm">
@@ -354,7 +380,7 @@ export function ExplorePage({ onBack }) {
                       className="text-black uppercase"
                       style={{ fontSize: 10, letterSpacing: "0.08em" }}
                     >
-                      {club.category}
+                      {randomClub?.category || ''}
                     </span>
                   </div>
 
@@ -381,14 +407,14 @@ export function ExplorePage({ onBack }) {
                 <div className="flex items-center gap-3 px-3 pb-3 pt-4">
                   <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full ring-2 ring-white shadow-[0_4px_12px_-4px_rgba(0,0,0,0.25)]">
                     <img
-                      src={club.avatarImage}
-                      alt={club.name}
+                      src={randomClub?.logo || ''}
+                      alt={randomClub?.clubName || ''}
                       className="h-full w-full object-cover"
                     />
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <h3 className="truncate text-black leading-tight">{club.name}</h3>
+                    <h3 className="truncate text-black leading-tight">{randomClub?.clubName || ''}</h3>
                     <div className="mt-0.5 flex items-center gap-1.5 text-neutral-500">
                       <svg
                         width="14"

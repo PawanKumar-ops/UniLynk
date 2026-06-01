@@ -76,7 +76,7 @@ export async function GET(req) {
 
     const clubs = await Club.find(filter)
       .sort({ updatedAt: -1 })
-      .select("clubName category memberCount foundedDate logo createdAt updatedAt")
+      .select("clubName category memberCount foundedDate logo banner createdAt updatedAt")
       .lean();
 
     return Response.json({ clubs }, { status: 200 });
