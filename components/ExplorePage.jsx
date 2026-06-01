@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import ReliableImage from "./ReliableImage";
+import { AllClubsModal } from "./AllClubsModal";
 
 const users = [
   {
@@ -128,6 +129,7 @@ export function ExplorePage({ onBack }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [campusTrending, setCampusTrending] = useState([]);
   const [trendingLoading, setTrendingLoading] = useState(true);
+  const [isAllClubsModalOpen, setIsAllClubsModalOpen] = useState(false);
   const searchContainerRef = useRef(null);
   const router = useRouter();
 
@@ -324,7 +326,13 @@ export function ExplorePage({ onBack }) {
 
               <h3 className="text-[1.125rem] font-bold">Suggested Clubs</h3>
             </div>
-            <button className="text-xs text-neutral-500 hover:text-black">View all</button>
+            <button
+              type="button"
+              onClick={() => setIsAllClubsModalOpen(true)}
+              className="text-xs text-neutral-500 hover:text-black"
+            >
+              View all
+            </button>
           </div>
 
           <div className="size-full flex items-center justify-center">
@@ -540,6 +548,11 @@ export function ExplorePage({ onBack }) {
         </section>
         
       </div>
+
+      <AllClubsModal
+        open={isAllClubsModalOpen}
+        onClose={() => setIsAllClubsModalOpen(false)}
+      />
     </div>
   );
 }
