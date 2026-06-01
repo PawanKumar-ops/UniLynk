@@ -23,6 +23,7 @@
     font-size: 14px;
     justify-content: center;
     align-items: center;
+    cursor: pointer;
 }
 
 .browsemore img {
@@ -154,28 +155,28 @@
     cursor: pointer;
 }
 
-.open:hover{
+.open:hover {
     background-color: #0f172a;
 }
 
-.exploremore{
+.exploremore {
     font-size: 18px;
     margin-bottom: 16px;
     color: #000;
 }
 
-.myclubsmorecont{
+.myclubsmorecont {
     display: flex;
     flex-direction: column;
     gap: 12px;
 }
 
-.myclubsmorer{
+.myclubsmorer {
     display: flex;
     gap: 10px;
 }
 
-.myclubsmore{
+.myclubsmore {
     cursor: pointer;
     width: 100%;
     height: 80px;
@@ -186,19 +187,20 @@
     align-items: center;
     justify-content: space-between;
     transition:
-    background-color 0.2s ease,
+        background-color 0.2s ease,
 }
 
-.myclubsmore:hover{
-    background-color: #f8fafc; /* slate-50 */
+.myclubsmore:hover {
+    background-color: #f8fafc;
+    /* slate-50 */
 }
 
-.myclubsmoreimg img{
+.myclubsmoreimg img {
     width: 20px;
     height: 20px;
 }
 
-.myclubsmoreimg{
+.myclubsmoreimg {
     width: 40px;
     height: 40px;
     border-radius: 12px;
@@ -207,28 +209,28 @@
     align-items: center;
 }
 
-.myclubsmoreimgsearch{
-  background-color: #dbebff;
+.myclubsmoreimgsearch {
+    background-color: #dbebff;
 }
 
-.myclubsmoreimgtrending{
+.myclubsmoreimgtrending {
     background-color: #dcfce8;
 }
 
-.myclubsmoret{
+.myclubsmoret {
     text-align: left;
 }
 
-.myclubsmoret p{
+.myclubsmoret p {
     font-size: 14px;
     color: gray;
 }
 
-.myclubsmoret div{
+.myclubsmoret div {
     color: #000;
 }
 
-.myclubsarrow img{
+.myclubsarrow img {
     width: 20px;
     height: 20px;
 }

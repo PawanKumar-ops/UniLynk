@@ -41,9 +41,6 @@ const Userprofile = () => {
 
 
 
-
-
-
     useEffect(() => {
         if (status !== "authenticated") return;
 

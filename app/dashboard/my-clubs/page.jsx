@@ -1,8 +1,10 @@
 "use client"
 
-import React, { useEffect, useState } from 'react'
-import "./my-clubs.css"
-import Notification from '@/components/Notification'
+import React, { useEffect, useState } from 'react';
+import "./my-clubs.css";
+import Notification from '@/components/Notification';
+import { AllClubsModal } from '@/components/AllClubsModal';
+import { PostsModal } from "@/components/ClubPostsModal";
 
 const getJoinedLabel = (foundedDate, createdAt) => {
   if (typeof foundedDate === "string" && foundedDate.trim()) {
@@ -36,6 +38,10 @@ const MyClubsPage = () => {
   const [isNotify, setIsNotify] = useState(false);
   const [clubs, setClubs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isAllClubsModalOpen, setIsAllClubsModalOpen] = useState(false);
+  const [postsModalOpen, setPostsModalOpen] = useState(false);
+  const [clubData, setClubData] = useState(null);
+  const [clubPosts, setClubPosts] = useState([]);
 
   useEffect(() => {
     const fetchMyClubs = async () => {
@@ -64,7 +70,9 @@ const MyClubsPage = () => {
           <div className="myclubs">My Clubs</div>
         </div>
         <div className="browsemorebtn">
-          <button className='browsemore'>Browse more <img src="/myclubs/arrowright.svg" alt="" /></button>
+          <button
+            onClick={() => window.location.href = "/dashboard/explore"}
+            className='browsemore'>Browse more <img src="/myclubs/arrowright.svg" alt="" /></button>
         </div>
       </div>
 
@@ -107,8 +115,33 @@ const MyClubsPage = () => {
             </div>
             <div className="clubinfobtns">
               <button className='open' onClick={() => window.location.href = `/Club?clubId=${club._id}`}>Open</button>
-              <button className='viewfeed'>View Feed</button>
-              <button className='events'>Events</button>
+              <button 
+              onClick={async () => {
+                // Set current club data for modal
+                setClubData(club);
+                // Fetch posts for this club
+                try {
+                  const resp = await fetch(`/api/posts?clubId=${club._id}`, { cache: "no-store" });
+                  if (!resp.ok) throw new Error('Failed to fetch club posts');
+                  const result = await resp.json();
+                  setClubPosts(Array.isArray(result?.posts) ? result.posts : []);
+                } catch (err) {
+                  console.error('Club posts fetch error:', err);
+                  setClubPosts([]);
+                }
+                setPostsModalOpen(true);
+              }}
+              className='viewfeed'>View Feed</button>
+              <PostsModal
+                                          open={postsModalOpen}
+                                          onOpenChange={setPostsModalOpen}
+                                          clubName={clubData?.clubName || "Club"}
+                                          clubLogo={clubData?.logo || "/Defaultclublogo.svg"}
+                                          posts={clubPosts}
+                                      />
+              <button 
+              onClick={() => window.location.href = "/dashboard/events"}
+              className='events'>Events</button>
             </div>
           </div>
         </div>
@@ -135,7 +168,7 @@ const MyClubsPage = () => {
 
       <div className="exploremore">Explore More</div>
       <div className="myclubsmorecont">
-        <button className="myclubsmore" onClick={()=> window.location.href = "/dashboard/explore"}>
+        <button className="myclubsmore" onClick={() => setIsAllClubsModalOpen(true)}>
           <div className="myclubsmorer">
             <div className="myclubsmoreimg myclubsmoreimgsearch">
               <img src="/myclubs/Search.svg" alt="Search" />
@@ -168,6 +201,10 @@ const MyClubsPage = () => {
         </button>
       </div>
 
+      <AllClubsModal 
+        open={isAllClubsModalOpen} 
+        onClose={() => setIsAllClubsModalOpen(false)} 
+      />
     </div>
   )
 }
