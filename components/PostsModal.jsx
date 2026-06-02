@@ -13,8 +13,6 @@ const formatRelativeTime = (value) => {
   return `${Math.floor(diffSec / 86400)}d ago`;
 };
 
-const getPostId = (post) => post?.id || post?._id;
-
 export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts, title = "Club Posts" }) {
   const [localPosts, setLocalPosts] = useState([]);
   const [mounted, setMounted] = useState(false);
@@ -45,7 +43,7 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts, titl
   if (!open || !mounted) return null;
 
   const modal = (
-    <div className="posts-modal-root" role="dialog" aria-modal="true" aria-label={title}>
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       <style>{`
         .posts-modal-root,
         .posts-modal-root * {
@@ -365,10 +363,12 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts, titl
         className="posts-modal-backdrop"
       />
 
-      <div className="posts-modal-card">
-        <div className="posts-modal-header">
-          <div className="posts-modal-header-row">
-            <h2 className="posts-modal-title">{title}</h2>
+      <div className="relative w-full max-w-md bg-white border border-black/[0.08] rounded-[28px] overflow-hidden shadow-[0_1px_0_rgba(255,255,255,0.6)_inset,0_40px_120px_-20px_rgba(0,0,0,0.45),0_8px_24px_-8px_rgba(0,0,0,0.15)] animate-in zoom-in-95 fade-in slide-in-from-bottom-2 duration-300">
+        <div className="relative px-6 pt-6 pb-5 bg-gradient-to-b from-white to-[#fafafa] border-b border-black/[0.06]">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <h2 className="text-xl font-semibold">{title}</h2>
+            </div>
             <button
               onClick={() => onOpenChange(false)}
               className="posts-modal-close"
@@ -380,32 +380,40 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts, titl
           </div>
         </div>
 
-        <div className="posts-modal-body">
-          <div className="posts-modal-list">
+        <div className="premium-scroll max-h-[65vh] overflow-y-auto">
+          <div className="px-6 py-4 space-y-1">
             {localPosts.length === 0 && (
-              <div className="posts-modal-empty">
+              <div className="py-14 text-center text-black/45">
                 No posts to show yet.
               </div>
             )}
             {localPosts.map((post, idx) => {
-              const postId = getPostId(post);
+              const postId = post.id || post._id;
               const authorName = clubName || post.authorName || "UniLynk";
               const authorImage = clubLogo || post.authorImage || "";
               const initials = authorName.slice(0, 2).toUpperCase();
 
               return (
-                <article
-                  key={`${postId || idx}-${idx}`}
-                  className="posts-modal-post"
-                >
-                  <div className="posts-modal-post-row">
-                    <div className="posts-modal-avatar-wrap">
-                      <div className="posts-modal-avatar">
-                        {authorImage ? (
-                          <img src={authorImage} alt={authorName} />
-                        ) : (
-                          <span>{initials}</span>
-                        )}
+              <article
+                key={`${postId || idx}-${idx}`}
+                className="group relative py-4 first:pt-2 last:pb-2"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="relative flex-shrink-0">
+                    <div className="size-9 rounded-full overflow-hidden bg-black text-white flex items-center justify-center ring-2 ring-white shadow-[0_2px_8px_-2px_rgba(0,0,0,0.25)]">
+                      {authorImage ? (
+                        <img src={authorImage} alt={authorName} className="size-full object-cover" />
+                      ) : (
+                        <span className="tracking-tight">{initials}</span>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex-1 min-w-0 overflow-hidden">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-baseline gap-1.5 min-w-0">
+                        <span className="text-black truncate tracking-tight inline-flex items-center gap-1">{authorName}<Icon icon="heroicons-solid:badge-check" color='#1d9bf0' width={18} /></span>
+                        <span className="text-black/35 truncate text-[14px]">· {formatRelativeTime(post.createdAt)}</span>
                       </div>
                     </div>
 
@@ -423,7 +431,8 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts, titl
                         </button>
                       </div>
 
-                      <p className="posts-modal-text">
+                    <div className="mt-2.5">
+                      <p className="text-black/65 mt-1 leading-relaxed break-words [overflow-wrap:anywhere]">
                         {post.content}
                       </p>
 
@@ -498,13 +507,74 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts, titl
                           <Bookmark size={14} />
                         </button>
                       </div>
+                    )}
+
+                    <div className="flex items-center gap-0.5 mt-3 -ml-2">
+                      <button
+                        className={`inline-flex items-center gap-1.5 px-2.5 h-8 rounded-full hover:bg-black/[0.05] transition ${post.likedByCurrentUser ? "text-blue-600" : "text-black/55 hover:text-black"}`}
+                        onClick={async () => {
+                          const res = await fetch(`/api/posts/${postId}/like`, { method: "POST" });
+                          const data = await res.json();
+                          if (!res.ok) return;
+                          setLocalPosts((prev) => prev.map((p) => (p.id || p._id) === postId ? { ...p, likedByCurrentUser: Boolean(data.likedByCurrentUser), likeCount: Number(data.likeCount || 0) } : p));
+                        }}
+                        type="button"
+                      >
+                        <Heart className="size-3.5" />
+                        <span>{Number(post.likeCount || 0)}</span>
+                      </button>
+                      <button
+                        className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-full text-black/55 hover:text-black hover:bg-black/[0.05] transition"
+                        onClick={async () => {
+                          const text = window.prompt("Write your comment");
+                          if (!text?.trim()) return;
+                          const res = await fetch(`/api/posts/${postId}/comments`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: text.trim(), images: [] }) });
+                          const data = await res.json();
+                          if (!res.ok) return;
+                          setLocalPosts((prev) => prev.map((p) => (p.id || p._id) === postId ? { ...p, commentCount: Number(data?.post?.commentCount || (Number(p.commentCount || 0) + 1)) } : p));
+                        }}
+                        type="button"
+                      >
+                        <MessageCircle className="size-3.5" />
+                        <span>{Number(post.commentCount || 0)}</span>
+                      </button>
+                      <button
+                        className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-full text-black/55 hover:text-black hover:bg-black/[0.05] transition"
+                        onClick={async () => {
+                          const postUrl = `${window.location.origin}/dashboard?postId=${postId}`;
+                          await navigator.clipboard.writeText(postUrl);
+                        }}
+                        type="button"
+                      >
+                        <Share2 className="size-3.5" />
+                      </button>
+                      <button
+                        className={`inline-flex items-center gap-1.5 px-2.5 h-8 rounded-full ${post.savedByCurrentUser ? 'text-blue-600' : 'text-black/55 hover:text-black'} transition`}
+                        onClick={async () => {
+                          const res = await fetch('/api/users/me/bookmark', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ postId }),
+                          });
+                          const data = await res.json();
+                          if (!res.ok) return;
+                          setLocalPosts((prev) =>
+                            prev.map((p) =>
+                              (p.id || p._id) === postId ? { ...p, savedByCurrentUser: data.saved } : p
+                            )
+                          );
+                        }}
+                        type="button"
+                      >
+                        <Bookmark className="size-3.5" />
+                      </button>
                     </div>
                   </div>
 
-                  {idx < localPosts.length - 1 && (
-                    <div className="posts-modal-divider" />
-                  )}
-                </article>
+                {idx < localPosts.length - 1 && (
+                  <div className="absolute left-14 right-0 -bottom-px h-px bg-gradient-to-r from-black/[0.08] via-black/[0.05] to-transparent" />
+                )}
+              </article>
               );
             })}
           </div>
