@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import "./my-clubs.css";
 import Notification from '@/components/Notification';
 import { AllClubsModal } from '@/components/AllClubsModal';
-import { PostsModal } from "@/components/PostsModal";
+import { ClubPostsModal } from "@/components/ClubPostsModal";
 
 const getJoinedLabel = (foundedDate, createdAt) => {
   if (typeof foundedDate === "string" && foundedDate.trim()) {
@@ -39,7 +39,7 @@ const MyClubsPage = () => {
   const [clubs, setClubs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAllClubsModalOpen, setIsAllClubsModalOpen] = useState(false);
-  const [postsModalOpen, setPostsModalOpen] = useState(false);
+  const [clubpostsModalOpen, setClubPostsModalOpen] = useState(false);
   const [clubData, setClubData] = useState(null);
   const [clubPosts, setClubPosts] = useState([]);
 
@@ -129,12 +129,12 @@ const MyClubsPage = () => {
                     console.error('Club posts fetch error:', err);
                     setClubPosts([]);
                   }
-                  setPostsModalOpen(true);
+                  setClubPostsModalOpen(true);
                 }}
                 className='viewfeed'>View Feed</button>
-              <PostsModal
-                open={postsModalOpen}
-                onOpenChange={setPostsModalOpen}
+              <ClubPostsModal
+                open={clubpostsModalOpen}
+                onOpenChange={setClubPostsModalOpen}
                 clubName={clubData?.clubName || "Club"}
                 clubLogo={clubData?.logo || "/Defaultclublogo.svg"}
                 posts={clubPosts}

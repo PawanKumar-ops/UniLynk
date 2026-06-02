@@ -5,7 +5,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from 'next/navigation';
 import { AddMembersModal } from '@/components/AddMembersFab';
 import { MembersModal } from "@/components/ClubMembersModal";
-import { PostsModal } from "@/components/PostsModal";
+import { ClubPostsModal } from "@/components/ClubPostsModal";
 import { Calendar, Users, Trophy, Heart } from 'lucide-react';
 import Link from "next/link";
 
@@ -15,7 +15,7 @@ const ClubPageContent = () => {
     const [active, setActive] = useState(0);
     const [showAddMembersFab, setAddMembersFab] = useState(false)
     const [MemberModalopen, setMemberModalOpen] = useState(false);
-    const [postsModalOpen, setPostsModalOpen] = useState(false);
+    const [clubpostsModalOpen, setClubPostsModalOpen] = useState(false);
     const [clubData, setClubData] = useState(null);
     const [clubPosts, setClubPosts] = useState([]);
     const [upcomingEvents, setUpcomingEvents] = useState([]);
@@ -190,14 +190,14 @@ const ClubPageContent = () => {
                         </button>
                         <MembersModal MemberModalopen={MemberModalopen} onClose={() => setMemberModalOpen(false)} clubData={clubData} />
                         <button
-                            onClick={() => setPostsModalOpen(true)}
+                            onClick={() => setClubPostsModalOpen(true)}
                             className='clubcontactbtn rounded-full w-[130px]'
                         >
                             Posts
                         </button>
-                        <PostsModal
-                            open={postsModalOpen}
-                            onOpenChange={setPostsModalOpen}
+                        <ClubPostsModal
+                            open={clubpostsModalOpen}
+                            onOpenChange={setClubPostsModalOpen}
                             clubName={clubData?.clubName || "Club"}
                             clubLogo={clubData?.logo || "/Defaultclublogo.svg"}
                             posts={clubPosts}

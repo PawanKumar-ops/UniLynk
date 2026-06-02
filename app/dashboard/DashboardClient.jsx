@@ -312,6 +312,37 @@ export default function DashboardClient() {
     }
   };
 
+  const toggleSavePost = async (postId) => {
+    try {
+      const res = await fetch("/api/posts/bookmark", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ postId }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error("Failed");
+      }
+
+      setPosts((prev) =>
+        prev.map((post) =>
+          post.id === postId
+            ? {
+              ...post,
+              savedByCurrentUser: data.saved,
+            }
+            : post
+        )
+      );
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const queueLikeToggle = (postId, currentlyLiked) => {
     if (!postId || typeof postId !== "string") {
       console.error("Invalid post id:", postId);
@@ -454,7 +485,14 @@ export default function DashboardClient() {
                   </svg>
                   Report Post
                 </button>
-                <button className="menu-item" type="button">
+                <button
+                  className="menu-item"
+                  type="button"
+                  onClick={() => {
+                    toggleSavePost(post.id);
+                    setMenuPostId(null);
+                  }}
+                >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
                   </svg>
@@ -529,8 +567,23 @@ export default function DashboardClient() {
             <span className='post-share-count'>0</span>
           </div>
           <div className="post-foot-iconcont">
-            <img className='post-foot-icon' src="Postimg/bookmark.svg" alt="bookmark" />
-            <span className='post-bookmark-count'>0</span>
+            <button
+              type="button"
+              onClick={() => toggleSavePost(post.id)}
+            >
+              <img
+                className='post-foot-icon'
+                src="Postimg/bookmark.svg"
+                alt="bookmark"
+                style={{
+                  opacity: post.savedByCurrentUser ? 1 : 0.6,
+                }}
+              />
+            </button>
+
+            <span className='post-bookmark-count'>
+              {post.savedByCurrentUser ? 1 : 0}
+            </span>
           </div>
         </div>
       </div>
@@ -794,7 +847,7 @@ export default function DashboardClient() {
             </div>
           ) : (
             <div className="">
-             <NewsLetterCard/>
+              <NewsLetterCard />
             </div>
           )}
         </div>

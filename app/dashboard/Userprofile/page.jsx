@@ -16,9 +16,9 @@ import ReliableImage from '@/components/ReliableImage'
 import { SOCIAL_ICONS } from '@/lib/socialIcons'
 
 const Userprofile = () => {
-  const [postsModalOpen, setPostsModalOpen] = useState(false);
-  const [modalPosts, setModalPosts] = useState([]);
-  const [modalTitle, setModalTitle] = useState('');
+    const [clubpostsModalOpen, setClubPostsModalOpen] = useState(false);
+    const [modalPosts, setModalPosts] = useState([]);
+    const [modalTitle, setModalTitle] = useState('');
 
 
     const { data: session, status } = useSession();
@@ -60,7 +60,7 @@ const Userprofile = () => {
             }
 
             setModalPosts(posts);
-            setPostsModalOpen(true);
+            setClubPostsModalOpen(true);
         } catch (err) {
             console.error('Failed to fetch posts', err);
         }
@@ -272,50 +272,50 @@ const Userprofile = () => {
             <main className="main-area">
                 {/* Top Bar */}
                 <header className="userprofile-top-bar top-back-btn">
-    {!isOwnProfile && (
-        <button
-            className="icon-btn top-nav-btn back-btn-left"
-            type="button"
-            onClick={() => router.back()}
-            aria-label="Go back"
-        >
-            <Icon icon="mdi:arrow-left" width={22} />
-        </button>
-    )}
+                    {!isOwnProfile && (
+                        <button
+                            className="icon-btn top-nav-btn back-btn-left"
+                            type="button"
+                            onClick={() => router.back()}
+                            aria-label="Go back"
+                        >
+                            <Icon icon="mdi:arrow-left" width={22} />
+                        </button>
+                    )}
 
-    {isOwnProfile && (
-        <div className="top-profile-actions">
-            <button
-                className="icon-btn top-nav-btn"
-                type="button"
-                aria-label="My Posts"
-                onClick={handleOpenPosts}
-            >
-                <Icon icon="solar:posts-carousel-vertical-line-duotone" width={22} />
-                Posts
-            </button>
+                    {isOwnProfile && (
+                        <div className="top-profile-actions">
+                            <button
+                                className="icon-btn top-nav-btn"
+                                type="button"
+                                aria-label="My Posts"
+                                onClick={handleOpenPosts}
+                            >
+                                <Icon icon="solar:posts-carousel-vertical-line-duotone" width={22} />
+                                Posts
+                            </button>
 
-            <button
-                className="icon-btn top-nav-btn"
-                type="button"
-                aria-label="Saved Posts"
-                onClick={handleOpenSaved}
-            >
-                <Icon icon="mage:bookmark" width={22} />
-                Saved
-            </button>
-        </div>
-    )}
-</header>
+                            <button
+                                className="icon-btn top-nav-btn"
+                                type="button"
+                                aria-label="Saved Posts"
+                                onClick={handleOpenSaved}
+                            >
+                                <Icon icon="mage:bookmark" width={22} />
+                                Saved
+                            </button>
+                        </div>
+                    )}
+                </header>
 
-{postsModalOpen && (
-    <PostsModal
-        open={postsModalOpen}
-        onOpenChange={setPostsModalOpen}
-        posts={modalPosts}
-        title={modalTitle}
-    />
-)}
+                {clubpostsModalOpen && (
+                    <PostsModal
+                        open={clubpostsModalOpen}
+                        onOpenChange={setClubPostsModalOpen}
+                        posts={modalPosts}
+                        title={modalTitle}
+                    />
+                )}
 
 
                 {/* Profile Content */}

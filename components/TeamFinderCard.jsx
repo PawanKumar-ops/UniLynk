@@ -3,12 +3,9 @@ import {
   Users,
   Search,
   Check,
-  Send,
-  Sparkles,
   ChevronDown,
   Mail,
   Bell,
-  CheckCircle2,
   Loader2,
   X,
 } from "lucide-react";
@@ -520,7 +517,7 @@ function RequestModal({ target, open, onClose, message, setMessage, sending, sen
             >
               {sending ? (
                 <div className="flex items-center justify-center gap-1">
-                  <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
+                  <Loader2 className="h-full mr-1.5 animate-spin" />
                 </div>
               ) : (
                 <>
