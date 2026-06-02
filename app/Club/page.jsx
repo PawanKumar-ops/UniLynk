@@ -5,7 +5,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useSearchParams } from 'next/navigation';
 import { AddMembersModal } from '@/components/AddMembersFab';
 import { MembersModal } from "@/components/ClubMembersModal";
-import { PostsModal } from "@/components/ClubPostsModal";
+import { PostsModal } from "@/components/PostsModal";
 import { Calendar, Users, Trophy, Heart } from 'lucide-react';
 import Link from "next/link";
 

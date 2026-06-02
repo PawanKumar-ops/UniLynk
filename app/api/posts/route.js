@@ -156,11 +156,16 @@ export async function GET(req) {
     const session = await getServerSession(authOptions);
     const sessionEmail = normalizeEmail(session?.user?.email);
     const user = sessionEmail
-      ? await User.findOne({ email: sessionEmail }, { _id: 1 }).lean()
+      ? await User.findOne({ email: sessionEmail }, { _id: 1, savedPosts: 1 }).lean()
       : null;
 
     const enrichedPosts = await resolveLikeState(hydratedPosts, user?._id?.toString());
-    const normalizedPosts = normalizePosts(enrichedPosts);
+    const savedPostIds = new Set(user?.savedPosts?.map(id => id.toString()) || []);
+    const enrichedPostsWithSave = enrichedPosts.map(post => ({
+      ...post,
+      savedByCurrentUser: savedPostIds.has(post._id.toString()),
+    }));
+    const normalizedPosts = normalizePosts(enrichedPostsWithSave);
 
     return Response.json({ posts: normalizedPosts }, { status: 200 });
   } catch (error) {

@@ -11,10 +11,35 @@ import { useMemo } from 'react';
 import { Icon } from "@iconify/react";
 import { getSkillIcon } from "@/lib/skillIcons";
 import ProfileEditModal from '@/components/ProfileEditModal'
+import { PostsModal } from '@/components/PostsModal'
 import ReliableImage from '@/components/ReliableImage'
 import { SOCIAL_ICONS } from '@/lib/socialIcons'
 
 const Userprofile = () => {
+  const [postsModalOpen, setPostsModalOpen] = useState(false);
+  const [modalPosts, setModalPosts] = useState([]);
+  const [modalTitle, setModalTitle] = useState('');
+
+  const fetchPosts = async (savedOnly = false) => {
+    try {
+      const res = await fetch('/api/posts?audience=for-you');
+      const data = await res.json();
+      let posts = data.posts || [];
+      if (savedOnly) {
+        posts = posts.filter(p => p.savedByCurrentUser);
+        setModalTitle('Saved Posts');
+      } else {
+        setModalTitle('My Posts');
+      }
+      setModalPosts(posts);
+      setPostsModalOpen(true);
+    } catch (err) {
+      console.error('Failed to fetch posts', err);
+    }
+  };
+
+  const handleOpenPosts = () => fetchPosts(false);
+  const handleOpenSaved = () => fetchPosts(true);
 
     const { data: session, status } = useSession();
     const searchParams = useSearchParams();
@@ -222,7 +247,7 @@ const Userprofile = () => {
     if (error) {
         return <div className="user-profile-page">
             <div className="user-profile-errorpage">
-                <Image src="/Userprofile/Userprofileerrorpage.svg" alt='Error in page' width={338.767} height={350}/>
+                <Image src="/Userprofile/Userprofileerrorpage.svg" alt='Error in page' width={338.767} height={350} />
                 <h1 className="user-profile-error-msg">{error}</h1>
             </div>
         </div>;
@@ -235,30 +260,51 @@ const Userprofile = () => {
             <main className="main-area">
                 {/* Top Bar */}
                 <header className="userprofile-top-bar top-back-btn">
-                    {!isOwnProfile ? (
-                        <button
-                            className="icon-btn top-nav-btn"
-                            type="button"
-                            onClick={() => router.back()}
-                            aria-label="Go back"
-                        >
-                            <Icon icon="mdi:arrow-left" width={22} />
-                        </button>
-                    ) : (
-                        <div className="top-bar-spacer" />
-                    )}
+    {!isOwnProfile && (
+        <button
+            className="icon-btn top-nav-btn back-btn-left"
+            type="button"
+            onClick={() => router.back()}
+            aria-label="Go back"
+        >
+            <Icon icon="mdi:arrow-left" width={22} />
+        </button>
+    )}
 
-                    {isOwnProfile && (
-                        <button
-                            className="icon-btn top-nav-btn top-save-btn "
-                            type="button"
-                            aria-label="Save profile"
-                        >
-                            <Icon icon="mage:bookmark" width={22} />
-                            Saved
-                        </button>
-                    )}
-                </header>
+    {isOwnProfile && (
+        <div className="top-profile-actions">
+            <button
+                className="icon-btn top-nav-btn"
+                type="button"
+                aria-label="My Posts"
+                onClick={handleOpenPosts}
+            >
+                <Icon icon="solar:posts-carousel-vertical-line-duotone" width={22} />
+                Posts
+            </button>
+
+            <button
+                className="icon-btn top-nav-btn"
+                type="button"
+                aria-label="Saved Posts"
+                onClick={handleOpenSaved}
+            >
+                <Icon icon="mage:bookmark" width={22} />
+                Saved
+            </button>
+        </div>
+    )}
+</header>
+
+{postsModalOpen && (
+    <PostsModal
+        open={postsModalOpen}
+        onOpenChange={setPostsModalOpen}
+        clubName={viewedProfile?.name || ''}
+        clubLogo={viewedProfile?.img || ''}
+        posts={modalPosts}
+    />
+)}
 
 
                 {/* Profile Content */}

@@ -139,17 +139,11 @@ export function TeamFinderCard() {
         <div className="relative px-4 pt-4 pb-3 bg-gradient-to-b from-neutral-50 to-white border-b border-neutral-100">
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2">
-              <div className="h-8 w-8 rounded-lg bg-black text-white flex items-center justify-center">
-                <Users className="h-4 w-4" strokeWidth={2} />
-              </div>
               <div>
                 <h3 className="text-sm text-neutral-900 leading-tight">Find Your Team</h3>
                 <p className="text-[11px] text-neutral-500 mt-0.5">Connect with solo applicants</p>
               </div>
             </div>
-            <span className="inline-flex items-center bg-neutral-100 text-neutral-700 rounded-full text-[10px] px-2 py-0.5">
-              <Sparkles className="h-2.5 w-2.5 mr-1" /> Live
-            </span>
           </div>
         </div>
 
@@ -203,8 +197,8 @@ export function TeamFinderCard() {
                     key={u.id}
                     className={`w-full flex items-center gap-2.5 p-2 rounded-lg border transition-all ${
                       isSelected
-                        ? "border-neutral-900 bg-neutral-50"
-                        : "border-neutral-200 bg-white hover:border-neutral-300"
+  ? "border-neutral-200 bg-neutral-50"
+  : "border-neutral-200 bg-white hover:border-neutral-300"
                     }`}
                   >
                     <AvatarCircle name={u.name} size={32} />
@@ -217,8 +211,8 @@ export function TeamFinderCard() {
                       aria-label={isSelected ? "Deselect" : "Select"}
                       className={`h-5 w-5 rounded-full border flex items-center justify-center transition-all shrink-0 cursor-pointer ${
                         isSelected
-                          ? "bg-neutral-900 border-neutral-900 scale-105"
-                          : "border-neutral-300 hover:border-neutral-900 hover:bg-neutral-50"
+  ? "bg-neutral-900 border-neutral-300 scale-105"
+  : "border-neutral-300 hover:border-neutral-300 hover:bg-neutral-50"
                       }`}
                     >
                       {isSelected && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
@@ -245,8 +239,7 @@ export function TeamFinderCard() {
                 disabled={selected.length === 0}
                 onClick={openUsersRequest}
                 className="inline-flex items-center bg-neutral-900 hover:bg-neutral-800 text-white rounded-lg h-8 px-3 text-xs disabled:opacity-40 disabled:hover:bg-neutral-900 transition-colors"
-              >
-                <Send className="h-3 w-3 mr-1" /> Send Request
+              > Send Request
               </button>
             </div>
         </div>
@@ -263,8 +256,8 @@ export function TeamFinderCard() {
                     key={t.id}
                     className={`rounded-lg border transition-all overflow-hidden ${
                       isOpen
-                        ? "border-neutral-900 bg-neutral-50/60"
-                        : "border-neutral-200 bg-white hover:border-neutral-300"
+  ? "border-neutral-200 bg-neutral-50/60"
+  : "border-neutral-200 bg-white hover:border-neutral-300"
                     }`}
                   >
                     <button
@@ -401,52 +394,52 @@ function RequestModal({ target, open, onClose, message, setMessage, sending, sen
   const recipientCount = target?.kind === "users" ? users.length : 1;
 
   const title = sent
-    ? "Request sent"
+    ? "Request delivered"
     : isTeam
-    ? "Request to join team"
-    : "Send team request";
+    ? "Join this team"
+    : recipientCount === 1
+    ? "Send a team request"
+    : "Form a team";
 
   const subtitle = sent
-    ? "We've delivered your request."
+    ? "We'll let you know the moment they reply."
     : isTeam && team
-    ? `Ask to join ${team.name} for this event.`
-    : `Invite ${recipientCount} ${recipientCount === 1 ? "person" : "people"} to form a team.`;
+    ? `Introduce yourself to ${team.lead} and the ${team.name} crew.`
+    : `Reach out to ${recipientCount} ${recipientCount === 1 ? "person" : "people"} and start building.`;
 
   const placeholder = isTeam
     ? "Briefly introduce yourself and why you'd be a great fit…"
     : "Hey, want to team up for this event? I'm working on…";
 
   const remaining = MAX_MESSAGE - message.length;
+  const overLimit = remaining < 20;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
         onClick={onClose}
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in duration-150"
+        className="absolute inset-0 bg-neutral-950/50 backdrop-blur-md animate-in fade-in duration-200"
       />
-      <div className="relative w-full max-w-md h-[480px] flex flex-col overflow-hidden rounded-2xl border border-neutral-200 bg-white shadow-[0_24px_60px_-20px_rgba(0,0,0,0.25)] animate-in fade-in zoom-in-95 duration-150">
+      <div className="relative w-full max-w-[440px] flex flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_1px_0_0_rgba(255,255,255,0.6)_inset,0_30px_80px_-20px_rgba(0,0,0,0.35),0_0_0_1px_rgba(0,0,0,0.06)] animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200">
+        {/* Ambient top accent */}
+        <div aria-hidden className="absolute inset-x-0 top-0 h-32 bg-[radial-gradient(80%_120%_at_50%_0%,rgba(0,0,0,0.04),transparent_70%)] pointer-events-none" />
+
         {/* Close */}
         <button
           onClick={onClose}
           disabled={sending}
           aria-label="Close"
-          className="absolute top-4 right-4 z-10 h-7 w-7 rounded-full flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 transition-colors disabled:opacity-40"
+          className="absolute top-4 right-4 z-10 h-8 w-8 rounded-full flex items-center justify-center text-neutral-400 hover:text-neutral-900 hover:bg-neutral-100 active:scale-95 transition-all disabled:opacity-40"
         >
-          <X className="h-4 w-4" />
+          <X className="h-4 w-4" strokeWidth={2.25} />
         </button>
 
         {/* Header */}
         <div className="relative px-6 pt-6 pb-5 border-b border-neutral-100 bg-gradient-to-b from-neutral-50/70 to-white shrink-0">
           <div className="flex items-start gap-3">
-            <div className="h-10 w-10 rounded-xl bg-neutral-900 text-white flex items-center justify-center shrink-0">
-              {sent ? (
-                <CheckCircle2 className="h-5 w-5" strokeWidth={2} />
-              ) : (
-                <Send className="h-4 w-4" strokeWidth={2} />
-              )}
-            </div>
+            
             <div className="min-w-0 pr-6">
-              <h2 className="text-neutral-900 leading-tight">{title}</h2>
+              <h2 className="text-neutral-900 font-medium text-lg leading-tight">{title}</h2>
               <p className="text-xs text-neutral-500 mt-1 leading-relaxed">{subtitle}</p>
             </div>
           </div>
@@ -456,11 +449,13 @@ function RequestModal({ target, open, onClose, message, setMessage, sending, sen
         {sent ? (
           <SuccessBody onClose={onClose} />
         ) : (
-          <div className={`flex-1 min-h-0 px-6 py-5 space-y-4 ${scrollClass}`}>
+          <div className={`flex-1 min-h-0 px-7 pt-7 pb-2 space-y-5 ${scrollClass}`}>
             <div>
-              <p className="text-[10px] uppercase tracking-wider text-neutral-500 mb-2">
-                {isTeam ? "Team" : `Recipients · ${recipientCount}`}
-              </p>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-[11px] text-neutral-500 tracking-tight">
+                  {isTeam ? "Team" : `To · ${recipientCount}`}
+                </label>
+              </div>
               {isTeam && team ? (
                 <TeamRecipientChip team={team} />
               ) : (
@@ -468,10 +463,10 @@ function RequestModal({ target, open, onClose, message, setMessage, sending, sen
                   {users.map((u) => (
                     <div
                       key={u.id}
-                      className="flex items-center gap-1.5 pl-0.5 pr-2.5 py-0.5 rounded-full bg-neutral-100 border border-neutral-200/70"
+                      className="flex items-center gap-1.5 pl-0.5 pr-3 py-0.5 rounded-full bg-neutral-50 border border-neutral-200/80 shadow-[0_1px_0_rgba(0,0,0,0.02)]"
                     >
-                      <AvatarCircle name={u.name} size={20} textSize="text-[9px]" />
-                      <span className="text-[11px] text-neutral-800">{u.name}</span>
+                      <AvatarCircle name={u.name} size={22} textSize="text-[9px]" />
+                      <span className="text-[12px] text-neutral-800 tracking-tight">{u.name}</span>
                     </div>
                   ))}
                 </div>
@@ -479,28 +474,30 @@ function RequestModal({ target, open, onClose, message, setMessage, sending, sen
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-[10px] uppercase tracking-wider text-neutral-500">
-                  Message
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-[11px] text-neutral-500 tracking-tight">
+                  Your message
                 </label>
                 <span
-                  className={`text-[10px] ${
-                    remaining < 20 ? "text-neutral-900" : "text-neutral-400"
+                  className={`text-[11px] tabular-nums transition-colors ${
+                    overLimit ? "text-neutral-900" : "text-neutral-400"
                   }`}
                 >
                   {remaining}
                 </span>
               </div>
-              <textarea
-                value={message}
-                onChange={(e) => setMessage(e.target.value.slice(0, MAX_MESSAGE))}
-                placeholder={placeholder}
-                rows={4}
-                disabled={sending}
-                className="w-full resize-none rounded-xl border border-neutral-200 bg-neutral-50/60 text-sm p-3 focus:outline-none focus:ring-1 focus:ring-neutral-900 focus:border-neutral-900 focus:bg-white transition-colors disabled:opacity-60"
-              />
-              <p className="text-[10px] text-neutral-400 mt-1.5">
-                A clear note about your skills and intent gets the best response rate.
+              <div className="group relative rounded-2xl border border-neutral-200 bg-neutral-50/70 focus-within:bg-white focus-within:border-neutral-900 focus-within:shadow-[0_0_0_4px_rgba(0,0,0,0.04)] transition-all">
+                <textarea
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value.slice(0, MAX_MESSAGE))}
+                  placeholder={placeholder}
+                  rows={4}
+                  disabled={sending}
+                  className="w-full resize-none rounded-2xl bg-transparent text-[13px] leading-relaxed p-3.5 focus:outline-none placeholder:text-neutral-400 disabled:opacity-60"
+                />
+              </div>
+              <p className="text-[11px] text-neutral-400 mt-2 leading-relaxed">
+                A clear note about your skills and intent gets the best response.
               </p>
             </div>
           </div>
@@ -508,18 +505,18 @@ function RequestModal({ target, open, onClose, message, setMessage, sending, sen
 
         {/* Footer */}
         {!sent && (
-          <div className="flex items-center justify-between gap-2 px-6 py-4 border-t border-neutral-100 bg-neutral-50/40 shrink-0">
+          <div className="flex items-center justify-end gap-2 px-7 py-4 shrink-0">
             <button
               onClick={onClose}
               disabled={sending}
-              className="rounded-lg h-9 px-3 text-sm text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition-colors disabled:opacity-40"
+              className="rounded-xl h-10 px-4 text-[13px] text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition-colors disabled:opacity-40"
             >
               Cancel
             </button>
             <button
               onClick={onSend}
               disabled={sending}
-              className="inline-flex items-center justify-center rounded-lg h-9 px-4 text-sm bg-neutral-900 hover:bg-neutral-800 text-white min-w-[120px] transition-colors disabled:opacity-60"
+              className="group relative inline-flex items-center justify-center rounded-xl h-10 px-5 text-[13px] text-white min-w-[140px] bg-gradient-to-b from-neutral-800 to-neutral-950 shadow-[0_1px_0_rgba(255,255,255,0.15)_inset,0_8px_20px_-8px_rgba(0,0,0,0.5)] hover:from-neutral-700 hover:to-neutral-900 active:scale-[0.98] transition-all disabled:opacity-70 disabled:active:scale-100"
             >
               {sending ? (
                 <>
@@ -528,8 +525,8 @@ function RequestModal({ target, open, onClose, message, setMessage, sending, sen
                 </>
               ) : (
                 <>
-                  <Send className="h-3.5 w-3.5 mr-1.5" />
-                  Send Request
+                  Send request
+                  <Send className="h-3.5 w-3.5 ml-1.5 transition-transform group-hover:translate-x-0.5" />
                 </>
               )}
             </button>
@@ -542,15 +539,16 @@ function RequestModal({ target, open, onClose, message, setMessage, sending, sen
 
 function TeamRecipientChip({ team }) {
   return (
-    <div className="flex items-center gap-3 p-3 rounded-xl border border-neutral-200 bg-neutral-50/60">
-      <div className="h-9 w-9 rounded-lg bg-neutral-900 text-white flex items-center justify-center shrink-0">
-        <Users className="h-4 w-4" />
+    <div className="relative flex items-center gap-3 p-3 rounded-2xl border border-neutral-200/80 bg-gradient-to-br from-neutral-50 to-white shadow-[0_1px_0_rgba(0,0,0,0.02)]">
+      <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-neutral-800 to-neutral-950 text-white flex items-center justify-center shrink-0 shadow-[0_4px_10px_-4px_rgba(0,0,0,0.4)]">
+        <Users className="h-4 w-4" strokeWidth={2.25} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm text-neutral-900 leading-tight truncate">{team.name}</p>
-        <p className="text-[11px] text-neutral-500 mt-0.5">Led by {team.lead}</p>
+        <p className="text-[13px] text-neutral-950 leading-tight truncate tracking-tight">{team.name}</p>
+        <p className="text-[11px] text-neutral-500 mt-1">Led by {team.lead}</p>
       </div>
-      <span className="inline-flex items-center bg-white border border-neutral-200 text-neutral-700 rounded-full text-[10px] px-2 py-0">
+      <span className="inline-flex items-center gap-1 bg-white border border-neutral-200 text-neutral-700 rounded-full text-[10px] px-2 py-0.5 shadow-sm">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
         {team.needed} open
       </span>
     </div>
@@ -559,41 +557,38 @@ function TeamRecipientChip({ team }) {
 
 function SuccessBody({ onClose }) {
   return (
-    <div className="flex-1 min-h-0 flex flex-col px-6 py-5 gap-4">
-      <div className="rounded-xl border border-neutral-200 bg-neutral-50/60 p-4 space-y-3">
-        <div className="flex items-start gap-3">
-          <div className="h-8 w-8 rounded-lg bg-white border border-neutral-200 flex items-center justify-center shrink-0">
-            <Mail className="h-4 w-4 text-neutral-700" />
+    <div className="flex-1 min-h-0 flex flex-col px-7 py-6 gap-5">
+      <div className="rounded-2xl border border-neutral-200/80 bg-gradient-to-br from-neutral-50 to-white overflow-hidden">
+        <div className="flex items-start gap-3 p-4">
+          <div className="h-9 w-9 rounded-xl bg-white border border-neutral-200 flex items-center justify-center shrink-0 shadow-sm">
+            <Mail className="h-4 w-4 text-neutral-700" strokeWidth={2.25} />
           </div>
           <div className="min-w-0">
-            <p className="text-sm text-neutral-900 leading-tight">Check your email</p>
+            <p className="text-[13px] text-neutral-950 leading-tight tracking-tight">Check your inbox</p>
             <p className="text-[11px] text-neutral-500 mt-1 leading-relaxed">
-              You'll get a confirmation now and an update once they respond.
+              We've sent a confirmation and we'll ping you the moment they reply.
             </p>
           </div>
         </div>
-        <div className="h-px bg-neutral-200/70" />
-        <div className="flex items-start gap-3">
-          <div className="h-8 w-8 rounded-lg bg-white border border-neutral-200 flex items-center justify-center shrink-0">
-            <Bell className="h-4 w-4 text-neutral-700" />
+        <div className="h-px bg-neutral-200/70 mx-4" />
+        <div className="flex items-start gap-3 p-4">
+          <div className="h-9 w-9 rounded-xl bg-white border border-neutral-200 flex items-center justify-center shrink-0 shadow-sm">
+            <Bell className="h-4 w-4 text-neutral-700" strokeWidth={2.25} />
           </div>
           <div className="min-w-0">
-            <p className="text-sm text-neutral-900 leading-tight">
-              Watch your Unilynk notifications
-            </p>
+            <p className="text-[13px] text-neutral-950 leading-tight tracking-tight">Stay tuned in‑app</p>
             <p className="text-[11px] text-neutral-500 mt-1 leading-relaxed">
-              Replies and team updates appear in your notification center.
+              Replies and team updates land in your Unilynk notifications.
             </p>
           </div>
         </div>
       </div>
 
-      <div className="flex-1" />
       <button
         onClick={onClose}
-        className="w-full h-9 rounded-lg bg-neutral-900 hover:bg-neutral-800 text-white text-sm transition-colors shrink-0"
+        className="w-full h-10 rounded-xl bg-gradient-to-b from-neutral-800 to-neutral-950 text-white text-[13px] shadow-[0_1px_0_rgba(255,255,255,0.15)_inset,0_8px_20px_-8px_rgba(0,0,0,0.5)] hover:from-neutral-700 hover:to-neutral-900 active:scale-[0.98] transition-all"
       >
-        Got it
+        Done
       </button>
     </div>
   );

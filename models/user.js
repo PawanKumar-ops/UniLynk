@@ -29,6 +29,10 @@ const UserSchema = new mongoose.Schema({
     ],
     default: [],
   },
+  savedPosts: {
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
+    default: [],
+  },
 
   profileCompleted: {
     type: Boolean,

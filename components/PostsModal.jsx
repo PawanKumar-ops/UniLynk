@@ -59,12 +59,7 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts }) {
         <div className="relative px-6 pt-6 pb-5 bg-gradient-to-b from-white to-[#fafafa] border-b border-black/[0.06]">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              <div className="size-10 rounded-xl overflow-hidden bg-black flex items-center justify-center text-white shadow-[0_4px_12px_-2px_rgba(0,0,0,0.3)]">
-                <img src={clubLogo || "/Defaultclublogo.svg"} alt={`${clubName} logo`} className="size-full object-cover" />
-              </div>
-              <div>
-                <h2 className="tracking-tight text-black leading-tight">{clubName}</h2>
-              </div>
+              <h2 className="text-xl font-semibold">Club Posts</h2>
             </div>
             <button
               onClick={() => onOpenChange(false)}
@@ -94,7 +89,7 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts }) {
                     </div>
                   </div>
 
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 overflow-hidden">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-baseline gap-1.5 min-w-0">
                         <span className="text-black truncate tracking-tight flex flex-row gap-1">{clubName}<Icon icon="heroicons-solid:badge-check" color='#1d9bf0' width={18} /></span>
@@ -107,12 +102,14 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts }) {
 
                     <div className="flex items-center gap-1.5 text-black/35 mt-0.5">
                       <span></span>
-                    
-                      
+
+
                     </div>
 
                     <div className="mt-2.5">
-                      <p className="text-black/65 mt-1 leading-relaxed line-clamp-3">{post.content}</p>
+                      <p className="text-black/65 mt-1 leading-relaxed break-words overflow-hidden">
+                        {post.content}
+                      </p>
                     </div>
 
                     {!!post.images?.length && (
@@ -120,7 +117,7 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts }) {
                         <img
                           src={post.images[0]}
                           alt="Post media"
-                          className="w-full h-44 object-cover"
+                          className="w-full h-44 object-cover block"
                         />
                       </div>
                     )}
@@ -164,7 +161,24 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts }) {
                       >
                         <Share2 className="size-3.5" />
                       </button>
-                      <button className="ml-auto size-8 inline-flex items-center justify-center rounded-full text-black/55 hover:text-black hover:bg-black/[0.05] transition">
+                      <button
+                        className={`inline-flex items-center gap-1.5 px-2.5 h-8 rounded-full ${post.savedByCurrentUser ? 'text-blue-600' : 'text-black/55 hover:text-black'} transition`}
+                        onClick={async () => {
+                          const res = await fetch('/api/users/me/bookmark', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ postId: post.id }),
+                          });
+                          const data = await res.json();
+                          if (!res.ok) return;
+                          setLocalPosts((prev) =>
+                            prev.map((p) =>
+                              p.id === post.id ? { ...p, savedByCurrentUser: data.saved } : p
+                            )
+                          );
+                        }}
+                        type="button"
+                      >
                         <Bookmark className="size-3.5" />
                       </button>
                     </div>

@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import "./my-clubs.css";
 import Notification from '@/components/Notification';
 import { AllClubsModal } from '@/components/AllClubsModal';
-import { PostsModal } from "@/components/ClubPostsModal";
+import { PostsModal } from "@/components/PostsModal";
 
 const getJoinedLabel = (foundedDate, createdAt) => {
   if (typeof foundedDate === "string" && foundedDate.trim()) {
@@ -115,33 +115,33 @@ const MyClubsPage = () => {
             </div>
             <div className="clubinfobtns">
               <button className='open' onClick={() => window.location.href = `/Club?clubId=${club._id}`}>Open</button>
-              <button 
-              onClick={async () => {
-                // Set current club data for modal
-                setClubData(club);
-                // Fetch posts for this club
-                try {
-                  const resp = await fetch(`/api/posts?clubId=${club._id}`, { cache: "no-store" });
-                  if (!resp.ok) throw new Error('Failed to fetch club posts');
-                  const result = await resp.json();
-                  setClubPosts(Array.isArray(result?.posts) ? result.posts : []);
-                } catch (err) {
-                  console.error('Club posts fetch error:', err);
-                  setClubPosts([]);
-                }
-                setPostsModalOpen(true);
-              }}
-              className='viewfeed'>View Feed</button>
+              <button
+                onClick={async () => {
+                  // Set current club data for modal
+                  setClubData(club);
+                  // Fetch posts for this club
+                  try {
+                    const resp = await fetch(`/api/posts?clubId=${club._id}`, { cache: "no-store" });
+                    if (!resp.ok) throw new Error('Failed to fetch club posts');
+                    const result = await resp.json();
+                    setClubPosts(Array.isArray(result?.posts) ? result.posts : []);
+                  } catch (err) {
+                    console.error('Club posts fetch error:', err);
+                    setClubPosts([]);
+                  }
+                  setPostsModalOpen(true);
+                }}
+                className='viewfeed'>View Feed</button>
               <PostsModal
-                                          open={postsModalOpen}
-                                          onOpenChange={setPostsModalOpen}
-                                          clubName={clubData?.clubName || "Club"}
-                                          clubLogo={clubData?.logo || "/Defaultclublogo.svg"}
-                                          posts={clubPosts}
-                                      />
-              <button 
-              onClick={() => window.location.href = "/dashboard/events"}
-              className='events'>Events</button>
+                open={postsModalOpen}
+                onOpenChange={setPostsModalOpen}
+                clubName={clubData?.clubName || "Club"}
+                clubLogo={clubData?.logo || "/Defaultclublogo.svg"}
+                posts={clubPosts}
+              />
+              <button
+                onClick={() => window.location.href = "/dashboard/events"}
+                className='events'>Events</button>
             </div>
           </div>
         </div>
@@ -184,7 +184,7 @@ const MyClubsPage = () => {
           </div>
         </button>
 
-        <button className="myclubsmore" onClick={()=> window.location.href = "/dashboard/explore"}>
+        <button className="myclubsmore" onClick={() => window.location.href = "/dashboard/explore"}>
           <div className="myclubsmorer">
             <div className="myclubsmoreimg myclubsmoreimgtrending">
               <img src="/myclubs/trending.svg" alt="trending" />
@@ -201,9 +201,9 @@ const MyClubsPage = () => {
         </button>
       </div>
 
-      <AllClubsModal 
-        open={isAllClubsModalOpen} 
-        onClose={() => setIsAllClubsModalOpen(false)} 
+      <AllClubsModal
+        open={isAllClubsModalOpen}
+        onClose={() => setIsAllClubsModalOpen(false)}
       />
     </div>
   )
