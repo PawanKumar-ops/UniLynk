@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, X } from "lucide-react";
 import { Icon } from "@iconify/react";
 
@@ -12,9 +13,14 @@ const formatRelativeTime = (value) => {
   return `${Math.floor(diffSec / 86400)}d ago`;
 };
 
-export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts }) {
+export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts, title = "Club Posts" }) {
   const [localPosts, setLocalPosts] = useState([]);
+  const [mounted, setMounted] = useState(false);
   const normalizedPosts = useMemo(() => (Array.isArray(posts) ? posts : []), [posts]);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     setLocalPosts(normalizedPosts);
@@ -34,10 +40,10 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts }) {
     };
   }, [open, onOpenChange]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  const modal = (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       <style>{`
         .premium-scroll::-webkit-scrollbar { width: 6px; }
         .premium-scroll::-webkit-scrollbar-track { background: transparent; }
@@ -59,7 +65,7 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts }) {
         <div className="relative px-6 pt-6 pb-5 bg-gradient-to-b from-white to-[#fafafa] border-b border-black/[0.06]">
           <div className="flex items-start justify-between">
             <div className="flex items-center gap-3">
-              <h2 className="text-xl font-semibold">Club Posts</h2>
+              <h2 className="text-xl font-semibold">{title}</h2>
             </div>
             <button
               onClick={() => onOpenChange(false)}
@@ -73,18 +79,29 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts }) {
 
         <div className="premium-scroll max-h-[65vh] overflow-y-auto">
           <div className="px-6 py-4 space-y-1">
-            {localPosts.map((post, idx) => (
+            {localPosts.length === 0 && (
+              <div className="py-14 text-center text-black/45">
+                No posts to show yet.
+              </div>
+            )}
+            {localPosts.map((post, idx) => {
+              const postId = post.id || post._id;
+              const authorName = clubName || post.authorName || "UniLynk";
+              const authorImage = clubLogo || post.authorImage || "";
+              const initials = authorName.slice(0, 2).toUpperCase();
+
+              return (
               <article
-                key={`${post.id}-${idx}`}
+                key={`${postId || idx}-${idx}`}
                 className="group relative py-4 first:pt-2 last:pb-2"
               >
                 <div className="flex items-start gap-3">
                   <div className="relative flex-shrink-0">
                     <div className="size-9 rounded-full overflow-hidden bg-black text-white flex items-center justify-center ring-2 ring-white shadow-[0_2px_8px_-2px_rgba(0,0,0,0.25)]">
-                      {post.authorImage ? (
-                        <img src={post.authorImage} alt={post.authorName} className="size-full object-cover" />
+                      {authorImage ? (
+                        <img src={authorImage} alt={authorName} className="size-full object-cover" />
                       ) : (
-                        <span className="tracking-tight">{post.authorName.slice(0, 2).toUpperCase()}</span>
+                        <span className="tracking-tight">{initials}</span>
                       )}
                     </div>
                   </div>
@@ -92,7 +109,7 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts }) {
                   <div className="flex-1 min-w-0 overflow-hidden">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-baseline gap-1.5 min-w-0">
-                        <span className="text-black truncate tracking-tight flex flex-row gap-1">{clubName}<Icon icon="heroicons-solid:badge-check" color='#1d9bf0' width={18} /></span>
+                        <span className="text-black truncate tracking-tight inline-flex items-center gap-1">{authorName}<Icon icon="heroicons-solid:badge-check" color='#1d9bf0' width={18} /></span>
                         <span className="text-black/35 truncate text-[14px]">· {formatRelativeTime(post.createdAt)}</span>
                       </div>
                       <button className="size-7 inline-flex items-center justify-center rounded-full text-black/40 hover:text-black hover:bg-black/[0.06] transition opacity-0 group-hover:opacity-100">
@@ -107,7 +124,7 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts }) {
                     </div>
 
                     <div className="mt-2.5">
-                      <p className="text-black/65 mt-1 leading-relaxed break-words overflow-hidden">
+                      <p className="text-black/65 mt-1 leading-relaxed break-words [overflow-wrap:anywhere]">
                         {post.content}
                       </p>
                     </div>
@@ -126,10 +143,10 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts }) {
                       <button
                         className={`inline-flex items-center gap-1.5 px-2.5 h-8 rounded-full hover:bg-black/[0.05] transition ${post.likedByCurrentUser ? "text-blue-600" : "text-black/55 hover:text-black"}`}
                         onClick={async () => {
-                          const res = await fetch(`/api/posts/${post.id}/like`, { method: "POST" });
+                          const res = await fetch(`/api/posts/${postId}/like`, { method: "POST" });
                           const data = await res.json();
                           if (!res.ok) return;
-                          setLocalPosts((prev) => prev.map((p) => p.id === post.id ? { ...p, likedByCurrentUser: Boolean(data.likedByCurrentUser), likeCount: Number(data.likeCount || 0) } : p));
+                          setLocalPosts((prev) => prev.map((p) => (p.id || p._id) === postId ? { ...p, likedByCurrentUser: Boolean(data.likedByCurrentUser), likeCount: Number(data.likeCount || 0) } : p));
                         }}
                         type="button"
                       >
@@ -141,10 +158,10 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts }) {
                         onClick={async () => {
                           const text = window.prompt("Write your comment");
                           if (!text?.trim()) return;
-                          const res = await fetch(`/api/posts/${post.id}/comments`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: text.trim(), images: [] }) });
+                          const res = await fetch(`/api/posts/${postId}/comments`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ content: text.trim(), images: [] }) });
                           const data = await res.json();
                           if (!res.ok) return;
-                          setLocalPosts((prev) => prev.map((p) => p.id === post.id ? { ...p, commentCount: Number(data?.post?.commentCount || (Number(p.commentCount || 0) + 1)) } : p));
+                          setLocalPosts((prev) => prev.map((p) => (p.id || p._id) === postId ? { ...p, commentCount: Number(data?.post?.commentCount || (Number(p.commentCount || 0) + 1)) } : p));
                         }}
                         type="button"
                       >
@@ -154,7 +171,7 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts }) {
                       <button
                         className="inline-flex items-center gap-1.5 px-2.5 h-8 rounded-full text-black/55 hover:text-black hover:bg-black/[0.05] transition"
                         onClick={async () => {
-                          const postUrl = `${window.location.origin}/dashboard?postId=${post.id}`;
+                          const postUrl = `${window.location.origin}/dashboard?postId=${postId}`;
                           await navigator.clipboard.writeText(postUrl);
                         }}
                         type="button"
@@ -167,13 +184,13 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts }) {
                           const res = await fetch('/api/users/me/bookmark', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ postId: post.id }),
+                            body: JSON.stringify({ postId }),
                           });
                           const data = await res.json();
                           if (!res.ok) return;
                           setLocalPosts((prev) =>
                             prev.map((p) =>
-                              p.id === post.id ? { ...p, savedByCurrentUser: data.saved } : p
+                              (p.id || p._id) === postId ? { ...p, savedByCurrentUser: data.saved } : p
                             )
                           );
                         }}
@@ -189,7 +206,8 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts }) {
                   <div className="absolute left-14 right-0 -bottom-px h-px bg-gradient-to-r from-black/[0.08] via-black/[0.05] to-transparent" />
                 )}
               </article>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -199,4 +217,6 @@ export function PostsModal({ open, onOpenChange, clubName, clubLogo, posts }) {
       </div>
     </div>
   );
+
+  return createPortal(modal, document.body);
 }

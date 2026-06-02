@@ -20,26 +20,6 @@ const Userprofile = () => {
   const [modalPosts, setModalPosts] = useState([]);
   const [modalTitle, setModalTitle] = useState('');
 
-  const fetchPosts = async (savedOnly = false) => {
-    try {
-      const res = await fetch('/api/posts?audience=for-you');
-      const data = await res.json();
-      let posts = data.posts || [];
-      if (savedOnly) {
-        posts = posts.filter(p => p.savedByCurrentUser);
-        setModalTitle('Saved Posts');
-      } else {
-        setModalTitle('My Posts');
-      }
-      setModalPosts(posts);
-      setPostsModalOpen(true);
-    } catch (err) {
-      console.error('Failed to fetch posts', err);
-    }
-  };
-
-  const handleOpenPosts = () => fetchPosts(false);
-  const handleOpenSaved = () => fetchPosts(true);
 
     const { data: session, status } = useSession();
     const searchParams = useSearchParams();
@@ -56,6 +36,38 @@ const Userprofile = () => {
     const [showEditProfileModal, setEditProfileModal] = useState(false)
     const [profileLoading, setProfileLoading] = useState(true);
     const [error, setError] = useState("");
+
+    const fetchPosts = async (savedOnly = false) => {
+        try {
+            const res = await fetch('/api/posts?audience=for-you');
+            const data = await res.json();
+            const normalizeEmail = (email) => (typeof email === 'string' ? email.trim().toLowerCase() : '');
+            const profileEmail = normalizeEmail(viewedProfile?.email || sessionUser?.email);
+            const profileName = (viewedProfile?.name || sessionUser?.name || '').trim().toLowerCase();
+            let posts = Array.isArray(data.posts) ? data.posts : [];
+
+            if (savedOnly) {
+                posts = posts.filter((post) => post.savedByCurrentUser);
+                setModalTitle('Saved Posts');
+            } else {
+                posts = posts.filter((post) => {
+                    const authorEmail = normalizeEmail(post.authorEmail);
+                    const authorName = (post.authorName || '').trim().toLowerCase();
+
+                    return (profileEmail && authorEmail === profileEmail) || (profileName && authorName === profileName);
+                });
+                setModalTitle('My Posts');
+            }
+
+            setModalPosts(posts);
+            setPostsModalOpen(true);
+        } catch (err) {
+            console.error('Failed to fetch posts', err);
+        }
+    };
+
+    const handleOpenPosts = () => fetchPosts(false);
+    const handleOpenSaved = () => fetchPosts(true);
     const YEAR_OFFSET = {
         "First Year": 0,
         "Second Year": 1,
@@ -300,9 +312,8 @@ const Userprofile = () => {
     <PostsModal
         open={postsModalOpen}
         onOpenChange={setPostsModalOpen}
-        clubName={viewedProfile?.name || ''}
-        clubLogo={viewedProfile?.img || ''}
         posts={modalPosts}
+        title={modalTitle}
     />
 )}
 
