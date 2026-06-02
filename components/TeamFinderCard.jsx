@@ -505,28 +505,26 @@ function RequestModal({ target, open, onClose, message, setMessage, sending, sen
 
         {/* Footer */}
         {!sent && (
-          <div className="flex items-center justify-end gap-2 px-7 py-4 shrink-0">
+          <div className="mt-4 flex items-center justify-end gap-1.5 border-t border-black/5 bg-black/[0.02] px-5 py-3">
             <button
               onClick={onClose}
               disabled={sending}
-              className="rounded-xl h-10 px-4 text-[13px] text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 transition-colors disabled:opacity-40"
+              className="w-full py-2 bg-[#eceef1] text-black rounded-xl font-medium hover:bg-gray-200 active:scale-[0.98] transition-all duration-150"
             >
               Cancel
             </button>
             <button
               onClick={onSend}
               disabled={sending}
-              className="group relative inline-flex items-center justify-center rounded-xl h-10 px-5 text-[13px] text-white min-w-[140px] bg-gradient-to-b from-neutral-800 to-neutral-950 shadow-[0_1px_0_rgba(255,255,255,0.15)_inset,0_8px_20px_-8px_rgba(0,0,0,0.5)] hover:from-neutral-700 hover:to-neutral-900 active:scale-[0.98] transition-all disabled:opacity-70 disabled:active:scale-100"
+              className="w-full py-2 bg-black text-white rounded-xl font-medium hover:bg-gray-800 active:scale-[0.98] transition-all duration-150"
             >
               {sending ? (
-                <>
+                <div className="flex items-center justify-center gap-1">
                   <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-                  Sending…
-                </>
+                </div>
               ) : (
                 <>
                   Send request
-                  <Send className="h-3.5 w-3.5 ml-1.5 transition-transform group-hover:translate-x-0.5" />
                 </>
               )}
             </button>
@@ -586,7 +584,7 @@ function SuccessBody({ onClose }) {
 
       <button
         onClick={onClose}
-        className="w-full h-10 rounded-xl bg-gradient-to-b from-neutral-800 to-neutral-950 text-white text-[13px] shadow-[0_1px_0_rgba(255,255,255,0.15)_inset,0_8px_20px_-8px_rgba(0,0,0,0.5)] hover:from-neutral-700 hover:to-neutral-900 active:scale-[0.98] transition-all"
+        className="w-full py-2 bg-black text-white rounded-xl font-medium hover:bg-gray-800 active:scale-[0.98] transition-all duration-150"
       >
         Done
       </button>

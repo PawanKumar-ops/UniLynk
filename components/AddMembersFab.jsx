@@ -7,7 +7,6 @@ import {
     FileSpreadsheet,
     Mail,
     Plus,
-    Sparkles,
     Upload,
     X,
 } from "lucide-react";
