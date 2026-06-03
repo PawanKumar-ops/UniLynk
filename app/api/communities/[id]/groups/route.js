@@ -1,32 +1,77 @@
-// app/api/communities/[id]/groups/route.js  (save as .js in your project)
+import mongoose from "mongoose";
+import { getServerSession } from "next-auth";
 import { NextResponse } from "next/server";
-import dbConnect from "@/lib/dbConnect";
+import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { connectDB } from "@/lib/mongodb";
 import Community from "@/models/Community";
-import { getCurrentUserId } from "@/lib/auth";
+import User from "@/models/user";
 
-export async function POST(req, { params }) {
+function uniqueValidIds(values = []) {
+  const seen = new Set();
+  return values
+    .filter(Boolean)
+    .map((value) => String(value))
+    .filter((value) => {
+      if (!mongoose.Types.ObjectId.isValid(value) || seen.has(value)) return false;
+      seen.add(value);
+      return true;
+    });
+}
+
+async function getCurrentUser() {
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.email) return null;
+  await connectDB();
+  return User.findOne({ email: session.user.email.toLowerCase().trim() });
+}
+
+export async function POST(req, context) {
   try {
-    await dbConnect();
-    const currentUserId = await getCurrentUserId();
-    const { name, description = "", image = "", memberIds = [] } = await req.json();
-
-    if (!name?.trim()) {
-      return NextResponse.json({ error: "Group name required" }, { status: 400 });
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const community = await Community.findById(params.id);
+    const { id } = await context.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return NextResponse.json({ error: "Valid community id is required" }, { status: 400 });
+    }
+
+    const { name = "", description = "", image = "", memberIds = [] } = await req.json();
+    const trimmedName = name.trim();
+
+    if (!trimmedName) {
+      return NextResponse.json({ error: "Group name is required" }, { status: 400 });
+    }
+
+    const community = await Community.findById(id);
     if (!community) {
       return NextResponse.json({ error: "Community not found" }, { status: 404 });
     }
 
-    const allMembers = Array.from(new Set([String(currentUserId), ...memberIds]));
+    const currentUserId = String(currentUser._id);
+    const communityMemberIds = uniqueValidIds(community.members);
+    const communityAdminIds = uniqueValidIds(community.admins);
+
+    if (!communityMemberIds.includes(currentUserId)) {
+      return NextResponse.json({ error: "You are not a member of this community" }, { status: 403 });
+    }
+
+    if (!communityAdminIds.includes(currentUserId)) {
+      return NextResponse.json({ error: "Only community admins can create groups" }, { status: 403 });
+    }
+
+    const requestedMemberIds = uniqueValidIds(memberIds);
+    const groupMemberIds = uniqueValidIds([currentUserId, ...requestedMemberIds]).filter((memberId) =>
+      communityMemberIds.includes(memberId)
+    );
 
     community.groups.push({
-      name: name.trim(),
-      description,
-      image,
-      members: allMembers,
-      createdBy: currentUserId,
+      name: trimmedName,
+      description: description.trim(),
+      image: image || "",
+      members: groupMemberIds,
+      createdBy: currentUser._id,
       isAnnouncement: false,
     });
 
@@ -39,17 +84,16 @@ export async function POST(req, { params }) {
       group: {
         id: String(newGroup._id),
         name: newGroup.name,
-        description: newGroup.description,
-        image: newGroup.image,
+        description: newGroup.description || "",
+        image: newGroup.image || "",
         memberCount: newGroup.members.length,
         isAnnouncement: false,
         updatedAt: newGroup.updatedAt,
+        lastMessage: "",
       },
     });
-  } catch (err) {
-    return NextResponse.json(
-      { error: err.message || "Failed to create group" },
-      { status: 500 }
-    );
+  } catch (error) {
+    console.error("COMMUNITY GROUPS POST ERROR:", error);
+    return NextResponse.json({ error: "Failed to create group" }, { status: 500 });
   }
 }

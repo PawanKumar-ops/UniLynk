@@ -1151,6 +1151,7 @@ export default function ChatPage() {
       {showNewCommunityModal && (
         <NewGroupModal
           communityName="your new community"
+          mode="community"
           availableMembers={users
             .filter((u) => u.id !== currentUserId)
             .map((u) => ({ id: u.id, name: u.name, image: u.image, email: u.email }))}

@@ -1630,3 +1630,13 @@
   font-size: 11px; color: var(--wa-text-sub);
 }
 .wa-group-members-preview h4 { margin: 0 0 6px; font-size: 13px; color: var(--wa-text-sub); }
+
+.wa-banner-error {
+  background: #fee4e2;
+  color: #b42318;
+}
+
+.wa-menu button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

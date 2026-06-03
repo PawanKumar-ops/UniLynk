@@ -7,15 +7,17 @@ import ReliableImage from "@/components/ReliableImage";
 
 export default function NewGroupModal({
   communityName,
-  availableMembers,
+  availableMembers = [],
   onClose,
   onCreate,
+  mode = "group",
 }) {
   const [step, setStep] = useState("members");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState([]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const entityLabel = mode === "community" ? "community" : "group";
   const [submitting, setSubmitting] = useState(false);
 
   const filtered = useMemo(() => {
@@ -51,11 +53,11 @@ export default function NewGroupModal({
             {step === "details" ? <ArrowLeft size={18} /> : <X size={18} />}
           </button>
           <div className="wa-modal-title">
-            <h3>{step === "members" ? "Add group members" : "New group"}</h3>
+            <h3>{step === "members" ? `Add ${entityLabel} members` : `New ${entityLabel}`}</h3>
             <p>
               {step === "members"
                 ? `${selected.length} of ${availableMembers.length} selected`
-                : `For "${communityName}"`}
+                : mode === "community" ? "Create a new community chat" : `For "${communityName}"`}
             </p>
           </div>
         </header>
@@ -125,7 +127,6 @@ export default function NewGroupModal({
             <div className="wa-modal-foot">
               <button
                 className="wa-fab-next"
-                disabled={!selected.length}
                 onClick={() => setStep("details")}
               >
                 Next →
@@ -141,11 +142,11 @@ export default function NewGroupModal({
               </div>
 
               <div className="wa-input-wrap">
-                <label>Group name</label>
+                <label>{mode === "community" ? "Community name" : "Group name"}</label>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="Enter group subject"
+                  placeholder={`Enter ${entityLabel} name`}
                   maxLength={60}
                   autoFocus
                 />
@@ -187,7 +188,7 @@ export default function NewGroupModal({
                 disabled={!name.trim() || submitting}
                 onClick={handleSubmit}
               >
-                {submitting ? "Creating..." : "Create group"}
+                {submitting ? "Creating..." : `Create ${entityLabel}`}
               </button>
             </div>
           </>
