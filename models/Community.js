@@ -3,7 +3,36 @@ import mongoose from "mongoose";
 const CommunityMessageSchema = new mongoose.Schema(
   {
     sender: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    text: { type: String, required: true, trim: true, maxlength: 4000 },
+    text: { type: String, default: "", trim: true, maxlength: 4000 },
+    messageType: {
+      type: String,
+      enum: ["text", "emoji", "gif", "document", "media", "shared_post"],
+      default: "text",
+    },
+    attachment: {
+      url: { type: String, default: "" },
+      fileName: { type: String, default: "" },
+      mimeType: { type: String, default: "" },
+      size: { type: Number, default: 0 },
+    },
+    attachments: [
+      {
+        url: { type: String, default: "" },
+        fileName: { type: String, default: "" },
+        mimeType: { type: String, default: "" },
+        size: { type: Number, default: 0 },
+      },
+    ],
+    sharedPost: {
+      id: { type: String, default: "" },
+      content: { type: String, default: "" },
+      authorName: { type: String, default: "UniLynk User" },
+      authorImage: { type: String, default: "" },
+      images: { type: [String], default: [] },
+      audience: { type: String, default: "for-you" },
+      createdAt: { type: Date, default: null },
+      url: { type: String, default: "" },
+    },
     seenBy: [
       {
         userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },

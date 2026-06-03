@@ -3,6 +3,7 @@ import { Server } from "socket.io";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/user";
 import ChatMessage from "@/models/chatMessage";
+import Community from "@/models/Community";
 
 const ALLOWED_MESSAGE_TYPES = ["text", "emoji", "gif", "document", "media", "shared_post"];
 
@@ -37,6 +38,61 @@ function normalizeSharedPost(sharedPost) {
   };
 }
 
+
+function userIdSet(values = []) {
+  return new Set(values.filter(Boolean).map((value) => String(value?._id || value)));
+}
+
+function formatCommunityReactions(reactions = []) {
+  return (reactions || []).map((reaction) => ({
+    userId: String(reaction.userId?._id || reaction.userId),
+    emoji: reaction.emoji || "",
+  }));
+}
+
+function formatCommunitySeenBy(seenBy = []) {
+  return (seenBy || []).map((seen) => ({
+    userId: String(seen.userId?._id || seen.userId),
+    seenAt: seen.seenAt,
+  }));
+}
+
+function formatCommunityMessage(message, senderUser = null, currentUserId = "") {
+  const senderId = String(message.sender?._id || message.sender);
+  const seenBy = formatCommunitySeenBy(message.seenBy);
+  const readReceipt =
+    senderId === currentUserId ? seenBy.find((seen) => seen.userId !== currentUserId)?.seenAt || null : null;
+
+  return {
+    id: String(message._id),
+    senderId,
+    senderName: senderUser?.name || senderUser?.email || "UniLynk User",
+    senderImage: senderUser?.img || "",
+    text: message.text || "",
+    messageType: message.messageType || "text",
+    attachment: message.attachment || null,
+    attachments: message.attachments || [],
+    sharedPost: message.sharedPost || null,
+    createdAt: message.createdAt,
+    deliveredAt: message.createdAt,
+    readAt: readReceipt,
+    seenBy,
+    reactions: formatCommunityReactions(message.reactions),
+  };
+}
+
+function normalizeForwardPayload(payload = {}) {
+  const messageType = ALLOWED_MESSAGE_TYPES.includes(payload.messageType) ? payload.messageType : "text";
+  const text = typeof payload.text === "string" ? payload.text.trim() : "";
+  const attachment = payload.attachment ? normalizeAttachment(payload.attachment) : null;
+  const attachments = Array.isArray(payload.attachments)
+    ? payload.attachments.filter((item) => item?.url).map(normalizeAttachment)
+    : [];
+  const sharedPost = normalizeSharedPost(payload.sharedPost);
+
+  return { messageType, text, attachment, attachments, sharedPost };
+}
+
 function formatMessage(message) {
   return {
     id: message._id.toString(),
@@ -69,6 +125,179 @@ export default function handler(req, res) {
         if (!userId) return;
         socket.data.userId = userId;
         socket.join(userId);
+      });
+
+      socket.on("join-community", async (payload, callback) => {
+        try {
+          const { communityId, userId } = payload || {};
+          if (!communityId || !userId || socket.data.userId !== userId) {
+            callback?.({ ok: false, error: "Invalid payload" });
+            return;
+          }
+          if (!mongoose.Types.ObjectId.isValid(communityId) || !mongoose.Types.ObjectId.isValid(userId)) {
+            callback?.({ ok: false, error: "Invalid ids" });
+            return;
+          }
+
+          await connectDB();
+          const community = await Community.findById(communityId).select("members groups.members").lean();
+          const isMember = (community?.members || []).some((memberId) => String(memberId) === userId);
+          if (!community || !isMember) {
+            callback?.({ ok: false, error: "Unauthorized" });
+            return;
+          }
+
+          socket.join(`community:${communityId}`);
+          (community.groups || []).forEach((group) => {
+            const groupMembers = group.members?.length ? group.members : community.members;
+            if ((groupMembers || []).some((memberId) => String(memberId) === userId)) {
+              socket.join(`community:${communityId}:group:${group._id}`);
+            }
+          });
+
+          callback?.({ ok: true });
+        } catch (error) {
+          console.error("SOCKET JOIN COMMUNITY ERROR:", error);
+          callback?.({ ok: false, error: "Failed to join community" });
+        }
+      });
+
+      socket.on("send-community-message", async (payload, callback) => {
+        try {
+          const { communityId, groupId, senderId } = payload || {};
+          if (!communityId || !groupId || !senderId || socket.data.userId !== senderId) {
+            callback?.({ ok: false, error: "Invalid payload" });
+            return;
+          }
+          if (
+            !mongoose.Types.ObjectId.isValid(communityId) ||
+            !mongoose.Types.ObjectId.isValid(groupId) ||
+            !mongoose.Types.ObjectId.isValid(senderId)
+          ) {
+            callback?.({ ok: false, error: "Invalid ids" });
+            return;
+          }
+
+          const { messageType, text, attachment, attachments, sharedPost } = normalizeForwardPayload(payload);
+          if (!text && messageType === "text") {
+            callback?.({ ok: false, error: "Message text is required" });
+            return;
+          }
+          if (messageType === "document" && !attachment?.url) {
+            callback?.({ ok: false, error: "Document URL is required" });
+            return;
+          }
+          if (messageType === "media" && !attachments.length) {
+            callback?.({ ok: false, error: "At least one media file is required" });
+            return;
+          }
+          if (messageType === "shared_post" && !sharedPost?.id) {
+            callback?.({ ok: false, error: "Shared post data is required" });
+            return;
+          }
+
+          await connectDB();
+          const [community, senderUser] = await Promise.all([
+            Community.findById(communityId),
+            User.findById(senderId).select("_id name email img"),
+          ]);
+          const group = community?.groups.id(groupId);
+          if (!community || !group || !senderUser) {
+            callback?.({ ok: false, error: "Not found" });
+            return;
+          }
+
+          const groupMembers = userIdSet(group.members?.length ? group.members : community.members);
+          if (!groupMembers.has(senderId)) {
+            callback?.({ ok: false, error: "You are not a member of this group" });
+            return;
+          }
+          if (group.isAnnouncement && !userIdSet(community.admins).has(senderId)) {
+            callback?.({ ok: false, error: "Only community admins can post announcements" });
+            return;
+          }
+
+          group.messages.push({
+            sender: senderUser._id,
+            text,
+            messageType,
+            attachment: messageType === "document" ? attachment : undefined,
+            attachments: messageType === "media" ? attachments : undefined,
+            sharedPost: messageType === "shared_post" ? sharedPost : undefined,
+            seenBy: [{ userId: senderUser._id, seenAt: new Date() }],
+            reactions: [],
+          });
+          if (group.messages.length > 200) {
+            group.messages.splice(0, group.messages.length - 200);
+          }
+          group.updatedAt = new Date();
+          community.updatedAt = new Date();
+          await community.save();
+
+          const savedMessage = group.messages[group.messages.length - 1];
+          const formattedMessage = formatCommunityMessage(savedMessage, senderUser, senderId);
+          const eventPayload = { communityId, groupId, message: formattedMessage };
+          io.to(`community:${communityId}:group:${groupId}`).emit("new-community-message", eventPayload);
+          callback?.({ ok: true, message: formattedMessage });
+        } catch (error) {
+          console.error("SOCKET SEND COMMUNITY MESSAGE ERROR:", error);
+          callback?.({ ok: false, error: "Failed to send group message" });
+        }
+      });
+
+      socket.on("toggle-community-reaction", async (payload, callback) => {
+        try {
+          const { communityId, groupId, messageId, userId, emoji } = payload || {};
+          if (!communityId || !groupId || !messageId || !userId || !emoji || socket.data.userId !== userId) {
+            callback?.({ ok: false, error: "Invalid payload" });
+            return;
+          }
+          if (
+            !mongoose.Types.ObjectId.isValid(communityId) ||
+            !mongoose.Types.ObjectId.isValid(groupId) ||
+            !mongoose.Types.ObjectId.isValid(messageId) ||
+            !mongoose.Types.ObjectId.isValid(userId)
+          ) {
+            callback?.({ ok: false, error: "Invalid ids" });
+            return;
+          }
+
+          await connectDB();
+          const community = await Community.findById(communityId);
+          const group = community?.groups.id(groupId);
+          const message = group?.messages.id(messageId);
+          if (!community || !group || !message) {
+            callback?.({ ok: false, error: "Message not found" });
+            return;
+          }
+          const groupMembers = userIdSet(group.members?.length ? group.members : community.members);
+          if (!groupMembers.has(userId)) {
+            callback?.({ ok: false, error: "Unauthorized" });
+            return;
+          }
+
+          const trimmedEmoji = String(emoji).trim();
+          const existingIndex = (message.reactions || []).findIndex(
+            (reaction) => String(reaction.userId) === userId && reaction.emoji === trimmedEmoji
+          );
+          if (existingIndex >= 0) message.reactions.splice(existingIndex, 1);
+          else message.reactions.push({ userId, emoji: trimmedEmoji });
+
+          community.updatedAt = new Date();
+          await community.save();
+
+          const eventPayload = {
+            communityId,
+            groupId,
+            messageId,
+            reactions: formatCommunityReactions(message.reactions),
+          };
+          io.to(`community:${communityId}:group:${groupId}`).emit("community-message-reactions-updated", eventPayload);
+          callback?.({ ok: true, ...eventPayload });
+        } catch (error) {
+          console.error("SOCKET TOGGLE COMMUNITY REACTION ERROR:", error);
+          callback?.({ ok: false, error: "Failed to update reaction" });
+        }
       });
 
       socket.on("send-message", async (payload, callback) => {

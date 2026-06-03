@@ -31,6 +31,47 @@ function formatSeenBy(seenBy = []) {
   }));
 }
 
+const ALLOWED_MESSAGE_TYPES = ["text", "emoji", "gif", "document", "media", "shared_post"];
+
+function normalizeAttachment(file) {
+  return {
+    url: file?.url || "",
+    fileName: file?.fileName || "",
+    mimeType: file?.mimeType || "",
+    size: file?.size || 0,
+  };
+}
+
+function normalizeSharedPost(sharedPost) {
+  if (!sharedPost || typeof sharedPost !== "object") return null;
+  const images = Array.isArray(sharedPost.images)
+    ? sharedPost.images.filter((image) => typeof image === "string" && image.trim()).slice(0, 4)
+    : [];
+  return {
+    id: typeof sharedPost.id === "string" ? sharedPost.id.trim() : "",
+    content: typeof sharedPost.content === "string" ? sharedPost.content.trim() : "",
+    authorName: sharedPost.authorName || "UniLynk User",
+    authorImage: sharedPost.authorImage || "",
+    images,
+    audience: sharedPost.audience === "clubs" ? "clubs" : "for-you",
+    createdAt: sharedPost.createdAt ? new Date(sharedPost.createdAt) : null,
+    url: typeof sharedPost.url === "string" ? sharedPost.url.trim() : "",
+  };
+}
+
+function normalizeMessagePayload(payload = {}) {
+  const messageType = ALLOWED_MESSAGE_TYPES.includes(payload.messageType) ? payload.messageType : "text";
+  return {
+    messageType,
+    text: typeof payload.text === "string" ? payload.text.trim() : "",
+    attachment: payload.attachment ? normalizeAttachment(payload.attachment) : null,
+    attachments: Array.isArray(payload.attachments)
+      ? payload.attachments.filter((item) => item?.url).map(normalizeAttachment)
+      : [],
+    sharedPost: normalizeSharedPost(payload.sharedPost),
+  };
+}
+
 function formatMessage(message, usersById = new Map(), currentUserId = "") {
   const senderId = String(message.sender?._id || message.sender);
   const sender = usersById.get(senderId) || message.sender;
@@ -44,6 +85,10 @@ function formatMessage(message, usersById = new Map(), currentUserId = "") {
     senderName: sender?.name || sender?.email || "UniLynk User",
     senderImage: sender?.img || "",
     text: message.text || "",
+    messageType: message.messageType || "text",
+    attachment: message.attachment || null,
+    attachments: message.attachments || [],
+    sharedPost: message.sharedPost || null,
     createdAt: message.createdAt,
     deliveredAt: message.createdAt,
     readAt: readReceipt,
@@ -134,13 +179,29 @@ export async function POST(req, context) {
       return NextResponse.json({ error: "Only community admins can post announcements" }, { status: 403 });
     }
 
-    const { text = "" } = await req.json();
-    const trimmedText = text.trim();
-    if (!trimmedText) {
+    const payload = normalizeMessagePayload(await req.json());
+    if (!payload.text && payload.messageType === "text") {
       return NextResponse.json({ error: "Message text is required" }, { status: 400 });
     }
+    if (payload.messageType === "document" && !payload.attachment?.url) {
+      return NextResponse.json({ error: "Document URL is required" }, { status: 400 });
+    }
+    if (payload.messageType === "media" && !payload.attachments.length) {
+      return NextResponse.json({ error: "At least one media file is required" }, { status: 400 });
+    }
+    if (payload.messageType === "shared_post" && !payload.sharedPost?.id) {
+      return NextResponse.json({ error: "Shared post data is required" }, { status: 400 });
+    }
 
-    group.messages.push({ sender: currentUser._id, text: trimmedText, seenBy: [{ userId: currentUser._id, seenAt: new Date() }] });
+    group.messages.push({
+      sender: currentUser._id,
+      text: payload.text,
+      messageType: payload.messageType,
+      attachment: payload.messageType === "document" ? payload.attachment : undefined,
+      attachments: payload.messageType === "media" ? payload.attachments : undefined,
+      sharedPost: payload.messageType === "shared_post" ? payload.sharedPost : undefined,
+      seenBy: [{ userId: currentUser._id, seenAt: new Date() }],
+    });
     if (group.messages.length > 200) {
       group.messages.splice(0, group.messages.length - 200);
     }

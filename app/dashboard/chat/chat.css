@@ -2036,3 +2036,14 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+.chat-forward-user-item span {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.chat-forward-user-item small {
+  color: #64748b;
+  font-size: 11px;
+}

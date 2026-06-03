@@ -14,6 +14,7 @@ import {
     Send,
     SmilePlus,
     Trash2,
+    Undo2,
     Users,
 } from "lucide-react";
 import ReliableImage from "@/components/ReliableImage";
@@ -27,7 +28,7 @@ function firstName(name = "") {
     return name.trim().split(/\s+/)[0] || "Member";
 }
 
-export default function CommunityPanel({ community, currentUserId, onBack, onGroupCreated }) {
+export default function CommunityPanel({ community, currentUserId, socket, onBack, onGroupCreated, onForwardMessage }) {
     const groups = Array.isArray(community?.groups) ? community.groups : [];
     const members = Array.isArray(community?.members) ? community.members : [];
     const [activeGroupId, setActiveGroupId] = useState(() => getDefaultGroupId(groups));
@@ -74,6 +75,39 @@ export default function CommunityPanel({ community, currentUserId, onBack, onGro
     }, [activeGroupId, activeMessages.length]);
 
     useEffect(() => {
+        if (!socket || !community?.id || !currentUserId) return;
+
+        socket.emit("join-community", { communityId: community.id, userId: currentUserId });
+
+        function handleIncomingCommunityMessage({ communityId, groupId, message }) {
+            if (communityId !== community.id || !groupId || !message?.id) return;
+            setMessagesByGroup((prev) => {
+                const groupMessages = prev[groupId] || [];
+                if (groupMessages.some((item) => item.id === message.id)) return prev;
+                return { ...prev, [groupId]: [...groupMessages, message] };
+            });
+        }
+
+        function handleCommunityReactions({ communityId, groupId, messageId, reactions }) {
+            if (communityId !== community.id || !groupId || !messageId) return;
+            setMessagesByGroup((prev) => ({
+                ...prev,
+                [groupId]: (prev[groupId] || []).map((message) =>
+                    message.id === messageId ? { ...message, reactions: reactions || [] } : message
+                ),
+            }));
+        }
+
+        socket.on("new-community-message", handleIncomingCommunityMessage);
+        socket.on("community-message-reactions-updated", handleCommunityReactions);
+
+        return () => {
+            socket.off("new-community-message", handleIncomingCommunityMessage);
+            socket.off("community-message-reactions-updated", handleCommunityReactions);
+        };
+    }, [socket, community?.id, currentUserId]);
+
+    useEffect(() => {
         if (!community?.id || !activeGroupId || messagesByGroup[activeGroupId]) return;
 
         let isMounted = true;
@@ -109,21 +143,34 @@ export default function CommunityPanel({ community, currentUserId, onBack, onGro
 
         try {
             setError("");
-            const response = await fetch(
-                `/api/communities/${community.id}/groups/${activeGroupId}/messages`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ text: trimmedDraft }),
-                }
-            );
-            const data = await response.json();
-            if (!response.ok || !data?.ok) throw new Error(data.error || "Failed to send message");
+            let data;
+            if (socket?.connected) {
+                data = await new Promise((resolve) => {
+                    socket.emit(
+                        "send-community-message",
+                        { communityId: community.id, groupId: activeGroupId, senderId: currentUserId, text: trimmedDraft },
+                        resolve
+                    );
+                });
+            } else {
+                const response = await fetch(
+                    `/api/communities/${community.id}/groups/${activeGroupId}/messages`,
+                    {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ text: trimmedDraft }),
+                    }
+                );
+                data = await response.json();
+                if (!response.ok) throw new Error(data.error || "Failed to send message");
+            }
+            if (!data?.ok) throw new Error(data?.error || "Failed to send message");
 
-            setMessagesByGroup((prev) => ({
-                ...prev,
-                [activeGroupId]: [...(prev[activeGroupId] || []), data.message],
-            }));
+            setMessagesByGroup((prev) => {
+                const groupMessages = prev[activeGroupId] || [];
+                if (groupMessages.some((message) => message.id === data.message.id)) return prev;
+                return { ...prev, [activeGroupId]: [...groupMessages, data.message] };
+            });
             setDraft("");
         } catch (err) {
             setError(err.message || "Failed to send message");
@@ -148,10 +195,10 @@ export default function CommunityPanel({ community, currentUserId, onBack, onGro
         return "sent";
     }
 
-    function updateMessage(messageId, updater) {
+    function updateMessage(messageId, updater, groupId = activeGroupId) {
         setMessagesByGroup((prev) => ({
             ...prev,
-            [activeGroupId]: (prev[activeGroupId] || []).map((message) =>
+            [groupId]: (prev[groupId] || []).map((message) =>
                 message.id === messageId ? updater(message) : message
             ),
         }));
@@ -161,14 +208,26 @@ export default function CommunityPanel({ community, currentUserId, onBack, onGro
         if (!community?.id || !activeGroupId || !messageId || !emoji) return;
         try {
             setError("");
-            const response = await fetch(`/api/communities/${community.id}/groups/${activeGroupId}/messages`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "toggle-reaction", messageId, emoji }),
-            });
-            const data = await response.json();
-            if (!response.ok || !data?.ok) throw new Error(data.error || "Failed to react to message");
-            updateMessage(messageId, (message) => ({ ...message, reactions: data.reactions || [] }));
+            let data;
+            if (socket?.connected) {
+                data = await new Promise((resolve) => {
+                    socket.emit(
+                        "toggle-community-reaction",
+                        { communityId: community.id, groupId: activeGroupId, messageId, userId: currentUserId, emoji },
+                        resolve
+                    );
+                });
+            } else {
+                const response = await fetch(`/api/communities/${community.id}/groups/${activeGroupId}/messages`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "toggle-reaction", messageId, emoji }),
+                });
+                data = await response.json();
+                if (!response.ok) throw new Error(data.error || "Failed to react to message");
+            }
+            if (!data?.ok) throw new Error(data?.error || "Failed to react to message");
+            updateMessage(messageId, (message) => ({ ...message, reactions: data.reactions || [] }), data.groupId || activeGroupId);
             setActiveReactionPickerFor("");
         } catch (err) {
             setError(err.message || "Failed to react to message");
@@ -214,6 +273,62 @@ export default function CommunityPanel({ community, currentUserId, onBack, onGro
         } catch (err) {
             setError(err.message || "Failed to create group");
         }
+    }
+
+    function renderMessageContent(message) {
+        if (message.messageType === "gif") {
+            return <img src={message.text} alt="GIF" className="chat-gif" />;
+        }
+
+        if (message.messageType === "document" && message.attachment?.url) {
+            return (
+                <a href={message.attachment.url} target="_blank" rel="noreferrer" className="chat-document">
+                    <span className="chat-document-file-icon">DOC</span>
+                    <span>
+                        <strong>{message.attachment.fileName || message.text || "Document"}</strong>
+                    </span>
+                </a>
+            );
+        }
+
+        if (message.messageType === "media" && Array.isArray(message.attachments)) {
+            return (
+                <div className="chat-media-grid">
+                    {message.attachments.map((media, index) => {
+                        const isVideo = media.mimeType?.startsWith("video/");
+                        return isVideo ? (
+                            <video key={`${message.id}-media-${index}`} src={media.url} className="chat-media-video" controls />
+                        ) : (
+                            <img
+                                key={`${message.id}-media-${index}`}
+                                src={media.url}
+                                className="chat-media-image"
+                                alt={media.fileName || `Media ${index + 1}`}
+                            />
+                        );
+                    })}
+                    {message.text ? <p className="chat-text-message">{message.text}</p> : null}
+                </div>
+            );
+        }
+
+        if (message.messageType === "shared_post" && message.sharedPost?.id) {
+            return (
+                <div className="chat-shared-post-wrapper">
+                    <div className="chat-shared-post-label">Shared post</div>
+                    <a href={message.sharedPost.url || `/dashboard?post=${message.sharedPost.id}`} className="chat-shared-post-card">
+                        <div className="chat-shared-post-head">
+                            <div className="chat-shared-post-author-block">
+                                <strong>{message.sharedPost.authorName || "UniLynk User"}</strong>
+                            </div>
+                        </div>
+                        {message.sharedPost.content ? <p className="chat-shared-post-content">{message.sharedPost.content}</p> : null}
+                    </a>
+                </div>
+            );
+        }
+
+        return <p>{message.text}</p>;
     }
 
     return (
@@ -393,6 +508,22 @@ export default function CommunityPanel({ community, currentUserId, onBack, onGro
                                                         <button
                                                             type="button"
                                                             className="chat-bubble-action-btn"
+                                                            onClick={() => {
+                                                                setActiveReactionPickerFor("");
+                                                                onForwardMessage?.({
+                                                                    ...message,
+                                                                    sender: message.senderId,
+                                                                    communityId: community.id,
+                                                                    groupId: activeGroupId,
+                                                                });
+                                                            }}
+                                                            aria-label="Forward message"
+                                                        >
+                                                            <Undo2 size={14} />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="chat-bubble-action-btn"
                                                             onClick={() =>
                                                                 handleDeleteMessage(
                                                                     message.id,
@@ -419,7 +550,7 @@ export default function CommunityPanel({ community, currentUserId, onBack, onGro
                                                         ) : null}
                                                     </div>
                                                     {!own && <span className="wa-bubble-author">{message.senderName}</span>}
-                                                    <p>{message.text}</p>
+                                                    {renderMessageContent(message)}
                                                 </div>
                                                 <div className={`wa-bubble-footer chat-message-footer ${own ? "own chat-message-footer-own" : ""}`}>
                                                     {!own && (
