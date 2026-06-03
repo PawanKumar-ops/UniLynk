@@ -1,32 +1,41 @@
-// models/Community.js  (save as .js in your project)
 import mongoose from "mongoose";
+
+const CommunityMessageSchema = new mongoose.Schema(
+  {
+    sender: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+    text: { type: String, required: true, trim: true, maxlength: 4000 },
+  },
+  { timestamps: true }
+);
 
 const GroupSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true, trim: true },
-    description: { type: String, default: "" },
+    name: { type: String, required: true, trim: true, maxlength: 80 },
+    description: { type: String, default: "", trim: true, maxlength: 500 },
     image: { type: String, default: "" },
     members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     isAnnouncement: { type: Boolean, default: false },
+    messages: { type: [CommunityMessageSchema], default: [] },
   },
   { timestamps: true }
 );
 
 const CommunitySchema = new mongoose.Schema(
   {
-    name: { type: String, required: true, trim: true },
-    description: { type: String, default: "" },
+    name: { type: String, required: true, trim: true, maxlength: 120 },
+    description: { type: String, default: "", trim: true, maxlength: 1000 },
     image: { type: String, default: "" },
-    clubId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    clubId: { type: mongoose.Schema.Types.ObjectId, ref: "Club" },
     admins: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
-    groups: [GroupSchema],
+    groups: { type: [GroupSchema], default: [] },
   },
   { timestamps: true }
 );
 
 CommunitySchema.index({ name: 1 });
+CommunitySchema.index({ clubId: 1 });
+CommunitySchema.index({ members: 1 });
 
-export default mongoose.models.Community ||
-  mongoose.model("Community", CommunitySchema);
+export default mongoose.models.Community || mongoose.model("Community", CommunitySchema);

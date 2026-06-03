@@ -1,4 +1,3 @@
-// components/CommunityPanel.jsx  (save as .jsx in your project)
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -16,66 +15,130 @@ import {
 import ReliableImage from "@/components/ReliableImage";
 import NewGroupModal from "./NewGroupModal";
 
-export default function CommunityPanel({
-  community,
-  currentUserId,
-  onBack,
-  onGroupCreated,
-}) {
-  const [activeGroupId, setActiveGroupId] = useState(
-    community.groups.find((g) => g.isAnnouncement)?.id || community.groups[0]?.id || ""
-  );
+function getDefaultGroupId(groups = []) {
+  return groups.find((group) => group.isAnnouncement)?.id || groups[0]?.id || "";
+}
+
+function firstName(name = "") {
+  return name.trim().split(/\s+/)[0] || "Member";
+}
+
+export default function CommunityPanel({ community, currentUserId, onBack, onGroupCreated }) {
+  const groups = Array.isArray(community?.groups) ? community.groups : [];
+  const members = Array.isArray(community?.members) ? community.members : [];
+  const [activeGroupId, setActiveGroupId] = useState(() => getDefaultGroupId(groups));
   const [menuOpen, setMenuOpen] = useState(false);
   const [showNewGroupModal, setShowNewGroupModal] = useState(false);
-  const [messages, setMessages] = useState({});
+  const [messagesByGroup, setMessagesByGroup] = useState({});
+  const [loadingMessages, setLoadingMessages] = useState(false);
+  const [error, setError] = useState("");
   const [draft, setDraft] = useState("");
   const menuRef = useRef(null);
+  const scrollRef = useRef(null);
 
   const activeGroup = useMemo(
-    () => community.groups.find((g) => g.id === activeGroupId),
-    [community.groups, activeGroupId]
+    () => groups.find((group) => group.id === activeGroupId) || null,
+    [groups, activeGroupId]
   );
+  const activeMessages = activeGroupId ? messagesByGroup[activeGroupId] || [] : [];
+  const canPostInActiveGroup = !!activeGroup && (!activeGroup.isAnnouncement || community.isAdmin);
 
   useEffect(() => {
-    function onClick(e) {
-      if (!menuRef.current?.contains(e.target)) setMenuOpen(false);
+    const fallbackGroupId = getDefaultGroupId(groups);
+    if (!activeGroupId || !groups.some((group) => group.id === activeGroupId)) {
+      setActiveGroupId(fallbackGroupId);
     }
+  }, [groups, activeGroupId]);
+
+  useEffect(() => {
+    function onClick(event) {
+      if (!menuRef.current?.contains(event.target)) setMenuOpen(false);
+    }
+
     document.addEventListener("mousedown", onClick);
     return () => document.removeEventListener("mousedown", onClick);
   }, []);
 
-  function sendInGroup(e) {
-    e.preventDefault();
-    if (!draft.trim() || !activeGroupId) return;
-    const me = community.members.find((m) => m.id === currentUserId);
-    setMessages((prev) => ({
-      ...prev,
-      [activeGroupId]: [
-        ...(prev[activeGroupId] || []),
+  useEffect(() => {
+    if (!scrollRef.current) return;
+    scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+  }, [activeGroupId, activeMessages.length]);
+
+  useEffect(() => {
+    if (!community?.id || !activeGroupId || messagesByGroup[activeGroupId]) return;
+
+    let isMounted = true;
+    async function loadGroupMessages() {
+      try {
+        setLoadingMessages(true);
+        setError("");
+        const response = await fetch(
+          `/api/communities/${community.id}/groups/${activeGroupId}/messages`,
+          { cache: "no-store" }
+        );
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Failed to load messages");
+        if (!isMounted) return;
+        setMessagesByGroup((prev) => ({ ...prev, [activeGroupId]: data.messages || [] }));
+      } catch (err) {
+        if (isMounted) setError(err.message || "Failed to load messages");
+      } finally {
+        if (isMounted) setLoadingMessages(false);
+      }
+    }
+
+    loadGroupMessages();
+    return () => {
+      isMounted = false;
+    };
+  }, [community?.id, activeGroupId, messagesByGroup]);
+
+  async function sendInGroup(event) {
+    event.preventDefault();
+    const trimmedDraft = draft.trim();
+    if (!trimmedDraft || !activeGroupId || !canPostInActiveGroup) return;
+
+    try {
+      setError("");
+      const response = await fetch(
+        `/api/communities/${community.id}/groups/${activeGroupId}/messages`,
         {
-          id: `${Date.now()}`,
-          senderId: currentUserId,
-          senderName: me?.name || "You",
-          text: draft.trim(),
-          createdAt: Date.now(),
-        },
-      ],
-    }));
-    setDraft("");
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: trimmedDraft }),
+        }
+      );
+      const data = await response.json();
+      if (!response.ok || !data?.ok) throw new Error(data.error || "Failed to send message");
+
+      setMessagesByGroup((prev) => ({
+        ...prev,
+        [activeGroupId]: [...(prev[activeGroupId] || []), data.message],
+      }));
+      setDraft("");
+    } catch (err) {
+      setError(err.message || "Failed to send message");
+    }
   }
 
   async function handleCreateGroup({ name, description, memberIds }) {
-    const res = await fetch(`/api/communities/${community.id}/groups`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, description, memberIds }),
-    });
-    const data = await res.json();
-    if (data?.ok && data.group) {
+    try {
+      setError("");
+      const response = await fetch(`/api/communities/${community.id}/groups`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, description, memberIds }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data?.ok) throw new Error(data.error || "Failed to create group");
+
       onGroupCreated?.(data.group);
+      setMessagesByGroup((prev) => ({ ...prev, [data.group.id]: [] }));
       setActiveGroupId(data.group.id);
+      setShowNewGroupModal(false);
+    } catch (err) {
+      setError(err.message || "Failed to create group");
     }
-    setShowNewGroupModal(false);
   }
 
   return (
@@ -90,16 +153,13 @@ export default function CommunityPanel({
             <p>{community.memberCount} members</p>
           </div>
           <div className="wa-menu-wrap" ref={menuRef}>
-            <button
-              className="wa-icon-btn"
-              onClick={() => setMenuOpen((p) => !p)}
-              aria-label="Community menu"
-            >
+            <button className="wa-icon-btn" onClick={() => setMenuOpen((prev) => !prev)} aria-label="Community menu">
               <MoreVertical size={18} />
             </button>
             {menuOpen && (
               <div className="wa-menu">
                 <button
+                  disabled={!community.isAdmin}
                   onClick={() => {
                     setMenuOpen(false);
                     setShowNewGroupModal(true);
@@ -114,9 +174,6 @@ export default function CommunityPanel({
                   <Bell size={14} /> Notifications
                 </button>
                 <button onClick={() => setMenuOpen(false)}>Community info</button>
-                <button onClick={() => setMenuOpen(false)} className="wa-menu-danger">
-                  Exit community
-                </button>
               </div>
             )}
           </div>
@@ -125,13 +182,7 @@ export default function CommunityPanel({
         <div className="wa-community-card">
           <div className="wa-community-card-avatar">
             {community.image ? (
-              <ReliableImage
-                src={community.image}
-                fallbackSrc="/Profilepic.png"
-                alt={community.name}
-                width={56}
-                height={56}
-              />
+              <ReliableImage src={community.image} fallbackSrc="/Profilepic.png" alt={community.name} width={56} height={56} />
             ) : (
               (community.name || "C")[0]?.toUpperCase()
             )}
@@ -145,31 +196,30 @@ export default function CommunityPanel({
         <div className="wa-rail-section">
           <div className="wa-rail-section-head">
             <span>Groups</span>
-            <button
-              className="wa-link-btn"
-              onClick={() => setShowNewGroupModal(true)}
-              title="New group"
-            >
-              <Plus size={14} /> New
-            </button>
+            {community.isAdmin && (
+              <button className="wa-link-btn" onClick={() => setShowNewGroupModal(true)} title="New group">
+                <Plus size={14} /> New
+              </button>
+            )}
           </div>
 
           <div className="wa-group-list">
-            {community.groups.map((g) => (
+            {groups.map((group) => (
               <button
-                key={g.id}
-                onClick={() => setActiveGroupId(g.id)}
-                className={`wa-group-row ${g.id === activeGroupId ? "active" : ""}`}
+                key={group.id}
+                onClick={() => setActiveGroupId(group.id)}
+                className={`wa-group-row ${group.id === activeGroupId ? "active" : ""}`}
               >
-                <div className={`wa-group-icon ${g.isAnnouncement ? "wa-group-icon-mega" : ""}`}>
-                  {g.isAnnouncement ? <Megaphone size={18} /> : <Hash size={18} />}
+                <div className={`wa-group-icon ${group.isAnnouncement ? "wa-group-icon-mega" : ""}`}>
+                  {group.isAnnouncement ? <Megaphone size={18} /> : <Hash size={18} />}
                 </div>
                 <div className="wa-group-info">
-                  <strong>{g.name}</strong>
-                  <span>{g.memberCount} members</span>
+                  <strong>{group.name}</strong>
+                  <span>{group.lastMessage || `${group.memberCount} members`}</span>
                 </div>
               </button>
             ))}
+            {!groups.length && <div className="wa-empty">No groups yet</div>}
           </div>
         </div>
 
@@ -178,22 +228,16 @@ export default function CommunityPanel({
             <span>Members · {community.memberCount}</span>
           </div>
           <div className="wa-member-strip">
-            {community.members.slice(0, 6).map((m) => (
-              <div className="wa-member-strip-item" key={m.id}>
+            {members.slice(0, 6).map((member) => (
+              <div className="wa-member-strip-item" key={member.id}>
                 <div className="wa-avatar wa-avatar-sm">
-                  {m.image ? (
-                    <ReliableImage
-                      src={m.image}
-                      fallbackSrc="/Profilepic.png"
-                      alt={m.name}
-                      width={32}
-                      height={32}
-                    />
+                  {member.image ? (
+                    <ReliableImage src={member.image} fallbackSrc="/Profilepic.png" alt={member.name} width={32} height={32} />
                   ) : (
-                    (m.name || "?")[0]
+                    (member.name || "?")[0]
                   )}
                 </div>
-                <small>{m.name.split(" ")[0]}</small>
+                <small>{firstName(member.name)}</small>
               </div>
             ))}
           </div>
@@ -222,13 +266,18 @@ export default function CommunityPanel({
               </button>
             </header>
 
-            <div className="wa-chat-scroll">
+            <div className="wa-chat-scroll" ref={scrollRef}>
               {activeGroup.isAnnouncement && (
                 <div className="wa-banner">
                   <Megaphone size={14} /> Only admins can send messages in Announcements.
                 </div>
               )}
-              {(messages[activeGroup.id] || []).length === 0 ? (
+              {error && <div className="wa-banner wa-banner-error">{error}</div>}
+              {loadingMessages ? (
+                <div className="wa-empty-state">
+                  <h3>Loading messages…</h3>
+                </div>
+              ) : activeMessages.length === 0 ? (
                 <div className="wa-empty-state">
                   <div className="wa-empty-icon">
                     {activeGroup.isAnnouncement ? <Megaphone size={28} /> : <Hash size={28} />}
@@ -237,15 +286,15 @@ export default function CommunityPanel({
                   <p>This is the start of the conversation. Say hi 👋</p>
                 </div>
               ) : (
-                (messages[activeGroup.id] || []).map((msg) => {
-                  const own = msg.senderId === currentUserId;
+                activeMessages.map((message) => {
+                  const own = message.senderId === currentUserId;
                   return (
-                    <div key={msg.id} className={`wa-bubble-wrap ${own ? "own" : ""}`}>
+                    <div key={message.id} className={`wa-bubble-wrap ${own ? "own" : ""}`}>
                       <div className={`wa-bubble ${own ? "own" : ""}`}>
-                        {!own && <span className="wa-bubble-author">{msg.senderName}</span>}
-                        <p>{msg.text}</p>
+                        {!own && <span className="wa-bubble-author">{message.senderName}</span>}
+                        <p>{message.text}</p>
                         <small>
-                          {new Date(msg.createdAt).toLocaleTimeString([], {
+                          {new Date(message.createdAt).toLocaleTimeString([], {
                             hour: "numeric",
                             minute: "2-digit",
                           })}
@@ -260,15 +309,11 @@ export default function CommunityPanel({
             <form className="wa-composer" onSubmit={sendInGroup}>
               <input
                 value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                placeholder={
-                  activeGroup.isAnnouncement && !community.isAdmin
-                    ? "Only admins can send messages"
-                    : `Message ${activeGroup.name}`
-                }
-                disabled={activeGroup.isAnnouncement && !community.isAdmin}
+                onChange={(event) => setDraft(event.target.value)}
+                placeholder={canPostInActiveGroup ? `Message ${activeGroup.name}` : "Only admins can send messages"}
+                disabled={!canPostInActiveGroup}
               />
-              <button type="submit" className="wa-send-btn" disabled={!draft.trim()}>
+              <button type="submit" className="wa-send-btn" disabled={!draft.trim() || !canPostInActiveGroup}>
                 <Send size={16} />
               </button>
             </form>
@@ -284,7 +329,7 @@ export default function CommunityPanel({
       {showNewGroupModal && (
         <NewGroupModal
           communityName={community.name}
-          availableMembers={community.members.filter((m) => m.id !== currentUserId)}
+          availableMembers={members.filter((member) => member.id !== currentUserId)}
           onClose={() => setShowNewGroupModal(false)}
           onCreate={handleCreateGroup}
         />
