@@ -4,6 +4,19 @@ const CommunityMessageSchema = new mongoose.Schema(
   {
     sender: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     text: { type: String, required: true, trim: true, maxlength: 4000 },
+    seenBy: [
+      {
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+        seenAt: { type: Date, default: Date.now },
+      },
+    ],
+    reactions: [
+      {
+        userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+        emoji: { type: String, required: true, maxlength: 16 },
+      },
+    ],
+    deletedFor: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
   },
   { timestamps: true }
 );
