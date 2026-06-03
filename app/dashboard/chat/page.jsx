@@ -1,3 +1,4 @@
+// app/chat/page.jsx  (or wherever your chat page lives — save as .jsx)
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -9,38 +10,37 @@ import {
   FileText,
   Film,
   Image as ImageIcon,
+  MoreVertical,
   Paperclip,
+  Plus,
   Search,
   Smile,
   SmilePlus,
   Trash2,
   Undo2,
+  Users,
   X,
 } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
 import "./chat.css";
 import ReliableImage from "@/components/ReliableImage";
 import ChatGiphyPicker from "@/components/shared/ChatGiphyPicker";
+import CommunityPanel from "@/components/CommunityPanel";
+import NewGroupModal from "@/components/NewGroupModal";
 
 function formatChatTimestamp(dateValue) {
   if (!dateValue) return "";
-
-  return new Date(dateValue).toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  });
+  return new Date(dateValue).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 }
 
 function formatPostMetaDate(dateValue) {
   if (!dateValue) return "";
-
   return new Date(dateValue).toLocaleDateString([], {
     month: "short",
     day: "numeric",
     year: "numeric",
   });
 }
-
 
 function formatBytes(size = 0) {
   if (!size) return "0 KB";
@@ -49,7 +49,6 @@ function formatBytes(size = 0) {
   const value = size / 1024 ** index;
   return `${value.toFixed(index === 0 ? 0 : 1)} ${units[index]}`;
 }
-
 
 export default function ChatPage() {
   const [users, setUsers] = useState([]);
@@ -74,15 +73,27 @@ export default function ChatPage() {
   const [selectedForwardUserIds, setSelectedForwardUserIds] = useState([]);
   const [forwardingMessage, setForwardingMessage] = useState(false);
 
+  // ---------- Community state ----------
+  const [communities, setCommunities] = useState([]);
+  const [loadingCommunities, setLoadingCommunities] = useState(true);
+  const [activeCommunityId, setActiveCommunityId] = useState("");
+  const [chatMenuOpen, setChatMenuOpen] = useState(false);
+  const [showNewCommunityModal, setShowNewCommunityModal] = useState(false);
+  const chatMenuRef = useRef(null);
+
   const socketRef = useRef(null);
   const messageScrollRef = useRef(null);
   const documentInputRef = useRef(null);
   const mediaInputRef = useRef(null);
 
-
   const activeUser = useMemo(
     () => users.find((user) => user.id === activeUserId),
     [users, activeUserId]
+  );
+
+  const activeCommunity = useMemo(
+    () => communities.find((c) => c.id === activeCommunityId) || null,
+    [communities, activeCommunityId]
   );
 
   useEffect(() => {
@@ -92,46 +103,41 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (!activeReactionPickerFor) return;
-
     const handleOutsideReactionPickerClick = (event) => {
       const target = event.target;
       if (!(target instanceof Element)) return;
-
-      if (target.closest(".chat-reaction-picker") || target.closest(".chat-bubble-action-btn")) {
-        return;
-      }
-
+      if (target.closest(".chat-reaction-picker") || target.closest(".chat-bubble-action-btn")) return;
       setActiveReactionPickerFor("");
     };
-
     document.addEventListener("mousedown", handleOutsideReactionPickerClick);
     document.addEventListener("touchstart", handleOutsideReactionPickerClick);
-
     return () => {
       document.removeEventListener("mousedown", handleOutsideReactionPickerClick);
       document.removeEventListener("touchstart", handleOutsideReactionPickerClick);
     };
   }, [activeReactionPickerFor]);
 
+  useEffect(() => {
+    function onClick(e) {
+      if (!chatMenuRef.current?.contains(e.target)) setChatMenuOpen(false);
+    }
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
+
   function sendSocketMessage(payload) {
     if (!activeUserId || !currentUserId || !socketRef.current) {
       setError("Select a user and wait for chat connection");
       return;
     }
-
     socketRef.current.emit(
       "send-message",
-      {
-        senderId: currentUserId,
-        receiverId: activeUserId,
-        ...payload,
-      },
+      { senderId: currentUserId, receiverId: activeUserId, ...payload },
       (response) => {
         if (!response?.ok) {
           setError(response?.error || "Failed to send message");
           return;
         }
-
         if (response?.message) {
           setMessages((prev) => {
             const exists = prev.some((msg) => msg.id === response.message.id);
@@ -139,7 +145,6 @@ export default function ChatPage() {
             return [...prev, response.message];
           });
         }
-
         setError("");
       }
     );
@@ -150,18 +155,12 @@ export default function ChatPage() {
       setLoadingUsers(true);
       const response = await fetch("/api/chat/users", { cache: "no-store" });
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to load users");
-      }
-
+      if (!response.ok) throw new Error(data.error || "Failed to load users");
       setUsers(data.users || []);
       setCurrentUserId(data.currentUserId || "");
-
       if ((data.users || []).length > 0) {
         setActiveUserId((prev) => prev || data.users[0].id);
       }
-
       setError("");
     } catch (err) {
       setError(err.message);
@@ -170,20 +169,27 @@ export default function ChatPage() {
     }
   }
 
+  async function loadCommunities() {
+    try {
+      setLoadingCommunities(true);
+      const res = await fetch("/api/communities", { cache: "no-store" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to load communities");
+      setCommunities(data.communities || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingCommunities(false);
+    }
+  }
+
   async function loadMessages(userId) {
     if (!userId) return;
-
     try {
       setLoadingMessages(true);
-      const response = await fetch(`/api/chat/messages?userId=${userId}`, {
-        cache: "no-store",
-      });
+      const response = await fetch(`/api/chat/messages?userId=${userId}`, { cache: "no-store" });
       const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to load messages");
-      }
-
+      if (!response.ok) throw new Error(data.error || "Failed to load messages");
       setMessages(data.messages || []);
       setError("");
     } catch (err) {
@@ -195,19 +201,11 @@ export default function ChatPage() {
 
   async function sendMessage(event) {
     event.preventDefault();
-
     const trimmedText = messageText.trim();
-
-    if (!trimmedText && !pendingDocument && !pendingMedia.length) {
-      return;
-    }
+    if (!trimmedText && !pendingDocument && !pendingMedia.length) return;
 
     if (pendingMedia.length) {
-      sendSocketMessage({
-        text: trimmedText,
-        messageType: "media",
-        attachments: pendingMedia,
-      });
+      sendSocketMessage({ text: trimmedText, messageType: "media", attachments: pendingMedia });
       setPendingMedia([]);
       setMessageText("");
     } else {
@@ -219,17 +217,9 @@ export default function ChatPage() {
         });
         setPendingDocument(null);
       }
-
-      if (trimmedText) {
-        sendSocketMessage({
-          text: trimmedText,
-          messageType: "text",
-        });
-      }
-
+      if (trimmedText) sendSocketMessage({ text: trimmedText, messageType: "text" });
       setMessageText("");
     }
-
     setShowAttachmentFab(false);
     setShowEmojiPicker(false);
     setShowGifPicker(false);
@@ -237,19 +227,13 @@ export default function ChatPage() {
 
   function handleEmojiSelect(emojiData) {
     if (!emojiData?.emoji) return;
-
     setMessageText((prev) => `${prev}${emojiData.emoji}`);
     setShowEmojiPicker(false);
   }
 
   function handleGifSelect(mediaUrl) {
     if (!mediaUrl) return;
-
-    sendSocketMessage({
-      text: mediaUrl,
-      messageType: "gif",
-    });
-
+    sendSocketMessage({ text: mediaUrl, messageType: "gif" });
     setShowGifPicker(false);
     setShowAttachmentFab(false);
   }
@@ -257,32 +241,20 @@ export default function ChatPage() {
   async function uploadSelectedFiles(selectedFiles) {
     const formData = new FormData();
     selectedFiles.forEach((file) => formData.append("files", file));
-
-    const response = await fetch("/api/chat/upload", {
-      method: "POST",
-      body: formData,
-    });
-
+    const response = await fetch("/api/chat/upload", { method: "POST", body: formData });
     const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.error || "Failed to upload files");
-    }
-
+    if (!response.ok) throw new Error(data.error || "Failed to upload files");
     return data.files || [];
   }
 
   async function handleDocumentUpload(event) {
     const selectedFile = event.target.files?.[0];
     event.target.value = "";
-
     if (!selectedFile) return;
-
     if (!activeUserId) {
       setError("Please select an active user to send documents");
       return;
     }
-
     try {
       setUploadingDocument(true);
       setError("");
@@ -302,14 +274,11 @@ export default function ChatPage() {
   async function handleMediaUpload(event) {
     const selectedFiles = Array.from(event.target.files || []);
     event.target.value = "";
-
     if (!selectedFiles.length) return;
-
     if (!activeUserId) {
       setError("Please select an active user to send media");
       return;
     }
-
     try {
       setUploadingMedia(true);
       setError("");
@@ -328,6 +297,7 @@ export default function ChatPage() {
 
   useEffect(() => {
     loadUsers();
+    loadCommunities();
   }, []);
 
   useEffect(() => {
@@ -337,46 +307,30 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (!messages.length || !activeUserId || !currentUserId) return;
-
     const hasUnreadIncoming = messages.some(
       (msg) => msg.sender === activeUserId && msg.receiver === currentUserId && !msg.readAt
     );
-
-    if (hasUnreadIncoming) {
-      markActiveThreadAsRead();
-    }
+    if (hasUnreadIncoming) markActiveThreadAsRead();
   }, [messages, activeUserId, currentUserId]);
 
   useEffect(() => {
     if (!currentUserId) return;
-
     let isMounted = true;
 
     async function initSocket() {
       try {
         await fetch("/api/socket", { method: "GET" });
-
         if (!isMounted) return;
-
-        const socket = io({
-          path: "/api/socket_io",
-        });
-
+        const socket = io({ path: "/api/socket_io" });
         socketRef.current = socket;
 
-        socket.on("connect", () => {
-          socket.emit("register-user", currentUserId);
-        });
+        socket.on("connect", () => socket.emit("register-user", currentUserId));
 
         socket.on("new-message", (incomingMessage) => {
           const isInOpenThread =
             (incomingMessage.sender === activeUserId && incomingMessage.receiver === currentUserId) ||
             (incomingMessage.sender === currentUserId && incomingMessage.receiver === activeUserId);
-
-          if (!isInOpenThread) {
-            return;
-          }
-
+          if (!isInOpenThread) return;
           setMessages((prev) => {
             const exists = prev.some((msg) => msg.id === incomingMessage.id);
             if (exists) return prev;
@@ -386,13 +340,10 @@ export default function ChatPage() {
 
         socket.on("messages-read", ({ byUserId, peerUserId, readAt }) => {
           if (!readAt || !currentUserId || !activeUserId) return;
-
           const affectsOpenThread =
             (byUserId === currentUserId && peerUserId === activeUserId) ||
             (byUserId === activeUserId && peerUserId === currentUserId);
-
           if (!affectsOpenThread) return;
-
           setMessages((prev) =>
             prev.map((msg) => {
               const isIncoming = msg.sender === peerUserId && msg.receiver === byUserId;
@@ -411,25 +362,16 @@ export default function ChatPage() {
 
         socket.on("message-deleted", ({ messageId }) => {
           if (!messageId) return;
-
           setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
-
-          if (forwardTargetMessage?.id === messageId) {
-            closeForwardModal();
-          }
-
-          if (activeReactionPickerFor === messageId) {
-            setActiveReactionPickerFor("");
-          }
+          if (forwardTargetMessage?.id === messageId) closeForwardModal();
+          if (activeReactionPickerFor === messageId) setActiveReactionPickerFor("");
         });
-
       } catch (err) {
         setError(err.message || "Failed to connect socket");
       }
     }
 
     initSocket();
-
     return () => {
       isMounted = false;
       if (socketRef.current) {
@@ -439,18 +381,13 @@ export default function ChatPage() {
     };
   }, [currentUserId, activeUserId]);
 
-
-
   const conversations = useMemo(
     () =>
       users.map((u) => {
         const normalizedRole = (u.role || "").toLowerCase().trim();
-
         let category = "direct";
-
         if (normalizedRole === "student") category = "student";
         else if (normalizedRole === "club") category = "club";
-
         return {
           id: u.id,
           name: u.name,
@@ -460,9 +397,27 @@ export default function ChatPage() {
           time: "",
           unread: u.unreadCount || 0,
           category,
+          kind: "user",
         };
       }),
     [users]
+  );
+
+  const communityItems = useMemo(
+    () =>
+      communities.map((c) => ({
+        id: `community-${c.id}`,
+        rawId: c.id,
+        name: c.name,
+        avatar: c.name?.[0]?.toUpperCase(),
+        image: c.image || "",
+        preview: c.description || `${c.memberCount} members`,
+        time: "",
+        unread: 0,
+        category: "club",
+        kind: "community",
+      })),
+    [communities]
   );
 
   const filters = [
@@ -473,11 +428,7 @@ export default function ChatPage() {
 
   function markActiveThreadAsRead() {
     if (!socketRef.current || !currentUserId || !activeUserId) return;
-
-    socketRef.current.emit("mark-messages-read", {
-      currentUserId,
-      otherUserId: activeUserId,
-    });
+    socketRef.current.emit("mark-messages-read", { currentUserId, otherUserId: activeUserId });
   }
 
   function getMessageStatus(message) {
@@ -490,7 +441,6 @@ export default function ChatPage() {
 
   function handleToggleReaction(messageId, emoji) {
     if (!socketRef.current || !currentUserId || !messageId || !emoji) return;
-
     socketRef.current.emit(
       "toggle-reaction",
       { messageId, userId: currentUserId, emoji },
@@ -499,11 +449,8 @@ export default function ChatPage() {
           setError(response?.error || "Failed to react to message");
           return;
         }
-
         setMessages((prev) =>
-          prev.map((msg) =>
-            msg.id === messageId ? { ...msg, reactions: response.reactions || [] } : msg
-          )
+          prev.map((msg) => (msg.id === messageId ? { ...msg, reactions: response.reactions || [] } : msg))
         );
         setActiveReactionPickerFor("");
       }
@@ -519,7 +466,6 @@ export default function ChatPage() {
 
   function handleDeleteMessage(messageId, mode) {
     if (!socketRef.current || !currentUserId || !messageId) return;
-
     socketRef.current.emit(
       "delete-message",
       { messageId, userId: currentUserId, mode },
@@ -528,25 +474,16 @@ export default function ChatPage() {
           setError(response?.error || "Failed to delete message");
           return;
         }
-
         setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
         setError("");
-
-        if (forwardTargetMessage?.id === messageId) {
-          closeForwardModal();
-        }
-
-        if (activeReactionPickerFor === messageId) {
-          setActiveReactionPickerFor("");
-        }
+        if (forwardTargetMessage?.id === messageId) closeForwardModal();
+        if (activeReactionPickerFor === messageId) setActiveReactionPickerFor("");
       }
     );
   }
 
-
   function toggleForwardRecipient(userId) {
     if (!userId) return;
-
     setSelectedForwardUserIds((prev) =>
       prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
     );
@@ -560,9 +497,7 @@ export default function ChatPage() {
 
   function emitForwardMessage(payload) {
     return new Promise((resolve) => {
-      socketRef.current.emit("send-message", payload, (response) => {
-        resolve(response);
-      });
+      socketRef.current.emit("send-message", payload, (response) => resolve(response));
     });
   }
 
@@ -572,42 +507,31 @@ export default function ChatPage() {
       setError("Please select at least one user to forward this message");
       return;
     }
-
     setForwardingMessage(true);
-
     const payload = {
       senderId: currentUserId,
       text: forwardTargetMessage.text || "",
       messageType: forwardTargetMessage.messageType || "text",
     };
-
     if (forwardTargetMessage.messageType === "document" && forwardTargetMessage.attachment?.url) {
       payload.attachment = forwardTargetMessage.attachment;
     }
-
     if (forwardTargetMessage.messageType === "media" && Array.isArray(forwardTargetMessage.attachments)) {
       payload.attachments = forwardTargetMessage.attachments;
     }
-
     if (forwardTargetMessage.messageType === "shared_post" && forwardTargetMessage.sharedPost?.id) {
       payload.sharedPost = forwardTargetMessage.sharedPost;
     }
-
     const responses = await Promise.all(
       selectedForwardUserIds.map((receiverId) => emitForwardMessage({ ...payload, receiverId }))
     );
-
-    const failedResponses = responses.filter((response) => !response?.ok);
-
+    const failedResponses = responses.filter((r) => !r?.ok);
     responses.forEach((response) => {
       if (!response?.ok || !response.message) return;
-
       const isInOpenThread =
         (response.message.sender === activeUserId && response.message.receiver === currentUserId) ||
         (response.message.sender === currentUserId && response.message.receiver === activeUserId);
-
       if (!isInOpenThread) return;
-
       setMessages((prev) => {
         const exists = prev.some((msg) => msg.id === response.message.id);
         if (exists) return prev;
@@ -619,7 +543,6 @@ export default function ChatPage() {
       setForwardingMessage(false);
       return;
     }
-
     setError("");
     closeForwardModal();
   }
@@ -627,352 +550,381 @@ export default function ChatPage() {
   function groupedReactions(reactions = []) {
     const map = reactions.reduce((acc, reaction) => {
       if (!reaction?.emoji) return acc;
-      if (!acc[reaction.emoji]) {
-        acc[reaction.emoji] = 0;
-      }
+      if (!acc[reaction.emoji]) acc[reaction.emoji] = 0;
       acc[reaction.emoji] += 1;
       return acc;
     }, {});
-
     return Object.entries(map);
   }
 
+  const filteredConversations = useMemo(() => {
+    const includeCommunities = activeFilter === "all" || activeFilter === "club";
+    const base = includeCommunities ? [...communityItems, ...conversations] : conversations;
+    return base.filter((c) => {
+      const bySearch = c.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const byFilter = activeFilter === "all" || c.category === activeFilter;
+      return bySearch && byFilter;
+    });
+  }, [conversations, communityItems, searchTerm, activeFilter]);
 
-  const filteredConversations = useMemo(
-    () =>
-      conversations.filter((c) => {
-        const bySearch = c.name.toLowerCase().includes(searchTerm.toLowerCase());
-        const byFilter = activeFilter === "all" || c.category === activeFilter;
-        return bySearch && byFilter;
-      }),
-    [conversations, searchTerm, activeFilter]
-  );
+  function handleSelectChatItem(item) {
+    if (item.kind === "community") {
+      setActiveCommunityId(item.rawId);
+      setActiveUserId("");
+    } else {
+      setActiveCommunityId("");
+      setActiveUserId(item.id);
+    }
+  }
 
+  async function handleCreateCommunity({ name, description, memberIds }) {
+    const res = await fetch("/api/communities", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, description, memberIds }),
+    });
+    const data = await res.json();
+    if (data?.ok) {
+      setShowNewCommunityModal(false);
+      await loadCommunities();
+      setActiveCommunityId(data.id);
+    } else {
+      setError(data?.error || "Failed to create community");
+    }
+  }
 
+  function handleGroupCreatedInCommunity(group) {
+    setCommunities((prev) =>
+      prev.map((c) =>
+        c.id === activeCommunityId ? { ...c, groups: [...c.groups, group] } : c
+      )
+    );
+  }
 
   return (
     <div className="chat-page">
+      <main className="chat-main-panel" style={{ position: "relative" }}>
+        {activeCommunity ? (
+          <CommunityPanel
+            community={activeCommunity}
+            currentUserId={currentUserId}
+            onBack={() => setActiveCommunityId("")}
+            onGroupCreated={handleGroupCreatedInCommunity}
+          />
+        ) : (
+          <>
+            <header className="chat-main-header">
+              {activeUser ? (
+                <div className="active-user-header">
+                  <div className="active-user-avatar">
+                    <ReliableImage
+                      src={activeUser.image}
+                      fallbackSrc="/Profilepic.png"
+                      alt={activeUser.name}
+                      width={46}
+                      height={46}
+                    />
+                  </div>
+                  <div className="active-user-info">
+                    <h2>{activeUser.name}</h2>
+                    <p className="user-email">{activeUser.email}</p>
+                  </div>
+                </div>
+              ) : (
+                <h2>Select a user</h2>
+              )}
+            </header>
 
-
-      <main className="chat-main-panel">
-        <header className="chat-main-header">
-          {activeUser ? (
-            <div className="active-user-header">
-              <div className="active-user-avatar">
-                <ReliableImage
-                  src={activeUser.image}
-                  fallbackSrc="/Profilepic.png"
-                  alt={activeUser.name}
-                  width={46}
-                  height={46}
-                />
-              </div>
-
-              <div className="active-user-info">
-                <h2>{activeUser.name}</h2>
-                <p className="user-email">{activeUser.email}</p>
-              </div>
-            </div>
-          ) : (
-            <h2>Select a user</h2>
-          )}
-        </header>
-
-        <div className="chat-messages-ch" ref={messageScrollRef}>
-          {loadingMessages ? (
-            <div className="chatloadani">
-              <div className="relative w-12 h-12">
-                <div className="absolute inset-0 rounded-full border-3 border-gray-200"></div>
-                <div className="absolute inset-0 rounded-full border-3 border-black border-t-transparent animate-spin"></div>
-              </div>
-            </div>
-          ) : (
-            messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`chat-message-wrap-wrapper ${msg.sender === currentUserId ? "chat-message-wrap-wrapper-own" : ""}`}
-              >
-                <div
-                  className={`chat-message-wrap ${msg.sender === currentUserId ? "chat-message-wrap-own" : ""}`}
-                >
+            <div className="chat-messages-ch" ref={messageScrollRef}>
+              {loadingMessages ? (
+                <div className="chatloadani">
+                  <div className="relative w-12 h-12">
+                    <div className="absolute inset-0 rounded-full border-3 border-gray-200"></div>
+                    <div className="absolute inset-0 rounded-full border-3 border-black border-t-transparent animate-spin"></div>
+                  </div>
+                </div>
+              ) : (
+                messages.map((msg) => (
                   <div
-                    className={`chat-bubble ${msg.sender === currentUserId ? "chat-bubble-own" : ""} ${activeReactionPickerFor === msg.id || forwardTargetMessage?.id === msg.id ? "chat-bubble-menu-open" : ""}`}
+                    key={msg.id}
+                    className={`chat-message-wrap-wrapper ${
+                      msg.sender === currentUserId ? "chat-message-wrap-wrapper-own" : ""
+                    }`}
                   >
-                    <div className="chat-bubble-actions" onClick={(event) => event.stopPropagation()}>
-                      <button
-                        type="button"
-                        className="chat-bubble-action-btn"
-                        onClick={() => {
-                          setActiveReactionPickerFor((prev) => (prev === msg.id ? "" : msg.id));
-
-                        }}
-                        aria-label="React to message"
+                    <div
+                      className={`chat-message-wrap ${
+                        msg.sender === currentUserId ? "chat-message-wrap-own" : ""
+                      }`}
+                    >
+                      <div
+                        className={`chat-bubble ${msg.sender === currentUserId ? "chat-bubble-own" : ""} ${
+                          activeReactionPickerFor === msg.id || forwardTargetMessage?.id === msg.id
+                            ? "chat-bubble-menu-open"
+                            : ""
+                        }`}
                       >
-                        <SmilePlus size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        className="chat-bubble-action-btn"
-                        onClick={() => {
-                          setActiveReactionPickerFor("");
-                          openForwardModal(msg);
-                        }}
-                        aria-label="Forward message"
-                      >
-                        {/*================== Forward-icon============= */}
-                        <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" id="forward">
-                          <path stroke="#000" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="1.5" d="M15 10H10H7C5.89543 10 5 10.8954 5 12V18"></path>
-                          <path stroke="#000" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="1.5" d="M11 6 15 10 11 14M15 6 19 10 15 14"></path>
-                        </svg>
-                      </button>
-                      <button
-                        type="button"
-                        className="chat-bubble-action-btn"
-                        onClick={() => {
-                          setActiveReactionPickerFor("");
-                          handleDeleteMessage(
-                            msg.id,
-                            msg.sender === currentUserId ? "for-everyone" : "for-me"
-                          );
-                        }}
-                        aria-label={msg.sender === currentUserId ? "Unsend" : "Delete for me"}
-                        title={msg.sender === currentUserId ? "Unsend" : "Delete for me"}
-                      >
-                        {msg.sender === currentUserId ? <Undo2 size={14} className="undo-svg" /> : <Trash2 size={14} />}
-                      </button>
+                        <div className="chat-bubble-actions" onClick={(event) => event.stopPropagation()}>
+                          <button
+                            type="button"
+                            className="chat-bubble-action-btn"
+                            onClick={() =>
+                              setActiveReactionPickerFor((prev) => (prev === msg.id ? "" : msg.id))
+                            }
+                            aria-label="React to message"
+                          >
+                            <SmilePlus size={14} />
+                          </button>
+                          <button
+                            type="button"
+                            className="chat-bubble-action-btn"
+                            onClick={() => {
+                              setActiveReactionPickerFor("");
+                              openForwardModal(msg);
+                            }}
+                            aria-label="Forward message"
+                          >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24">
+                              <path stroke="#000" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="1.5" d="M15 10H10H7C5.89543 10 5 10.8954 5 12V18"></path>
+                              <path stroke="#000" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="1.5" d="M11 6 15 10 11 14M15 6 19 10 15 14"></path>
+                            </svg>
+                          </button>
+                          <button
+                            type="button"
+                            className="chat-bubble-action-btn"
+                            onClick={() => {
+                              setActiveReactionPickerFor("");
+                              handleDeleteMessage(
+                                msg.id,
+                                msg.sender === currentUserId ? "for-everyone" : "for-me"
+                              );
+                            }}
+                            aria-label={msg.sender === currentUserId ? "Unsend" : "Delete for me"}
+                          >
+                            {msg.sender === currentUserId ? (
+                              <Undo2 size={14} className="undo-svg" />
+                            ) : (
+                              <Trash2 size={14} />
+                            )}
+                          </button>
 
-                      {activeReactionPickerFor === msg.id ? (
-                        <div className="chat-reaction-picker" onClick={(event) => event.stopPropagation()}>
-                          {quickReactions.map((emoji) => (
-                            <button
-                              type="button"
-                              key={`${msg.id}-${emoji}`}
-                              onClick={() => handleToggleReaction(msg.id, emoji)}
-                            >
-                              {emoji}
-                            </button>
-                          ))}
-                        </div>
-                      ) : null}
-                    </div>
-
-                    {msg.messageType === "gif" ? (
-                      /\.mp4($|\?)/i.test(msg.text) ? (
-                        <video src={msg.text} autoPlay loop muted playsInline className="chat-gif" />
-                      ) : (
-                        <img src={msg.text} alt="GIF" className="chat-gif" />
-                      )
-                    ) : msg.messageType === "media" ? (
-                      <>
-                        <div
-                          className={`chat-media-grid ${(msg.attachments || []).length > 1 ? "chat-media-grid-multi" : ""
-                            }`}
-                        >
-                          {(msg.attachments || []).map((file, index) => {
-                            const isVideo = file.mimeType?.startsWith("video/");
-                            return (
-                              <a
-                                href={file.url}
-                                target="_blank"
-                                rel="noreferrer"
-                                key={`${msg.id}-media-${index}`}
-                                className="chat-media-item"
-                              >
-                                {isVideo ? (
-                                  <video src={file.url} controls className="chat-media-video" />
-                                ) : (
-                                  <img src={file.url} alt={file.fileName || `media-${index + 1}`} className="chat-media-image" />
-                                )}
-                              </a>
-                            );
-                          })}
-                        </div>
-                        {msg.text ? <p className="chat-media-caption">{msg.text}</p> : null}
-                      </>
-                    ) : msg.messageType === "document" ? (
-                      <a
-                        href={msg.attachment?.url}
-                        target="_blank"
-                        rel="noreferrer"
-                        download={msg.attachment?.fileName || "document"}
-                        className="chat-document"
-                      >
-                        <div className="chat-document-icon-wrap">
-                          <FileText size={18} />
-                        </div>
-                        <div className="chat-document-content">
-                          <strong>{msg.attachment?.fileName || msg.text || "Document"}</strong>
-                          <small>
-                            {msg.attachment?.mimeType || "Attachment"} • {formatBytes(msg.attachment?.size)}
-                          </small>
-                        </div>
-                      </a>
-                    ) : msg.messageType === "shared_post" && msg.sharedPost?.id ? (
-                      <div className="chat-shared-post-wrap">
-                        <div className="chat-shared-post-label">Shared post</div>
-                        <Link
-                          href={msg.sharedPost.url || `/dashboard?post=${msg.sharedPost.id}`}
-                          className="chat-shared-post-card"
-                        >
-                          <div className="chat-shared-post-head">
-                            <div className="chat-shared-post-avatar">
-                              <ReliableImage
-                                src={msg.sharedPost.authorImage}
-                                fallbackSrc="/Profilepic.png"
-                                alt={msg.sharedPost.authorName || "Post author"}
-                                width={40}
-                                height={40}
-                              />
-                            </div>
-                            <div className="chat-shared-post-author-block">
-                              <strong>{msg.sharedPost.authorName || "UniLynk User"}</strong>
-                              <span>{formatPostMetaDate(msg.sharedPost.createdAt)}</span>
-                            </div>
-                          </div>
-
-                          {msg.sharedPost.content ? (
-                            <p className="chat-shared-post-content">{msg.sharedPost.content}</p>
-                          ) : null}
-
-                          {!!msg.sharedPost.images?.length && (
-                            <div
-                              className={`chat-shared-post-media ${
-                                msg.sharedPost.images.length > 1 ? "chat-shared-post-media-grid" : ""
-                              }`}
-                            >
-                              {msg.sharedPost.images.slice(0, 4).map((imageUrl, index) => (
-                                <img
-                                  key={`${msg.id}-post-image-${index}`}
-                                  src={imageUrl}
-                                  alt={`Shared post media ${index + 1}`}
-                                  className="chat-shared-post-image"
-                                />
+                          {activeReactionPickerFor === msg.id ? (
+                            <div className="chat-reaction-picker" onClick={(event) => event.stopPropagation()}>
+                              {quickReactions.map((emoji) => (
+                                <button
+                                  type="button"
+                                  key={`${msg.id}-${emoji}`}
+                                  onClick={() => handleToggleReaction(msg.id, emoji)}
+                                >
+                                  {emoji}
+                                </button>
                               ))}
                             </div>
-                          )}
-                        </Link>
-                      </div>
-                    ) : (
-                      <p className="chat-text-message">{msg.text}</p>
-                    )}
+                          ) : null}
+                        </div>
 
-                    <span className="chat-meta-row">
-                      {formatChatTimestamp(msg.createdAt)}
-                      {msg.sender === currentUserId ? (
-                        <em className={`chat-status chat-status-${getMessageStatus(msg)}`}>
-                          {getMessageStatus(msg) === "sent" ? <Check size={13} /> : <CheckCheck size={13} />}
-                        </em>
-                      ) : null}
-                    </span>
-                  </div>
-                  {!!(msg.reactions || []).length && (
-                    <div className="chat-reactions-row">
-                      {groupedReactions(msg.reactions).map(([emoji, count]) => (
-                        <span key={`${msg.id}-${emoji}`} className="chat-reaction-chip">
-                          {emoji} {count}
+                        {msg.messageType === "gif" ? (
+                          /\.mp4($|\?)/i.test(msg.text) ? (
+                            <video src={msg.text} autoPlay loop muted playsInline className="chat-gif" />
+                          ) : (
+                            <img src={msg.text} alt="GIF" className="chat-gif" />
+                          )
+                        ) : msg.messageType === "media" ? (
+                          <>
+                            <div
+                              className={`chat-media-grid ${
+                                (msg.attachments || []).length > 1 ? "chat-media-grid-multi" : ""
+                              }`}
+                            >
+                              {(msg.attachments || []).map((file, index) => {
+                                const isVideo = file.mimeType?.startsWith("video/");
+                                return (
+                                  <a
+                                    href={file.url}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    key={`${msg.id}-media-${index}`}
+                                    className="chat-media-item"
+                                  >
+                                    {isVideo ? (
+                                      <video src={file.url} controls className="chat-media-video" />
+                                    ) : (
+                                      <img
+                                        src={file.url}
+                                        alt={file.fileName || `media-${index + 1}`}
+                                        className="chat-media-image"
+                                      />
+                                    )}
+                                  </a>
+                                );
+                              })}
+                            </div>
+                            {msg.text ? <p className="chat-media-caption">{msg.text}</p> : null}
+                          </>
+                        ) : msg.messageType === "document" ? (
+                          <a
+                            href={msg.attachment?.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            download={msg.attachment?.fileName || "document"}
+                            className="chat-document"
+                          >
+                            <div className="chat-document-icon-wrap">
+                              <FileText size={18} />
+                            </div>
+                            <div className="chat-document-content">
+                              <strong>{msg.attachment?.fileName || msg.text || "Document"}</strong>
+                              <small>
+                                {msg.attachment?.mimeType || "Attachment"} • {formatBytes(msg.attachment?.size)}
+                              </small>
+                            </div>
+                          </a>
+                        ) : msg.messageType === "shared_post" && msg.sharedPost?.id ? (
+                          <div className="chat-shared-post-wrap">
+                            <div className="chat-shared-post-label">Shared post</div>
+                            <Link
+                              href={msg.sharedPost.url || `/dashboard?post=${msg.sharedPost.id}`}
+                              className="chat-shared-post-card"
+                            >
+                              <div className="chat-shared-post-head">
+                                <div className="chat-shared-post-avatar">
+                                  <ReliableImage
+                                    src={msg.sharedPost.authorImage}
+                                    fallbackSrc="/Profilepic.png"
+                                    alt={msg.sharedPost.authorName || "Post author"}
+                                    width={40}
+                                    height={40}
+                                  />
+                                </div>
+                                <div className="chat-shared-post-author-block">
+                                  <strong>{msg.sharedPost.authorName || "UniLynk User"}</strong>
+                                  <span>{formatPostMetaDate(msg.sharedPost.createdAt)}</span>
+                                </div>
+                              </div>
+                              {msg.sharedPost.content ? (
+                                <p className="chat-shared-post-content">{msg.sharedPost.content}</p>
+                              ) : null}
+                              {!!msg.sharedPost.images?.length && (
+                                <div
+                                  className={`chat-shared-post-media ${
+                                    msg.sharedPost.images.length > 1 ? "chat-shared-post-media-grid" : ""
+                                  }`}
+                                >
+                                  {msg.sharedPost.images.slice(0, 4).map((imageUrl, index) => (
+                                    <img
+                                      key={`${msg.id}-post-image-${index}`}
+                                      src={imageUrl}
+                                      alt={`Shared post media ${index + 1}`}
+                                      className="chat-shared-post-image"
+                                    />
+                                  ))}
+                                </div>
+                              )}
+                            </Link>
+                          </div>
+                        ) : (
+                          <p className="chat-text-message">{msg.text}</p>
+                        )}
+
+                        <span className="chat-meta-row">
+                          {formatChatTimestamp(msg.createdAt)}
+                          {msg.sender === currentUserId ? (
+                            <em className={`chat-status chat-status-${getMessageStatus(msg)}`}>
+                              {getMessageStatus(msg) === "sent" ? <Check size={13} /> : <CheckCheck size={13} />}
+                            </em>
+                          ) : null}
                         </span>
-                      ))}
+                      </div>
+                      {!!(msg.reactions || []).length && (
+                        <div className="chat-reactions-row">
+                          {groupedReactions(msg.reactions).map(([emoji, count]) => (
+                            <span key={`${msg.id}-${emoji}`} className="chat-reaction-chip">
+                              {emoji} {count}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
+                ))
+              )}
+              {!loadingMessages && messages.length === 0 && activeUserId && (
+                <div id="nochat-illuistration">
+                  <img src="/Chat/nochatill.svg" alt="No chat right now" />
+                  <h1 className="nochath">Start a New Conversation</h1>
+                  <p className="nochatp">
+                    Your messages will appear here. Begin by sending a message to start the conversation.
+                  </p>
                 </div>
-              </div>
-            ))
-          )}
-          {!loadingMessages && messages.length === 0 && activeUserId && (
-            <div id="nochat-illuistration">
-              <img src="/Chat/nochatill.svg" alt="No chat right now" />
-              <h1 className="nochath">Start a New Conversation</h1>
-              <p className="nochatp">
-                Your messages will appear here. Begin by sending a message to
-                start the conversation.
-              </p>
+              )}
             </div>
-          )}
-        </div>
 
-        <form className="chat-compose" onSubmit={sendMessage}>
-          <div className="chat-attachment-wrap">
-            <button
-              className="chatmediabtn"
-              type="button"
-              onClick={() => setShowAttachmentFab((prev) => !prev)}
-              disabled={!activeUserId || uploadingDocument || uploadingMedia}
-            >
-              {showAttachmentFab ? <X className="h-4 w-4" /> : <Paperclip className="h-4 w-4" />}
-            </button>
-
-            {showAttachmentFab && (
-              <div className="chat-fab-menu">
+            <form className="chat-compose" onSubmit={sendMessage}>
+              <div className="chat-attachment-wrap">
                 <button
+                  className="chatmediabtn"
                   type="button"
-                  onClick={() => {
-                    setShowEmojiPicker((prev) => !prev);
-                    setShowGifPicker(false);
-                  }}
+                  onClick={() => setShowAttachmentFab((prev) => !prev)}
+                  disabled={!activeUserId || uploadingDocument || uploadingMedia}
                 >
-                  <Smile size={16} /> Emoji
+                  {showAttachmentFab ? <X className="h-4 w-4" /> : <Paperclip className="h-4 w-4" />}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowGifPicker((prev) => !prev);
-                    setShowEmojiPicker(false);
-                  }}
-                >
-                  <ImageIcon size={16} /> GIF
-                </button>
-                <button
-                  type="button"
-                  onClick={() => mediaInputRef.current?.click()}
-                  disabled={uploadingMedia}
-                >
-                  <Film size={16} />
-                  {uploadingMedia ? "Uploading..." : "Photos & Videos"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => documentInputRef.current?.click()}
-                  disabled={uploadingDocument}
-                >
-                  <FileText size={16} />
-                  {uploadingDocument ? "Uploading..." : "Document"}
-                </button>
-              </div>
-            )}
 
-            {showEmojiPicker && (
-              <div className="chat-picker">
-                <EmojiPicker onEmojiClick={handleEmojiSelect} width={320} height={360} lazyLoadEmojis />
-              </div>
-            )}
+                {showAttachmentFab && (
+                  <div className="chat-fab-menu">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowEmojiPicker((p) => !p);
+                        setShowGifPicker(false);
+                      }}
+                    >
+                      <Smile size={16} /> Emoji
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowGifPicker((p) => !p);
+                        setShowEmojiPicker(false);
+                      }}
+                    >
+                      <ImageIcon size={16} /> GIF
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => mediaInputRef.current?.click()}
+                      disabled={uploadingMedia}
+                    >
+                      <Film size={16} /> {uploadingMedia ? "Uploading..." : "Photos & Videos"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => documentInputRef.current?.click()}
+                      disabled={uploadingDocument}
+                    >
+                      <FileText size={16} /> {uploadingDocument ? "Uploading..." : "Document"}
+                    </button>
+                  </div>
+                )}
 
-            {showGifPicker && (
-              <div className="chat-picker chat-gif-picker">
-                <ChatGiphyPicker onSelect={handleGifSelect} />
-              </div>
-            )}
+                {showEmojiPicker && (
+                  <div className="chat-picker">
+                    <EmojiPicker onEmojiClick={handleEmojiSelect} width={320} height={360} lazyLoadEmojis />
+                  </div>
+                )}
 
-            <input
-              ref={documentInputRef}
-              type="file"
-              className="chat-hidden-input"
-              onChange={handleDocumentUpload}
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
-            />
+                {showGifPicker && (
+                  <div className="chat-picker chat-gif-picker">
+                    <ChatGiphyPicker onSelect={handleGifSelect} />
+                  </div>
+                )}
 
-            <input
-              ref={mediaInputRef}
-              type="file"
-              className="chat-hidden-input"
-              onChange={handleMediaUpload}
-              accept="image/*,video/mp4,video/webm,video/quicktime"
-              multiple
-            />
-          </div>
-
-          <div className="chat-compose-inputs">
-            {pendingDocument && (
-              <div className="chat-pending-document">
+                <input
+                  ref={documentInputRef}
+                  type="file"
+                  className="chat-hidden-input"
+                  onChange={handleDocumentUpload}
+                  accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
+                />
                 <input
                   ref={mediaInputRef}
                   type="file"
@@ -981,68 +933,108 @@ export default function ChatPage() {
                   accept="image/*,video/mp4,video/webm,video/quicktime"
                   multiple
                 />
-                <button
-                  type="button"
-                  onClick={() => setPendingDocument(null)}
-                  aria-label="Remove selected document"
-                >
-                  <X size={14} />
-                </button>
               </div>
-            )}
 
-            {!!pendingMedia.length && (
-              <div className="chat-pending-media-row">
-                {pendingMedia.map((media, index) => {
-                  const isVideo = media.mimeType?.startsWith("video/");
-                  return (
-                    <div className="chat-pending-media-card" key={`pending-media-${index}`}>
-                      {isVideo ? (
-                        <video src={media.url} className="chat-pending-media-preview" muted playsInline />
-                      ) : (
-                        <img
-                          src={media.url}
-                          className="chat-pending-media-preview"
-                          alt={media.fileName || `selected media ${index + 1}`}
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-                <button type="button" onClick={() => setPendingMedia([])} className="chat-pending-media-remove">
-                  <X size={14} />
-                </button>
+              <div className="chat-compose-inputs">
+                {pendingDocument && (
+                  <div className="chat-pending-document">
+                    <button
+                      type="button"
+                      onClick={() => setPendingDocument(null)}
+                      aria-label="Remove selected document"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
+
+                {!!pendingMedia.length && (
+                  <div className="chat-pending-media-row">
+                    {pendingMedia.map((media, index) => {
+                      const isVideo = media.mimeType?.startsWith("video/");
+                      return (
+                        <div className="chat-pending-media-card" key={`pending-media-${index}`}>
+                          {isVideo ? (
+                            <video src={media.url} className="chat-pending-media-preview" muted playsInline />
+                          ) : (
+                            <img
+                              src={media.url}
+                              className="chat-pending-media-preview"
+                              alt={media.fileName || `selected media ${index + 1}`}
+                            />
+                          )}
+                        </div>
+                      );
+                    })}
+                    <button
+                      type="button"
+                      onClick={() => setPendingMedia([])}
+                      className="chat-pending-media-remove"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
+                <input
+                  className="chatcomposeinput"
+                  type="text"
+                  placeholder={pendingMedia.length ? "Add a caption (optional)" : "Type your message"}
+                  value={messageText}
+                  onChange={(event) => setMessageText(event.target.value)}
+                  disabled={!activeUserId}
+                />
               </div>
-            )}
-            <input
-              className="chatcomposeinput"
-              type="text"
-              placeholder={pendingMedia.length ? "Add a caption (optional)" : "Type your message"}
-              value={messageText}
-              onChange={(event) => setMessageText(event.target.value)}
-              disabled={!activeUserId}
-            />
-          </div>
-          <button
-            className="chatsendbtn"
-            type="submit"
-            disabled={
-              !activeUserId ||
-              (!messageText.trim() && !pendingDocument && !pendingMedia.length) ||
-              uploadingDocument ||
-              uploadingMedia
-            }
-          >
-            Send
-          </button>
-        </form>
+              <button
+                className="chatsendbtn"
+                type="submit"
+                disabled={
+                  !activeUserId ||
+                  (!messageText.trim() && !pendingDocument && !pendingMedia.length) ||
+                  uploadingDocument ||
+                  uploadingMedia
+                }
+              >
+                Send
+              </button>
+            </form>
 
-        {error && <p className="chat-error">{error}</p>}
+            {error && <p className="chat-error">{error}</p>}
+          </>
+        )}
       </main>
+
       <aside className="chat-list-panel">
         <div className="chat-list-head">
-          <h3>Chats</h3>
-          <p>Students & clubs</p>
+          <div>
+            <h3>Chats</h3>
+            <p>Students, clubs & communities</p>
+          </div>
+          <div className="chat-head-actions" ref={chatMenuRef}>
+            <button
+              className="wa-icon-btn"
+              onClick={() => setChatMenuOpen((p) => !p)}
+              aria-label="More options"
+            >
+              <MoreVertical size={18} />
+            </button>
+            {chatMenuOpen && (
+              <div className="wa-menu">
+                <button
+                  onClick={() => {
+                    setChatMenuOpen(false);
+                    setShowNewCommunityModal(true);
+                  }}
+                >
+                  <Plus size={14} /> New community
+                </button>
+                <button onClick={() => setChatMenuOpen(false)}>
+                  <Users size={14} /> New group
+                </button>
+                <button onClick={() => setChatMenuOpen(false)}>Starred messages</button>
+                <button onClick={() => setChatMenuOpen(false)}>Select chats</button>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="chat-searchbar">
@@ -1067,14 +1059,20 @@ export default function ChatPage() {
         </div>
 
         <div className="chat-list-scroll">
-          {loadingUsers ? (
-            <div className="chat-empty">Loading users…</div>
+          {loadingUsers && loadingCommunities ? (
+            <div className="chat-empty">Loading…</div>
           ) : (
             filteredConversations.map((chat) => (
               <button
                 key={chat.id}
-                className={`chat-item ${chat.id === activeUserId ? "active" : ""}`}
-                onClick={() => setActiveUserId(chat.id)}
+                className={`chat-item ${chat.kind === "community" ? "chat-item-community" : ""} ${
+                  (chat.kind === "community"
+                    ? chat.rawId === activeCommunityId
+                    : chat.id === activeUserId)
+                    ? "active"
+                    : ""
+                }`}
+                onClick={() => handleSelectChatItem(chat)}
               >
                 <div className="chat-item-avatar">
                   {chat.image ? (
@@ -1099,11 +1097,13 @@ export default function ChatPage() {
                     {chat.unread > 0 && <em>{chat.unread}</em>}
                   </div>
                 </div>
+                {chat.kind === "community" && <span className="chat-community-badge">Community</span>}
               </button>
             ))
           )}
         </div>
       </aside>
+
       {forwardTargetMessage ? (
         <div className="chat-forward-modal-backdrop" onClick={closeForwardModal}>
           <div className="chat-forward-modal" onClick={(event) => event.stopPropagation()}>
@@ -1113,9 +1113,7 @@ export default function ChatPage() {
                 <X size={16} />
               </button>
             </div>
-
             <p>Select users to forward this message to:</p>
-
             <div className="chat-forward-user-list">
               {users
                 .filter((user) => user.id !== currentUserId)
@@ -1134,7 +1132,6 @@ export default function ChatPage() {
                   );
                 })}
             </div>
-
             <div className="chat-forward-modal-actions">
               <button type="button" onClick={closeForwardModal} disabled={forwardingMessage}>
                 Cancel
@@ -1150,6 +1147,17 @@ export default function ChatPage() {
           </div>
         </div>
       ) : null}
+
+      {showNewCommunityModal && (
+        <NewGroupModal
+          communityName="your new community"
+          availableMembers={users
+            .filter((u) => u.id !== currentUserId)
+            .map((u) => ({ id: u.id, name: u.name, image: u.image, email: u.email }))}
+          onClose={() => setShowNewCommunityModal(false)}
+          onCreate={handleCreateCommunity}
+        />
+      )}
     </div>
   );
 }
