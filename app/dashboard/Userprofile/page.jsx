@@ -35,6 +35,9 @@ const Userprofile = () => {
     const [viewedProfile, setViewedProfile] = useState(null);
     const [showEditProfileModal, setEditProfileModal] = useState(false)
     const [profileLoading, setProfileLoading] = useState(true);
+    const [profileClubs, setProfileClubs] = useState([]);
+    const [clubsLoading, setClubsLoading] = useState(false);
+    const [clubsError, setClubsError] = useState("");
     const [error, setError] = useState("");
 
     const fetchPosts = async (savedOnly = false) => {
@@ -108,6 +111,33 @@ const Userprofile = () => {
 
         getUserProfile();
     }, [status, routeUserId]);
+
+
+    useEffect(() => {
+        if (status !== "authenticated" || !viewedProfile?._id) return;
+
+        const fetchProfileClubs = async () => {
+            try {
+                setClubsLoading(true);
+                setClubsError("");
+
+                const res = await fetch(`/api/users/${viewedProfile._id}/clubs`, { cache: "no-store" });
+                const data = await res.json();
+
+                if (!res.ok) throw new Error(data?.message || "Failed to fetch clubs");
+
+                setProfileClubs(Array.isArray(data?.clubs) ? data.clubs : []);
+            } catch (err) {
+                console.error("Failed to fetch profile clubs", err);
+                setProfileClubs([]);
+                setClubsError(err.message || "Failed to fetch clubs");
+            } finally {
+                setClubsLoading(false);
+            }
+        };
+
+        fetchProfileClubs();
+    }, [status, viewedProfile?._id]);
 
     const isOwnProfile = useMemo(() => {
         if (!sessionUser || !viewedProfile) return false;
@@ -458,85 +488,102 @@ const Userprofile = () => {
                     <div className="clubs-card">
                         <h2 className="skillscard-heading"><svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#000" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-users w-5 h-5" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><path d="M16 3.128a4 4 0 0 1 0 7.744"></path><path d="M22 21v-2a4 4 0 0 0-3-3.87"></path><circle cx="9" cy="7" r="4"></circle></svg>
                             Clubs</h2>
-                        {(() => {
-                            // Mock club data — replace with viewedProfile?.clubs when wired up
-                            const clubs = [
-                                {
-                                    id: 1,
-                                    name: "GDG On Campus",
-                                    position: "Core Team — Web Lead",
-                                    members: 248,
-                                    since: "2024",
-                                    avatar: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=200&h=200&fit=crop",
-                                    banner: "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&h=400&fit=crop",
-                                    accent: "#0f172a",
-                                },
-                                {
-                                    id: 2,
-                                    name: "Coding Ninjas Club",
-                                    position: "Member",
-                                    members: 412,
-                                    since: "2023",
-                                    avatar: "https://images.unsplash.com/photo-1542831371-29b0f74f9713?w=200&h=200&fit=crop",
-                                    banner: "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=1200&h=400&fit=crop",
-                                    accent: "#1e293b",
-                                },
-                            ];
+                        {clubsLoading && (
+                            <div className="clubs-state">Loading clubs...</div>
+                        )}
 
-                            return (
-                                <div className={`clubs-grid clubs-count-${Math.min(clubs.length, 3)}`}>
-                                    {clubs.map((club) => (
-                                        <article key={club.id} className="club-card relative w-full overflow-hidden rounded-3xl border p-2 border-neutral-200 hover:border-neutral-300 hover:shadow-sm transition bg-white cursor-pointer">
+                        {!clubsLoading && clubsError && (
+                            <div className="clubs-state clubs-state-error">{clubsError}</div>
+                        )}
+
+                        {!clubsLoading && !clubsError && profileClubs.length === 0 && (
+                            <div className="clubs-empty-state">
+                                <Icon icon="mdi:account-group-outline" width={42} />
+                                <div>
+                                    <h3>No clubs found</h3>
+                                    <p>{isOwnProfile ? "Join or lead a club to see it here." : "This user is not part of any clubs yet."}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {!clubsLoading && !clubsError && profileClubs.length > 0 && (
+                            <div className={`clubs-grid clubs-count-${Math.min(profileClubs.length, 3)}`}>
+                                {profileClubs.map((club) => {
+                                    const clubId = club._id || club.id;
+                                    const clubName = club.clubName || club.name || "Campus Club";
+                                    const memberCount = Number(club.memberCount) || 0;
+                                    const leaderCount = Number(club.leaderCount) || 0;
+
+                                    return (
+                                        <article
+                                            key={clubId || clubName}
+                                            className="club-card"
+                                            role="button"
+                                            tabIndex={0}
+                                            onClick={() => clubId && router.push(`/Club?clubId=${clubId}`)}
+                                            onKeyDown={(event) => {
+                                                if ((event.key === "Enter" || event.key === " ") && clubId) {
+                                                    event.preventDefault();
+                                                    router.push(`/Club?clubId=${clubId}`);
+                                                }
+                                            }}
+                                            aria-label={`Open ${clubName} profile`}
+                                        >
                                             <div
                                                 className="club-banner"
-                                                style={{ backgroundImage: `url(${club.banner})` }}
+                                                style={{ backgroundImage: `url(${club.banner || "/Background.jpg"})` }}
                                             >
                                                 <div className="club-banner-overlay" />
                                                 <span className="club-since-pill">
                                                     <Icon icon="mdi:calendar-blank-outline" width={13} />
-                                                    Since {club.since}
+                                                    Joined {club.joiningYear || "N/A"}
                                                 </span>
                                             </div>
 
                                             <div className="club-body">
                                                 <div className="club-avatar-wrap">
-                                                    <img
+                                                    <ReliableImage
                                                         className="club-avatar"
-                                                        src={club.avatar}
-                                                        alt={`${club.name} logo`}
+                                                        src={club.logo}
+                                                        fallbackSrc="/Defaultclublogo.svg"
+                                                        alt={`${clubName} logo`}
                                                     />
                                                 </div>
 
                                                 <div className="club-info">
                                                     <div className="club-name-row">
-                                                        <h3 className="club-name">{club.name}</h3>
+                                                        <h3 className="club-name">{clubName}</h3>
                                                         <span className="club-verified" title="Verified club">
                                                             <Icon icon="mdi:check-decagram" width={18} />
                                                         </span>
                                                     </div>
                                                     <span className="club-position">
                                                         <Icon icon="mdi:shield-star-outline" width={14} />
-                                                        {club.position}
+                                                        {club.position || "Member"}
                                                     </span>
                                                 </div>
 
                                                 <div className="club-meta">
                                                     <div className="club-meta-item">
-                                                        <span className="club-meta-value">{club.members}</span>
+                                                        <span className="club-meta-value">{memberCount}</span>
                                                         <span className="club-meta-label">Members</span>
                                                     </div>
+                                                    <div className="club-meta-item">
+                                                        <span className="club-meta-value">{leaderCount}</span>
+                                                        <span className="club-meta-label">Leaders</span>
+                                                    </div>
                                                     <div className="club-meta-divider" />
-                                                    <button className="club-visit-btn" type="button">
+                                                    <span className="club-visit-btn">
                                                         Visit
                                                         <Icon icon="mdi:arrow-top-right" width={16} />
-                                                    </button>
+                                                    </span>
                                                 </div>
                                             </div>
                                         </article>
-                                    ))}
-                                </div>
-                            );
-                        })()}
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
 
                     <div className="achievements-card">

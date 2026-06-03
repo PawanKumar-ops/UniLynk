@@ -110,6 +110,9 @@ export async function PATCH(req, { params }) {
           email,
           name: user?.name?.trim() || getFallbackNameFromEmail(email),
           profilePicture: user?.img || "/Profilepic.png",
+          position: "Member",
+          joiningYear: String(new Date().getFullYear()),
+          joinedAt: new Date(),
         };
       });
 

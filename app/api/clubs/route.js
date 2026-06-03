@@ -41,6 +41,10 @@ const sanitizeClubPayload = (data = {}) => ({
           email: typeof item.email === "string" ? item.email.trim().toLowerCase() : "",
           position: typeof item.position === "string" ? item.position.trim() : "",
           image: typeof item.image === "string" ? item.image.trim() : "/Profilepic.png",
+          joiningYear: typeof item.joiningYear === "string" && item.joiningYear.trim()
+            ? item.joiningYear.trim()
+            : String(new Date().getFullYear()),
+          joinedAt: item.joinedAt ? new Date(item.joinedAt) : new Date(),
         }))
         .filter((item) => item.email && item.position)
     : [],
