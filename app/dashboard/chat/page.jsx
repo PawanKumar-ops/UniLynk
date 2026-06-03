@@ -12,6 +12,7 @@ import {
   Image as ImageIcon,
   Paperclip,
   Search,
+  MoreVertical,
   Smile,
   SmilePlus,
   Trash2,
@@ -584,10 +585,10 @@ export default function ChatPage() {
       ) : (
         <>
           <main className="chat-main-panel" style={{ position: "relative" }}>
-            <header className="chat-main-header">
+            <header className="wa-chat-head">
               {activeUser ? (
-                <div className="active-user-header">
-                  <div className="active-user-avatar">
+                <>
+                  <div className="wa-group-icon wa-group-icon-mega">
                     <ReliableImage
                       src={activeUser.image}
                       fallbackSrc="/Profilepic.png"
@@ -596,15 +597,31 @@ export default function ChatPage() {
                       height={46}
                     />
                   </div>
-                  <div className="active-user-info">
+
+                  <div className="wa-chat-head-info">
                     <h2>{activeUser.name}</h2>
-                    <p className="user-email">{activeUser.email}</p>
+                    <p>{activeUser.email}</p>
                   </div>
-                </div>
+
+                  <button
+                    className="wa-icon-btn"
+                    aria-label="Search messages"
+                  >
+                    <Search size={16} />
+                  </button>
+
+                  <button
+                    className="wa-icon-btn"
+                    aria-label="More options"
+                  >
+                    <MoreVertical size={16} />
+                  </button>
+                </>
               ) : (
                 <h2>Select a user</h2>
               )}
             </header>
+
 
             <div className="chat-messages-ch" ref={messageScrollRef}>
               {loadingMessages ? (
@@ -618,21 +635,18 @@ export default function ChatPage() {
                 messages.map((msg) => (
                   <div
                     key={msg.id}
-                    className={`chat-message-wrap-wrapper ${
-                      msg.sender === currentUserId ? "chat-message-wrap-wrapper-own" : ""
-                    }`}
+                    className={`chat-message-wrap-wrapper ${msg.sender === currentUserId ? "chat-message-wrap-wrapper-own" : ""
+                      }`}
                   >
                     <div
-                      className={`chat-message-wrap ${
-                        msg.sender === currentUserId ? "chat-message-wrap-own" : ""
-                      }`}
+                      className={`chat-message-wrap ${msg.sender === currentUserId ? "chat-message-wrap-own" : ""
+                        }`}
                     >
                       <div
-                        className={`chat-bubble ${msg.sender === currentUserId ? "chat-bubble-own" : ""} ${
-                          activeReactionPickerFor === msg.id || forwardTargetMessage?.id === msg.id
-                            ? "chat-bubble-menu-open"
-                            : ""
-                        }`}
+                        className={`chat-bubble ${msg.sender === currentUserId ? "chat-bubble-own" : ""} ${activeReactionPickerFor === msg.id || forwardTargetMessage?.id === msg.id
+                          ? "chat-bubble-menu-open"
+                          : ""
+                          }`}
                       >
                         <div className="chat-bubble-actions" onClick={(event) => event.stopPropagation()}>
                           <button
@@ -672,7 +686,7 @@ export default function ChatPage() {
                             aria-label={msg.sender === currentUserId ? "Unsend" : "Delete for me"}
                           >
                             {msg.sender === currentUserId ? (
-                              <Undo2 size={14} className="undo-svg" />
+                              <Trash2 size={14} className="undo-svg" />
                             ) : (
                               <Trash2 size={14} />
                             )}
@@ -702,9 +716,8 @@ export default function ChatPage() {
                         ) : msg.messageType === "media" ? (
                           <>
                             <div
-                              className={`chat-media-grid ${
-                                (msg.attachments || []).length > 1 ? "chat-media-grid-multi" : ""
-                              }`}
+                              className={`chat-media-grid ${(msg.attachments || []).length > 1 ? "chat-media-grid-multi" : ""
+                                }`}
                             >
                               {(msg.attachments || []).map((file, index) => {
                                 const isVideo = file.mimeType?.startsWith("video/");
@@ -776,9 +789,8 @@ export default function ChatPage() {
                               ) : null}
                               {!!msg.sharedPost.images?.length && (
                                 <div
-                                  className={`chat-shared-post-media ${
-                                    msg.sharedPost.images.length > 1 ? "chat-shared-post-media-grid" : ""
-                                  }`}
+                                  className={`chat-shared-post-media ${msg.sharedPost.images.length > 1 ? "chat-shared-post-media-grid" : ""
+                                    }`}
                                 >
                                   {msg.sharedPost.images.slice(0, 4).map((imageUrl, index) => (
                                     <img
@@ -973,78 +985,77 @@ export default function ChatPage() {
           </main>
 
           <aside className="chat-list-panel">
-        <div className="chat-list-head">
-          <div>
-            <h3>Chats</h3>
-            <p>Students & club communities</p>
-          </div>
-        </div>
+            <div className="chat-list-head">
+              <div>
+                <h3>Chats</h3>
+                <p>Students & club communities</p>
+              </div>
+            </div>
 
-        <div className="chat-searchbar">
-          <Search size={15} />
-          <input
-            placeholder="Search chats"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
+            <div className="chat-searchbar">
+              <Search size={15} />
+              <input
+                placeholder="Search chats"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
 
-        <div className="chat-filters">
-          {filters.map((f) => (
-            <button
-              key={f.value}
-              className={activeFilter === f.value ? "active" : ""}
-              onClick={() => setActiveFilter(f.value)}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
+            <div className="chat-filters">
+              {filters.map((f) => (
+                <button
+                  key={f.value}
+                  className={activeFilter === f.value ? "active" : ""}
+                  onClick={() => setActiveFilter(f.value)}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
 
-        <div className="chat-list-scroll">
-          {loadingUsers && loadingCommunities ? (
-            <div className="chat-empty">Loading…</div>
-          ) : (
-            filteredConversations.map((chat) => (
-              <button
-                key={chat.id}
-                className={`chat-item ${chat.kind === "community" ? "chat-item-community" : ""} ${
-                  (chat.kind === "community"
-                    ? chat.rawId === activeCommunityId
-                    : chat.id === activeUserId)
-                    ? "active"
-                    : ""
-                }`}
-                onClick={() => handleSelectChatItem(chat)}
-              >
-                <div className="chat-item-avatar">
-                  {chat.image ? (
-                    <ReliableImage
-                      src={chat.image}
-                      fallbackSrc="/Profilepic.png"
-                      alt={chat.name}
-                      width={38}
-                      height={38}
-                    />
-                  ) : (
-                    chat.avatar
-                  )}
-                </div>
-                <div className="chat-item-content">
-                  <div className="chat-item-top">
-                    <h4>{chat.name}</h4>
-                    <span>{chat.time}</span>
-                  </div>
-                  <div className="chat-item-bottom">
-                    <p>{chat.preview}</p>
-                    {chat.unread > 0 && <em>{chat.unread}</em>}
-                  </div>
-                </div>
-                {chat.kind === "community" && <span className="chat-community-badge">Community</span>}
-              </button>
-            ))
-          )}
-        </div>
+            <div className="chat-list-scroll">
+              {loadingUsers && loadingCommunities ? (
+                <div className="chat-empty">Loading…</div>
+              ) : (
+                filteredConversations.map((chat) => (
+                  <button
+                    key={chat.id}
+                    className={`chat-item ${chat.kind === "community" ? "chat-item-community" : ""} ${(chat.kind === "community"
+                      ? chat.rawId === activeCommunityId
+                      : chat.id === activeUserId)
+                      ? "active"
+                      : ""
+                      }`}
+                    onClick={() => handleSelectChatItem(chat)}
+                  >
+                    <div className="chat-item-avatar">
+                      {chat.image ? (
+                        <ReliableImage
+                          src={chat.image}
+                          fallbackSrc="/Profilepic.png"
+                          alt={chat.name}
+                          width={38}
+                          height={38}
+                        />
+                      ) : (
+                        chat.avatar
+                      )}
+                    </div>
+                    <div className="chat-item-content">
+                      <div className="chat-item-top">
+                        <h4>{chat.name}</h4>
+                        <span>{chat.time}</span>
+                      </div>
+                      <div className="chat-item-bottom">
+                        <p>{chat.preview}</p>
+                        {chat.unread > 0 && <em>{chat.unread}</em>}
+                      </div>
+                    </div>
+                    {chat.kind === "community" && <span className="chat-community-badge">Community</span>}
+                  </button>
+                ))
+              )}
+            </div>
           </aside>
         </>
       )}
