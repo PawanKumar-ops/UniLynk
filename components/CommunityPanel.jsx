@@ -4,12 +4,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
     ArrowLeft,
     Bell,
+    Check,
+    CheckCheck,
     Hash,
     Megaphone,
     MoreVertical,
     Plus,
     Search,
     Send,
+    SmilePlus,
+    Trash2,
     Users,
 } from "lucide-react";
 import ReliableImage from "@/components/ReliableImage";
@@ -33,6 +37,7 @@ export default function CommunityPanel({ community, currentUserId, onBack, onGro
     const [loadingMessages, setLoadingMessages] = useState(false);
     const [error, setError] = useState("");
     const [draft, setDraft] = useState("");
+    const [activeReactionPickerFor, setActiveReactionPickerFor] = useState("");
     const menuRef = useRef(null);
     const scrollRef = useRef(null);
 
@@ -53,6 +58,10 @@ export default function CommunityPanel({ community, currentUserId, onBack, onGro
     useEffect(() => {
         function onClick(event) {
             if (!menuRef.current?.contains(event.target)) setMenuOpen(false);
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            if (target.closest(".chat-reaction-picker") || target.closest(".chat-bubble-action-btn")) return;
+            setActiveReactionPickerFor("");
         }
 
         document.addEventListener("mousedown", onClick);
@@ -118,6 +127,72 @@ export default function CommunityPanel({ community, currentUserId, onBack, onGro
             setDraft("");
         } catch (err) {
             setError(err.message || "Failed to send message");
+        }
+    }
+
+    const quickReactions = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
+
+    function groupedReactions(reactions = []) {
+        const map = reactions.reduce((acc, reaction) => {
+            if (!reaction?.emoji) return acc;
+            if (!acc[reaction.emoji]) acc[reaction.emoji] = 0;
+            acc[reaction.emoji] += 1;
+            return acc;
+        }, {});
+        return Object.entries(map);
+    }
+
+    function getMessageStatus(message) {
+        if (message.readAt) return "read";
+        if (message.deliveredAt || message.createdAt) return "delivered";
+        return "sent";
+    }
+
+    function updateMessage(messageId, updater) {
+        setMessagesByGroup((prev) => ({
+            ...prev,
+            [activeGroupId]: (prev[activeGroupId] || []).map((message) =>
+                message.id === messageId ? updater(message) : message
+            ),
+        }));
+    }
+
+    async function handleToggleReaction(messageId, emoji) {
+        if (!community?.id || !activeGroupId || !messageId || !emoji) return;
+        try {
+            setError("");
+            const response = await fetch(`/api/communities/${community.id}/groups/${activeGroupId}/messages`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "toggle-reaction", messageId, emoji }),
+            });
+            const data = await response.json();
+            if (!response.ok || !data?.ok) throw new Error(data.error || "Failed to react to message");
+            updateMessage(messageId, (message) => ({ ...message, reactions: data.reactions || [] }));
+            setActiveReactionPickerFor("");
+        } catch (err) {
+            setError(err.message || "Failed to react to message");
+        }
+    }
+
+    async function handleDeleteMessage(messageId, mode) {
+        if (!community?.id || !activeGroupId || !messageId) return;
+        try {
+            setError("");
+            const response = await fetch(`/api/communities/${community.id}/groups/${activeGroupId}/messages`, {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ messageId, mode }),
+            });
+            const data = await response.json();
+            if (!response.ok || !data?.ok) throw new Error(data.error || "Failed to delete message");
+            setMessagesByGroup((prev) => ({
+                ...prev,
+                [activeGroupId]: (prev[activeGroupId] || []).filter((message) => message.id !== messageId),
+            }));
+            setActiveReactionPickerFor("");
+        } catch (err) {
+            setError(err.message || "Failed to delete message");
         }
     }
 
@@ -296,25 +371,84 @@ export default function CommunityPanel({ community, currentUserId, onBack, onGro
                                 activeMessages.map((message) => {
                                     const own = message.senderId === currentUserId;
                                     return (
-                                        <div key={message.id} className={`wa-bubble-wrap ${own ? "own" : ""}`}>
-                                            <div className={`wa-message-stack ${own ? "own" : ""}`}>
-                                                <div className={`wa-bubble ${own ? "own" : ""}`}>
+                                        <div
+                                            key={message.id}
+                                            className={`wa-bubble-wrap chat-message-wrap-wrapper ${own ? "own chat-message-wrap-wrapper-own" : ""}`}
+                                        >
+                                            <div className={`wa-message-stack chat-message-wrap ${own ? "own chat-message-wrap-own" : ""}`}>
+                                                <div
+                                                    className={`wa-bubble chat-bubble ${own ? "own chat-bubble-own" : ""} ${activeReactionPickerFor === message.id ? "chat-bubble-menu-open" : ""}`}
+                                                >
+                                                    <div className="chat-bubble-actions" onClick={(event) => event.stopPropagation()}>
+                                                        <button
+                                                            type="button"
+                                                            className="chat-bubble-action-btn"
+                                                            onClick={() =>
+                                                                setActiveReactionPickerFor((prev) => (prev === message.id ? "" : message.id))
+                                                            }
+                                                            aria-label="React to message"
+                                                        >
+                                                            <SmilePlus size={14} />
+                                                        </button>
+                                                        <button
+                                                            type="button"
+                                                            className="chat-bubble-action-btn"
+                                                            onClick={() =>
+                                                                handleDeleteMessage(
+                                                                    message.id,
+                                                                    own || community.isAdmin ? "for-everyone" : "for-me"
+                                                                )
+                                                            }
+                                                            aria-label={own || community.isAdmin ? "Delete for everyone" : "Delete for me"}
+                                                        >
+                                                            <Trash2 size={14} className={own || community.isAdmin ? "undo-svg" : ""} />
+                                                        </button>
+
+                                                        {activeReactionPickerFor === message.id ? (
+                                                            <div className="chat-reaction-picker" onClick={(event) => event.stopPropagation()}>
+                                                                {quickReactions.map((emoji) => (
+                                                                    <button
+                                                                        type="button"
+                                                                        key={`${message.id}-${emoji}`}
+                                                                        onClick={() => handleToggleReaction(message.id, emoji)}
+                                                                    >
+                                                                        {emoji}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        ) : null}
+                                                    </div>
                                                     {!own && <span className="wa-bubble-author">{message.senderName}</span>}
                                                     <p>{message.text}</p>
                                                 </div>
-                                                <div className={`wa-bubble-footer ${own ? "own" : ""}`}>
+                                                <div className={`wa-bubble-footer chat-message-footer ${own ? "own chat-message-footer-own" : ""}`}>
                                                     {!own && (
-                                                        <div className="wa-message-avatar">
+                                                        <div className="wa-message-avatar chat-message-avatar">
                                                             {(message.senderName || "A")[0]?.toUpperCase() || "A"}
                                                         </div>
                                                     )}
-                                                    <span className=".chat-meta-row mt-1 text-xs text-neutral-400">
+                                                    <span className="chat-meta-row mt-1 text-xs text-neutral-400">
                                                         {new Date(message.createdAt).toLocaleTimeString([], {
                                                             hour: "numeric",
                                                             minute: "2-digit",
                                                         })}
+                                                        {own ? (
+                                                            <em className={`chat-status chat-status-${getMessageStatus(message)}`}>
+                                                                {getMessageStatus(message) === "sent" ? <Check size={13} /> : <CheckCheck size={13} />}
+                                                            </em>
+                                                        ) : null}
                                                     </span>
                                                 </div>
+
+                                                {!!(message.reactions || []).length && (
+                                                    <div className="chat-reactions-row">
+                                                        {groupedReactions(message.reactions).map(([emoji, count]) => (
+                                                            <span key={`${message.id}-${emoji}`} className="chat-reaction-chip">
+                                                                {emoji} {count}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     );
