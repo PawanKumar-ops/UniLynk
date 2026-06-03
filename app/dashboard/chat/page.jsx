@@ -10,15 +10,12 @@ import {
   FileText,
   Film,
   Image as ImageIcon,
-  MoreVertical,
   Paperclip,
-  Plus,
   Search,
   Smile,
   SmilePlus,
   Trash2,
   Undo2,
-  Users,
   X,
 } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
@@ -26,7 +23,6 @@ import "./chat.css";
 import ReliableImage from "@/components/ReliableImage";
 import ChatGiphyPicker from "@/components/shared/ChatGiphyPicker";
 import CommunityPanel from "@/components/CommunityPanel";
-import NewGroupModal from "@/components/NewGroupModal";
 
 function formatChatTimestamp(dateValue) {
   if (!dateValue) return "";
@@ -77,9 +73,6 @@ export default function ChatPage() {
   const [communities, setCommunities] = useState([]);
   const [loadingCommunities, setLoadingCommunities] = useState(true);
   const [activeCommunityId, setActiveCommunityId] = useState("");
-  const [chatMenuOpen, setChatMenuOpen] = useState(false);
-  const [showNewCommunityModal, setShowNewCommunityModal] = useState(false);
-  const chatMenuRef = useRef(null);
 
   const socketRef = useRef(null);
   const messageScrollRef = useRef(null);
@@ -117,13 +110,6 @@ export default function ChatPage() {
     };
   }, [activeReactionPickerFor]);
 
-  useEffect(() => {
-    function onClick(e) {
-      if (!chatMenuRef.current?.contains(e.target)) setChatMenuOpen(false);
-    }
-    document.addEventListener("mousedown", onClick);
-    return () => document.removeEventListener("mousedown", onClick);
-  }, []);
 
   function sendSocketMessage(payload) {
     if (!activeUserId || !currentUserId || !socketRef.current) {
@@ -577,21 +563,6 @@ export default function ChatPage() {
     }
   }
 
-  async function handleCreateCommunity({ name, description, memberIds }) {
-    const res = await fetch("/api/communities", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, description, memberIds }),
-    });
-    const data = await res.json();
-    if (data?.ok) {
-      setShowNewCommunityModal(false);
-      await loadCommunities();
-      setActiveCommunityId(data.id);
-    } else {
-      setError(data?.error || "Failed to create community");
-    }
-  }
 
   function handleGroupCreatedInCommunity(group) {
     setCommunities((prev) =>
@@ -1005,33 +976,7 @@ export default function ChatPage() {
         <div className="chat-list-head">
           <div>
             <h3>Chats</h3>
-            <p>Students, clubs & communities</p>
-          </div>
-          <div className="chat-head-actions" ref={chatMenuRef}>
-            <button
-              className="wa-icon-btn"
-              onClick={() => setChatMenuOpen((p) => !p)}
-              aria-label="More options"
-            >
-              <MoreVertical size={18} />
-            </button>
-            {chatMenuOpen && (
-              <div className="wa-menu">
-                <button
-                  onClick={() => {
-                    setChatMenuOpen(false);
-                    setShowNewCommunityModal(true);
-                  }}
-                >
-                  <Plus size={14} /> New community
-                </button>
-                <button onClick={() => setChatMenuOpen(false)}>
-                  <Users size={14} /> New group
-                </button>
-                <button onClick={() => setChatMenuOpen(false)}>Starred messages</button>
-                <button onClick={() => setChatMenuOpen(false)}>Select chats</button>
-              </div>
-            )}
+            <p>Students & club communities</p>
           </div>
         </div>
 
@@ -1148,17 +1093,6 @@ export default function ChatPage() {
         </div>
       ) : null}
 
-      {showNewCommunityModal && (
-        <NewGroupModal
-          communityName="your new community"
-          mode="community"
-          availableMembers={users
-            .filter((u) => u.id !== currentUserId)
-            .map((u) => ({ id: u.id, name: u.name, image: u.image, email: u.email }))}
-          onClose={() => setShowNewCommunityModal(false)}
-          onCreate={handleCreateCommunity}
-        />
-      )}
     </div>
   );
 }
