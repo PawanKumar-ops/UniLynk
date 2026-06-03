@@ -99,18 +99,17 @@ function PostCard({ post }) {
     );
 }
 
-export function PostsModal({ open, onClose, mode }) {
-    const heading = mode === "saved" ? "Saved" : "Posts";
-        const [posts, setPosts] = useState([]);
-const [loading, setLoading] = useState(true);
-    const subtitle =
-        mode === "saved" ? "Posts you've bookmarked" : "Everything you've shared";
+export function PostsModal({ open, onClose, onOpenChange, mode = "posts", posts: externalPosts, title: externalTitle }) {
+    const heading = externalTitle || (mode === "saved" ? "Saved" : "Posts");
+    const [posts, setPosts] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const subtitle = mode === "saved" ? "Posts you've bookmarked" : "Everything you've shared";
 
 
     useEffect(() => {
         if (!open) return;
         const onKey = (e) => {
-            if (e.key === "Escape") onClose();
+            if (e.key === "Escape") handleClose();
         };
         document.addEventListener("keydown", onKey);
         const prev = document.body.style.overflow;
@@ -119,41 +118,50 @@ const [loading, setLoading] = useState(true);
             document.removeEventListener("keydown", onKey);
             document.body.style.overflow = prev;
         };
-    }, [open, onClose]);
+    }, [open, onClose, onOpenChange]);
 
-    useEffect(() => {
-    if (!open) return;
-
-    const fetchPosts = async () => {
-        try {
-            setLoading(true);
-
-            const res = await fetch("/api/posts/user");
-            const data = await res.json();
-
-            if (!res.ok) {
-                throw new Error(data.error || "Failed");
-            }
-
-            setPosts(
-                mode === "saved"
-                    ? data.savedPosts || []
-                    : data.posts || []
-            );
-        } catch (err) {
-            console.error(err);
-        } finally {
-            setLoading(false);
+    // Close handler supporting onOpenChange or onClose
+    const handleClose = () => {
+        if (typeof onOpenChange === 'function') {
+            onOpenChange(false);
+        } else if (typeof onClose === 'function') {
+            onClose();
         }
     };
 
-    fetchPosts();
-}, [open, mode]);
+    useEffect(() => {
+        if (!open) return;
+        // If externalPosts prop is provided, use it directly
+        if (Array.isArray(externalPosts)) {
+            setPosts(externalPosts);
+            setLoading(false);
+            return;
+        }
+        // Otherwise fetch user's posts as before
+        const fetchPosts = async () => {
+            try {
+                setLoading(true);
+                const res = await fetch("/api/posts/user");
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Failed");
+                setPosts(
+                    mode === "saved"
+                        ? data.savedPosts || []
+                        : data.posts || []
+                );
+            } catch (err) {
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchPosts();
+    }, [open, mode, externalPosts]);
 
     if (!open) return null;
 
     return (
-        <div className="pm-overlay" onClick={onClose}>
+        <div className="pm-overlay" onClick={handleClose}>
             <div
                 role="dialog"
                 aria-modal="true"
@@ -162,7 +170,7 @@ const [loading, setLoading] = useState(true);
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="pm-header">
-                    <button type="button" className="pm-close" onClick={onClose} aria-label="Close">
+                    <button type="button" className="pm-close" onClick={handleClose} aria-label="Close">
                         <X size={16} />
                     </button>
                     <div className="pm-title-row">

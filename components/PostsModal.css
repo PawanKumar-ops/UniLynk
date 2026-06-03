@@ -218,6 +218,10 @@
   padding: 0 16px;
   color: #404040;
   line-height: 1.55;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: pre-wrap;
+  max-width: 100%;
 }
 
 .pm-card-image {
