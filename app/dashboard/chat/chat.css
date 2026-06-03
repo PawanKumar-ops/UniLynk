@@ -34,19 +34,8 @@
   border-right: none;
   border-left: 1px solid var(--wa-border);
   box-shadow: -10px 0 24px rgba(11, 20, 26, 0.04);
-  animation: communityRailIn 180ms ease-out;
 }
 
-@keyframes communityRailIn {
-  from {
-    opacity: 0;
-    transform: translateX(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
 
 .chat-main-panel {
   display: grid;
@@ -56,7 +45,8 @@
 }
 
 .chat-main-header {
-  padding: 1rem;
+  min-height: 64px;
+  padding: 8px 14px;
   background: #ffffff;
   border-bottom: 1px solid #d8dde3;
   position: sticky;
@@ -67,12 +57,13 @@
 .active-user-header {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+  min-height: 48px;
 }
 
 .active-user-avatar {
-  width: 46px;
-  height: 46px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   overflow: hidden;
   background: #e5e7eb;
@@ -87,11 +78,13 @@
 
 .active-user-info h2 {
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.96rem;
+  line-height: 1.2;
   color: black;
 }
 
 .user-email {
+  margin: 2px 0 0;
   font-size: 0.75rem;
   color: #6b7280;
 }
@@ -1147,6 +1140,7 @@
 
 /* ---------- Aside header actions (3-dots & new community) ---------- */
 .chat-list-head {
+  min-height: 48px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1223,10 +1217,11 @@
   overflow: hidden;
 }
 .wa-community-rail-head {
+  min-height: 56px;
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 14px;
+  padding: 8px 12px;
   background: var(--wa-bg);
   border-bottom: 1px solid var(--wa-border);
 }
@@ -1375,10 +1370,11 @@
   overflow: hidden;
 }
 .wa-chat-head {
+  min-height: 56px;
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 12px 18px;
+  gap: 10px;
+  padding: 8px 14px;
   background: var(--wa-panel);
   border-bottom: 1px solid var(--wa-border);
 }

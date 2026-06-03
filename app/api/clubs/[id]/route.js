@@ -1,6 +1,7 @@
 import { connectDB } from "@/lib/mongodb";
 import Club from "@/models/Club";
 import User from "@/models/user";
+import { syncClubCommunity } from "@/lib/communitySync";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -15,7 +16,7 @@ export async function GET(_req, { params }) {
 
     const { id } = await params;
 
-const club = await Club.findById(id).lean();
+    const club = await Club.findById(id).lean();
     if (!club) {
       return Response.json({ message: "Club not found" }, { status: 404 });
     }
@@ -127,6 +128,7 @@ export async function PATCH(req, { params }) {
     club.members = [...existingMembers, ...newMembers];
     club.memberCount = club.members.length;
     await club.save();
+    await syncClubCommunity(club);
 
     return Response.json({
       club,

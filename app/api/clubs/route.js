@@ -3,6 +3,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/mongodb";
 import Club from "@/models/Club";
 import cloudinary from "@/lib/cloudinary";
+import { syncClubCommunity } from "@/lib/communitySync";
 
 const uploadDataUrlToCloudinary = async (dataUrl, folder) => {
   if (typeof dataUrl !== "string" || !dataUrl.startsWith("data:image/")) return "";
@@ -116,6 +117,7 @@ export async function POST(req) {
     }
 
     const club = await Club.create(payload);
+    await syncClubCommunity(club);
     return Response.json({ club }, { status: 201 });
   } catch (error) {
     console.error("CREATE CLUB ERROR:", error);
