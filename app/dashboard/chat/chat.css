@@ -164,8 +164,8 @@
   overflow: visible;
   background: #f4f4f4;
   color: #000000;
-  border-radius: 20px 20px 20px 6px;
-  padding: 12px 18px;
+  border-radius: 20px 20px 20px 4px;
+  padding: 8px 14px;
 }
 
 .chat-message-wrap:not(.chat-message-wrap-own) .chat-bubble {
@@ -398,7 +398,7 @@
   align-self: flex-end;
   background: #000000;
   color: #ffffff;
-  border-radius: 18px 18px 6px 18px;
+  border-radius: 18px 18px 4px 18px;
 }
 
 .chat-bubble-own .chat-shared-post-card {
@@ -445,9 +445,6 @@
   display: inline-flex;
   justify-content: flex-start;
   align-items: center;
-  gap: 4px;
-  color: #9ca3af;
-  font-size: 14px;
   line-height: 1;
 }
 
@@ -1577,8 +1574,8 @@
 
 .wa-bubble {
   background: var(--wa-bubble-other);
-  border-radius: 20px 20px 20px 6px;
-  padding: 12px 18px;
+  border-radius: 20px 20px 20px 4px;
+  padding: 8px 14px;
   box-shadow: none;
   position: relative;
 }
@@ -1590,7 +1587,7 @@
 .wa-bubble.own {
   background: var(--wa-bubble-own);
   color: #ffffff;
-  border-radius: 18px 18px 6px 18px;
+  border-radius: 18px 18px 4px 18px;
 }
 
 .wa-bubble-author {

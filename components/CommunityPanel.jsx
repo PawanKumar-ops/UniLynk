@@ -308,12 +308,12 @@ export default function CommunityPanel({ community, currentUserId, onBack, onGro
                                                             {(message.senderName || "A")[0]?.toUpperCase() || "A"}
                                                         </div>
                                                     )}
-                                                    <small>
+                                                    <span className=".chat-meta-row mt-1 text-xs text-neutral-400">
                                                         {new Date(message.createdAt).toLocaleTimeString([], {
                                                             hour: "numeric",
                                                             minute: "2-digit",
                                                         })}
-                                                    </small>
+                                                    </span>
                                                 </div>
                                             </div>
                                         </div>
