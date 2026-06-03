@@ -602,17 +602,17 @@ export default function ChatPage() {
   }
 
   return (
-    <div className="chat-page">
-      <main className="chat-main-panel" style={{ position: "relative" }}>
-        {activeCommunity ? (
-          <CommunityPanel
-            community={activeCommunity}
-            currentUserId={currentUserId}
-            onBack={() => setActiveCommunityId("")}
-            onGroupCreated={handleGroupCreatedInCommunity}
-          />
-        ) : (
-          <>
+    <div className={`chat-page ${activeCommunity ? "chat-page-community-mode" : ""}`}>
+      {activeCommunity ? (
+        <CommunityPanel
+          community={activeCommunity}
+          currentUserId={currentUserId}
+          onBack={() => setActiveCommunityId("")}
+          onGroupCreated={handleGroupCreatedInCommunity}
+        />
+      ) : (
+        <>
+          <main className="chat-main-panel" style={{ position: "relative" }}>
             <header className="chat-main-header">
               {activeUser ? (
                 <div className="active-user-header">
@@ -999,11 +999,9 @@ export default function ChatPage() {
             </form>
 
             {error && <p className="chat-error">{error}</p>}
-          </>
-        )}
-      </main>
+          </main>
 
-      <aside className="chat-list-panel">
+          <aside className="chat-list-panel">
         <div className="chat-list-head">
           <div>
             <h3>Chats</h3>
@@ -1102,7 +1100,9 @@ export default function ChatPage() {
             ))
           )}
         </div>
-      </aside>
+          </aside>
+        </>
+      )}
 
       {forwardTargetMessage ? (
         <div className="chat-forward-modal-backdrop" onClick={closeForwardModal}>

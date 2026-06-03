@@ -6,6 +6,48 @@
   overflow: hidden;
 }
 
+
+.chat-page-community-mode {
+  grid-template-columns: minmax(0, 1fr) 400px;
+}
+
+.chat-page-community-mode .wa-community-wrap {
+  display: contents;
+  position: static;
+  inset: auto;
+  background: transparent;
+  z-index: auto;
+}
+
+.chat-page-community-mode .wa-community-chat {
+  grid-column: 1;
+  grid-row: 1;
+  min-height: 0;
+  height: 100vh;
+}
+
+.chat-page-community-mode .wa-community-rail {
+  grid-column: 2;
+  grid-row: 1;
+  min-height: 0;
+  height: 100vh;
+  border-right: none;
+  border-left: 1px solid var(--wa-border);
+  box-shadow: -10px 0 24px rgba(11, 20, 26, 0.04);
+  animation: communityRailIn 180ms ease-out;
+}
+
+@keyframes communityRailIn {
+  from {
+    opacity: 0;
+    transform: translateX(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
 .chat-main-panel {
   display: grid;
   grid-template-rows: auto 1fr auto;
@@ -1163,7 +1205,7 @@
 .wa-menu button:hover { background: var(--wa-bg); }
 .wa-menu-danger { color: #d9534f !important; }
 
-/* ---------- Community panel (overlays main + aside) ---------- */
+/* ---------- Community panel ---------- */
 .wa-community-wrap {
   position: absolute;
   inset: 0;
