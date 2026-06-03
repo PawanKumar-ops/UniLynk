@@ -297,15 +297,24 @@ export default function CommunityPanel({ community, currentUserId, onBack, onGro
                                     const own = message.senderId === currentUserId;
                                     return (
                                         <div key={message.id} className={`wa-bubble-wrap ${own ? "own" : ""}`}>
-                                            <div className={`wa-bubble ${own ? "own" : ""}`}>
-                                                {!own && <span className="wa-bubble-author">{message.senderName}</span>}
-                                                <p>{message.text}</p>
-                                                <small>
-                                                    {new Date(message.createdAt).toLocaleTimeString([], {
-                                                        hour: "numeric",
-                                                        minute: "2-digit",
-                                                    })}
-                                                </small>
+                                            <div className={`wa-message-stack ${own ? "own" : ""}`}>
+                                                <div className={`wa-bubble ${own ? "own" : ""}`}>
+                                                    {!own && <span className="wa-bubble-author">{message.senderName}</span>}
+                                                    <p>{message.text}</p>
+                                                </div>
+                                                <div className={`wa-bubble-footer ${own ? "own" : ""}`}>
+                                                    {!own && (
+                                                        <div className="wa-message-avatar">
+                                                            {(message.senderName || "A")[0]?.toUpperCase() || "A"}
+                                                        </div>
+                                                    )}
+                                                    <small>
+                                                        {new Date(message.createdAt).toLocaleTimeString([], {
+                                                            hour: "numeric",
+                                                            minute: "2-digit",
+                                                        })}
+                                                    </small>
+                                                </div>
                                             </div>
                                         </div>
                                     );

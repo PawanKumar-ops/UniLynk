@@ -632,22 +632,22 @@ export default function ChatPage() {
                   </div>
                 </div>
               ) : (
-                messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`chat-message-wrap-wrapper ${msg.sender === currentUserId ? "chat-message-wrap-wrapper-own" : ""
-                      }`}
-                  >
+                messages.map((msg) => {
+                  const own = msg.sender === currentUserId;
+                  const senderInitial = (activeUser?.name || activeUser?.email || "A")[0]?.toUpperCase() || "A";
+
+                  return (
                     <div
-                      className={`chat-message-wrap ${msg.sender === currentUserId ? "chat-message-wrap-own" : ""
-                        }`}
+                      key={msg.id}
+                      className={`chat-message-wrap-wrapper ${own ? "chat-message-wrap-wrapper-own" : ""}`}
                     >
-                      <div
-                        className={`chat-bubble ${msg.sender === currentUserId ? "chat-bubble-own" : ""} ${activeReactionPickerFor === msg.id || forwardTargetMessage?.id === msg.id
-                          ? "chat-bubble-menu-open"
-                          : ""
-                          }`}
-                      >
+                      <div className={`chat-message-wrap ${own ? "chat-message-wrap-own" : ""}`}>
+                        <div
+                          className={`chat-bubble ${own ? "chat-bubble-own" : ""} ${activeReactionPickerFor === msg.id || forwardTargetMessage?.id === msg.id
+                            ? "chat-bubble-menu-open"
+                            : ""
+                            }`}
+                        >
                         <div className="chat-bubble-actions" onClick={(event) => event.stopPropagation()}>
                           <button
                             type="button"
@@ -807,28 +807,33 @@ export default function ChatPage() {
                         ) : (
                           <p className="chat-text-message">{msg.text}</p>
                         )}
-
-                        <span className="chat-meta-row">
-                          {formatChatTimestamp(msg.createdAt)}
-                          {msg.sender === currentUserId ? (
-                            <em className={`chat-status chat-status-${getMessageStatus(msg)}`}>
-                              {getMessageStatus(msg) === "sent" ? <Check size={13} /> : <CheckCheck size={13} />}
-                            </em>
-                          ) : null}
-                        </span>
-                      </div>
-                      {!!(msg.reactions || []).length && (
-                        <div className="chat-reactions-row">
-                          {groupedReactions(msg.reactions).map(([emoji, count]) => (
-                            <span key={`${msg.id}-${emoji}`} className="chat-reaction-chip">
-                              {emoji} {count}
-                            </span>
-                          ))}
                         </div>
-                      )}
+
+                        <div className={`chat-message-footer ${own ? "chat-message-footer-own" : ""}`}>
+                          {!own ? <div className="chat-message-avatar">{senderInitial}</div> : null}
+                          <span className="chat-meta-row">
+                            {formatChatTimestamp(msg.createdAt)}
+                            {own ? (
+                              <em className={`chat-status chat-status-${getMessageStatus(msg)}`}>
+                                {getMessageStatus(msg) === "sent" ? <Check size={13} /> : <CheckCheck size={13} />}
+                              </em>
+                            ) : null}
+                          </span>
+                        </div>
+
+                        {!!(msg.reactions || []).length && (
+                          <div className="chat-reactions-row">
+                            {groupedReactions(msg.reactions).map(([emoji, count]) => (
+                              <span key={`${msg.id}-${emoji}`} className="chat-reaction-chip">
+                                {emoji} {count}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
               {!loadingMessages && messages.length === 0 && activeUserId && (
                 <div id="nochat-illuistration">
