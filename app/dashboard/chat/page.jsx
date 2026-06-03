@@ -69,6 +69,7 @@ export default function ChatPage() {
   const [forwardTargetMessage, setForwardTargetMessage] = useState(null);
   const [selectedForwardUserIds, setSelectedForwardUserIds] = useState([]);
   const [forwardingMessage, setForwardingMessage] = useState(false);
+  const [chatSocket, setChatSocket] = useState(null);
 
   // ---------- Community state ----------
   const [communities, setCommunities] = useState([]);
@@ -310,6 +311,7 @@ export default function ChatPage() {
         if (!isMounted) return;
         const socket = io({ path: "/api/socket_io" });
         socketRef.current = socket;
+        setChatSocket(socket);
 
         socket.on("connect", () => socket.emit("register-user", currentUserId));
 
@@ -469,10 +471,10 @@ export default function ChatPage() {
     );
   }
 
-  function toggleForwardRecipient(userId) {
-    if (!userId) return;
+  function toggleForwardRecipient(targetId) {
+    if (!targetId) return;
     setSelectedForwardUserIds((prev) =>
-      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+      prev.includes(targetId) ? prev.filter((id) => id !== targetId) : [...prev, targetId]
     );
   }
 
@@ -482,8 +484,12 @@ export default function ChatPage() {
     setForwardingMessage(false);
   }
 
-  function emitForwardMessage(payload) {
+  function emitForwardMessage(payload, targetId) {
     return new Promise((resolve) => {
+      if (targetId?.startsWith("community:")) {
+        socketRef.current.emit("send-community-message", payload, (response) => resolve(response));
+        return;
+      }
       socketRef.current.emit("send-message", payload, (response) => resolve(response));
     });
   }
@@ -510,11 +516,17 @@ export default function ChatPage() {
       payload.sharedPost = forwardTargetMessage.sharedPost;
     }
     const responses = await Promise.all(
-      selectedForwardUserIds.map((receiverId) => emitForwardMessage({ ...payload, receiverId }))
+      selectedForwardUserIds.map((targetId) => {
+        if (targetId.startsWith("community:")) {
+          const [, communityId, groupId] = targetId.split(":");
+          return emitForwardMessage({ ...payload, communityId, groupId }, targetId);
+        }
+        return emitForwardMessage({ ...payload, receiverId: targetId }, targetId);
+      })
     );
     const failedResponses = responses.filter((r) => !r?.ok);
     responses.forEach((response) => {
-      if (!response?.ok || !response.message) return;
+      if (!response?.ok || !response.message || !response.message.sender || !response.message.receiver) return;
       const isInOpenThread =
         (response.message.sender === activeUserId && response.message.receiver === currentUserId) ||
         (response.message.sender === currentUserId && response.message.receiver === activeUserId);
@@ -554,6 +566,30 @@ export default function ChatPage() {
     });
   }, [conversations, communityItems, searchTerm, activeFilter]);
 
+  const forwardingTargetItems = useMemo(() => {
+    const directTargets = users
+      .filter((user) => user.id !== currentUserId)
+      .map((user) => ({
+        id: user.id,
+        name: user.name || user.email || "UniLynk User",
+        detail: user.email || "Direct message",
+        image: user.image || "",
+        kind: "dm",
+      }));
+
+    const communityTargets = communities.flatMap((community) =>
+      (community.groups || []).map((group) => ({
+        id: `community:${community.id}:${group.id}`,
+        name: group.name || community.name,
+        detail: `${community.name} community`,
+        image: community.image || "",
+        kind: "community",
+      }))
+    );
+
+    return [...directTargets, ...communityTargets];
+  }, [users, communities, currentUserId]);
+
   function handleSelectChatItem(item) {
     if (item.kind === "community") {
       setActiveCommunityId(item.rawId);
@@ -579,8 +615,10 @@ export default function ChatPage() {
         <CommunityPanel
           community={activeCommunity}
           currentUserId={currentUserId}
+          socket={chatSocket}
           onBack={() => setActiveCommunityId("")}
           onGroupCreated={handleGroupCreatedInCommunity}
+          onForwardMessage={openForwardModal}
         />
       ) : (
         <>
@@ -1074,24 +1112,25 @@ export default function ChatPage() {
                 <X size={16} />
               </button>
             </div>
-            <p>Select users to forward this message to:</p>
+            <p>Select DMs or community groups to forward this message to:</p>
             <div className="chat-forward-user-list">
-              {users
-                .filter((user) => user.id !== currentUserId)
-                .map((user) => {
-                  const isSelected = selectedForwardUserIds.includes(user.id);
-                  return (
-                    <button
-                      type="button"
-                      key={`forward-modal-${user.id}`}
-                      className={`chat-forward-user-item ${isSelected ? "selected" : ""}`}
-                      onClick={() => toggleForwardRecipient(user.id)}
-                    >
-                      <span>{user.name}</span>
-                      {isSelected ? <Check size={14} /> : null}
-                    </button>
-                  );
-                })}
+              {forwardingTargetItems.map((target) => {
+                const isSelected = selectedForwardUserIds.includes(target.id);
+                return (
+                  <button
+                    type="button"
+                    key={`forward-modal-${target.id}`}
+                    className={`chat-forward-user-item ${isSelected ? "selected" : ""}`}
+                    onClick={() => toggleForwardRecipient(target.id)}
+                  >
+                    <span>
+                      <strong>{target.name}</strong>
+                      <small>{target.detail}</small>
+                    </span>
+                    {isSelected ? <Check size={14} /> : null}
+                  </button>
+                );
+              })}
             </div>
             <div className="chat-forward-modal-actions">
               <button type="button" onClick={closeForwardModal} disabled={forwardingMessage}>
