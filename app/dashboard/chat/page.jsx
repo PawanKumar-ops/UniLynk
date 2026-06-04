@@ -15,7 +15,6 @@ import {
   Smile,
   SmilePlus,
   Trash2,
-  Undo2,
   X,
 } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
@@ -24,6 +23,7 @@ import ReliableImage from "@/components/ReliableImage";
 import ChatGiphyPicker from "@/components/shared/ChatGiphyPicker";
 import CommunityPanel from "@/components/CommunityPanel";
 import { DeleteMessageModal } from "@/components/DeleteMessageModal";
+import { ForwardMessageModal } from "@/components/ForwardMessageModal";
 
 function formatChatTimestamp(dateValue) {
   if (!dateValue) return "";
@@ -67,8 +67,6 @@ export default function ChatPage() {
   const [pendingMedia, setPendingMedia] = useState([]);
   const [activeReactionPickerFor, setActiveReactionPickerFor] = useState("");
   const [forwardTargetMessage, setForwardTargetMessage] = useState(null);
-  const [selectedForwardUserIds, setSelectedForwardUserIds] = useState([]);
-  const [forwardingMessage, setForwardingMessage] = useState(false);
   const [chatSocket, setChatSocket] = useState(null);
   const [deleteTargetMessage, setDeleteTargetMessage] = useState(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -462,7 +460,6 @@ export default function ChatPage() {
   function openForwardModal(message) {
     if (!message?.id) return;
     setForwardTargetMessage(message);
-    setSelectedForwardUserIds([]);
     setError("");
   }
 
@@ -516,17 +513,8 @@ export default function ChatPage() {
     }
   }
 
-  function toggleForwardRecipient(targetId) {
-    if (!targetId) return;
-    setSelectedForwardUserIds((prev) =>
-      prev.includes(targetId) ? prev.filter((id) => id !== targetId) : [...prev, targetId]
-    );
-  }
-
   function closeForwardModal() {
     setForwardTargetMessage(null);
-    setSelectedForwardUserIds([]);
-    setForwardingMessage(false);
   }
 
   function emitForwardMessage(payload, targetId) {
@@ -539,13 +527,17 @@ export default function ChatPage() {
     });
   }
 
-  async function handleForwardMessage() {
-    if (!socketRef.current || !currentUserId || !forwardTargetMessage?.id) return;
-    if (!selectedForwardUserIds.length) {
-      setError("Please select at least one user to forward this message");
-      return;
+  async function handleForwardMessage(selectedTargetIds = []) {
+    if (!socketRef.current || !currentUserId || !forwardTargetMessage?.id) {
+      const message = "Wait for chat connection before forwarding this message";
+      setError(message);
+      throw new Error(message);
     }
-    setForwardingMessage(true);
+    if (!selectedTargetIds.length) {
+      const message = "Please select at least one recipient to forward this message";
+      setError(message);
+      throw new Error(message);
+    }
     const payload = {
       senderId: currentUserId,
       text: forwardTargetMessage.text || "",
@@ -561,7 +553,7 @@ export default function ChatPage() {
       payload.sharedPost = forwardTargetMessage.sharedPost;
     }
     const responses = await Promise.all(
-      selectedForwardUserIds.map((targetId) => {
+      selectedTargetIds.map((targetId) => {
         if (targetId.startsWith("community:")) {
           const [, communityId, groupId] = targetId.split(":");
           return emitForwardMessage({ ...payload, communityId, groupId }, targetId);
@@ -583,12 +575,11 @@ export default function ChatPage() {
       });
     });
     if (failedResponses.length) {
-      setError(failedResponses[0]?.error || "Failed to forward message to some users");
-      setForwardingMessage(false);
-      return;
+      const message = failedResponses[0]?.error || "Failed to forward message to some recipients";
+      setError(message);
+      throw new Error(message);
     }
     setError("");
-    closeForwardModal();
   }
 
   function groupedReactions(reactions = []) {
@@ -617,8 +608,9 @@ export default function ChatPage() {
       .map((user) => ({
         id: user.id,
         name: user.name || user.email || "UniLynk User",
-        detail: user.email || "Direct message",
-        image: user.image || "",
+        email: user.email || "",
+        subtitle: user.email || "Direct message",
+        avatarUrl: user.image || "",
         kind: "dm",
       }));
 
@@ -626,8 +618,9 @@ export default function ChatPage() {
       (community.groups || []).map((group) => ({
         id: `community:${community.id}:${group.id}`,
         name: group.name || community.name,
-        detail: `${community.name} community`,
-        image: community.image || "",
+        communityName: community.name,
+        subtitle: `${community.name} community`,
+        avatarUrl: group.image || community.image || "",
         kind: "community",
       }))
     );
@@ -1166,50 +1159,15 @@ export default function ChatPage() {
         canDeleteForEveryone={deleteTargetMessage?.sender === currentUserId}
       />
 
-      {forwardTargetMessage ? (
-        <div className="chat-forward-modal-backdrop" onClick={closeForwardModal}>
-          <div className="chat-forward-modal" onClick={(event) => event.stopPropagation()}>
-            <div className="chat-forward-modal-head">
-              <h3>Forward message</h3>
-              <button type="button" onClick={closeForwardModal} aria-label="Close forward modal">
-                <X size={16} />
-              </button>
-            </div>
-            <p>Select DMs or community groups to forward this message to:</p>
-            <div className="chat-forward-user-list">
-              {forwardingTargetItems.map((target) => {
-                const isSelected = selectedForwardUserIds.includes(target.id);
-                return (
-                  <button
-                    type="button"
-                    key={`forward-modal-${target.id}`}
-                    className={`chat-forward-user-item ${isSelected ? "selected" : ""}`}
-                    onClick={() => toggleForwardRecipient(target.id)}
-                  >
-                    <span>
-                      <strong>{target.name}</strong>
-                      <small>{target.detail}</small>
-                    </span>
-                    {isSelected ? <Check size={14} /> : null}
-                  </button>
-                );
-              })}
-            </div>
-            <div className="chat-forward-modal-actions">
-              <button type="button" onClick={closeForwardModal} disabled={forwardingMessage}>
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleForwardMessage}
-                disabled={!selectedForwardUserIds.length || forwardingMessage}
-              >
-                {forwardingMessage ? "Sending..." : "Send"}
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <ForwardMessageModal
+        open={!!forwardTargetMessage}
+        onOpenChange={(open) => {
+          if (!open) closeForwardModal();
+        }}
+        message={forwardTargetMessage}
+        recipients={forwardingTargetItems}
+        onForward={handleForwardMessage}
+      />
 
     </div>
   );
