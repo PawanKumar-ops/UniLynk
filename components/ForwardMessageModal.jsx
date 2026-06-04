@@ -1,9 +1,12 @@
 import { useMemo, useState } from "react";
 import { Check, Forward, Search } from "lucide-react";
-import { cn } from "@/lib/utils";
 
-function initials(name) {
-    return name
+function cn(...classes) {
+    return classes.filter(Boolean).join(" ");
+}
+
+function initials(name = "") {
+    return (name || "?")
         .split(" ")
         .map((n) => n[0])
         .slice(0, 2)
@@ -34,7 +37,7 @@ export function ForwardMessageModal({
     open,
     onOpenChange,
     message,
-    recipients,
+    recipients = [],
     onForward,
 }) {
     const [query, setQuery] = useState("");
@@ -47,6 +50,8 @@ export function ForwardMessageModal({
         return recipients.filter(
             (r) =>
                 r.name.toLowerCase().includes(q) ||
+                r.email?.toLowerCase().includes(q) ||
+                r.communityName?.toLowerCase().includes(q) ||
                 r.handle?.toLowerCase().includes(q) ||
                 r.subtitle?.toLowerCase().includes(q),
         );
@@ -70,8 +75,10 @@ export function ForwardMessageModal({
         if (selected.length === 0 || !message) return;
         try {
             setSending(true);
-            await onForward(selected);
+            await onForward?.(selected);
             handleOpenChange(false);
+        } catch {
+            // Keep the modal open so the parent chat page can surface the forwarding error.
         } finally {
             setSending(false);
         }
@@ -151,7 +158,7 @@ export function ForwardMessageModal({
                                                 {r.name}
                                             </p>
                                             <p className="truncate text-[11.5px] text-neutral-500">
-                                                {r.handle ?? r.subtitle}
+                                                {r.email || r.communityName || r.handle || r.subtitle}
                                             </p>
                                         </div>
                                         <div
