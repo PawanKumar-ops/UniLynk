@@ -11,7 +11,6 @@ import {
     MoreVertical,
     Plus,
     Search,
-    Send,
     SmilePlus,
     Trash2,
     Undo2,
@@ -20,6 +19,7 @@ import {
 import ReliableImage from "@/components/ReliableImage";
 import NewGroupModal from "./NewGroupModal";
 import { DeleteMessageModal } from "@/components/DeleteMessageModal";
+import ChatComposer from "@/components/shared/ChatComposer";
 
 function getDefaultGroupId(groups = []) {
     return groups.find((group) => group.isAnnouncement)?.id || groups[0]?.id || "";
@@ -38,7 +38,6 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
     const [messagesByGroup, setMessagesByGroup] = useState({});
     const [loadingMessages, setLoadingMessages] = useState(false);
     const [error, setError] = useState("");
-    const [draft, setDraft] = useState("");
     const [activeReactionPickerFor, setActiveReactionPickerFor] = useState("");
     const [deleteTargetMessage, setDeleteTargetMessage] = useState(null);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -157,10 +156,15 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
         };
     }, [community?.id, activeGroupId, messagesByGroup]);
 
-    async function sendInGroup(event) {
-        event.preventDefault();
-        const trimmedDraft = draft.trim();
-        if (!trimmedDraft || !activeGroupId || !canPostInActiveGroup) return;
+    async function sendInGroup(payload) {
+        if (!activeGroupId || !canPostInActiveGroup) return;
+
+        const normalizedPayload = {
+            ...payload,
+            text: typeof payload?.text === "string" ? payload.text.trim() : "",
+            messageType: payload?.messageType || "text",
+        };
+        if (normalizedPayload.messageType === "text" && !normalizedPayload.text) return;
 
         try {
             setError("");
@@ -169,7 +173,12 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
                 data = await new Promise((resolve) => {
                     socket.emit(
                         "send-community-message",
-                        { communityId: community.id, groupId: activeGroupId, senderId: currentUserId, text: trimmedDraft },
+                        {
+                            communityId: community.id,
+                            groupId: activeGroupId,
+                            senderId: currentUserId,
+                            ...normalizedPayload,
+                        },
                         resolve
                     );
                 });
@@ -179,7 +188,7 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
                     {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ text: trimmedDraft }),
+                        body: JSON.stringify(normalizedPayload),
                     }
                 );
                 data = await response.json();
@@ -192,11 +201,12 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
                 if (groupMessages.some((message) => message.id === data.message.id)) return prev;
                 return { ...prev, [activeGroupId]: [...groupMessages, data.message] };
             });
-            setDraft("");
         } catch (err) {
             setError(err.message || "Failed to send message");
+            throw err;
         }
     }
+
 
     const quickReactions = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
@@ -638,17 +648,13 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
                             )}
                         </div>
 
-                        <form className="wa-composer" onSubmit={sendInGroup}>
-                            <input
-                                value={draft}
-                                onChange={(event) => setDraft(event.target.value)}
-                                placeholder={canPostInActiveGroup ? `Message ${activeGroup.name}` : "Only admins can send messages"}
-                                disabled={!canPostInActiveGroup}
-                            />
-                            <button type="submit" className="wa-send-btn" disabled={!draft.trim() || !canPostInActiveGroup}>
-                                <Send size={16} />
-                            </button>
-                        </form>
+                        <ChatComposer
+                            disabled={!canPostInActiveGroup}
+                            placeholder={`Message ${activeGroup.name}`}
+                            disabledPlaceholder="Only admins can send messages"
+                            onSend={sendInGroup}
+                            onError={setError}
+                        />
                     </>
                 ) : (
                     <div className="wa-empty-state wa-empty-state-full">
