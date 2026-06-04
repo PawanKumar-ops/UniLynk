@@ -54,6 +54,7 @@
   grid-template-rows: auto 1fr auto;
   height: 100vh;
   overflow: hidden;
+  background-color: #fff;
 }
 
 .chat-main-header {
@@ -432,13 +433,11 @@
   width: 30px;
   height: 30px;
   border-radius: 999px;
-  background: linear-gradient(135deg, #9b7cff 0%, #6f63ff 100%);
-  color: #ffffff;
+  background: #111;
   display: grid;
   place-items: center;
-  flex: 0 0 30px;
-  font-size: 15px;
-  font-weight: 700;
+  flex-shrink: 0;
+  overflow: hidden;
 }
 
 .chat-meta-row {
@@ -1417,7 +1416,7 @@
   flex-shrink: 0;
 }
 
-.wa-group-icon img{
+.wa-group-icon img {
   border-radius: 10px;
 }
 
@@ -1658,7 +1657,7 @@
   width: 72px;
   height: 72px;
   border-radius: 50%;
-  background: #fff;
+  background: #fbfbfb;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2036,6 +2035,7 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
 .chat-forward-user-item span {
   display: flex;
   flex-direction: column;

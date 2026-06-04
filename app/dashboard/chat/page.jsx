@@ -731,168 +731,177 @@ export default function ChatPage() {
                             : ""
                             }`}
                         >
-                        <div className="chat-bubble-actions" onClick={(event) => event.stopPropagation()}>
-                          {!msg.deletedForEveryone && (
-                            <>
-                              <button
-                                type="button"
-                                className="chat-bubble-action-btn"
-                                onClick={() =>
-                                  setActiveReactionPickerFor((prev) => (prev === msg.id ? "" : msg.id))
-                                }
-                                aria-label="React to message"
-                              >
-                                <SmilePlus size={14} />
-                              </button>
-                              <button
-                                type="button"
-                                className="chat-bubble-action-btn"
-                                onClick={() => {
-                                  setActiveReactionPickerFor("");
-                                  openForwardModal(msg);
-                                }}
-                                aria-label="Forward message"
-                              >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24">
-                                  <path stroke="#000" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="1.5" d="M15 10H10H7C5.89543 10 5 10.8954 5 12V18"></path>
-                                  <path stroke="#000" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="1.5" d="M11 6 15 10 11 14M15 6 19 10 15 14"></path>
-                                </svg>
-                              </button>
-                            </>
-                          )}
-                          <button
-                            type="button"
-                            className="chat-bubble-action-btn"
-                            onClick={() => {
-                              setActiveReactionPickerFor("");
-                              openDeleteMessageModal(msg);
-                            }}
-                            aria-label={msg.sender === currentUserId ? "Delete message" : "Delete for me"}
-                          >
-                            <Trash2 size={14} className={msg.sender === currentUserId ? "undo-svg" : ""} />
-                          </button>
-
-                          {!msg.deletedForEveryone && activeReactionPickerFor === msg.id ? (
-                            <div className="chat-reaction-picker" onClick={(event) => event.stopPropagation()}>
-                              {quickReactions.map((emoji) => (
+                          <div className="chat-bubble-actions" onClick={(event) => event.stopPropagation()}>
+                            {!msg.deletedForEveryone && (
+                              <>
                                 <button
                                   type="button"
-                                  key={`${msg.id}-${emoji}`}
-                                  onClick={() => handleToggleReaction(msg.id, emoji)}
+                                  className="chat-bubble-action-btn"
+                                  onClick={() =>
+                                    setActiveReactionPickerFor((prev) => (prev === msg.id ? "" : msg.id))
+                                  }
+                                  aria-label="React to message"
                                 >
-                                  {emoji}
+                                  <SmilePlus size={14} />
                                 </button>
-                              ))}
-                            </div>
-                          ) : null}
-                        </div>
-
-                        {msg.deletedForEveryone ? (
-                          <p className="chat-text-message chat-deleted-placeholder">This message was deleted</p>
-                        ) : msg.messageType === "gif" ? (
-                          /\.mp4($|\?)/i.test(msg.text) ? (
-                            <video src={msg.text} autoPlay loop muted playsInline className="chat-gif" />
-                          ) : (
-                            <img src={msg.text} alt="GIF" className="chat-gif" />
-                          )
-                        ) : msg.messageType === "media" ? (
-                          <>
-                            <div
-                              className={`chat-media-grid ${(msg.attachments || []).length > 1 ? "chat-media-grid-multi" : ""
-                                }`}
-                            >
-                              {(msg.attachments || []).map((file, index) => {
-                                const isVideo = file.mimeType?.startsWith("video/");
-                                return (
-                                  <a
-                                    href={file.url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    key={`${msg.id}-media-${index}`}
-                                    className="chat-media-item"
-                                  >
-                                    {isVideo ? (
-                                      <video src={file.url} controls className="chat-media-video" />
-                                    ) : (
-                                      <img
-                                        src={file.url}
-                                        alt={file.fileName || `media-${index + 1}`}
-                                        className="chat-media-image"
-                                      />
-                                    )}
-                                  </a>
-                                );
-                              })}
-                            </div>
-                            {msg.text ? <p className="chat-media-caption">{msg.text}</p> : null}
-                          </>
-                        ) : msg.messageType === "document" ? (
-                          <a
-                            href={msg.attachment?.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            download={msg.attachment?.fileName || "document"}
-                            className="chat-document"
-                          >
-                            <div className="chat-document-icon-wrap">
-                              <FileText size={18} />
-                            </div>
-                            <div className="chat-document-content">
-                              <strong>{msg.attachment?.fileName || msg.text || "Document"}</strong>
-                              <small>
-                                {msg.attachment?.mimeType || "Attachment"} • {formatBytes(msg.attachment?.size)}
-                              </small>
-                            </div>
-                          </a>
-                        ) : msg.messageType === "shared_post" && msg.sharedPost?.id ? (
-                          <div className="chat-shared-post-wrap">
-                            <div className="chat-shared-post-label">Shared post</div>
-                            <Link
-                              href={msg.sharedPost.url || `/dashboard?post=${msg.sharedPost.id}`}
-                              className="chat-shared-post-card"
-                            >
-                              <div className="chat-shared-post-head">
-                                <div className="chat-shared-post-avatar">
-                                  <ReliableImage
-                                    src={msg.sharedPost.authorImage}
-                                    fallbackSrc="/Profilepic.png"
-                                    alt={msg.sharedPost.authorName || "Post author"}
-                                    width={40}
-                                    height={40}
-                                  />
-                                </div>
-                                <div className="chat-shared-post-author-block">
-                                  <strong>{msg.sharedPost.authorName || "UniLynk User"}</strong>
-                                  <span>{formatPostMetaDate(msg.sharedPost.createdAt)}</span>
-                                </div>
-                              </div>
-                              {msg.sharedPost.content ? (
-                                <p className="chat-shared-post-content">{msg.sharedPost.content}</p>
-                              ) : null}
-                              {!!msg.sharedPost.images?.length && (
-                                <div
-                                  className={`chat-shared-post-media ${msg.sharedPost.images.length > 1 ? "chat-shared-post-media-grid" : ""
-                                    }`}
+                                <button
+                                  type="button"
+                                  className="chat-bubble-action-btn"
+                                  onClick={() => {
+                                    setActiveReactionPickerFor("");
+                                    openForwardModal(msg);
+                                  }}
+                                  aria-label="Forward message"
                                 >
-                                  {msg.sharedPost.images.slice(0, 4).map((imageUrl, index) => (
-                                    <img
-                                      key={`${msg.id}-post-image-${index}`}
-                                      src={imageUrl}
-                                      alt={`Shared post media ${index + 1}`}
-                                      className="chat-shared-post-image"
-                                    />
-                                  ))}
-                                </div>
-                              )}
-                            </Link>
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24">
+                                    <path stroke="#000" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="1.5" d="M15 10H10H7C5.89543 10 5 10.8954 5 12V18"></path>
+                                    <path stroke="#000" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="1.5" d="M11 6 15 10 11 14M15 6 19 10 15 14"></path>
+                                  </svg>
+                                </button>
+                              </>
+                            )}
+                            <button
+                              type="button"
+                              className="chat-bubble-action-btn"
+                              onClick={() => {
+                                setActiveReactionPickerFor("");
+                                openDeleteMessageModal(msg);
+                              }}
+                              aria-label={msg.sender === currentUserId ? "Delete message" : "Delete for me"}
+                            >
+                              <Trash2 size={14} className={msg.sender === currentUserId ? "undo-svg" : ""} />
+                            </button>
+
+                            {!msg.deletedForEveryone && activeReactionPickerFor === msg.id ? (
+                              <div className="chat-reaction-picker" onClick={(event) => event.stopPropagation()}>
+                                {quickReactions.map((emoji) => (
+                                  <button
+                                    type="button"
+                                    key={`${msg.id}-${emoji}`}
+                                    onClick={() => handleToggleReaction(msg.id, emoji)}
+                                  >
+                                    {emoji}
+                                  </button>
+                                ))}
+                              </div>
+                            ) : null}
                           </div>
-                        ) : (
-                          <p className="chat-text-message">{msg.text}</p>
-                        )}
+
+                          {msg.deletedForEveryone ? (
+                            <p className="chat-text-message chat-deleted-placeholder">This message was deleted</p>
+                          ) : msg.messageType === "gif" ? (
+                            /\.mp4($|\?)/i.test(msg.text) ? (
+                              <video src={msg.text} autoPlay loop muted playsInline className="chat-gif" />
+                            ) : (
+                              <img src={msg.text} alt="GIF" className="chat-gif" />
+                            )
+                          ) : msg.messageType === "media" ? (
+                            <>
+                              <div
+                                className={`chat-media-grid ${(msg.attachments || []).length > 1 ? "chat-media-grid-multi" : ""
+                                  }`}
+                              >
+                                {(msg.attachments || []).map((file, index) => {
+                                  const isVideo = file.mimeType?.startsWith("video/");
+                                  return (
+                                    <a
+                                      href={file.url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      key={`${msg.id}-media-${index}`}
+                                      className="chat-media-item"
+                                    >
+                                      {isVideo ? (
+                                        <video src={file.url} controls className="chat-media-video" />
+                                      ) : (
+                                        <img
+                                          src={file.url}
+                                          alt={file.fileName || `media-${index + 1}`}
+                                          className="chat-media-image"
+                                        />
+                                      )}
+                                    </a>
+                                  );
+                                })}
+                              </div>
+                              {msg.text ? <p className="chat-media-caption">{msg.text}</p> : null}
+                            </>
+                          ) : msg.messageType === "document" ? (
+                            <a
+                              href={msg.attachment?.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              download={msg.attachment?.fileName || "document"}
+                              className="chat-document"
+                            >
+                              <div className="chat-document-icon-wrap">
+                                <FileText size={18} />
+                              </div>
+                              <div className="chat-document-content">
+                                <strong>{msg.attachment?.fileName || msg.text || "Document"}</strong>
+                                <small>
+                                  {msg.attachment?.mimeType || "Attachment"} • {formatBytes(msg.attachment?.size)}
+                                </small>
+                              </div>
+                            </a>
+                          ) : msg.messageType === "shared_post" && msg.sharedPost?.id ? (
+                            <div className="chat-shared-post-wrap">
+                              <div className="chat-shared-post-label">Shared post</div>
+                              <Link
+                                href={msg.sharedPost.url || `/dashboard?post=${msg.sharedPost.id}`}
+                                className="chat-shared-post-card"
+                              >
+                                <div className="chat-shared-post-head">
+                                  <div className="chat-shared-post-avatar">
+                                    <ReliableImage
+                                      src={msg.sharedPost.authorImage}
+                                      fallbackSrc="/Profilepic.png"
+                                      alt={msg.sharedPost.authorName || "Post author"}
+                                      width={40}
+                                      height={40}
+                                    />
+                                  </div>
+                                  <div className="chat-shared-post-author-block">
+                                    <strong>{msg.sharedPost.authorName || "UniLynk User"}</strong>
+                                    <span>{formatPostMetaDate(msg.sharedPost.createdAt)}</span>
+                                  </div>
+                                </div>
+                                {msg.sharedPost.content ? (
+                                  <p className="chat-shared-post-content">{msg.sharedPost.content}</p>
+                                ) : null}
+                                {!!msg.sharedPost.images?.length && (
+                                  <div
+                                    className={`chat-shared-post-media ${msg.sharedPost.images.length > 1 ? "chat-shared-post-media-grid" : ""
+                                      }`}
+                                  >
+                                    {msg.sharedPost.images.slice(0, 4).map((imageUrl, index) => (
+                                      <img
+                                        key={`${msg.id}-post-image-${index}`}
+                                        src={imageUrl}
+                                        alt={`Shared post media ${index + 1}`}
+                                        className="chat-shared-post-image"
+                                      />
+                                    ))}
+                                  </div>
+                                )}
+                              </Link>
+                            </div>
+                          ) : (
+                            <p className="chat-text-message">{msg.text}</p>
+                          )}
                         </div>
 
                         <div className={`chat-message-footer ${own ? "chat-message-footer-own" : ""}`}>
-                          {!own ? <div className="chat-message-avatar">{senderInitial}</div> : null}
+                          {!own ? <div className="chat-message-avatar">
+                            <ReliableImage
+
+                              src={activeUser.image}
+                              fallbackSrc="/Profilepic.png"
+                              alt={activeUser.name}
+                              width={30}
+                              height={30}
+                            />
+                          </div> : null}
                           <span className="chat-meta-row mt-1 text-xs text-neutral-400 flex gap-2">
                             {formatChatTimestamp(msg.createdAt)}
                             {own ? (
