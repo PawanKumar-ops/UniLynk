@@ -14,10 +14,12 @@ import {
     Send,
     SmilePlus,
     Trash2,
+    Undo2,
     Users,
 } from "lucide-react";
 import ReliableImage from "@/components/ReliableImage";
 import NewGroupModal from "./NewGroupModal";
+import { DeleteMessageModal } from "@/components/DeleteMessageModal";
 
 function getDefaultGroupId(groups = []) {
     return groups.find((group) => group.isAnnouncement)?.id || groups[0]?.id || "";
@@ -27,7 +29,7 @@ function firstName(name = "") {
     return name.trim().split(/\s+/)[0] || "Member";
 }
 
-export default function CommunityPanel({ community, currentUserId, onBack, onGroupCreated }) {
+export default function CommunityPanel({ community, currentUserId, socket, onBack, onGroupCreated, onForwardMessage }) {
     const groups = Array.isArray(community?.groups) ? community.groups : [];
     const members = Array.isArray(community?.members) ? community.members : [];
     const [activeGroupId, setActiveGroupId] = useState(() => getDefaultGroupId(groups));
@@ -38,6 +40,8 @@ export default function CommunityPanel({ community, currentUserId, onBack, onGro
     const [error, setError] = useState("");
     const [draft, setDraft] = useState("");
     const [activeReactionPickerFor, setActiveReactionPickerFor] = useState("");
+    const [deleteTargetMessage, setDeleteTargetMessage] = useState(null);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const menuRef = useRef(null);
     const scrollRef = useRef(null);
 
@@ -72,6 +76,57 @@ export default function CommunityPanel({ community, currentUserId, onBack, onGro
         if (!scrollRef.current) return;
         scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }, [activeGroupId, activeMessages.length]);
+
+    useEffect(() => {
+        if (!socket || !community?.id || !currentUserId) return;
+
+        socket.emit("join-community", { communityId: community.id, userId: currentUserId });
+
+        function handleIncomingCommunityMessage({ communityId, groupId, message }) {
+            if (communityId !== community.id || !groupId || !message?.id) return;
+            setMessagesByGroup((prev) => {
+                const groupMessages = prev[groupId] || [];
+                if (groupMessages.some((item) => item.id === message.id)) return prev;
+                return { ...prev, [groupId]: [...groupMessages, message] };
+            });
+        }
+
+        function handleCommunityDeletion({ communityId, groupId, messageId, mode, userId, deletedForEveryone }) {
+            if (communityId !== community.id || !groupId || !messageId) return;
+            setMessagesByGroup((prev) => ({
+                ...prev,
+                [groupId]: (prev[groupId] || []).reduce((messages, message) => {
+                    if (message.id !== messageId) return [...messages, message];
+                    if (mode === "for-me" && userId === currentUserId) return messages;
+                    if (mode === "for-everyone" || deletedForEveryone) {
+                        return [...messages, { ...message, deletedForEveryone: true, text: "" }];
+                    }
+                    return [...messages, message];
+                }, []),
+            }));
+            if (activeReactionPickerFor === messageId) setActiveReactionPickerFor("");
+        }
+
+        function handleCommunityReactions({ communityId, groupId, messageId, reactions }) {
+            if (communityId !== community.id || !groupId || !messageId) return;
+            setMessagesByGroup((prev) => ({
+                ...prev,
+                [groupId]: (prev[groupId] || []).map((message) =>
+                    message.id === messageId ? { ...message, reactions: reactions || [] } : message
+                ),
+            }));
+        }
+
+        socket.on("new-community-message", handleIncomingCommunityMessage);
+        socket.on("community-message-deleted", handleCommunityDeletion);
+        socket.on("community-message-reactions-updated", handleCommunityReactions);
+
+        return () => {
+            socket.off("new-community-message", handleIncomingCommunityMessage);
+            socket.off("community-message-deleted", handleCommunityDeletion);
+            socket.off("community-message-reactions-updated", handleCommunityReactions);
+        };
+    }, [socket, community?.id, currentUserId]);
 
     useEffect(() => {
         if (!community?.id || !activeGroupId || messagesByGroup[activeGroupId]) return;
@@ -109,21 +164,34 @@ export default function CommunityPanel({ community, currentUserId, onBack, onGro
 
         try {
             setError("");
-            const response = await fetch(
-                `/api/communities/${community.id}/groups/${activeGroupId}/messages`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ text: trimmedDraft }),
-                }
-            );
-            const data = await response.json();
-            if (!response.ok || !data?.ok) throw new Error(data.error || "Failed to send message");
+            let data;
+            if (socket?.connected) {
+                data = await new Promise((resolve) => {
+                    socket.emit(
+                        "send-community-message",
+                        { communityId: community.id, groupId: activeGroupId, senderId: currentUserId, text: trimmedDraft },
+                        resolve
+                    );
+                });
+            } else {
+                const response = await fetch(
+                    `/api/communities/${community.id}/groups/${activeGroupId}/messages`,
+                    {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ text: trimmedDraft }),
+                    }
+                );
+                data = await response.json();
+                if (!response.ok) throw new Error(data.error || "Failed to send message");
+            }
+            if (!data?.ok) throw new Error(data?.error || "Failed to send message");
 
-            setMessagesByGroup((prev) => ({
-                ...prev,
-                [activeGroupId]: [...(prev[activeGroupId] || []), data.message],
-            }));
+            setMessagesByGroup((prev) => {
+                const groupMessages = prev[activeGroupId] || [];
+                if (groupMessages.some((message) => message.id === data.message.id)) return prev;
+                return { ...prev, [activeGroupId]: [...groupMessages, data.message] };
+            });
             setDraft("");
         } catch (err) {
             setError(err.message || "Failed to send message");
@@ -148,10 +216,10 @@ export default function CommunityPanel({ community, currentUserId, onBack, onGro
         return "sent";
     }
 
-    function updateMessage(messageId, updater) {
+    function updateMessage(messageId, updater, groupId = activeGroupId) {
         setMessagesByGroup((prev) => ({
             ...prev,
-            [activeGroupId]: (prev[activeGroupId] || []).map((message) =>
+            [groupId]: (prev[groupId] || []).map((message) =>
                 message.id === messageId ? updater(message) : message
             ),
         }));
@@ -161,35 +229,74 @@ export default function CommunityPanel({ community, currentUserId, onBack, onGro
         if (!community?.id || !activeGroupId || !messageId || !emoji) return;
         try {
             setError("");
-            const response = await fetch(`/api/communities/${community.id}/groups/${activeGroupId}/messages`, {
-                method: "PATCH",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ action: "toggle-reaction", messageId, emoji }),
-            });
-            const data = await response.json();
-            if (!response.ok || !data?.ok) throw new Error(data.error || "Failed to react to message");
-            updateMessage(messageId, (message) => ({ ...message, reactions: data.reactions || [] }));
+            let data;
+            if (socket?.connected) {
+                data = await new Promise((resolve) => {
+                    socket.emit(
+                        "toggle-community-reaction",
+                        { communityId: community.id, groupId: activeGroupId, messageId, userId: currentUserId, emoji },
+                        resolve
+                    );
+                });
+            } else {
+                const response = await fetch(`/api/communities/${community.id}/groups/${activeGroupId}/messages`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "toggle-reaction", messageId, emoji }),
+                });
+                data = await response.json();
+                if (!response.ok) throw new Error(data.error || "Failed to react to message");
+            }
+            if (!data?.ok) throw new Error(data?.error || "Failed to react to message");
+            updateMessage(messageId, (message) => ({ ...message, reactions: data.reactions || [] }), data.groupId || activeGroupId);
             setActiveReactionPickerFor("");
         } catch (err) {
             setError(err.message || "Failed to react to message");
         }
     }
 
-    async function handleDeleteMessage(messageId, mode) {
+    function openDeleteMessageModal(message) {
+        if (!message?.id) return;
+        setDeleteTargetMessage(message);
+        setDeleteModalOpen(true);
+        setActiveReactionPickerFor("");
+    }
+
+    async function handleDeleteMessage(scope) {
+        const messageId = deleteTargetMessage?.id;
+        const mode = scope === "everyone" ? "for-everyone" : "for-me";
         if (!community?.id || !activeGroupId || !messageId) return;
         try {
             setError("");
-            const response = await fetch(`/api/communities/${community.id}/groups/${activeGroupId}/messages`, {
-                method: "DELETE",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ messageId, mode }),
-            });
-            const data = await response.json();
-            if (!response.ok || !data?.ok) throw new Error(data.error || "Failed to delete message");
+            let data;
+            if (socket?.connected) {
+                data = await new Promise((resolve) => {
+                    socket.emit(
+                        "delete-community-message",
+                        { communityId: community.id, groupId: activeGroupId, messageId, userId: currentUserId, mode },
+                        resolve
+                    );
+                });
+            } else {
+                const response = await fetch(`/api/communities/${community.id}/groups/${activeGroupId}/messages`, {
+                    method: "DELETE",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ messageId, mode }),
+                });
+                data = await response.json();
+                if (!response.ok) throw new Error(data.error || "Failed to delete message");
+            }
+            if (!data?.ok) throw new Error(data?.error || "Failed to delete message");
             setMessagesByGroup((prev) => ({
                 ...prev,
-                [activeGroupId]: (prev[activeGroupId] || []).filter((message) => message.id !== messageId),
+                [activeGroupId]:
+                    mode === "for-everyone"
+                        ? (prev[activeGroupId] || []).map((message) =>
+                            message.id === messageId ? { ...message, deletedForEveryone: true, text: "" } : message
+                        )
+                        : (prev[activeGroupId] || []).filter((message) => message.id !== messageId),
             }));
+            setDeleteTargetMessage(null);
             setActiveReactionPickerFor("");
         } catch (err) {
             setError(err.message || "Failed to delete message");
@@ -214,6 +321,66 @@ export default function CommunityPanel({ community, currentUserId, onBack, onGro
         } catch (err) {
             setError(err.message || "Failed to create group");
         }
+    }
+
+    function renderMessageContent(message) {
+        if (message.deletedForEveryone) {
+            return <p className="chat-text-message chat-deleted-placeholder">This message was deleted</p>;
+        }
+
+        if (message.messageType === "gif") {
+            return <img src={message.text} alt="GIF" className="chat-gif" />;
+        }
+
+        if (message.messageType === "document" && message.attachment?.url) {
+            return (
+                <a href={message.attachment.url} target="_blank" rel="noreferrer" className="chat-document">
+                    <span className="chat-document-file-icon">DOC</span>
+                    <span>
+                        <strong>{message.attachment.fileName || message.text || "Document"}</strong>
+                    </span>
+                </a>
+            );
+        }
+
+        if (message.messageType === "media" && Array.isArray(message.attachments)) {
+            return (
+                <div className="chat-media-grid">
+                    {message.attachments.map((media, index) => {
+                        const isVideo = media.mimeType?.startsWith("video/");
+                        return isVideo ? (
+                            <video key={`${message.id}-media-${index}`} src={media.url} className="chat-media-video" controls />
+                        ) : (
+                            <img
+                                key={`${message.id}-media-${index}`}
+                                src={media.url}
+                                className="chat-media-image"
+                                alt={media.fileName || `Media ${index + 1}`}
+                            />
+                        );
+                    })}
+                    {message.text ? <p className="chat-text-message">{message.text}</p> : null}
+                </div>
+            );
+        }
+
+        if (message.messageType === "shared_post" && message.sharedPost?.id) {
+            return (
+                <div className="chat-shared-post-wrapper">
+                    <div className="chat-shared-post-label">Shared post</div>
+                    <a href={message.sharedPost.url || `/dashboard?post=${message.sharedPost.id}`} className="chat-shared-post-card">
+                        <div className="chat-shared-post-head">
+                            <div className="chat-shared-post-author-block">
+                                <strong>{message.sharedPost.authorName || "UniLynk User"}</strong>
+                            </div>
+                        </div>
+                        {message.sharedPost.content ? <p className="chat-shared-post-content">{message.sharedPost.content}</p> : null}
+                    </a>
+                </div>
+            );
+        }
+
+        return <p>{message.text}</p>;
     }
 
     return (
@@ -380,31 +547,46 @@ export default function CommunityPanel({ community, currentUserId, onBack, onGro
                                                     className={`wa-bubble chat-bubble ${own ? "own chat-bubble-own" : ""} ${activeReactionPickerFor === message.id ? "chat-bubble-menu-open" : ""}`}
                                                 >
                                                     <div className="chat-bubble-actions" onClick={(event) => event.stopPropagation()}>
+                                                        {!message.deletedForEveryone && (
+                                                            <>
+                                                                <button
+                                                                    type="button"
+                                                                    className="chat-bubble-action-btn"
+                                                                    onClick={() =>
+                                                                        setActiveReactionPickerFor((prev) => (prev === message.id ? "" : message.id))
+                                                                    }
+                                                                    aria-label="React to message"
+                                                                >
+                                                                    <SmilePlus size={14} />
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    className="chat-bubble-action-btn"
+                                                                    onClick={() => {
+                                                                        setActiveReactionPickerFor("");
+                                                                        onForwardMessage?.({
+                                                                            ...message,
+                                                                            sender: message.senderId,
+                                                                            communityId: community.id,
+                                                                            groupId: activeGroupId,
+                                                                        });
+                                                                    }}
+                                                                    aria-label="Forward message"
+                                                                >
+                                                                    <Undo2 size={14} />
+                                                                </button>
+                                                            </>
+                                                        )}
                                                         <button
                                                             type="button"
                                                             className="chat-bubble-action-btn"
-                                                            onClick={() =>
-                                                                setActiveReactionPickerFor((prev) => (prev === message.id ? "" : message.id))
-                                                            }
-                                                            aria-label="React to message"
+                                                            onClick={() => openDeleteMessageModal(message)}
+                                                            aria-label={own ? "Delete message" : "Delete for me"}
                                                         >
-                                                            <SmilePlus size={14} />
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            className="chat-bubble-action-btn"
-                                                            onClick={() =>
-                                                                handleDeleteMessage(
-                                                                    message.id,
-                                                                    own || community.isAdmin ? "for-everyone" : "for-me"
-                                                                )
-                                                            }
-                                                            aria-label={own || community.isAdmin ? "Delete for everyone" : "Delete for me"}
-                                                        >
-                                                            <Trash2 size={14} className={own || community.isAdmin ? "undo-svg" : ""} />
+                                                            <Trash2 size={14} className={own ? "undo-svg" : ""} />
                                                         </button>
 
-                                                        {activeReactionPickerFor === message.id ? (
+                                                        {!message.deletedForEveryone && activeReactionPickerFor === message.id ? (
                                                             <div className="chat-reaction-picker" onClick={(event) => event.stopPropagation()}>
                                                                 {quickReactions.map((emoji) => (
                                                                     <button
@@ -419,7 +601,7 @@ export default function CommunityPanel({ community, currentUserId, onBack, onGro
                                                         ) : null}
                                                     </div>
                                                     {!own && <span className="wa-bubble-author">{message.senderName}</span>}
-                                                    <p>{message.text}</p>
+                                                    {renderMessageContent(message)}
                                                 </div>
                                                 <div className={`wa-bubble-footer chat-message-footer ${own ? "own chat-message-footer-own" : ""}`}>
                                                     {!own && (
@@ -440,7 +622,7 @@ export default function CommunityPanel({ community, currentUserId, onBack, onGro
                                                     </span>
                                                 </div>
 
-                                                {!!(message.reactions || []).length && (
+                                                {!message.deletedForEveryone && !!(message.reactions || []).length && (
                                                     <div className="chat-reactions-row">
                                                         {groupedReactions(message.reactions).map(([emoji, count]) => (
                                                             <span key={`${message.id}-${emoji}`} className="chat-reaction-chip">
@@ -475,6 +657,16 @@ export default function CommunityPanel({ community, currentUserId, onBack, onGro
                     </div>
                 )}
             </section>
+
+            <DeleteMessageModal
+                open={deleteModalOpen}
+                onOpenChange={(open) => {
+                    setDeleteModalOpen(open);
+                    if (!open) setDeleteTargetMessage(null);
+                }}
+                onConfirm={handleDeleteMessage}
+                canDeleteForEveryone={deleteTargetMessage?.senderId === currentUserId}
+            />
 
             {showNewGroupModal && (
                 <NewGroupModal

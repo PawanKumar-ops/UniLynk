@@ -123,12 +123,18 @@ const ChatMessageSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
-    
+    // WhatsApp-style "Delete for everyone" keeps the document and metadata intact.
+    deletedForEveryone: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );
 
 ChatMessageSchema.index({ sender: 1, receiver: 1, createdAt: 1 });
+// Speeds up per-user visibility checks when loading large direct-message threads.
+ChatMessageSchema.index({ sender: 1, receiver: 1, deletedFor: 1, createdAt: 1 });
 
 export default mongoose.models.ChatMessage ||
   mongoose.model("ChatMessage", ChatMessageSchema);

@@ -23,6 +23,7 @@ import "./chat.css";
 import ReliableImage from "@/components/ReliableImage";
 import ChatGiphyPicker from "@/components/shared/ChatGiphyPicker";
 import CommunityPanel from "@/components/CommunityPanel";
+import { DeleteMessageModal } from "@/components/DeleteMessageModal";
 
 function formatChatTimestamp(dateValue) {
   if (!dateValue) return "";
@@ -68,6 +69,9 @@ export default function ChatPage() {
   const [forwardTargetMessage, setForwardTargetMessage] = useState(null);
   const [selectedForwardUserIds, setSelectedForwardUserIds] = useState([]);
   const [forwardingMessage, setForwardingMessage] = useState(false);
+  const [chatSocket, setChatSocket] = useState(null);
+  const [deleteTargetMessage, setDeleteTargetMessage] = useState(null);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
   // ---------- Community state ----------
   const [communities, setCommunities] = useState([]);
@@ -309,6 +313,7 @@ export default function ChatPage() {
         if (!isMounted) return;
         const socket = io({ path: "/api/socket_io" });
         socketRef.current = socket;
+        setChatSocket(socket);
 
         socket.on("connect", () => socket.emit("register-user", currentUserId));
 
@@ -346,10 +351,21 @@ export default function ChatPage() {
           );
         });
 
-        socket.on("message-deleted", ({ messageId }) => {
+        socket.on("message-deleted", ({ messageId, mode, userId, deletedForEveryone }) => {
           if (!messageId) return;
-          setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
-          if (forwardTargetMessage?.id === messageId) closeForwardModal();
+          setMessages((prev) => {
+            // Delete-for-me events are emitted only to the affected user and should remove
+            // the message from that user's open window. Delete-for-everyone keeps the row
+            // and swaps the content for the shared placeholder.
+            if (mode === "for-me" && userId === currentUserId) return prev.filter((msg) => msg.id !== messageId);
+            if (mode === "for-everyone" || deletedForEveryone) {
+              return prev.map((msg) =>
+                msg.id === messageId ? { ...msg, deletedForEveryone: true, text: "" } : msg
+              );
+            }
+            return prev;
+          });
+          if ((mode === "for-me" || deletedForEveryone) && forwardTargetMessage?.id === messageId) closeForwardModal();
           if (activeReactionPickerFor === messageId) setActiveReactionPickerFor("");
         });
       } catch (err) {
@@ -450,28 +466,60 @@ export default function ChatPage() {
     setError("");
   }
 
-  function handleDeleteMessage(messageId, mode) {
-    if (!socketRef.current || !currentUserId || !messageId) return;
-    socketRef.current.emit(
-      "delete-message",
-      { messageId, userId: currentUserId, mode },
-      (response) => {
-        if (!response?.ok) {
-          setError(response?.error || "Failed to delete message");
-          return;
-        }
-        setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
-        setError("");
-        if (forwardTargetMessage?.id === messageId) closeForwardModal();
-        if (activeReactionPickerFor === messageId) setActiveReactionPickerFor("");
-      }
-    );
+  function openDeleteMessageModal(message) {
+    if (!message?.id) return;
+    setDeleteTargetMessage(message);
+    setDeleteModalOpen(true);
+    setActiveReactionPickerFor("");
   }
 
-  function toggleForwardRecipient(userId) {
-    if (!userId) return;
+  async function handleDeleteMessage(scope) {
+    const messageId = deleteTargetMessage?.id;
+    const mode = scope === "everyone" ? "for-everyone" : "for-me";
+    if (!currentUserId || !messageId) return;
+
+    const applyDeleteResult = () => {
+      setMessages((prev) =>
+        mode === "for-everyone"
+          ? prev.map((msg) => (msg.id === messageId ? { ...msg, deletedForEveryone: true, text: "" } : msg))
+          : prev.filter((msg) => msg.id !== messageId)
+      );
+      setError("");
+      setDeleteTargetMessage(null);
+      if (forwardTargetMessage?.id === messageId) closeForwardModal();
+      if (activeReactionPickerFor === messageId) setActiveReactionPickerFor("");
+    };
+
+    if (socketRef.current?.connected) {
+      socketRef.current.emit(
+        "delete-message",
+        { messageId, userId: currentUserId, mode },
+        (response) => {
+          if (!response?.ok) {
+            setError(response?.error || "Failed to delete message");
+            return;
+          }
+          applyDeleteResult();
+        }
+      );
+      return;
+    }
+
+    try {
+      const endpoint = mode === "for-everyone" ? "delete-for-everyone" : "delete-for-me";
+      const response = await fetch(`/api/chat/messages/${messageId}/${endpoint}`, { method: "POST" });
+      const data = await response.json();
+      if (!response.ok || !data?.ok) throw new Error(data.error || "Failed to delete message");
+      applyDeleteResult();
+    } catch (err) {
+      setError(err.message || "Failed to delete message");
+    }
+  }
+
+  function toggleForwardRecipient(targetId) {
+    if (!targetId) return;
     setSelectedForwardUserIds((prev) =>
-      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+      prev.includes(targetId) ? prev.filter((id) => id !== targetId) : [...prev, targetId]
     );
   }
 
@@ -481,8 +529,12 @@ export default function ChatPage() {
     setForwardingMessage(false);
   }
 
-  function emitForwardMessage(payload) {
+  function emitForwardMessage(payload, targetId) {
     return new Promise((resolve) => {
+      if (targetId?.startsWith("community:")) {
+        socketRef.current.emit("send-community-message", payload, (response) => resolve(response));
+        return;
+      }
       socketRef.current.emit("send-message", payload, (response) => resolve(response));
     });
   }
@@ -509,11 +561,17 @@ export default function ChatPage() {
       payload.sharedPost = forwardTargetMessage.sharedPost;
     }
     const responses = await Promise.all(
-      selectedForwardUserIds.map((receiverId) => emitForwardMessage({ ...payload, receiverId }))
+      selectedForwardUserIds.map((targetId) => {
+        if (targetId.startsWith("community:")) {
+          const [, communityId, groupId] = targetId.split(":");
+          return emitForwardMessage({ ...payload, communityId, groupId }, targetId);
+        }
+        return emitForwardMessage({ ...payload, receiverId: targetId }, targetId);
+      })
     );
     const failedResponses = responses.filter((r) => !r?.ok);
     responses.forEach((response) => {
-      if (!response?.ok || !response.message) return;
+      if (!response?.ok || !response.message || !response.message.sender || !response.message.receiver) return;
       const isInOpenThread =
         (response.message.sender === activeUserId && response.message.receiver === currentUserId) ||
         (response.message.sender === currentUserId && response.message.receiver === activeUserId);
@@ -553,6 +611,30 @@ export default function ChatPage() {
     });
   }, [conversations, communityItems, searchTerm, activeFilter]);
 
+  const forwardingTargetItems = useMemo(() => {
+    const directTargets = users
+      .filter((user) => user.id !== currentUserId)
+      .map((user) => ({
+        id: user.id,
+        name: user.name || user.email || "UniLynk User",
+        detail: user.email || "Direct message",
+        image: user.image || "",
+        kind: "dm",
+      }));
+
+    const communityTargets = communities.flatMap((community) =>
+      (community.groups || []).map((group) => ({
+        id: `community:${community.id}:${group.id}`,
+        name: group.name || community.name,
+        detail: `${community.name} community`,
+        image: community.image || "",
+        kind: "community",
+      }))
+    );
+
+    return [...directTargets, ...communityTargets];
+  }, [users, communities, currentUserId]);
+
   function handleSelectChatItem(item) {
     if (item.kind === "community") {
       setActiveCommunityId(item.rawId);
@@ -578,8 +660,10 @@ export default function ChatPage() {
         <CommunityPanel
           community={activeCommunity}
           currentUserId={currentUserId}
+          socket={chatSocket}
           onBack={() => setActiveCommunityId("")}
           onGroupCreated={handleGroupCreatedInCommunity}
+          onForwardMessage={openForwardModal}
         />
       ) : (
         <>
@@ -648,50 +732,47 @@ export default function ChatPage() {
                             }`}
                         >
                         <div className="chat-bubble-actions" onClick={(event) => event.stopPropagation()}>
-                          <button
-                            type="button"
-                            className="chat-bubble-action-btn"
-                            onClick={() =>
-                              setActiveReactionPickerFor((prev) => (prev === msg.id ? "" : msg.id))
-                            }
-                            aria-label="React to message"
-                          >
-                            <SmilePlus size={14} />
-                          </button>
+                          {!msg.deletedForEveryone && (
+                            <>
+                              <button
+                                type="button"
+                                className="chat-bubble-action-btn"
+                                onClick={() =>
+                                  setActiveReactionPickerFor((prev) => (prev === msg.id ? "" : msg.id))
+                                }
+                                aria-label="React to message"
+                              >
+                                <SmilePlus size={14} />
+                              </button>
+                              <button
+                                type="button"
+                                className="chat-bubble-action-btn"
+                                onClick={() => {
+                                  setActiveReactionPickerFor("");
+                                  openForwardModal(msg);
+                                }}
+                                aria-label="Forward message"
+                              >
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24">
+                                  <path stroke="#000" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="1.5" d="M15 10H10H7C5.89543 10 5 10.8954 5 12V18"></path>
+                                  <path stroke="#000" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="1.5" d="M11 6 15 10 11 14M15 6 19 10 15 14"></path>
+                                </svg>
+                              </button>
+                            </>
+                          )}
                           <button
                             type="button"
                             className="chat-bubble-action-btn"
                             onClick={() => {
                               setActiveReactionPickerFor("");
-                              openForwardModal(msg);
+                              openDeleteMessageModal(msg);
                             }}
-                            aria-label="Forward message"
+                            aria-label={msg.sender === currentUserId ? "Delete message" : "Delete for me"}
                           >
-                            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24">
-                              <path stroke="#000" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="1.5" d="M15 10H10H7C5.89543 10 5 10.8954 5 12V18"></path>
-                              <path stroke="#000" strokeLinecap="round" strokeLinejoin="round" strokeMiterlimit="10" strokeWidth="1.5" d="M11 6 15 10 11 14M15 6 19 10 15 14"></path>
-                            </svg>
-                          </button>
-                          <button
-                            type="button"
-                            className="chat-bubble-action-btn"
-                            onClick={() => {
-                              setActiveReactionPickerFor("");
-                              handleDeleteMessage(
-                                msg.id,
-                                msg.sender === currentUserId ? "for-everyone" : "for-me"
-                              );
-                            }}
-                            aria-label={msg.sender === currentUserId ? "Unsend" : "Delete for me"}
-                          >
-                            {msg.sender === currentUserId ? (
-                              <Trash2 size={14} className="undo-svg" />
-                            ) : (
-                              <Trash2 size={14} />
-                            )}
+                            <Trash2 size={14} className={msg.sender === currentUserId ? "undo-svg" : ""} />
                           </button>
 
-                          {activeReactionPickerFor === msg.id ? (
+                          {!msg.deletedForEveryone && activeReactionPickerFor === msg.id ? (
                             <div className="chat-reaction-picker" onClick={(event) => event.stopPropagation()}>
                               {quickReactions.map((emoji) => (
                                 <button
@@ -706,7 +787,9 @@ export default function ChatPage() {
                           ) : null}
                         </div>
 
-                        {msg.messageType === "gif" ? (
+                        {msg.deletedForEveryone ? (
+                          <p className="chat-text-message chat-deleted-placeholder">This message was deleted</p>
+                        ) : msg.messageType === "gif" ? (
                           /\.mp4($|\?)/i.test(msg.text) ? (
                             <video src={msg.text} autoPlay loop muted playsInline className="chat-gif" />
                           ) : (
@@ -820,7 +903,7 @@ export default function ChatPage() {
                           </span>
                         </div>
 
-                        {!!(msg.reactions || []).length && (
+                        {!msg.deletedForEveryone && !!(msg.reactions || []).length && (
                           <div className="chat-reactions-row">
                             {groupedReactions(msg.reactions).map(([emoji, count]) => (
                               <span key={`${msg.id}-${emoji}`} className="chat-reaction-chip">
@@ -1064,6 +1147,16 @@ export default function ChatPage() {
         </>
       )}
 
+      <DeleteMessageModal
+        open={deleteModalOpen}
+        onOpenChange={(open) => {
+          setDeleteModalOpen(open);
+          if (!open) setDeleteTargetMessage(null);
+        }}
+        onConfirm={handleDeleteMessage}
+        canDeleteForEveryone={deleteTargetMessage?.sender === currentUserId}
+      />
+
       {forwardTargetMessage ? (
         <div className="chat-forward-modal-backdrop" onClick={closeForwardModal}>
           <div className="chat-forward-modal" onClick={(event) => event.stopPropagation()}>
@@ -1073,24 +1166,25 @@ export default function ChatPage() {
                 <X size={16} />
               </button>
             </div>
-            <p>Select users to forward this message to:</p>
+            <p>Select DMs or community groups to forward this message to:</p>
             <div className="chat-forward-user-list">
-              {users
-                .filter((user) => user.id !== currentUserId)
-                .map((user) => {
-                  const isSelected = selectedForwardUserIds.includes(user.id);
-                  return (
-                    <button
-                      type="button"
-                      key={`forward-modal-${user.id}`}
-                      className={`chat-forward-user-item ${isSelected ? "selected" : ""}`}
-                      onClick={() => toggleForwardRecipient(user.id)}
-                    >
-                      <span>{user.name}</span>
-                      {isSelected ? <Check size={14} /> : null}
-                    </button>
-                  );
-                })}
+              {forwardingTargetItems.map((target) => {
+                const isSelected = selectedForwardUserIds.includes(target.id);
+                return (
+                  <button
+                    type="button"
+                    key={`forward-modal-${target.id}`}
+                    className={`chat-forward-user-item ${isSelected ? "selected" : ""}`}
+                    onClick={() => toggleForwardRecipient(target.id)}
+                  >
+                    <span>
+                      <strong>{target.name}</strong>
+                      <small>{target.detail}</small>
+                    </span>
+                    {isSelected ? <Check size={14} /> : null}
+                  </button>
+                );
+              })}
             </div>
             <div className="chat-forward-modal-actions">
               <button type="button" onClick={closeForwardModal} disabled={forwardingMessage}>
