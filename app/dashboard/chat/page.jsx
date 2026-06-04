@@ -64,6 +64,8 @@ export default function ChatPage() {
 
   const socketRef = useRef(null);
   const messageScrollRef = useRef(null);
+  const activeUserIdRef = useRef("");
+  const currentUserIdRef = useRef("");
 
   const activeUser = useMemo(
     () => users.find((user) => user.id === activeUserId),
@@ -74,6 +76,14 @@ export default function ChatPage() {
     () => communities.find((c) => c.id === activeCommunityId) || null,
     [communities, activeCommunityId]
   );
+
+  useEffect(() => {
+    activeUserIdRef.current = activeUserId;
+  }, [activeUserId]);
+
+  useEffect(() => {
+    currentUserIdRef.current = currentUserId;
+  }, [currentUserId]);
 
   useEffect(() => {
     if (!messageScrollRef.current) return;
@@ -218,9 +228,11 @@ export default function ChatPage() {
         socket.on("connect", () => socket.emit("register-user", currentUserId));
 
         socket.on("new-message", (incomingMessage) => {
+          const openUserId = activeUserIdRef.current;
+          const signedInUserId = currentUserIdRef.current;
           const isInOpenThread =
-            (incomingMessage.sender === activeUserId && incomingMessage.receiver === currentUserId) ||
-            (incomingMessage.sender === currentUserId && incomingMessage.receiver === activeUserId);
+            (incomingMessage.sender === openUserId && incomingMessage.receiver === signedInUserId) ||
+            (incomingMessage.sender === signedInUserId && incomingMessage.receiver === openUserId);
           if (!isInOpenThread) return;
           setMessages((prev) => {
             const exists = prev.some((msg) => msg.id === incomingMessage.id);
@@ -230,10 +242,12 @@ export default function ChatPage() {
         });
 
         socket.on("messages-read", ({ byUserId, peerUserId, readAt }) => {
-          if (!readAt || !currentUserId || !activeUserId) return;
+          const openUserId = activeUserIdRef.current;
+          const signedInUserId = currentUserIdRef.current;
+          if (!readAt || !signedInUserId || !openUserId) return;
           const affectsOpenThread =
-            (byUserId === currentUserId && peerUserId === activeUserId) ||
-            (byUserId === activeUserId && peerUserId === currentUserId);
+            (byUserId === signedInUserId && peerUserId === openUserId) ||
+            (byUserId === openUserId && peerUserId === signedInUserId);
           if (!affectsOpenThread) return;
           setMessages((prev) =>
             prev.map((msg) => {
@@ -257,7 +271,7 @@ export default function ChatPage() {
             // Delete-for-me events are emitted only to the affected user and should remove
             // the message from that user's open window. Delete-for-everyone keeps the row
             // and swaps the content for the shared placeholder.
-            if (mode === "for-me" && userId === currentUserId) return prev.filter((msg) => msg.id !== messageId);
+            if (mode === "for-me" && userId === currentUserIdRef.current) return prev.filter((msg) => msg.id !== messageId);
             if (mode === "for-everyone" || deletedForEveryone) {
               return prev.map((msg) =>
                 msg.id === messageId ? { ...msg, deletedForEveryone: true, text: "" } : msg
@@ -281,7 +295,7 @@ export default function ChatPage() {
         socketRef.current = null;
       }
     };
-  }, [currentUserId, activeUserId]);
+  }, [currentUserId]);
 
   const conversations = useMemo(
     () =>
