@@ -289,7 +289,11 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
-    if (!activeUserId) return;
+    if (!activeUserId) {
+      setMessages([]);
+      setLoadingMessages(false);
+      return;
+    }
     loadMessages(activeUserId);
   }, [activeUserId]);
 
@@ -631,10 +635,24 @@ export default function ChatPage() {
   function handleSelectChatItem(item) {
     if (item.kind === "community") {
       setActiveCommunityId(item.rawId);
-      setActiveUserId("");
-    } else {
-      setActiveCommunityId("");
-      setActiveUserId(item.id);
+      setShowAttachmentFab(false);
+      setShowEmojiPicker(false);
+      setShowGifPicker(false);
+      return;
+    }
+
+    setActiveCommunityId("");
+    setActiveUserId(item.id);
+  }
+
+  function handleBackFromCommunity() {
+    setActiveCommunityId("");
+    setActiveReactionPickerFor("");
+    closeForwardModal();
+
+    if (!activeUserId) {
+      const fallbackUserId = users.find((user) => user.id !== currentUserId)?.id || users[0]?.id || "";
+      setActiveUserId(fallbackUserId);
     }
   }
 
@@ -654,7 +672,7 @@ export default function ChatPage() {
           community={activeCommunity}
           currentUserId={currentUserId}
           socket={chatSocket}
-          onBack={() => setActiveCommunityId("")}
+          onBack={handleBackFromCommunity}
           onGroupCreated={handleGroupCreatedInCommunity}
           onForwardMessage={openForwardModal}
         />
@@ -888,9 +906,9 @@ export default function ChatPage() {
                           {!own ? <div className="chat-message-avatar">
                             <ReliableImage
 
-                              src={activeUser.image}
+                              src={activeUser?.image}
                               fallbackSrc="/Profilepic.png"
-                              alt={activeUser.name}
+                              alt={activeUser?.name || "Chat user"}
                               width={30}
                               height={30}
                             />
