@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import ReliableImage from "@/components/ReliableImage";
 import NewGroupModal from "./NewGroupModal";
+import { DeleteMessageModal } from "@/components/DeleteMessageModal";
 
 function getDefaultGroupId(groups = []) {
     return groups.find((group) => group.isAnnouncement)?.id || groups[0]?.id || "";
@@ -39,6 +40,8 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
     const [error, setError] = useState("");
     const [draft, setDraft] = useState("");
     const [activeReactionPickerFor, setActiveReactionPickerFor] = useState("");
+    const [deleteTargetMessage, setDeleteTargetMessage] = useState(null);
+    const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const menuRef = useRef(null);
     const scrollRef = useRef(null);
 
@@ -88,6 +91,22 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
             });
         }
 
+        function handleCommunityDeletion({ communityId, groupId, messageId, mode, userId, deletedForEveryone }) {
+            if (communityId !== community.id || !groupId || !messageId) return;
+            setMessagesByGroup((prev) => ({
+                ...prev,
+                [groupId]: (prev[groupId] || []).reduce((messages, message) => {
+                    if (message.id !== messageId) return [...messages, message];
+                    if (mode === "for-me" && userId === currentUserId) return messages;
+                    if (mode === "for-everyone" || deletedForEveryone) {
+                        return [...messages, { ...message, deletedForEveryone: true, text: "" }];
+                    }
+                    return [...messages, message];
+                }, []),
+            }));
+            if (activeReactionPickerFor === messageId) setActiveReactionPickerFor("");
+        }
+
         function handleCommunityReactions({ communityId, groupId, messageId, reactions }) {
             if (communityId !== community.id || !groupId || !messageId) return;
             setMessagesByGroup((prev) => ({
@@ -99,10 +118,12 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
         }
 
         socket.on("new-community-message", handleIncomingCommunityMessage);
+        socket.on("community-message-deleted", handleCommunityDeletion);
         socket.on("community-message-reactions-updated", handleCommunityReactions);
 
         return () => {
             socket.off("new-community-message", handleIncomingCommunityMessage);
+            socket.off("community-message-deleted", handleCommunityDeletion);
             socket.off("community-message-reactions-updated", handleCommunityReactions);
         };
     }, [socket, community?.id, currentUserId]);
@@ -234,21 +255,48 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
         }
     }
 
-    async function handleDeleteMessage(messageId, mode) {
+    function openDeleteMessageModal(message) {
+        if (!message?.id) return;
+        setDeleteTargetMessage(message);
+        setDeleteModalOpen(true);
+        setActiveReactionPickerFor("");
+    }
+
+    async function handleDeleteMessage(scope) {
+        const messageId = deleteTargetMessage?.id;
+        const mode = scope === "everyone" ? "for-everyone" : "for-me";
         if (!community?.id || !activeGroupId || !messageId) return;
         try {
             setError("");
-            const response = await fetch(`/api/communities/${community.id}/groups/${activeGroupId}/messages`, {
-                method: "DELETE",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ messageId, mode }),
-            });
-            const data = await response.json();
-            if (!response.ok || !data?.ok) throw new Error(data.error || "Failed to delete message");
+            let data;
+            if (socket?.connected) {
+                data = await new Promise((resolve) => {
+                    socket.emit(
+                        "delete-community-message",
+                        { communityId: community.id, groupId: activeGroupId, messageId, userId: currentUserId, mode },
+                        resolve
+                    );
+                });
+            } else {
+                const response = await fetch(`/api/communities/${community.id}/groups/${activeGroupId}/messages`, {
+                    method: "DELETE",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ messageId, mode }),
+                });
+                data = await response.json();
+                if (!response.ok) throw new Error(data.error || "Failed to delete message");
+            }
+            if (!data?.ok) throw new Error(data?.error || "Failed to delete message");
             setMessagesByGroup((prev) => ({
                 ...prev,
-                [activeGroupId]: (prev[activeGroupId] || []).filter((message) => message.id !== messageId),
+                [activeGroupId]:
+                    mode === "for-everyone"
+                        ? (prev[activeGroupId] || []).map((message) =>
+                            message.id === messageId ? { ...message, deletedForEveryone: true, text: "" } : message
+                        )
+                        : (prev[activeGroupId] || []).filter((message) => message.id !== messageId),
             }));
+            setDeleteTargetMessage(null);
             setActiveReactionPickerFor("");
         } catch (err) {
             setError(err.message || "Failed to delete message");
@@ -276,6 +324,10 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
     }
 
     function renderMessageContent(message) {
+        if (message.deletedForEveryone) {
+            return <p className="chat-text-message chat-deleted-placeholder">This message was deleted</p>;
+        }
+
         if (message.messageType === "gif") {
             return <img src={message.text} alt="GIF" className="chat-gif" />;
         }
@@ -495,47 +547,46 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
                                                     className={`wa-bubble chat-bubble ${own ? "own chat-bubble-own" : ""} ${activeReactionPickerFor === message.id ? "chat-bubble-menu-open" : ""}`}
                                                 >
                                                     <div className="chat-bubble-actions" onClick={(event) => event.stopPropagation()}>
+                                                        {!message.deletedForEveryone && (
+                                                            <>
+                                                                <button
+                                                                    type="button"
+                                                                    className="chat-bubble-action-btn"
+                                                                    onClick={() =>
+                                                                        setActiveReactionPickerFor((prev) => (prev === message.id ? "" : message.id))
+                                                                    }
+                                                                    aria-label="React to message"
+                                                                >
+                                                                    <SmilePlus size={14} />
+                                                                </button>
+                                                                <button
+                                                                    type="button"
+                                                                    className="chat-bubble-action-btn"
+                                                                    onClick={() => {
+                                                                        setActiveReactionPickerFor("");
+                                                                        onForwardMessage?.({
+                                                                            ...message,
+                                                                            sender: message.senderId,
+                                                                            communityId: community.id,
+                                                                            groupId: activeGroupId,
+                                                                        });
+                                                                    }}
+                                                                    aria-label="Forward message"
+                                                                >
+                                                                    <Undo2 size={14} />
+                                                                </button>
+                                                            </>
+                                                        )}
                                                         <button
                                                             type="button"
                                                             className="chat-bubble-action-btn"
-                                                            onClick={() =>
-                                                                setActiveReactionPickerFor((prev) => (prev === message.id ? "" : message.id))
-                                                            }
-                                                            aria-label="React to message"
+                                                            onClick={() => openDeleteMessageModal(message)}
+                                                            aria-label={own ? "Delete message" : "Delete for me"}
                                                         >
-                                                            <SmilePlus size={14} />
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            className="chat-bubble-action-btn"
-                                                            onClick={() => {
-                                                                setActiveReactionPickerFor("");
-                                                                onForwardMessage?.({
-                                                                    ...message,
-                                                                    sender: message.senderId,
-                                                                    communityId: community.id,
-                                                                    groupId: activeGroupId,
-                                                                });
-                                                            }}
-                                                            aria-label="Forward message"
-                                                        >
-                                                            <Undo2 size={14} />
-                                                        </button>
-                                                        <button
-                                                            type="button"
-                                                            className="chat-bubble-action-btn"
-                                                            onClick={() =>
-                                                                handleDeleteMessage(
-                                                                    message.id,
-                                                                    own || community.isAdmin ? "for-everyone" : "for-me"
-                                                                )
-                                                            }
-                                                            aria-label={own || community.isAdmin ? "Delete for everyone" : "Delete for me"}
-                                                        >
-                                                            <Trash2 size={14} className={own || community.isAdmin ? "undo-svg" : ""} />
+                                                            <Trash2 size={14} className={own ? "undo-svg" : ""} />
                                                         </button>
 
-                                                        {activeReactionPickerFor === message.id ? (
+                                                        {!message.deletedForEveryone && activeReactionPickerFor === message.id ? (
                                                             <div className="chat-reaction-picker" onClick={(event) => event.stopPropagation()}>
                                                                 {quickReactions.map((emoji) => (
                                                                     <button
@@ -571,7 +622,7 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
                                                     </span>
                                                 </div>
 
-                                                {!!(message.reactions || []).length && (
+                                                {!message.deletedForEveryone && !!(message.reactions || []).length && (
                                                     <div className="chat-reactions-row">
                                                         {groupedReactions(message.reactions).map(([emoji, count]) => (
                                                             <span key={`${message.id}-${emoji}`} className="chat-reaction-chip">
@@ -606,6 +657,16 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
                     </div>
                 )}
             </section>
+
+            <DeleteMessageModal
+                open={deleteModalOpen}
+                onOpenChange={(open) => {
+                    setDeleteModalOpen(open);
+                    if (!open) setDeleteTargetMessage(null);
+                }}
+                onConfirm={handleDeleteMessage}
+                canDeleteForEveryone={deleteTargetMessage?.senderId === currentUserId}
+            />
 
             {showNewGroupModal && (
                 <NewGroupModal

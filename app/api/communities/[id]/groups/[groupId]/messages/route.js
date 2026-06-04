@@ -92,6 +92,7 @@ function formatMessage(message, usersById = new Map(), currentUserId = "") {
     createdAt: message.createdAt,
     deliveredAt: message.createdAt,
     readAt: readReceipt,
+    deletedForEveryone: Boolean(message.deletedForEveryone),
     seenBy,
     reactions: formatReactions(message.reactions),
   };
@@ -143,6 +144,8 @@ export async function GET(_req, context) {
     });
     if (shouldSaveSeenState) await community.save();
 
+    // Exclude only messages deleted for the current user; keep messages deleted
+    // for everyone so the client can render the shared placeholder.
     const visibleMessages = (group.messages || []).filter(
       (message) => !(message.deletedFor || []).some((userId) => String(userId) === currentUserId)
     );
@@ -312,19 +315,28 @@ export async function DELETE(req, context) {
 
     if (mode === "for-everyone") {
       const isSender = String(message.sender?._id || message.sender) === currentUserId;
-      const isAdmin = userIdSet(community.admins).has(currentUserId);
-      if (!isSender && !isAdmin) {
-        return NextResponse.json({ error: "Only the sender or an admin can delete for everyone" }, { status: 403 });
+      if (!isSender) {
+        return NextResponse.json({ error: "Only the sender can delete for everyone" }, { status: 403 });
       }
-      message.deleteOne();
+      // Keep the subdocument and all metadata, but mark it as globally deleted.
+      message.deletedForEveryone = true;
     } else {
+      // Delete for me is private to the current member and uses add-to-set semantics.
       const alreadyDeleted = (message.deletedFor || []).some((userId) => String(userId) === currentUserId);
       if (!alreadyDeleted) message.deletedFor.push(currentUser._id);
     }
 
     community.updatedAt = new Date();
     await community.save();
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({
+      ok: true,
+      communityId: id,
+      groupId,
+      messageId,
+      mode,
+      userId: currentUserId,
+      deletedForEveryone: mode === "for-everyone",
+    });
   } catch (error) {
     console.error("COMMUNITY MESSAGES DELETE ERROR:", error);
     return NextResponse.json({ error: "Failed to delete group message" }, { status: 500 });

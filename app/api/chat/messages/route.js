@@ -68,6 +68,8 @@ export async function GET(req) {
         { sender: currentUser._id, receiver: otherUserId },
         { sender: otherUserId, receiver: currentUser._id },
       ],
+      // Hide only messages this user removed for themselves; keep everyone-deleted
+      // messages visible so the client can render the deletion placeholder.
       deletedFor: { $ne: currentUser._id },
     })
       .sort({ createdAt: 1 })
@@ -85,6 +87,7 @@ export async function GET(req) {
       createdAt: msg.createdAt,
       deliveredAt: msg.deliveredAt || null,
       readAt: msg.readAt || null,
+      deletedForEveryone: Boolean(msg.deletedForEveryone),
       reactions: (msg.reactions || []).map((reaction) => ({
         userId: reaction.userId?.toString?.() || reaction.userId,
         emoji: reaction.emoji || "",
@@ -172,6 +175,7 @@ export async function POST(req) {
           createdAt: message.createdAt,
           deliveredAt: message.deliveredAt || null,
           readAt: message.readAt || null,
+          deletedForEveryone: Boolean(message.deletedForEveryone),
           reactions: (message.reactions || []).map((reaction) => ({
             userId: reaction.userId?.toString?.() || reaction.userId,
             emoji: reaction.emoji || "",

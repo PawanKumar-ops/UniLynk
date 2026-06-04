@@ -46,6 +46,8 @@ const CommunityMessageSchema = new mongoose.Schema(
       },
     ],
     deletedFor: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    // Keeps community message subdocuments for audit/history while showing a placeholder.
+    deletedForEveryone: { type: Boolean, default: false },
   },
   { timestamps: true }
 );
