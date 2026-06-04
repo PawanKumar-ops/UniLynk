@@ -1,7 +1,7 @@
 import { AlertTriangle } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 
-export function DeleteMessageModal({ open, onOpenChange, onConfirm }) {
+export function DeleteMessageModal({ open, onOpenChange, onConfirm, canDeleteForEveryone = true }) {
     const handle = (scope) => {
         onConfirm?.(scope);
         onOpenChange(false);
@@ -28,13 +28,15 @@ export function DeleteMessageModal({ open, onOpenChange, onConfirm }) {
                     </div>
 
                     <div className="mt-5 flex flex-col gap-1.5">
-                        <button
-                            type="button"
-                            onClick={() => handle("everyone")}
-                            className="w-full rounded-full bg-black px-4 py-2 text-sm text-white transition-colors hover:bg-neutral-800"
-                        >
-                            Delete for everyone
-                        </button>
+                        {canDeleteForEveryone && (
+                            <button
+                                type="button"
+                                onClick={() => handle("everyone")}
+                                className="w-full rounded-full bg-black px-4 py-2 text-sm text-white transition-colors hover:bg-neutral-800"
+                            >
+                                Delete for everyone
+                            </button>
+                        )}
                         <button
                             type="button"
                             onClick={() => handle("me")}

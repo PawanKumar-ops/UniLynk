@@ -76,6 +76,7 @@ function formatCommunityMessage(message, senderUser = null, currentUserId = "") 
     createdAt: message.createdAt,
     deliveredAt: message.createdAt,
     readAt: readReceipt,
+    deletedForEveryone: Boolean(message.deletedForEveryone),
     seenBy,
     reactions: formatCommunityReactions(message.reactions),
   };
@@ -106,6 +107,7 @@ function formatMessage(message) {
     createdAt: message.createdAt,
     deliveredAt: message.deliveredAt || null,
     readAt: message.readAt || null,
+    deletedForEveryone: Boolean(message.deletedForEveryone),
     reactions: (message.reactions || []).map((reaction) => ({
       userId: reaction.userId?.toString?.() || reaction.userId,
       emoji: reaction.emoji || "",
@@ -297,6 +299,74 @@ export default function handler(req, res) {
         } catch (error) {
           console.error("SOCKET TOGGLE COMMUNITY REACTION ERROR:", error);
           callback?.({ ok: false, error: "Failed to update reaction" });
+        }
+      });
+
+      socket.on("delete-community-message", async (payload, callback) => {
+        try {
+          const { communityId, groupId, messageId, userId, mode = "for-me" } = payload || {};
+          if (!communityId || !groupId || !messageId || !userId || socket.data.userId !== userId) {
+            callback?.({ ok: false, error: "Invalid payload" });
+            return;
+          }
+          if (
+            !mongoose.Types.ObjectId.isValid(communityId) ||
+            !mongoose.Types.ObjectId.isValid(groupId) ||
+            !mongoose.Types.ObjectId.isValid(messageId) ||
+            !mongoose.Types.ObjectId.isValid(userId)
+          ) {
+            callback?.({ ok: false, error: "Invalid ids" });
+            return;
+          }
+
+          await connectDB();
+          const community = await Community.findById(communityId);
+          const group = community?.groups.id(groupId);
+          const message = group?.messages.id(messageId);
+          if (!community || !group || !message) {
+            callback?.({ ok: false, error: "Message not found" });
+            return;
+          }
+
+          const groupMembers = userIdSet(group.members?.length ? group.members : community.members);
+          if (!groupMembers.has(userId)) {
+            callback?.({ ok: false, error: "Unauthorized" });
+            return;
+          }
+
+          if (mode === "for-everyone") {
+            if (String(message.sender?._id || message.sender) !== userId) {
+              callback?.({ ok: false, error: "Only sender can delete for everyone" });
+              return;
+            }
+            // Preserve the message subdocument and all metadata; clients show a placeholder.
+            message.deletedForEveryone = true;
+          } else {
+            // Private deletion only hides the message from the requesting member.
+            const alreadyDeleted = (message.deletedFor || []).some((id) => String(id) === userId);
+            if (!alreadyDeleted) message.deletedFor.push(userId);
+          }
+
+          community.updatedAt = new Date();
+          await community.save();
+
+          const eventPayload = {
+            communityId,
+            groupId,
+            messageId,
+            mode: mode === "for-everyone" ? "for-everyone" : "for-me",
+            userId,
+            deletedForEveryone: mode === "for-everyone",
+          };
+          if (mode === "for-everyone") {
+            io.to(`community:${communityId}:group:${groupId}`).emit("community-message-deleted", eventPayload);
+          } else {
+            io.to(userId).emit("community-message-deleted", eventPayload);
+          }
+          callback?.({ ok: true, ...eventPayload });
+        } catch (error) {
+          console.error("SOCKET DELETE COMMUNITY MESSAGE ERROR:", error);
+          callback?.({ ok: false, error: "Failed to delete group message" });
         }
       });
 
@@ -550,14 +620,11 @@ export default function handler(req, res) {
           const receiverId = message.receiver.toString();
 
           if (mode === "for-me") {
-            const alreadyDeletedForUser = (message.deletedFor || []).some(
-              (id) => id.toString() === userId
+            // Private deletion uses $addToSet semantics and never removes the document.
+            await ChatMessage.updateOne(
+              { _id: message._id },
+              { $addToSet: { deletedFor: userId } }
             );
-
-            if (!alreadyDeletedForUser) {
-              message.deletedFor = [...(message.deletedFor || []), userId];
-              await message.save();
-            }
 
             const eventPayload = { messageId: message._id.toString(), mode: "for-me", userId };
             io.to(userId).emit("message-deleted", eventPayload);
@@ -570,9 +637,18 @@ export default function handler(req, res) {
             return;
           }
 
-          await ChatMessage.deleteOne({ _id: message._id });
+          // Unsend for everyone keeps the MongoDB document and all metadata intact.
+          await ChatMessage.updateOne(
+            { _id: message._id, sender: userId },
+            { $set: { deletedForEveryone: true } }
+          );
 
-          const eventPayload = { messageId: message._id.toString(), mode: "for-everyone", userId };
+          const eventPayload = {
+            messageId: message._id.toString(),
+            mode: "for-everyone",
+            userId,
+            deletedForEveryone: true,
+          };
           io.to(senderId).emit("message-deleted", eventPayload);
           io.to(receiverId).emit("message-deleted", eventPayload);
 
