@@ -29,6 +29,20 @@ function firstName(name = "") {
     return name.trim().split(/\s+/)[0] || "Member";
 }
 
+function mergeMessages(existingMessages = [], incomingMessages = []) {
+    const messagesById = new Map();
+    [...existingMessages, ...incomingMessages].forEach((message) => {
+        if (!message?.id) return;
+        messagesById.set(message.id, { ...messagesById.get(message.id), ...message });
+    });
+
+    return Array.from(messagesById.values()).sort((a, b) => {
+        const aTime = new Date(a.createdAt || 0).getTime();
+        const bTime = new Date(b.createdAt || 0).getTime();
+        return aTime - bTime;
+    });
+}
+
 export default function CommunityPanel({ community, currentUserId, socket, onBack, onGroupCreated, onForwardMessage }) {
     const groups = Array.isArray(community?.groups) ? community.groups : [];
     const members = Array.isArray(community?.members) ? community.members : [];
@@ -43,6 +57,7 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const menuRef = useRef(null);
     const scrollRef = useRef(null);
+    const latestFetchRef = useRef(0);
 
     const activeGroup = useMemo(
         () => groups.find((group) => group.id === activeGroupId) || null,
@@ -79,15 +94,18 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
     useEffect(() => {
         if (!socket || !community?.id || !currentUserId) return;
 
-        socket.emit("join-community", { communityId: community.id, userId: currentUserId });
+        socket.emit("join-community", { communityId: community.id, userId: currentUserId }, (response) => {
+            if (!response?.ok) {
+                setError(response?.error || "Failed to join community chat");
+            }
+        });
 
         function handleIncomingCommunityMessage({ communityId, groupId, message }) {
             if (communityId !== community.id || !groupId || !message?.id) return;
-            setMessagesByGroup((prev) => {
-                const groupMessages = prev[groupId] || [];
-                if (groupMessages.some((item) => item.id === message.id)) return prev;
-                return { ...prev, [groupId]: [...groupMessages, message] };
-            });
+            setMessagesByGroup((prev) => ({
+                ...prev,
+                [groupId]: mergeMessages(prev[groupId] || [], [message]),
+            }));
         }
 
         function handleCommunityDeletion({ communityId, groupId, messageId, mode, userId, deletedForEveryone }) {
@@ -128,33 +146,40 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
     }, [socket, community?.id, currentUserId]);
 
     useEffect(() => {
-        if (!community?.id || !activeGroupId || messagesByGroup[activeGroupId]) return;
+        if (!community?.id || !activeGroupId) return;
 
-        let isMounted = true;
+        const fetchId = latestFetchRef.current + 1;
+        latestFetchRef.current = fetchId;
+        const controller = new AbortController();
+
         async function loadGroupMessages() {
             try {
                 setLoadingMessages(true);
                 setError("");
                 const response = await fetch(
                     `/api/communities/${community.id}/groups/${activeGroupId}/messages`,
-                    { cache: "no-store" }
+                    { cache: "no-store", signal: controller.signal }
                 );
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || "Failed to load messages");
-                if (!isMounted) return;
-                setMessagesByGroup((prev) => ({ ...prev, [activeGroupId]: data.messages || [] }));
+                if (latestFetchRef.current !== fetchId) return;
+                setMessagesByGroup((prev) => ({
+                    ...prev,
+                    [activeGroupId]: mergeMessages(prev[activeGroupId] || [], data.messages || []),
+                }));
             } catch (err) {
-                if (isMounted) setError(err.message || "Failed to load messages");
+                if (err.name === "AbortError") return;
+                if (latestFetchRef.current === fetchId) setError(err.message || "Failed to load messages");
             } finally {
-                if (isMounted) setLoadingMessages(false);
+                if (latestFetchRef.current === fetchId) setLoadingMessages(false);
             }
         }
 
         loadGroupMessages();
         return () => {
-            isMounted = false;
+            controller.abort();
         };
-    }, [community?.id, activeGroupId, messagesByGroup]);
+    }, [community?.id, activeGroupId]);
 
     async function sendInGroup(payload) {
         if (!activeGroupId || !canPostInActiveGroup) return;
@@ -196,11 +221,10 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
             }
             if (!data?.ok) throw new Error(data?.error || "Failed to send message");
 
-            setMessagesByGroup((prev) => {
-                const groupMessages = prev[activeGroupId] || [];
-                if (groupMessages.some((message) => message.id === data.message.id)) return prev;
-                return { ...prev, [activeGroupId]: [...groupMessages, data.message] };
-            });
+            setMessagesByGroup((prev) => ({
+                ...prev,
+                [activeGroupId]: mergeMessages(prev[activeGroupId] || [], [data.message]),
+            }));
         } catch (err) {
             setError(err.message || "Failed to send message");
             throw err;
