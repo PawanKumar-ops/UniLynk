@@ -7,20 +7,14 @@ import {
   Check,
   CheckCheck,
   FileText,
-  Film,
-  Image as ImageIcon,
-  Paperclip,
   Search,
   MoreVertical,
-  Smile,
   SmilePlus,
   Trash2,
-  X,
 } from "lucide-react";
-import EmojiPicker from "emoji-picker-react";
 import "./chat.css";
 import ReliableImage from "@/components/ReliableImage";
-import ChatGiphyPicker from "@/components/shared/ChatGiphyPicker";
+import ChatComposer from "@/components/shared/ChatComposer";
 import CommunityPanel from "@/components/CommunityPanel";
 import { DeleteMessageModal } from "@/components/DeleteMessageModal";
 import { ForwardMessageModal } from "@/components/ForwardMessageModal";
@@ -52,19 +46,11 @@ export default function ChatPage() {
   const [currentUserId, setCurrentUserId] = useState("");
   const [activeUserId, setActiveUserId] = useState("");
   const [messages, setMessages] = useState([]);
-  const [messageText, setMessageText] = useState("");
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   const [activeFilter, setActiveFilter] = useState("all");
-  const [showAttachmentFab, setShowAttachmentFab] = useState(false);
-  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
-  const [showGifPicker, setShowGifPicker] = useState(false);
-  const [uploadingMedia, setUploadingMedia] = useState(false);
-  const [uploadingDocument, setUploadingDocument] = useState(false);
-  const [pendingDocument, setPendingDocument] = useState(null);
-  const [pendingMedia, setPendingMedia] = useState([]);
   const [activeReactionPickerFor, setActiveReactionPickerFor] = useState("");
   const [forwardTargetMessage, setForwardTargetMessage] = useState(null);
   const [chatSocket, setChatSocket] = useState(null);
@@ -78,8 +64,6 @@ export default function ChatPage() {
 
   const socketRef = useRef(null);
   const messageScrollRef = useRef(null);
-  const documentInputRef = useRef(null);
-  const mediaInputRef = useRef(null);
 
   const activeUser = useMemo(
     () => users.find((user) => user.id === activeUserId),
@@ -114,29 +98,37 @@ export default function ChatPage() {
 
 
   function sendSocketMessage(payload) {
-    if (!activeUserId || !currentUserId || !socketRef.current) {
-      setError("Select a user and wait for chat connection");
-      return;
-    }
-    socketRef.current.emit(
-      "send-message",
-      { senderId: currentUserId, receiverId: activeUserId, ...payload },
-      (response) => {
-        if (!response?.ok) {
-          setError(response?.error || "Failed to send message");
-          return;
-        }
-        if (response?.message) {
-          setMessages((prev) => {
-            const exists = prev.some((msg) => msg.id === response.message.id);
-            if (exists) return prev;
-            return [...prev, response.message];
-          });
-        }
-        setError("");
+    return new Promise((resolve, reject) => {
+      if (!activeUserId || !currentUserId || !socketRef.current) {
+        const message = "Select a user and wait for chat connection";
+        setError(message);
+        reject(new Error(message));
+        return;
       }
-    );
+      socketRef.current.emit(
+        "send-message",
+        { senderId: currentUserId, receiverId: activeUserId, ...payload },
+        (response) => {
+          if (!response?.ok) {
+            const message = response?.error || "Failed to send message";
+            setError(message);
+            reject(new Error(message));
+            return;
+          }
+          if (response?.message) {
+            setMessages((prev) => {
+              const exists = prev.some((msg) => msg.id === response.message.id);
+              if (exists) return prev;
+              return [...prev, response.message];
+            });
+          }
+          setError("");
+          resolve(response?.message);
+        }
+      );
+    });
   }
+
 
   async function loadUsers() {
     try {
@@ -187,101 +179,7 @@ export default function ChatPage() {
     }
   }
 
-  async function sendMessage(event) {
-    event.preventDefault();
-    const trimmedText = messageText.trim();
-    if (!trimmedText && !pendingDocument && !pendingMedia.length) return;
 
-    if (pendingMedia.length) {
-      sendSocketMessage({ text: trimmedText, messageType: "media", attachments: pendingMedia });
-      setPendingMedia([]);
-      setMessageText("");
-    } else {
-      if (pendingDocument) {
-        sendSocketMessage({
-          text: pendingDocument.fileName || "Document",
-          messageType: "document",
-          attachment: pendingDocument,
-        });
-        setPendingDocument(null);
-      }
-      if (trimmedText) sendSocketMessage({ text: trimmedText, messageType: "text" });
-      setMessageText("");
-    }
-    setShowAttachmentFab(false);
-    setShowEmojiPicker(false);
-    setShowGifPicker(false);
-  }
-
-  function handleEmojiSelect(emojiData) {
-    if (!emojiData?.emoji) return;
-    setMessageText((prev) => `${prev}${emojiData.emoji}`);
-    setShowEmojiPicker(false);
-  }
-
-  function handleGifSelect(mediaUrl) {
-    if (!mediaUrl) return;
-    sendSocketMessage({ text: mediaUrl, messageType: "gif" });
-    setShowGifPicker(false);
-    setShowAttachmentFab(false);
-  }
-
-  async function uploadSelectedFiles(selectedFiles) {
-    const formData = new FormData();
-    selectedFiles.forEach((file) => formData.append("files", file));
-    const response = await fetch("/api/chat/upload", { method: "POST", body: formData });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Failed to upload files");
-    return data.files || [];
-  }
-
-  async function handleDocumentUpload(event) {
-    const selectedFile = event.target.files?.[0];
-    event.target.value = "";
-    if (!selectedFile) return;
-    if (!activeUserId) {
-      setError("Please select an active user to send documents");
-      return;
-    }
-    try {
-      setUploadingDocument(true);
-      setError("");
-      const uploaded = await uploadSelectedFiles([selectedFile]);
-      setPendingDocument(uploaded[0] || null);
-      setPendingMedia([]);
-      setShowAttachmentFab(false);
-      setShowEmojiPicker(false);
-      setShowGifPicker(false);
-    } catch (err) {
-      setError(err.message || "Failed to upload document");
-    } finally {
-      setUploadingDocument(false);
-    }
-  }
-
-  async function handleMediaUpload(event) {
-    const selectedFiles = Array.from(event.target.files || []);
-    event.target.value = "";
-    if (!selectedFiles.length) return;
-    if (!activeUserId) {
-      setError("Please select an active user to send media");
-      return;
-    }
-    try {
-      setUploadingMedia(true);
-      setError("");
-      const uploadedMedia = await uploadSelectedFiles(selectedFiles);
-      setPendingMedia(uploadedMedia);
-      setPendingDocument(null);
-      setShowAttachmentFab(false);
-      setShowEmojiPicker(false);
-      setShowGifPicker(false);
-    } catch (err) {
-      setError(err.message || "Failed to upload media");
-    } finally {
-      setUploadingMedia(false);
-    }
-  }
 
   useEffect(() => {
     loadUsers();
@@ -635,9 +533,6 @@ export default function ChatPage() {
   function handleSelectChatItem(item) {
     if (item.kind === "community") {
       setActiveCommunityId(item.rawId);
-      setShowAttachmentFab(false);
-      setShowEmojiPicker(false);
-      setShowGifPicker(false);
       return;
     }
 
@@ -948,145 +843,13 @@ export default function ChatPage() {
               )}
             </div>
 
-            <form className="chat-compose" onSubmit={sendMessage}>
-              <div className="chat-attachment-wrap">
-                <button
-                  className="chatmediabtn"
-                  type="button"
-                  onClick={() => setShowAttachmentFab((prev) => !prev)}
-                  disabled={!activeUserId || uploadingDocument || uploadingMedia}
-                >
-                  {showAttachmentFab ? <X className="h-4 w-4" /> : <Paperclip className="h-4 w-4" />}
-                </button>
-
-                {showAttachmentFab && (
-                  <div className="chat-fab-menu">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowEmojiPicker((p) => !p);
-                        setShowGifPicker(false);
-                      }}
-                    >
-                      <Smile size={16} /> Emoji
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowGifPicker((p) => !p);
-                        setShowEmojiPicker(false);
-                      }}
-                    >
-                      <ImageIcon size={16} /> GIF
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => mediaInputRef.current?.click()}
-                      disabled={uploadingMedia}
-                    >
-                      <Film size={16} /> {uploadingMedia ? "Uploading..." : "Photos & Videos"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => documentInputRef.current?.click()}
-                      disabled={uploadingDocument}
-                    >
-                      <FileText size={16} /> {uploadingDocument ? "Uploading..." : "Document"}
-                    </button>
-                  </div>
-                )}
-
-                {showEmojiPicker && (
-                  <div className="chat-picker">
-                    <EmojiPicker onEmojiClick={handleEmojiSelect} width={320} height={360} lazyLoadEmojis />
-                  </div>
-                )}
-
-                {showGifPicker && (
-                  <div className="chat-picker chat-gif-picker">
-                    <ChatGiphyPicker onSelect={handleGifSelect} />
-                  </div>
-                )}
-
-                <input
-                  ref={documentInputRef}
-                  type="file"
-                  className="chat-hidden-input"
-                  onChange={handleDocumentUpload}
-                  accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.zip,.rar"
-                />
-                <input
-                  ref={mediaInputRef}
-                  type="file"
-                  className="chat-hidden-input"
-                  onChange={handleMediaUpload}
-                  accept="image/*,video/mp4,video/webm,video/quicktime"
-                  multiple
-                />
-              </div>
-
-              <div className="chat-compose-inputs">
-                {pendingDocument && (
-                  <div className="chat-pending-document">
-                    <button
-                      type="button"
-                      onClick={() => setPendingDocument(null)}
-                      aria-label="Remove selected document"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                )}
-
-                {!!pendingMedia.length && (
-                  <div className="chat-pending-media-row">
-                    {pendingMedia.map((media, index) => {
-                      const isVideo = media.mimeType?.startsWith("video/");
-                      return (
-                        <div className="chat-pending-media-card" key={`pending-media-${index}`}>
-                          {isVideo ? (
-                            <video src={media.url} className="chat-pending-media-preview" muted playsInline />
-                          ) : (
-                            <img
-                              src={media.url}
-                              className="chat-pending-media-preview"
-                              alt={media.fileName || `selected media ${index + 1}`}
-                            />
-                          )}
-                        </div>
-                      );
-                    })}
-                    <button
-                      type="button"
-                      onClick={() => setPendingMedia([])}
-                      className="chat-pending-media-remove"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
-                )}
-                <input
-                  className="chatcomposeinput"
-                  type="text"
-                  placeholder={pendingMedia.length ? "Add a caption (optional)" : "Type your message"}
-                  value={messageText}
-                  onChange={(event) => setMessageText(event.target.value)}
-                  disabled={!activeUserId}
-                />
-              </div>
-              <button
-                className="chatsendbtn"
-                type="submit"
-                disabled={
-                  !activeUserId ||
-                  (!messageText.trim() && !pendingDocument && !pendingMedia.length) ||
-                  uploadingDocument ||
-                  uploadingMedia
-                }
-              >
-                Send
-              </button>
-            </form>
+            <ChatComposer
+              disabled={!activeUserId}
+              placeholder="Type your message"
+              disabledPlaceholder="Select a chat to send messages"
+              onSend={sendSocketMessage}
+              onError={setError}
+            />
 
             {error && <p className="chat-error">{error}</p>}
           </main>
