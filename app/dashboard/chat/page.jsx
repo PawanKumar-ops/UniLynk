@@ -1,4 +1,3 @@
-// app/chat/page.jsx  (or wherever your chat page lives — save as .jsx)
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -811,7 +810,7 @@ export default function ChatPage() {
 
                         <div className={`chat-message-footer ${own ? "chat-message-footer-own" : ""}`}>
                           {!own ? <div className="chat-message-avatar">{senderInitial}</div> : null}
-                          <span className="chat-meta-row mt-1 text-xs text-neutral-400">
+                          <span className="chat-meta-row mt-1 text-xs text-neutral-400 flex gap-2">
                             {formatChatTimestamp(msg.createdAt)}
                             {own ? (
                               <em className={`chat-status chat-status-${getMessageStatus(msg)}`}>
