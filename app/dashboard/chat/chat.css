@@ -169,6 +169,36 @@
   padding: 8px 14px;
 }
 
+.chat-deleted-placeholder {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  margin: 0;
+  padding: 2px 0;
+
+  color: #8696a0;
+  font-size: 14px;
+  font-style: italic;
+  line-height: 1.4;
+
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+
+  pointer-events: none;
+  cursor: default;
+}
+
+.chat-deleted-placeholder svg {
+  flex-shrink: 0;
+  opacity: 0.85;
+}
+
+.chat-bubble-own .chat-deleted-placeholder {
+  color: rgba(255, 255, 255, 0.75);
+}
+
 .chat-message-wrap:not(.chat-message-wrap-own) .chat-bubble {
   margin-left: 40px;
 }
@@ -674,6 +704,183 @@
   width: 100%;
 }
 
+/* Search input in chat header */
+.chat-text-search-input {
+  width: 0;
+  opacity: 0;
+
+  height: 38px;
+  padding: 0;
+
+  border: 1px solid transparent;
+  border-radius: 999px;
+
+  background: #f5f5f5;
+  color: #111827;
+
+  font-size: 14px;
+  font-weight: 500;
+
+  outline: none;
+
+  transition:
+    width 0.28s ease,
+    opacity 0.28s ease,
+    padding 0.28s ease,
+    border-color 0.28s ease,
+    box-shadow 0.28s ease,
+    margin-left 0.28s ease;
+
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.chat-text-search-input::placeholder {
+  color: #9ca3af;
+}
+
+.chat-text-search-input:focus {
+  border-color: #d4d4d4;
+  background: #ffffff;
+  outline: none;
+
+}
+.chat-text-search-input-open {
+  width: 240px;
+  opacity: 1;
+  padding: 0 14px;
+  margin-left: 8px;
+  border-color: #e5e7eb;
+}
+
+/* Search container: rounded background with icon inside */
+.chat-search-wrapper {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  transition: all 0.25s ease;
+}
+
+/* CLOSED STATE */
+.chat-search-wrapper:not(.open) {
+  width: 34px;
+  height: 34px;
+
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 50%;
+  padding: 0;
+
+  flex: 0 0 34px;
+}
+
+.chat-search-wrapper:not(.open) svg {
+  width: 16px !important;
+  height: 16px !important;
+
+  margin: 0 !important;
+  padding: 0 !important;
+
+  display: block;
+}
+
+/* OPEN STATE */
+.chat-search-wrapper.open {
+  width: 320px;          /* keep same width */
+  height: 34px;          /* smaller */
+  padding: 0 12px;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  background: #f0f2f5;
+  border-radius: 999px;
+
+  flex-shrink: 0;
+}
+
+.chat-search-wrapper.open .chat-search-icon {
+  width: 16px;
+  height: 16px;
+  color: #8696a0;
+  flex-shrink: 0;
+}
+
+.chat-search-wrapper.open .chat-text-search-input {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+
+  border: none;
+  outline: none;
+  background: transparent;
+
+  font-size: 15px;
+  font-weight: 400;
+  color: #3b4a54;
+
+  opacity: 1;
+  padding: 0;
+  box-shadow: none;
+}
+
+.chat-search-wrapper.open .chat-text-search-input::placeholder {
+  color: #8696a0;
+}
+
+.chat-search-icon {
+  width: 16px;
+  height: 16px;
+  display: block;
+  flex-shrink: 0;
+  color: var(--wa-text-sub);
+}
+
+/* EXACT SAME AS .wa-icon-btn HOVER */
+.chat-search-wrapper:not(.open):hover {
+  background: rgba(11, 20, 26, .06);
+}
+
+.chat-search-wrapper:not(.open):hover .chat-search-icon {
+  color: var(--wa-text);
+}
+
+
+
+
+/* Input transitions – maintain existing behavior */
+.chat-text-search-input {
+  width: 0;
+  opacity: 0;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: #f5f5f5;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 500;
+  outline: none;
+  transition: width 0.28s ease, opacity 0.28s ease, padding 0.28s ease, border-color 0.28s ease, box-shadow 0.28s ease, margin-left 0.28s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+}
+.chat-text-search-input::placeholder {
+  color: #9ca3af;
+}
+.chat-text-search-input:focus {
+  border-color: #d4d4d4;
+  background: #ffffff;
+  outline: none;
+}
+.chat-text-search-input-open {
+  width: 240px;
+  opacity: 1;
+  padding: 0 14px;
+  margin-left: 0; /* margin handled by container */
+  border-color: #e5e7eb;
+}
+
+
 .chatsendbtn {
   border: none;
   background: #2f6fed;
@@ -907,7 +1114,7 @@
   align-items: center;
   gap: 8px;
   border: 1px solid #ddd;
-  border-radius: 12px;
+  border-radius: 999px;
   background: #fafafa;
   padding: 0 10px;
 }

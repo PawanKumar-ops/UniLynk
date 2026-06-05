@@ -11,6 +11,8 @@ import {
   MoreVertical,
   SmilePlus,
   Trash2,
+  Ban,
+  Users,
 } from "lucide-react";
 import "./chat.css";
 import ReliableImage from "@/components/ReliableImage";
@@ -49,13 +51,16 @@ export default function ChatPage() {
   const [loadingUsers, setLoadingUsers] = useState(true);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [error, setError] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState(""); // sidebar filter
+  const [showSearch, setShowSearch] = useState(false);
+  const [chatSearchTerm, setChatSearchTerm] = useState(""); // chat messages search
   const [activeFilter, setActiveFilter] = useState("all");
   const [activeReactionPickerFor, setActiveReactionPickerFor] = useState("");
   const [forwardTargetMessage, setForwardTargetMessage] = useState(null);
   const [chatSocket, setChatSocket] = useState(null);
   const [deleteTargetMessage, setDeleteTargetMessage] = useState(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   // ---------- Community state ----------
   const [communities, setCommunities] = useState([]);
@@ -66,6 +71,8 @@ export default function ChatPage() {
   const messageScrollRef = useRef(null);
   const activeUserIdRef = useRef("");
   const currentUserIdRef = useRef("");
+  const menuRef = useRef(null);
+  const chatSearchRef = useRef(null);
 
   const activeUser = useMemo(
     () => users.find((user) => user.id === activeUserId),
@@ -212,6 +219,19 @@ export default function ChatPage() {
     );
     if (hasUnreadIncoming) markActiveThreadAsRead();
   }, [messages, activeUserId, currentUserId]);
+
+  useEffect(() => {
+    function onClick(event) {
+      if (!menuRef.current?.contains(event.target)) setMenuOpen(false);
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (target.closest(".chat-reaction-picker") || target.closest(".chat-bubble-action-btn")) return;
+      setActiveReactionPickerFor("");
+    }
+
+    document.addEventListener("mousedown", onClick);
+    return () => document.removeEventListener("mousedown", onClick);
+  }, []);
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -518,6 +538,16 @@ export default function ChatPage() {
     });
   }, [conversations, communityItems, searchTerm, activeFilter]);
 
+  // Filter messages based on search term
+  const filteredMessages = useMemo(() => {
+    if (!chatSearchTerm) return messages;
+    const term = chatSearchTerm.toLowerCase();
+    return messages.filter((msg) => {
+      const text = msg.text?.toString().toLowerCase() || "";
+      return text.includes(term);
+    });
+  }, [messages, chatSearchTerm]);
+
   const forwardingTargetItems = useMemo(() => {
     const directTargets = users
       .filter((user) => user.id !== currentUserId)
@@ -606,19 +636,63 @@ export default function ChatPage() {
                     <p>{activeUser.email}</p>
                   </div>
 
-                  <button
-                    className="wa-icon-btn"
-                    aria-label="Search messages"
-                  >
-                    <Search size={16} />
-                  </button>
+                  <div
+  className={`chat-search-wrapper ${showSearch ? "open" : ""}`}
+  onClick={() => {
+    if (!showSearch) {
+      setShowSearch(true);
+      setTimeout(() => chatSearchRef.current?.focus(), 0);
+    }
+  }}
+>
+  <Search className="chat-search-icon" size={16} />
 
-                  <button
-                    className="wa-icon-btn"
-                    aria-label="More options"
-                  >
-                    <MoreVertical size={16} />
-                  </button>
+  {showSearch && (
+    <input
+      ref={chatSearchRef}
+      type="text"
+      placeholder="Search students, clubs, events..."
+      value={chatSearchTerm}
+      onChange={(e) => setChatSearchTerm(e.target.value)}
+      className="chat-text-search-input"
+      onBlur={() => {
+        if (!chatSearchTerm) setShowSearch(false);
+      }}
+    />
+  )}
+</div>
+
+                  <div className="wa-menu-wrap" ref={menuRef}>
+                    <button
+                      className="wa-icon-btn"
+                      onClick={() => setMenuOpen((prev) => !prev)}
+                      aria-label="Community menu"
+                    >
+                      <MoreVertical size={16} />
+                    </button>
+
+                    {menuOpen && (
+                      <div className="wa-menu">
+                        <button
+                          onClick={() => {
+                            setMenuOpen(false);
+                          }}
+                        >
+                          <Ban size={14} />
+                          Block User
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setMenuOpen(false);
+                          }}
+                        >
+                          <Users size={14} />
+                          View Profile
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </>
               ) : (
                 <h2>Select a user</h2>
@@ -635,7 +709,7 @@ export default function ChatPage() {
                   </div>
                 </div>
               ) : (
-                messages.map((msg) => {
+                filteredMessages.map((msg) => {
                   const own = msg.sender === currentUserId;
                   const senderInitial = (activeUser?.name || activeUser?.email || "A")[0]?.toUpperCase() || "A";
 
@@ -708,7 +782,10 @@ export default function ChatPage() {
                           </div>
 
                           {msg.deletedForEveryone ? (
-                            <p className="chat-text-message chat-deleted-placeholder">This message was deleted</p>
+                            <p className="chat-deleted-placeholder">
+                              <Ban size={14} strokeWidth={2} />
+                              <span>This message was deleted</span>
+                            </p>
                           ) : msg.messageType === "gif" ? (
                             /\.mp4($|\?)/i.test(msg.text) ? (
                               <video src={msg.text} autoPlay loop muted playsInline className="chat-gif" />
