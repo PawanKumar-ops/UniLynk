@@ -15,6 +15,7 @@ import {
     Trash2,
     Undo2,
     Users,
+    Building2
 } from "lucide-react";
 import ReliableImage from "@/components/ReliableImage";
 import NewGroupModal from "./NewGroupModal";
@@ -454,27 +455,12 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
                                     <Users size={14} /> View members
                                 </button>
                                 <button onClick={() => setMenuOpen(false)}>
-                                    <Bell size={14} /> Notifications
+                                    <Building2 size={14} /> View club
                                 </button>
-                                <button onClick={() => setMenuOpen(false)}>Community info</button>
                             </div>
                         )}
                     </div>
                 </header>
-
-                {/* <div className="wa-community-card">
-                    <div className="wa-community-card-avatar">
-                        {community.image ? (
-                            <ReliableImage src={community.image} fallbackSrc="/Profilepic.png" alt={community.name} width={56} height={56} />
-                        ) : (
-                            (community.name || "C")[0]?.toUpperCase()
-                        )}
-                    </div>
-                    <div className="wa-community-card-body">
-                        <strong>{community.name}</strong>
-                        <span>{community.description || `Community by ${community.clubName || "Club"}`}</span>
-                    </div>
-                </div> */}
 
                 <div className="wa-rail-section">
                     <div className="wa-rail-section-head">
