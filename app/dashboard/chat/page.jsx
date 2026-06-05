@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { io } from "socket.io-client";
 import {
   Check,
@@ -20,6 +21,7 @@ import ChatComposer from "@/components/shared/ChatComposer";
 import CommunityPanel from "@/components/CommunityPanel";
 import { DeleteMessageModal } from "@/components/DeleteMessageModal";
 import { ForwardMessageModal } from "@/components/ForwardMessageModal";
+import { BlockedModal } from "@/components/BlockedModal";
 
 function formatChatTimestamp(dateValue) {
   if (!dateValue) return "";
@@ -44,6 +46,7 @@ function formatBytes(size = 0) {
 }
 
 export default function ChatPage() {
+  const router = useRouter();
   const [users, setUsers] = useState([]);
   const [currentUserId, setCurrentUserId] = useState("");
   const [activeUserId, setActiveUserId] = useState("");
@@ -61,6 +64,9 @@ export default function ChatPage() {
   const [deleteTargetMessage, setDeleteTargetMessage] = useState(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [blockedUsers, setBlockedUsers] = useState([]);
+  const [blockedBy, setBlockedBy] = useState([]);
+  const [showBlockedModal, setShowBlockedModal] = useState(false);
 
   // ---------- Community state ----------
   const [communities, setCommunities] = useState([]);
@@ -155,6 +161,8 @@ export default function ChatPage() {
       if (!response.ok) throw new Error(data.error || "Failed to load users");
       setUsers(data.users || []);
       setCurrentUserId(data.currentUserId || "");
+      setBlockedUsers(data.blockedUsers || []);
+      setBlockedBy(data.blockedBy || []);
       if ((data.users || []).length > 0) {
         setActiveUserId((prev) => prev || data.users[0].id);
       }
@@ -246,6 +254,28 @@ export default function ChatPage() {
         setChatSocket(socket);
 
         socket.on("connect", () => socket.emit("register-user", currentUserId));
+
+        socket.on("user-blocked-state-changed", ({ blockerId, blockedId, action }) => {
+          const signedInUserId = currentUserIdRef.current;
+          if (blockerId === signedInUserId) {
+            setBlockedUsers((prev) => {
+              if (action === "block") {
+                return prev.includes(blockedId) ? prev : [...prev, blockedId];
+              } else {
+                return prev.filter((id) => id !== blockedId);
+              }
+            });
+          }
+          if (blockedId === signedInUserId) {
+            setBlockedBy((prev) => {
+              if (action === "block") {
+                return prev.includes(blockerId) ? prev : [...prev, blockerId];
+              } else {
+                return prev.filter((id) => id !== blockerId);
+              }
+            });
+          }
+        });
 
         socket.on("new-message", (incomingMessage) => {
           const openUserId = activeUserIdRef.current;
@@ -604,6 +634,52 @@ export default function ChatPage() {
     );
   }
 
+  useEffect(() => {
+    if (activeUserId && blockedBy.includes(activeUserId)) {
+      setShowBlockedModal(true);
+    } else {
+      setShowBlockedModal(false);
+    }
+  }, [activeUserId, blockedBy]);
+
+  async function handleToggleBlock(targetUserId, action) {
+    setMenuOpen(false);
+    if (!targetUserId) return;
+
+    const applyBlockResult = (updatedBlockedUsers) => {
+      setBlockedUsers(updatedBlockedUsers);
+      setError("");
+    };
+
+    if (socketRef.current?.connected) {
+      socketRef.current.emit(
+        "block-user",
+        { targetUserId, action },
+        (response) => {
+          if (!response?.ok) {
+            setError(response?.error || "Failed to toggle block status");
+            return;
+          }
+          applyBlockResult(response.blockedUsers || []);
+        }
+      );
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/chat/block", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetUserId, action }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Failed to toggle block status");
+      applyBlockResult(data.blockedUsers || []);
+    } catch (err) {
+      setError(err.message || "Failed to toggle block status");
+    }
+  }
+
   return (
     <div className={`chat-page ${activeCommunity ? "chat-page-community-mode" : ""}`}>
       {activeCommunity ? (
@@ -675,16 +751,20 @@ export default function ChatPage() {
                       <div className="wa-menu">
                         <button
                           onClick={() => {
-                            setMenuOpen(false);
+                            const isBlocked = blockedUsers.includes(activeUserId);
+                            handleToggleBlock(activeUserId, isBlocked ? "unblock" : "block");
                           }}
                         >
                           <Ban size={14} />
-                          Block User
+                          {blockedUsers.includes(activeUserId) ? "Unblock User" : "Block User"}
                         </button>
 
                         <button
                           onClick={() => {
                             setMenuOpen(false);
+                            if (activeUserId) {
+                              router.push(`/dashboard/Userprofile?userId=${activeUserId}`);
+                            }
                           }}
                         >
                           <Users size={14} />
@@ -935,9 +1015,21 @@ export default function ChatPage() {
             </div>
 
             <ChatComposer
-              disabled={!activeUserId}
-              placeholder="Type your message"
-              disabledPlaceholder="Select a chat to send messages"
+              disabled={!activeUserId || blockedUsers.includes(activeUserId) || blockedBy.includes(activeUserId)}
+              placeholder={
+                blockedUsers.includes(activeUserId)
+                  ? "You have blocked this user. Unblock to message."
+                  : blockedBy.includes(activeUserId)
+                  ? "You cannot message this user."
+                  : "Type your message"
+              }
+              disabledPlaceholder={
+                blockedUsers.includes(activeUserId)
+                  ? "You have blocked this user. Unblock to message."
+                  : blockedBy.includes(activeUserId)
+                  ? "You cannot message this user."
+                  : "Select a chat to send messages"
+              }
               onSend={sendSocketMessage}
               onError={setError}
             />
@@ -1039,6 +1131,12 @@ export default function ChatPage() {
         message={forwardTargetMessage}
         recipients={forwardingTargetItems}
         onForward={handleForwardMessage}
+      />
+
+      <BlockedModal
+        open={showBlockedModal}
+        onOpenChange={setShowBlockedModal}
+        userName={activeUser?.name}
       />
 
     </div>

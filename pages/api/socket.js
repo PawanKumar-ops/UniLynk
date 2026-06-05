@@ -129,6 +129,62 @@ export default function handler(req, res) {
         socket.join(userId);
       });
 
+      socket.on("block-user", async (payload, callback) => {
+        try {
+          const { targetUserId, action } = payload || {};
+          const userId = socket.data.userId;
+
+          if (!targetUserId || !userId || !action) {
+            callback?.({ ok: false, error: "Invalid payload" });
+            return;
+          }
+
+          if (!mongoose.Types.ObjectId.isValid(targetUserId) || !mongoose.Types.ObjectId.isValid(userId)) {
+            callback?.({ ok: false, error: "Invalid ids" });
+            return;
+          }
+
+          if (action !== "block" && action !== "unblock") {
+            callback?.({ ok: false, error: "Invalid action" });
+            return;
+          }
+
+          await connectDB();
+          const currentUser = await User.findById(userId);
+          if (!currentUser) {
+            callback?.({ ok: false, error: "User not found" });
+            return;
+          }
+
+          if (action === "block") {
+            if (!currentUser.blockedUsers) currentUser.blockedUsers = [];
+            const isAlreadyBlocked = currentUser.blockedUsers.some(
+              (id) => id.toString() === targetUserId
+            );
+            if (!isAlreadyBlocked) {
+              currentUser.blockedUsers.push(new mongoose.Types.ObjectId(targetUserId));
+              await currentUser.save();
+            }
+          } else {
+            if (currentUser.blockedUsers) {
+              currentUser.blockedUsers = currentUser.blockedUsers.filter(
+                (id) => id.toString() !== targetUserId
+              );
+              await currentUser.save();
+            }
+          }
+
+          const eventPayload = { blockerId: userId, blockedId: targetUserId, action };
+          io.to(userId).emit("user-blocked-state-changed", eventPayload);
+          io.to(targetUserId).emit("user-blocked-state-changed", eventPayload);
+
+          callback?.({ ok: true, blockedUsers: currentUser.blockedUsers.map(id => id.toString()) });
+        } catch (error) {
+          console.error("SOCKET BLOCK USER ERROR:", error);
+          callback?.({ ok: false, error: "Failed to block/unblock user" });
+        }
+      });
+
       socket.on("join-community", async (payload, callback) => {
         try {
           const { communityId, userId } = payload || {};
@@ -420,14 +476,30 @@ export default function handler(req, res) {
           }
 
           await connectDB();
-
+ 
           const [senderUser, receiverUser] = await Promise.all([
-            User.findById(senderId).select("_id"),
-            User.findById(receiverId).select("_id"),
+            User.findById(senderId).select("_id blockedUsers"),
+            User.findById(receiverId).select("_id blockedUsers"),
           ]);
-
+ 
           if (!senderUser || !receiverUser) {
             callback?.({ ok: false, error: "User not found" });
+            return;
+          }
+
+          const isBlockedByReceiver = (receiverUser.blockedUsers || []).some(
+            (id) => id.toString() === senderId
+          );
+          if (isBlockedByReceiver) {
+            callback?.({ ok: false, error: "You are blocked by this user." });
+            return;
+          }
+
+          const isBlockedBySender = (senderUser.blockedUsers || []).some(
+            (id) => id.toString() === receiverId
+          );
+          if (isBlockedBySender) {
+            callback?.({ ok: false, error: "You have blocked this user. Unblock to send messages." });
             return;
           }
 

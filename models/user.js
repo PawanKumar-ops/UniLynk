@@ -38,6 +38,10 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  blockedUsers: {
+    type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    default: [],
+  },
 
 });
 

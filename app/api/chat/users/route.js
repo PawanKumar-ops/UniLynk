@@ -18,6 +18,10 @@ export async function GET() {
       return Response.json({ error: "Current user not found" }, { status: 404 });
     }
 
+    const blockedUsers = (currentUser.blockedUsers || []).map((id) => id.toString());
+    const usersWhoBlockedMe = await User.find({ blockedUsers: currentUser._id }).select("_id").lean();
+    const blockedBy = usersWhoBlockedMe.map((u) => u._id.toString());
+
     const users = await User.find({ _id: { $ne: currentUser._id } })
       .select("name email img")
       .sort({ name: 1 });
@@ -31,6 +35,8 @@ export async function GET() {
 
     return Response.json({
       currentUserId: currentUser._id.toString(),
+      blockedUsers,
+      blockedBy,
       users: mappedUsers,
     });
   } catch (error) {

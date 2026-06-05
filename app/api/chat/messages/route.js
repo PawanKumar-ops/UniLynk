@@ -121,6 +121,25 @@ export async function POST(req) {
       return Response.json({ error: "Valid receiverId is required" }, { status: 400 });
     }
 
+    const receiverUser = await User.findById(receiverId).select("blockedUsers");
+    if (!receiverUser) {
+      return Response.json({ error: "Receiver not found" }, { status: 404 });
+    }
+
+    const isBlockedByReceiver = (receiverUser.blockedUsers || []).some(
+      (id) => id.toString() === currentUser._id.toString()
+    );
+    if (isBlockedByReceiver) {
+      return Response.json({ error: "You are blocked by this user." }, { status: 403 });
+    }
+
+    const isBlockedBySender = (currentUser.blockedUsers || []).some(
+      (id) => id.toString() === receiverId
+    );
+    if (isBlockedBySender) {
+      return Response.json({ error: "You have blocked this user. Unblock to send messages." }, { status: 403 });
+    }
+
     const normalizedType = ALLOWED_MESSAGE_TYPES.includes(messageType)
       ? messageType
       : "text";
