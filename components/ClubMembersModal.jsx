@@ -41,8 +41,8 @@ export function MembersModal({ MemberModalopen, onClose, clubData }) {
       email: String(leader.email || "").trim().toLowerCase(),
       name: leader.name || String(leader.email || "").split("@")[0] || "Member",
       role: leader.position || "Leader",
-      image: leader.image || "/Profilepic.png",
-      userId: leader.userId || null,
+      image: leader.image || leader.profilePicture || "/Profilepic.png",
+      userId: leader.userId || leader.id || null,
       isLeader: true,
     }));
 
@@ -53,8 +53,8 @@ export function MembersModal({ MemberModalopen, onClose, clubData }) {
         email: String(member.email || "").trim().toLowerCase(),
         name: member.name || String(member.email || "").split("@")[0] || "Member",
         role: "Member",
-        image: member.profilePicture || "/Profilepic.png",
-        userId: member.userId || null,
+        image: member.image || member.profilePicture || "/Profilepic.png",
+        userId: member.userId || member.id || null,
         isLeader: false,
       }));
 
@@ -149,9 +149,10 @@ export function MembersModal({ MemberModalopen, onClose, clubData }) {
               <ul className="space-y-1">
                 {filteredMembers.map((m, i) => {
                   const openProfile = () => {
-                    if (!m.userId) return;
+                    const targetId = m.userId || m.id;
+                    if (!targetId) return;
                     onClose();
-                    router.push(`/dashboard/Userprofile?userId=${m.userId}`);
+                    router.push(`/dashboard/Userprofile?userId=${targetId}`);
                   };
 
                   return (

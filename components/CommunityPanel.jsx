@@ -22,6 +22,7 @@ import ReliableImage from "@/components/ReliableImage";
 import NewGroupModal from "./NewGroupModal";
 import { DeleteMessageModal } from "@/components/DeleteMessageModal";
 import ChatComposer from "@/components/shared/ChatComposer";
+import { MembersModal } from "@/components/ClubMembersModal";
 
 function getDefaultGroupId(groups = []) {
     return groups.find((group) => group.isAnnouncement)?.id || groups[0]?.id || "";
@@ -55,6 +56,7 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
     const [showSearch, setShowSearch] = useState(false);
     const [messageSearchTerm, setMessageSearchTerm] = useState("");
     const [showNewGroupModal, setShowNewGroupModal] = useState(false);
+    const [memberModalOpen, setMemberModalOpen] = useState(false);
     const [messagesByGroup, setMessagesByGroup] = useState({});
     const [loadingMessages, setLoadingMessages] = useState(false);
     const [error, setError] = useState("");
@@ -476,12 +478,13 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
                                 >
                                     <Plus size={14} /> New group
                                 </button>
-                                <button onClick={() => setMenuOpen(false)}>
+                                <button onClick={() => { setMenuOpen(false); setMemberModalOpen(true); }}>
                                     <Users size={14} /> View members
                                 </button>
-                                <button onClick={() => setMenuOpen(false)}>
+                                <button onClick={() => { setMenuOpen(false); if (community?.clubId) router.push(`/Club?clubId=${community.clubId}`); }}>
                                     <Building2 size={14} /> View club
                                 </button>
+
                             </div>
                         )}
                     </div>
@@ -547,10 +550,12 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
                             </div>
                             <div className="wa-chat-head-info">
                                 <h2>{activeGroup.name}</h2>
-                                <p>
-                                    {activeGroup.memberCount} members
-                                    {activeGroup.description ? ` · ${activeGroup.description}` : ""}
-                                </p>
+                                {!showSearch && (
+                                    <p>
+                                        {activeGroup.memberCount} members
+                                        {activeGroup.description ? ` · ${activeGroup.description}` : ""}
+                                    </p>
+                                )}
                             </div>
                             <div
                                 className={`chat-search-wrapper ${showSearch ? "open" : ""}`}
@@ -763,6 +768,13 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
                     onCreate={handleCreateGroup}
                 />
             )}
-        </div>
+    {memberModalOpen && (
+        <MembersModal
+          MemberModalopen={memberModalOpen}
+          onClose={() => setMemberModalOpen(false)}
+          clubData={community}
+        />
+      )}
+    </div>
     );
 }

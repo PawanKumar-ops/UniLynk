@@ -709,7 +709,7 @@ export default function ChatPage() {
 
                   <div className="wa-chat-head-info">
                     <h2>{activeUser.name}</h2>
-                    <p>{activeUser.email}</p>
+                    {!showSearch && <p>{activeUser.email}</p>}
                   </div>
 
                   <div
