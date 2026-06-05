@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
     ArrowLeft,
     Bell,
@@ -44,10 +45,14 @@ function mergeMessages(existingMessages = [], incomingMessages = []) {
 }
 
 export default function CommunityPanel({ community, currentUserId, socket, onBack, onGroupCreated, onForwardMessage }) {
-    const groups = Array.isArray(community?.groups) ? community.groups : [];
-    const members = Array.isArray(community?.members) ? community.members : [];
+    const router = useRouter();
+    const groups = useMemo(() => (Array.isArray(community?.groups) ? community.groups : []), [community?.groups]);
+    const members = useMemo(() => (Array.isArray(community?.members) ? community.members : []), [community?.members]);
     const [activeGroupId, setActiveGroupId] = useState(() => getDefaultGroupId(groups));
     const [menuOpen, setMenuOpen] = useState(false);
+    const [groupMenuOpen, setGroupMenuOpen] = useState(false);
+    const [showSearch, setShowSearch] = useState(false);
+    const [messageSearchTerm, setMessageSearchTerm] = useState("");
     const [showNewGroupModal, setShowNewGroupModal] = useState(false);
     const [messagesByGroup, setMessagesByGroup] = useState({});
     const [loadingMessages, setLoadingMessages] = useState(false);
@@ -56,6 +61,8 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
     const [deleteTargetMessage, setDeleteTargetMessage] = useState(null);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const menuRef = useRef(null);
+    const groupMenuRef = useRef(null);
+    const messageSearchRef = useRef(null);
     const scrollRef = useRef(null);
     const latestFetchRef = useRef(0);
 
@@ -63,7 +70,21 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
         () => groups.find((group) => group.id === activeGroupId) || null,
         [groups, activeGroupId]
     );
-    const activeMessages = activeGroupId ? messagesByGroup[activeGroupId] || [] : [];
+    const activeMessages = useMemo(
+        () => (activeGroupId ? messagesByGroup[activeGroupId] || [] : []),
+        [activeGroupId, messagesByGroup]
+    );
+    const filteredActiveMessages = useMemo(() => {
+        if (!messageSearchTerm) return activeMessages;
+        const term = messageSearchTerm.toLowerCase();
+        return activeMessages.filter((message) => {
+            const text = message.text?.toString().toLowerCase() || "";
+            const senderName = message.senderName?.toString().toLowerCase() || "";
+            const fileName = message.attachment?.fileName?.toString().toLowerCase() || "";
+            const postContent = message.sharedPost?.content?.toString().toLowerCase() || "";
+            return text.includes(term) || senderName.includes(term) || fileName.includes(term) || postContent.includes(term);
+        });
+    }, [activeMessages, messageSearchTerm]);
     const canPostInActiveGroup = !!activeGroup && (!activeGroup.isAnnouncement || community.isAdmin);
 
     useEffect(() => {
@@ -71,11 +92,15 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
         if (!activeGroupId || !groups.some((group) => group.id === activeGroupId)) {
             setActiveGroupId(fallbackGroupId);
         }
+        setMessageSearchTerm("");
+        setShowSearch(false);
+        setGroupMenuOpen(false);
     }, [groups, activeGroupId]);
 
     useEffect(() => {
         function onClick(event) {
             if (!menuRef.current?.contains(event.target)) setMenuOpen(false);
+            if (!groupMenuRef.current?.contains(event.target)) setGroupMenuOpen(false);
             const target = event.target;
             if (!(target instanceof Element)) return;
             if (target.closest(".chat-reaction-picker") || target.closest(".chat-bubble-action-btn")) return;
@@ -143,7 +168,7 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
             socket.off("community-message-deleted", handleCommunityDeletion);
             socket.off("community-message-reactions-updated", handleCommunityReactions);
         };
-    }, [socket, community?.id, currentUserId]);
+    }, [socket, community?.id, currentUserId, activeReactionPickerFor]);
 
     useEffect(() => {
         if (!community?.id || !activeGroupId) return;
@@ -541,12 +566,58 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
                                     {activeGroup.description ? ` · ${activeGroup.description}` : ""}
                                 </p>
                             </div>
-                            <button className="wa-icon-btn" aria-label="Search messages">
-                                <Search size={16} />
-                            </button>
-                            <button className="wa-icon-btn" aria-label="More options">
-                                <MoreVertical size={16} />
-                            </button>
+                            <div
+                                className={`chat-search-wrapper ${showSearch ? "open" : ""}`}
+                                onClick={() => {
+                                    if (!showSearch) {
+                                        setShowSearch(true);
+                                        setTimeout(() => messageSearchRef.current?.focus(), 0);
+                                    }
+                                }}
+                            >
+                                <Search className="chat-search-icon" size={16} />
+
+                                {showSearch && (
+                                    <input
+                                        ref={messageSearchRef}
+                                        type="text"
+                                        placeholder="Search messages..."
+                                        value={messageSearchTerm}
+                                        onChange={(event) => setMessageSearchTerm(event.target.value)}
+                                        className="chat-text-search-input"
+                                        onBlur={() => {
+                                            if (!messageSearchTerm) setShowSearch(false);
+                                        }}
+                                    />
+                                )}
+                            </div>
+
+                            <div className="wa-menu-wrap" ref={groupMenuRef}>
+                                <button
+                                    className="wa-icon-btn"
+                                    onClick={() => setGroupMenuOpen((prev) => !prev)}
+                                    aria-label="More options"
+                                >
+                                    <MoreVertical size={16} />
+                                </button>
+
+                                {groupMenuOpen && (
+                                    <div className="wa-menu">
+                                        <button
+                                            onClick={() => {
+                                                setGroupMenuOpen(false);
+                                                if (community.clubId) {
+                                                    router.push(`/Club?clubId=${community.clubId}`);
+                                                }
+                                            }}
+                                            disabled={!community.clubId}
+                                        >
+                                            <Users size={14} />
+                                            View Club
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
                         </header>
 
                         <div className="wa-chat-scroll" ref={scrollRef}>
@@ -569,7 +640,7 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
                                     <p>This is the start of the conversation. Say hi 👋</p>
                                 </div>
                             ) : (
-                                activeMessages.map((message) => {
+                                filteredActiveMessages.map((message) => {
                                     const own = message.senderId === currentUserId;
                                     return (
                                         <div

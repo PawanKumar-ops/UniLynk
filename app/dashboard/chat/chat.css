@@ -1723,6 +1723,16 @@
 .wa-chat-head-info {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
+}
+
+.wa-chat-head-info h2,
+.wa-chat-head-info p {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .wa-chat-head-info h2 {
