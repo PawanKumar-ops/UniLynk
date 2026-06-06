@@ -2,13 +2,23 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
+import Avatar from "./Avatar";
 import * as XLSX from "xlsx";
 import {
   BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, Area, AreaChart,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 
-const COLORS = ["#ff3d8b", "#ff7a3d", "#ffc93d", "#22c55e", "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899"];
+const COLORS = [
+  "#5B8FF9",
+  "#9270CA",
+  "#5AD8A6",
+  "#F6BD16",
+  "#E8684A",
+  "#6DC8EC",
+  "#269A99",
+  "#F6903D",
+];
 
 const QUESTION_TYPE_LABELS = {
   short: "Short answer",
@@ -48,6 +58,30 @@ const findAnswer = (response, questions, matcher) => {
 };
 
 const isFilled = (value) => Array.isArray(value) ? value.length > 0 : Boolean(value);
+
+const getInitials = (name) => {
+  const parts = name.trim().split(/\s+/).filter(p => p.toLowerCase() !== "and");
+  return parts.map(p => p[0].toUpperCase()).join("");
+};
+
+const getAvatarColor = (name) => {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
+};
+const AVATAR_COLORS = [
+  { bg: "#e8e3f7", fg: "#6e56cf" },
+  { bg: "#fde8e8", fg: "#c0392b" },
+  { bg: "#e3f0fd", fg: "#2b7bc0" },
+  { bg: "#e6f7ee", fg: "#27ae60" },
+  { bg: "#fdf3e3", fg: "#d68910" },
+  { bg: "#fde8f5", fg: "#8e44ad" },
+  { bg: "#e3fdf9", fg: "#16a085" },
+  { bg: "#fdf5e3", fg: "#ca6f1e" },
+];
+
 
 const toDateKey = (value) => {
   const date = new Date(value);
@@ -253,7 +287,7 @@ function SummaryView({ rows, allRows, form, questions }) {
   })).filter((item) => item.value > 0), [rows, questions]);
 
   const year = countBy(rows, "year").sort((a, b) => a.name.localeCompare(b.name));
-  const dept = countBy(rows, "department");
+  const dept = countBy(rows, "department").map(d => ({ name: getInitials(d.name).toUpperCase(), value: d.value }));
   const latest = rows.reduce((latestRow, row) => !latestRow || new Date(row.submittedAt) > new Date(latestRow.submittedAt) ? row : latestRow, null);
 
   return (
@@ -448,7 +482,10 @@ function IndividualView({ rows, questions }) {
   return (
     <div className="cc-indiv">
       <aside className="cc-indiv-list">
-        <div className="cc-indiv-list-head">Submissions</div>
+        <div className="cc-indiv-list-head">
+          <span>Submissions</span>
+          <span className="cc-indiv-list-badge">{rows.length}</span>
+        </div>
         <div className="cc-indiv-list-scroll">
           {rows.map((r) => (
             <button
@@ -456,8 +493,11 @@ function IndividualView({ rows, questions }) {
               onClick={() => setSelectedId(r.id)}
               className={"cc-indiv-item " + (r.id === selected?.id ? "cc-indiv-item-active" : "")}
             >
-              <div className="cc-indiv-name">{r.name}</div>
-              <div className="cc-indiv-meta">{r.event} · {new Date(r.submittedAt).toLocaleDateString()}</div>
+              <Avatar name={r.name} src={r.user?.img || r.user?.profilePicture} />
+              <div className="cc-indiv-info">
+                <div className="cc-indiv-name">{r.name}</div>
+                <div className="cc-indiv-meta">{r.event} · {new Date(r.submittedAt).toLocaleDateString()}</div>
+              </div>
             </button>
           ))}
         </div>
@@ -516,8 +556,9 @@ function Card({ title, wide, className = "", children }) {
 function StatCard({ label, value, sub, color, small }) {
   return (
     <div className="cc-stat">
-      <div className="cc-stat-dot" style={{ background: color }} />
-      <div className="cc-stat-label">{label}</div>
+      <div className="cc-stat-label">
+        {label}
+      </div>
       <div className={"cc-stat-value " + (small ? "cc-stat-value-sm" : "")}>{value}</div>
       <div className="cc-stat-sub">{sub}</div>
     </div>
@@ -820,21 +861,44 @@ function Styles() {
 
       /* Stat card */
       .cc-stat {
-        background: var(--card); border: 1px solid var(--border);
-        border-radius: 18px; padding: 20px; position: relative; overflow: hidden;
+        background: #fff;
+        border: 1px solid #e9e9e7;
+        border-radius: 14px;
+        padding: 20px 22px 18px;
+        display: flex;
+        flex-direction: column;
+        transition: box-shadow 0.15s;
       }
-      .cc-stat-dot {
-        width: 10px; height: 10px; border-radius: 50%; margin-bottom: 12px;
-        box-shadow: 0 0 0 4px rgba(0,0,0,0.04);
+      .cc-stat:hover {
+        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
       }
-      .cc-stat-label { font-size: 12px; color: var(--muted); }
+      .cc-stat-label {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 12px;
+        color: #9b9a97;
+        font-weight: 500;
+      }
       .cc-stat-value {
         font-family: 'Instrument Serif', Georgia, serif;
-        font-size: 40px; font-weight: 400; line-height: 1; margin: 8px 0 6px;
+        font-size: 38px;
+        font-weight: 400;
+        line-height: 1;
+        margin: 12px 0 10px;
         letter-spacing: -0.02em;
+        color: #37352f;
       }
-      .cc-stat-value-sm { font-size: 22px; line-height: 1.2; }
-      .cc-stat-sub { font-size: 11px; color: var(--muted); }
+      .cc-stat-value-sm {
+        font-size: 22px;
+        line-height: 1.25;
+        letter-spacing: -0.01em;
+      }
+      .cc-stat-sub {
+        font-size: 11.5px;
+        color: #9b9a97;
+        margin-top: auto;
+      }
 
       /* Question view */
       .cc-qcol { display: flex; flex-direction: column; gap: 16px; }
@@ -918,28 +982,88 @@ function Styles() {
         .cc-indiv { grid-template-columns: 300px 1fr; }
       }
       .cc-indiv-list {
-        background: var(--card); border: 1px solid var(--border);
-        border-radius: 18px; overflow: hidden;
-        max-height: 640px; display: flex; flex-direction: column;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        overflow: hidden;
+        max-height: 640px;
+        display: flex;
+        flex-direction: column;
       }
       .cc-indiv-list-head {
-        padding: 14px 16px; font-size: 12px; font-weight: 600;
-        color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em;
-        border-bottom: 1px solid var(--border);
+        padding: 14px 16px 10px;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--muted);
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
       }
-      .cc-indiv-list-scroll { overflow-y: auto; flex: 1; }
+      .cc-indiv-list-badge {
+        font-size: 11px;
+        font-weight: 500;
+        color: var(--muted);
+        background: var(--accent);
+        border-radius: 5px;
+        padding: 1px 6px;
+        letter-spacing: 0;
+      }
+      .cc-indiv-list-scroll {
+        overflow-y: auto;
+        flex: 1;
+        padding: 4px 6px 6px;
+        scrollbar-width: none;
+      }
+      .cc-indiv-list-scroll::-webkit-scrollbar { display: none; }
       .cc-indiv-item {
-        display: block; width: 100%; text-align: left;
-        padding: 12px 16px; background: transparent;
-        border: 0; border-bottom: 1px solid var(--border);
-        cursor: pointer; transition: background 0.12s;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        text-align: left;
+        padding: 8px 10px;
+        background: transparent;
+        border: 0;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.1s;
         font-family: inherit;
+        margin-bottom: 1px;
       }
-      .cc-indiv-item:hover { background: var(--accent); }
-      .cc-indiv-item-active { background: #0a0a0a; color: #fff; }
-      .cc-indiv-item-active .cc-indiv-meta { color: rgba(255,255,255,0.7); }
-      .cc-indiv-name { font-size: 13px; font-weight: 500; }
-      .cc-indiv-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+      .cc-indiv-item:hover { background: #f1f1ef; }
+      .cc-indiv-item-active { background: #ebebea; }
+      .cc-indiv-item-active:hover { background: #ebebea; }
+      .cc-indiv-item-active .cc-indiv-meta { color: #9b9a97; }
+      .cc-indiv-avatar {
+        flex-shrink: 0;
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: grid;
+        place-items: center;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+      }
+      .cc-indiv-info { flex: 1; min-width: 0; }
+      .cc-indiv-name {
+        font-size: 13.5px;
+        font-weight: 500;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: #37352f;
+      }
+      .cc-indiv-meta {
+        font-size: 11.5px;
+        color: #9b9a97;
+        margin-top: 1px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
 
       .cc-indiv-detail {
         background: var(--card); border: 1px solid var(--border);
