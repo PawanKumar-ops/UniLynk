@@ -880,7 +880,7 @@ function Styles() {
       @media (min-width: 768px) { .cc-quotes { grid-template-columns: 1fr 1fr; } }
       .cc-quote {
         margin: 0; padding: 14px 16px; background: var(--accent);
-        border-radius: 12px; border-left: 3px solid ${COLORS[0]};
+        border-radius: 12px;
       }
       .cc-quote p { margin: 0; font-size: 14px; line-height: 1.5; }
       .cc-quote cite {
