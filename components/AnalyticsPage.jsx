@@ -183,16 +183,14 @@ export default function AnalyticsPage({ formId: formIdProp }) {
       <header className="cc-header">
         <div className="cc-header-inner">
           <div className="cc-brand">
-            <div className="cc-logo">CC</div>
+            <div className="cc-logo">U</div>
             <div>
-              <div className="cc-brand-name">ClubConnect</div>
+              <div className="cc-brand-name">Unilynk</div>
               <div className="cc-brand-sub">Event Responses</div>
             </div>
           </div>
           <nav className="cc-nav">
-            <span className="cc-nav-item">Questions</span>
-            <span className="cc-nav-item cc-nav-active">Responses</span>
-            <span className="cc-nav-item">Settings</span>
+            
           </nav>
           <button className="cc-btn cc-btn-primary" onClick={exportExcel} disabled={loading}>
             <DownloadIcon /> Export Excel
@@ -265,7 +263,7 @@ function SummaryView({ rows, allRows, form, questions }) {
       <StatCard label="Event date" value={form?.date ? new Date(form.date).toLocaleDateString() : "—"} sub={form?.time || "time not set"} color={COLORS[5]} small />
       <StatCard label="Latest response" value={latest ? new Date(latest.submittedAt).toLocaleDateString() : "—"} sub={latest?.name || "no submissions yet"} color={COLORS[1]} small />
 
-      <Card title="Responses over time" wide>
+      <Card title="Responses over time" className="cc-card-span-3">
         <div style={{ height: 280 }}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={timeline} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
@@ -309,7 +307,7 @@ function SummaryView({ rows, allRows, form, questions }) {
         </div>
       </Card>
 
-      <Card title="Year of study">
+      <Card title="Year of study" className="cc-card-span-2">
         <div style={{ height: 260 }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={year} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
@@ -490,8 +488,10 @@ function IndividualView({ rows, questions }) {
 
             {bottomQuestions.map((question) => (
               <div key={question.id} className="cc-feedback">
-                <div className="cc-feedback-label">{question.question || QUESTION_TYPE_LABELS[question.type] || question.id}</div>
-                <p>{formatDisplayValue(question.answer)}</p>
+                <div className="cc-feedback-box">
+                  <div className="cc-feedback-label">{question.question || QUESTION_TYPE_LABELS[question.type] || question.id}</div>
+                  <p>{formatDisplayValue(question.answer)}</p>
+                </div>
               </div>
             ))}
           </>
@@ -504,9 +504,9 @@ function IndividualView({ rows, questions }) {
 }
 
 /* ----------------------------- Building blocks ----------------------------- */
-function Card({ title, wide, children }) {
+function Card({ title, wide, className = "", children }) {
   return (
-    <div className={"cc-card " + (wide ? "cc-card-wide" : "")}>
+    <div className={`cc-card ${wide ? "cc-card-wide" : ""} ${className}`}>
       <div className="cc-card-title">{title}</div>
       {children}
     </div>
@@ -947,7 +947,7 @@ function Styles() {
       }
       .cc-indiv-header {
         display: flex; justify-content: space-between; align-items: flex-start;
-        gap: 24px; padding-bottom: 32px; border-bottom: 1px solid var(--border); margin-bottom: 30px;
+        gap: 24px; padding-bottom: 24px; border-bottom: 1px solid var(--border); margin-bottom: 24px;
       }
       .cc-response-id {
         margin: 0; font-size: 12px; color: var(--muted);
@@ -955,44 +955,60 @@ function Styles() {
       }
       .cc-indiv-header h2 {
         font-family: 'Instrument Serif', Georgia, serif;
-        font-size: clamp(36px, 4vw, 48px); margin: 8px 0 0;
+        font-size: var(--text-4xl); margin: 8px 0 0;
         font-weight: 400; letter-spacing: -0.04em; line-height: 1;
       }
-      .cc-indiv-email { margin: 14px 0 0; color: var(--muted); font-size: 16px; }
+      .cc-indiv-email { margin: 8px 0 0; color: var(--muted); font-size: var(--text-sm); }
       .cc-submitted {
-        color: var(--muted); flex: 0 0 auto; font-size: 14px;
-        line-height: 1.45; padding-top: 10px; text-align: right;
+        color: var(--muted); flex: 0 0 auto; font-size: var(--text-sm);
+        line-height: 1.45; text-align: right;
       }
       .cc-submitted p { margin: 0; }
-      .cc-submitted p + p { color: var(--fg); margin-top: 2px; }
+      .cc-submitted p + p { color: var(--fg); margin-top: 4px; }
 
       .cc-fields {
-        display: grid; gap: 28px 72px;
+        display: grid;
+gap: calc(var(--spacing) * 5) calc(var(--spacing) * 8);
         grid-template-columns: 1fr; margin: 0;
       }
+
+      @media (min-width: 1024px) {
+  .cc-card-span-2 {
+    grid-column: span 2;
+  }
+
+  .cc-card-span-3 {
+    grid-column: span 3;
+  }
+}
+      
       @media (min-width: 640px) { .cc-fields { grid-template-columns: 1fr 1fr; } }
       .cc-field { min-width: 0; }
       .cc-field-label {
-        font-size: 14px; color: var(--muted);
+        font-size: 0.75rem; color: var(--muted);
         text-transform: uppercase; letter-spacing: 0.08em;
       }
       .cc-field-value {
-        font-size: 20px; margin: 12px 0 0; word-break: break-word;
+        font-size: var(--text-base); margin: 6px 0 0; word-break: break-word;
         line-height: 1.2;
       }
 
       .cc-feedback {
-        margin-top: 32px; padding-top: 32px;
+        margin-top: 24px; padding-top: 24px;
         border-top: 1px solid var(--border);
       }
+      
+      .cc-feedback-box{
+      padding: 12px 14px; background: var(--accent);
+        border-radius: 12px;
+      }
+
       .cc-feedback-label {
-        font-size: 14px; color: var(--muted); margin-bottom: 16px;
+        font-size: var(--text-xs); color: var(--muted); margin-bottom: 12px;
         text-transform: uppercase; letter-spacing: 0.08em;
       }
       .cc-feedback p {
-        font-family: 'Instrument Serif', Georgia, serif;
-        margin: 0; font-size: 32px; line-height: 1.25;
-        letter-spacing: -0.04em;
+        margin: 0; font-size: var(--text-sm);
       }
       @media (max-width: 640px) {
         .cc-indiv-detail { padding: 24px; border-radius: 18px; }
