@@ -431,6 +431,22 @@ function IndividualView({ rows, questions }) {
     if (!rows.find((r) => r.id === selectedId)) setSelectedId(rows[0]?.id);
   }, [rows, selectedId]);
 
+  const isProfileQuestion = (question) => {
+    const label = (question.question || "").toLowerCase();
+    return question.type === "email" || includesAny(label, ["name", "full name", "email", "e-mail", "year", "semester", "department", "branch", "course"]);
+  };
+
+  const responseQuestions = selected
+    ? questions
+        .map((question) => ({
+          ...question,
+          answer: getAnswer(selected, question.id),
+        }))
+        .filter((question) => isFilled(question.answer) && !isProfileQuestion(question))
+    : [];
+  const bottomQuestions = responseQuestions.filter((question) => ["short", "long"].includes(question.type));
+  const detailQuestions = responseQuestions.filter((question) => !["short", "long"].includes(question.type));
+
   return (
     <div className="cc-indiv">
       <aside className="cc-indiv-list">
@@ -454,25 +470,30 @@ function IndividualView({ rows, questions }) {
           <>
             <header className="cc-indiv-header">
               <div>
+                <p className="cc-response-id">Response {selected.id}</p>
                 <h2>{selected.name}</h2>
-                <p>{selected.email}</p>
+                <p className="cc-indiv-email">{selected.email}</p>
               </div>
-              <span className="cc-pill">{selected.id}</span>
+              <div className="cc-submitted">
+                <p>Submitted</p>
+                <p>{new Date(selected.submittedAt).toLocaleString()}</p>
+              </div>
             </header>
 
-            <div className="cc-fields">
-              <Field label="Event">{selected.event}</Field>
-              <Field label="Year">{selected.year}</Field>
+            <dl className="cc-fields">
+              <Field label="Year of study">{selected.year}</Field>
               <Field label="Department">{selected.department}</Field>
-              {questions.map((question) => (
-                <Field key={question.id} label={question.question || question.id}>{formatDisplayValue(getAnswer(selected, question.id))}</Field>
+              {detailQuestions.map((question) => (
+                <Field key={question.id} label={question.question || question.id}>{formatDisplayValue(question.answer)}</Field>
               ))}
-            </div>
+            </dl>
 
-            <div className="cc-feedback">
-              <div className="cc-feedback-label">Submitted at</div>
-              <p>{new Date(selected.submittedAt).toLocaleString()}</p>
-            </div>
+            {bottomQuestions.map((question) => (
+              <div key={question.id} className="cc-feedback">
+                <div className="cc-feedback-label">{question.question || QUESTION_TYPE_LABELS[question.type] || question.id}</div>
+                <p>{formatDisplayValue(question.answer)}</p>
+              </div>
+            ))}
           </>
         ) : (
           <div className="cc-sa-meta">No submissions found.</div>
@@ -629,8 +650,8 @@ function FileBlock({ total, count, files }) {
 function Field({ label, children }) {
   return (
     <div className="cc-field">
-      <div className="cc-field-label">{label}</div>
-      <div className="cc-field-value">{children}</div>
+      <dt className="cc-field-label">{label}</dt>
+      <dd className="cc-field-value">{children}</dd>
     </div>
   );
 }
@@ -922,43 +943,62 @@ function Styles() {
 
       .cc-indiv-detail {
         background: var(--card); border: 1px solid var(--border);
-        border-radius: 18px; padding: 24px;
+        border-radius: 24px; padding: 32px 40px;
       }
       .cc-indiv-header {
         display: flex; justify-content: space-between; align-items: flex-start;
-        gap: 12px; padding-bottom: 16px; border-bottom: 1px solid var(--border); margin-bottom: 20px;
+        gap: 24px; padding-bottom: 32px; border-bottom: 1px solid var(--border); margin-bottom: 30px;
+      }
+      .cc-response-id {
+        margin: 0; font-size: 12px; color: var(--muted);
+        text-transform: uppercase; letter-spacing: 0.08em;
       }
       .cc-indiv-header h2 {
         font-family: 'Instrument Serif', Georgia, serif;
-        font-size: 32px; margin: 0; font-weight: 400; letter-spacing: -0.02em;
+        font-size: clamp(36px, 4vw, 48px); margin: 8px 0 0;
+        font-weight: 400; letter-spacing: -0.04em; line-height: 1;
       }
-      .cc-indiv-header p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+      .cc-indiv-email { margin: 14px 0 0; color: var(--muted); font-size: 16px; }
+      .cc-submitted {
+        color: var(--muted); flex: 0 0 auto; font-size: 14px;
+        line-height: 1.45; padding-top: 10px; text-align: right;
+      }
+      .cc-submitted p { margin: 0; }
+      .cc-submitted p + p { color: var(--fg); margin-top: 2px; }
 
       .cc-fields {
-        display: grid; gap: 12px;
-        grid-template-columns: 1fr;
+        display: grid; gap: 28px 72px;
+        grid-template-columns: 1fr; margin: 0;
       }
       @media (min-width: 640px) { .cc-fields { grid-template-columns: 1fr 1fr; } }
-      @media (min-width: 900px) { .cc-fields { grid-template-columns: 1fr 1fr 1fr; } }
-      .cc-field {
-        padding: 12px 14px; background: var(--accent);
-        border-radius: 12px;
-      }
+      .cc-field { min-width: 0; }
       .cc-field-label {
-        font-size: 11px; color: var(--muted);
-        text-transform: uppercase; letter-spacing: 0.05em;
+        font-size: 14px; color: var(--muted);
+        text-transform: uppercase; letter-spacing: 0.08em;
       }
-      .cc-field-value { font-size: 13px; margin-top: 4px; word-break: break-word; }
+      .cc-field-value {
+        font-size: 20px; margin: 12px 0 0; word-break: break-word;
+        line-height: 1.2;
+      }
 
       .cc-feedback {
-        margin-top: 18px; padding: 16px;
-        border: 1px solid var(--border); border-radius: 14px;
+        margin-top: 32px; padding-top: 32px;
+        border-top: 1px solid var(--border);
       }
       .cc-feedback-label {
-        font-size: 11px; color: var(--muted); margin-bottom: 8px;
-        text-transform: uppercase; letter-spacing: 0.05em;
+        font-size: 14px; color: var(--muted); margin-bottom: 16px;
+        text-transform: uppercase; letter-spacing: 0.08em;
       }
-      .cc-feedback p { margin: 0; font-size: 14px; line-height: 1.55; }
+      .cc-feedback p {
+        font-family: 'Instrument Serif', Georgia, serif;
+        margin: 0; font-size: 32px; line-height: 1.25;
+        letter-spacing: -0.04em;
+      }
+      @media (max-width: 640px) {
+        .cc-indiv-detail { padding: 24px; border-radius: 18px; }
+        .cc-indiv-header { flex-direction: column; padding-bottom: 24px; margin-bottom: 24px; }
+        .cc-submitted { text-align: left; padding-top: 0; }
+      }
     `}</style>
   );
 }
