@@ -1,105 +1,179 @@
-import { useMemo, useState } from "react";
+"use client";
+
+import { useEffect, useMemo, useState } from "react";
+import { useParams } from "next/navigation";
 import * as XLSX from "xlsx";
 import {
   BarChart, Bar, PieChart, Pie, Cell, LineChart, Line, Area, AreaChart,
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 
-/* =========================================================================
-   ClubConnect — Event Responses & Analytics (standalone JSX)
-   Purpose: a college-club admin views responses to event / hackathon
-   registration forms here. One file, no utility classes, copy-paste ready.
-   Deps: react, recharts, xlsx
-   ========================================================================= */
-
-const EVENTS = ["HackVerse 2026", "Robo Wars", "Cultural Night", "Photo Walk", "Startup Pitch", "Open Mic"];
-const DEPTS = ["CSE", "ECE", "ME", "EE", "Civil", "BBA", "Design"];
-const YEARS = ["1st", "2nd", "3rd", "4th"];
-const SKILLS = ["Frontend", "Backend", "AI/ML", "Design", "Hardware", "Pitching", "Video", "Writing"];
-const HEAR = ["Instagram", "Friends", "Posters", "WhatsApp", "Notice board"];
-const FIRSTS = ["Aarav","Diya","Ishaan","Ananya","Vihaan","Saanvi","Kabir","Myra","Arjun","Aisha","Rohan","Zara","Neel","Tara","Veer","Anika","Reyansh","Kiara","Aryan","Mira"];
-const LASTS = ["Sharma","Patel","Reddy","Khan","Mehta","Iyer","Nair","Gupta","Joshi","Verma"];
-
 const COLORS = ["#ff3d8b", "#ff7a3d", "#ffc93d", "#22c55e", "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899"];
 
-function seeded(seed) { let s = seed; return () => (s = (s * 1664525 + 1013904223) >>> 0) / 2 ** 32; }
-const rnd = seeded(42);
-const pick = (a) => a[Math.floor(rnd() * a.length)];
-const pickN = (a, n) => {
-  const c = [...a]; const out = [];
-  for (let i = 0; i < n && c.length; i++) out.push(c.splice(Math.floor(rnd() * c.length), 1)[0]);
-  return out;
+const QUESTION_TYPE_LABELS = {
+  short: "Short answer",
+  long: "Paragraph",
+  multiple: "Multiple choice",
+  checkbox: "Checkboxes",
+  dropdown: "Dropdown",
+  date: "Date",
+  time: "Time",
+  email: "Email",
+  phone: "Phone",
 };
-
-const RESPONSES = Array.from({ length: 142 }, (_, i) => {
-  const fn = pick(FIRSTS); const ln = pick(LASTS);
-  const d = new Date(Date.now() - Math.floor(rnd() * 1000 * 60 * 60 * 24 * 21));
-  const future = new Date(Date.now() + Math.floor(rnd() * 1000 * 60 * 60 * 24 * 30));
-  const hour = 9 + Math.floor(rnd() * 11);
-  return {
-    id: `R-${1000 + i}`,
-    name: `${fn} ${ln}`,                                  // Short answer
-    email: `${fn}.${ln}`.toLowerCase() + "@college.edu",  // Short answer
-    year: pick(YEARS),                                    // Dropdown
-    department: pick(DEPTS),                              // Dropdown
-    event: pick(EVENTS),                                  // Multiple choice
-    teamSize: 1 + Math.floor(rnd() * 5),                  // Linear scale 1–5
-    skills: pickN(SKILLS, 1 + Math.floor(rnd() * 4)),     // Checkboxes
-    experience: 1 + Math.floor(rnd() * 5),                // Rating 1–5
-    hearAbout: pick(HEAR),                                // Multiple choice
-    eventDate: future.toISOString().slice(0, 10),         // Date
-    arrivalTime: `${String(hour).padStart(2,"0")}:00`,    // Time
-    expectations: pick([                                  // Paragraph
-      "Excited to learn and meet new people.",
-      "Hoping to build a strong project with my team.",
-      "Looking for mentorship from seniors.",
-      "Want to win and have fun.",
-      "First hackathon — nervous but ready!",
-      "Need a team — happy to collaborate.",
-      "Just here for the food and the demos.",
-    ]),
-    resume: rnd() > 0.5 ? `${fn.toLowerCase()}-resume.pdf` : "", // File upload
-    submittedAt: d.toISOString(),
-  };
-});
 
 const countBy = (rows, key) => {
   const m = new Map();
   rows.forEach((r) => {
     const v = typeof key === "function" ? key(r) : r[key];
-    if (Array.isArray(v)) v.forEach((x) => m.set(x, (m.get(x) || 0) + 1));
-    else m.set(v, (m.get(v) || 0) + 1);
+    if (Array.isArray(v)) v.forEach((x) => x !== undefined && x !== null && x !== "" && m.set(x, (m.get(x) || 0) + 1));
+    else if (v !== undefined && v !== null && v !== "") m.set(v, (m.get(v) || 0) + 1);
   });
   return Array.from(m, ([name, value]) => ({ name: String(name), value }));
 };
 
+const clean = (value) => {
+  if (Array.isArray(value)) return value.filter((item) => item !== undefined && item !== null && String(item).trim() !== "");
+  if (value === undefined || value === null) return "";
+  return String(value).trim();
+};
+
+const includesAny = (text, words) => words.some((word) => text.includes(word));
+
+const getAnswer = (response, questionId) => clean(response.answers?.[questionId]);
+
+const findAnswer = (response, questions, matcher) => {
+  const question = questions.find((q) => matcher(q));
+  return question ? getAnswer(response, question.id) : "";
+};
+
+const isFilled = (value) => Array.isArray(value) ? value.length > 0 : Boolean(value);
+
+const toDateKey = (value) => {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return date.toISOString().slice(0, 10);
+};
+
+const toShortDate = (value) => {
+  const key = toDateKey(value);
+  return key ? key.slice(5) : String(value || "—");
+};
+
+const formatDisplayValue = (value) => {
+  if (Array.isArray(value)) return value.length ? value.join(", ") : "—";
+  return value || "—";
+};
+
+const normalizeResponses = (responses, form) => {
+  const questions = form?.questions || [];
+  const formTitle = form?.title || "Event";
+
+  return (responses || []).map((response, index) => {
+    const answers = response.answers || {};
+    const emailAnswer = findAnswer(response, questions, (q) => q.type === "email" || includesAny((q.question || "").toLowerCase(), ["email", "e-mail"]));
+    const nameAnswer = findAnswer(response, questions, (q) => includesAny((q.question || "").toLowerCase(), ["name", "full name"]));
+    const yearAnswer = findAnswer(response, questions, (q) => includesAny((q.question || "").toLowerCase(), ["year", "semester"]));
+    const departmentAnswer = findAnswer(response, questions, (q) => includesAny((q.question || "").toLowerCase(), ["department", "branch", "course"]));
+    const teamSizeAnswer = findAnswer(response, questions, (q) => includesAny((q.question || "").toLowerCase(), ["team", "group size", "members"]));
+    const numericTeamSize = Number.parseFloat(Array.isArray(teamSizeAnswer) ? teamSizeAnswer[0] : teamSizeAnswer);
+    const longAnswerQuestion = questions.find((q) => q.type === "long");
+    const firstTextQuestion = questions.find((q) => ["short", "long", "phone"].includes(q.type));
+
+    return {
+      id: response._id || `R-${index + 1}`,
+      name: nameAnswer || response.user?.name || response.userEmail?.split("@")[0] || `Response ${index + 1}`,
+      email: emailAnswer || response.userEmail || "—",
+      year: yearAnswer || response.user?.year || "N/A",
+      department: departmentAnswer || response.user?.branch || "N/A",
+      event: formTitle,
+      teamSize: Number.isFinite(numericTeamSize) && numericTeamSize > 0 ? numericTeamSize : 1,
+      expectations: longAnswerQuestion ? getAnswer(response, longAnswerQuestion.id) : (firstTextQuestion ? getAnswer(response, firstTextQuestion.id) : ""),
+      submittedAt: response.submittedAt || new Date().toISOString(),
+      answers,
+      user: response.user,
+      raw: response,
+    };
+  });
+};
+
 /* ----------------------------- Page ----------------------------- */
-export default function ResponsesPage() {
+export default function AnalyticsPage({ formId: formIdProp }) {
+  const params = useParams();
+  const formId = formIdProp || params?.formId;
   const [tab, setTab] = useState("summary");
   const [query, setQuery] = useState("");
   const [eventFilter, setEventFilter] = useState("All");
+  const [form, setForm] = useState(null);
+  const [responses, setResponses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const filtered = useMemo(() => RESPONSES.filter((r) => {
+  useEffect(() => {
+    if (!formId) return;
+
+    let active = true;
+    setLoading(true);
+    setError("");
+
+    fetch(`/api/forms/${formId}/analytics`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Unable to load analytics data");
+        return res.json();
+      })
+      .then((data) => {
+        if (!active) return;
+        setForm(data.form || null);
+        setResponses(data.responses || []);
+      })
+      .catch((err) => {
+        if (!active) return;
+        setError(err.message || "Unable to load analytics data");
+        setForm(null);
+        setResponses([]);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [formId]);
+
+  const rows = useMemo(() => normalizeResponses(responses, form), [responses, form]);
+  const questions = useMemo(() => form?.questions || [], [form]);
+  const eventOptions = useMemo(() => (form?.title ? [form.title] : []), [form]);
+
+  const filtered = useMemo(() => rows.filter((r) => {
     const q = query.toLowerCase().trim();
-    const matchesQ = !q || r.name.toLowerCase().includes(q) || r.email.toLowerCase().includes(q) || r.event.toLowerCase().includes(q);
+    const answerText = Object.values(r.answers || {}).flat().join(" ").toLowerCase();
+    const matchesQ = !q || r.name.toLowerCase().includes(q) || r.email.toLowerCase().includes(q) || r.event.toLowerCase().includes(q) || answerText.includes(q);
     const matchesE = eventFilter === "All" || r.event === eventFilter;
     return matchesQ && matchesE;
-  }), [query, eventFilter]);
+  }), [rows, query, eventFilter]);
 
   const exportExcel = () => {
-    const data = filtered.map((r) => ({
-      ID: r.id, Name: r.name, Email: r.email, Year: r.year, Department: r.department,
-      Event: r.event, "Team Size": r.teamSize, Skills: r.skills.join(", "),
-      "Experience (1-5)": r.experience, "Heard Via": r.hearAbout,
-      "Event Date": r.eventDate, "Arrival Time": r.arrivalTime,
-      Expectations: r.expectations, Resume: r.resume || "—",
-      "Submitted At": new Date(r.submittedAt).toLocaleString(),
-    }));
-    const ws = XLSX.utils.json_to_sheet(data);
-    ws["!cols"] = Object.keys(data[0] ?? {}).map((k) => ({ wch: Math.max(k.length, 18) }));
+    const data = filtered.map((r) => {
+      const row = {
+        ID: r.id,
+        Name: r.name,
+        Email: r.email,
+        Year: r.year,
+        Department: r.department,
+        Event: r.event,
+        "Submitted At": new Date(r.submittedAt).toLocaleString(),
+      };
+      questions.forEach((question) => {
+        row[question.question || question.id] = formatDisplayValue(getAnswer(r, question.id));
+      });
+      return row;
+    });
+    const ws = XLSX.utils.json_to_sheet(data.length ? data : [{ Message: "No responses found" }]);
+    ws["!cols"] = Object.keys(data[0] ?? { Message: "No responses found" }).map((k) => ({ wch: Math.max(k.length, 18) }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Responses");
-    XLSX.writeFile(wb, `clubconnect-responses-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    XLSX.writeFile(wb, `${(form?.title || "event").toLowerCase().replace(/[^a-z0-9]+/g, "-")}-responses-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
   return (
@@ -120,7 +194,7 @@ export default function ResponsesPage() {
             <span className="cc-nav-item cc-nav-active">Responses</span>
             <span className="cc-nav-item">Settings</span>
           </nav>
-          <button className="cc-btn cc-btn-primary" onClick={exportExcel}>
+          <button className="cc-btn cc-btn-primary" onClick={exportExcel} disabled={loading}>
             <DownloadIcon /> Export Excel
           </button>
         </div>
@@ -129,7 +203,7 @@ export default function ResponsesPage() {
       <main className="cc-main">
         <section className="cc-title">
           <h1>Responses</h1>
-          <p><b>{filtered.length}</b> of {RESPONSES.length} registrations</p>
+          <p><b>{filtered.length}</b> of {rows.length} registrations{form?.title ? ` · ${form.title}` : ""}</p>
         </section>
 
         <div className="cc-toolbar">
@@ -143,19 +217,21 @@ export default function ResponsesPage() {
           <div className="cc-filters">
             <div className="cc-search">
               <SearchIcon />
-              <input placeholder="Search name, email, event…" value={query} onChange={(e) => setQuery(e.target.value)} />
+              <input placeholder="Search name, email, answers…" value={query} onChange={(e) => setQuery(e.target.value)} />
             </div>
             <select value={eventFilter} onChange={(e) => setEventFilter(e.target.value)} className="cc-select">
               <option>All</option>
-              {EVENTS.map((c) => <option key={c}>{c}</option>)}
+              {eventOptions.map((c) => <option key={c}>{c}</option>)}
             </select>
           </div>
         </div>
 
         <div className="cc-content">
-          {tab === "summary" && <SummaryView rows={filtered} />}
-          {tab === "question" && <QuestionView rows={filtered} />}
-          {tab === "individual" && <IndividualView rows={filtered} />}
+          {loading && <Card title="Loading responses"><div className="cc-sa-meta">Fetching latest responses from MongoDB…</div></Card>}
+          {!loading && error && <Card title="Analytics unavailable"><div className="cc-sa-meta">{error}</div></Card>}
+          {!loading && !error && tab === "summary" && <SummaryView rows={filtered} allRows={rows} form={form} questions={questions} />}
+          {!loading && !error && tab === "question" && <QuestionView rows={filtered} questions={questions} />}
+          {!loading && !error && tab === "individual" && <IndividualView rows={filtered} questions={questions} />}
         </div>
       </main>
     </div>
@@ -163,38 +239,33 @@ export default function ResponsesPage() {
 }
 
 /* ----------------------------- Summary ----------------------------- */
-/* Only what an event organizer actually needs:
-   - Headline stats
-   - Registrations over time
-   - Top events (which forms are pulling in students)
-   - Year of study (audience seniority)
-   - Department mix (donut)
-*/
-function SummaryView({ rows }) {
+function SummaryView({ rows, allRows, form, questions }) {
   const timeline = useMemo(() => {
     const m = new Map();
     rows.forEach((r) => {
-      const d = r.submittedAt.slice(0, 10);
-      m.set(d, (m.get(d) || 0) + 1);
+      const d = toDateKey(r.submittedAt);
+      if (d) m.set(d, (m.get(d) || 0) + 1);
     });
     return Array.from(m, ([date, count]) => ({ date: date.slice(5), count })).sort((a, b) => a.date.localeCompare(b.date));
   }, [rows]);
 
-  const events = countBy(rows, "event").sort((a, b) => b.value - a.value);
+  const answerCoverage = useMemo(() => questions.map((question) => ({
+    name: question.question || question.id,
+    value: rows.filter((r) => isFilled(getAnswer(r, question.id))).length,
+  })).filter((item) => item.value > 0), [rows, questions]);
+
   const year = countBy(rows, "year").sort((a, b) => a.name.localeCompare(b.name));
   const dept = countBy(rows, "department");
-
-  const avgTeam = rows.length ? (rows.reduce((s, r) => s + r.teamSize, 0) / rows.length).toFixed(1) : "0";
-  const topEvent = events[0]?.name || "—";
+  const latest = rows.reduce((latestRow, row) => !latestRow || new Date(row.submittedAt) > new Date(latestRow.submittedAt) ? row : latestRow, null);
 
   return (
     <div className="cc-grid">
-      <StatCard label="Total registrations" value={rows.length} sub="across all events" color={COLORS[0]} />
-      <StatCard label="Active events" value={new Set(rows.map((r) => r.event)).size} sub={`of ${EVENTS.length} live`} color={COLORS[3]} />
-      <StatCard label="Avg team size" value={avgTeam} sub="students per entry" color={COLORS[5]} />
-      <StatCard label="Top event" value={topEvent} sub={`${events[0]?.value || 0} signups`} color={COLORS[1]} small />
+      <StatCard label="Total responses" value={rows.length} sub={`${allRows.length} stored for this event`} color={COLORS[0]} />
+      <StatCard label="Form questions" value={questions.length} sub="published for this event" color={COLORS[3]} />
+      <StatCard label="Event date" value={form?.date ? new Date(form.date).toLocaleDateString() : "—"} sub={form?.time || "time not set"} color={COLORS[5]} small />
+      <StatCard label="Latest response" value={latest ? new Date(latest.submittedAt).toLocaleDateString() : "—"} sub={latest?.name || "no submissions yet"} color={COLORS[1]} small />
 
-      <Card title="Registrations over time" wide>
+      <Card title="Responses over time" wide>
         <div style={{ height: 280 }}>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={timeline} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
@@ -222,16 +293,16 @@ function SummaryView({ rows }) {
         <PieBlock data={dept} />
       </Card>
 
-      <Card title="Top events" wide>
+      <Card title="Answered questions" wide>
         <div style={{ height: 280 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={events} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+            <BarChart data={answerCoverage} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
               <CartesianGrid stroke="#f0f0f0" strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="name" tick={{ fill: "#888", fontSize: 11 }} interval={0} angle={-15} textAnchor="end" height={60} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: "#888", fontSize: 12 }} allowDecimals={false} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
               <Bar dataKey="value" radius={[10, 10, 0, 0]}>
-                {events.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                {answerCoverage.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -258,104 +329,44 @@ function SummaryView({ rows }) {
 }
 
 /* ----------------------------- Question ----------------------------- */
-/* One card per Google-Forms question type, with a chart that fits it. */
-function QuestionView({ rows }) {
-  const events = countBy(rows, "event");
-  const hear = countBy(rows, "hearAbout");
-  const dept = countBy(rows, "department");
-  const year = countBy(rows, "year").sort((a,b)=>a.name.localeCompare(b.name));
-  const skills = countBy(rows, "skills").sort((a, b) => b.value - a.value);
-
-  const teamScale = useMemo(() => {
-    const m = new Map([[1,0],[2,0],[3,0],[4,0],[5,0]]);
-    rows.forEach((r) => m.set(r.teamSize, (m.get(r.teamSize) || 0) + 1));
-    return Array.from(m, ([name, value]) => ({ name: String(name), value }));
-  }, [rows]);
-  const avgTeam = rows.length ? (rows.reduce((s, r) => s + r.teamSize, 0) / rows.length).toFixed(2) : "0";
-
-  const ratingDist = useMemo(() => {
-    const m = new Map([[1,0],[2,0],[3,0],[4,0],[5,0]]);
-    rows.forEach((r) => m.set(r.experience, (m.get(r.experience) || 0) + 1));
-    return Array.from(m, ([name, value]) => ({ name: name + "★", value }));
-  }, [rows]);
-  const avgRating = rows.length ? (rows.reduce((s, r) => s + r.experience, 0) / rows.length).toFixed(2) : "0";
-
-  const dateDist = useMemo(() => {
-    const m = new Map();
-    rows.forEach((r) => m.set(r.eventDate, (m.get(r.eventDate) || 0) + 1));
-    return Array.from(m, ([name, value]) => ({ name: name.slice(5), value })).sort((a,b)=>a.name.localeCompare(b.name));
-  }, [rows]);
-
-  const timeDist = useMemo(() => {
-    const m = new Map();
-    rows.forEach((r) => m.set(r.arrivalTime, (m.get(r.arrivalTime) || 0) + 1));
-    return Array.from(m, ([name, value]) => ({ name, value })).sort((a,b)=>a.name.localeCompare(b.name));
-  }, [rows]);
-
-  const filesCount = rows.filter((r) => r.resume).length;
-
+function QuestionView({ rows, questions }) {
   return (
     <div className="cc-qcol">
-      <QCard q="Q1 · Your full name" type="Short answer">
-        <ShortAnswerList items={rows.slice(0, 8).map((r) => r.name)} total={rows.length} />
-      </QCard>
+      {questions.length === 0 && (
+        <QCard q="No questions found" type="Empty">
+          <div className="cc-sa-meta">This form does not have any published questions.</div>
+        </QCard>
+      )}
+      {questions.map((question, index) => (
+        <QuestionAnalyticsCard key={question.id || index} question={question} index={index} rows={rows} />
+      ))}
+    </div>
+  );
+}
 
-      <QCard q="Q2 · Email address" type="Short answer">
-        <ShortAnswerList items={rows.slice(0, 8).map((r) => r.email)} total={rows.length} />
-      </QCard>
+function QuestionAnalyticsCard({ question, index, rows }) {
+  const type = question.type || "short";
+  const values = rows.map((r) => ({ row: r, value: getAnswer(r, question.id) })).filter(({ value }) => isFilled(value));
+  const qTitle = `Q${index + 1} · ${question.question || "Untitled question"}`;
+  const typeLabel = QUESTION_TYPE_LABELS[type] || type;
 
-      <QCard q="Q3 · Which event are you registering for?" type="Multiple choice">
-        <PieBlock data={events} />
-      </QCard>
+  if (["multiple", "dropdown"].includes(type)) {
+    const data = countBy(rows, (r) => getAnswer(r, question.id));
+    return <QCard q={qTitle} type={typeLabel}><PieBlock data={data} /></QCard>;
+  }
 
-      <QCard q="Q4 · Year of study" type="Dropdown">
-        <BarsList data={year} />
-      </QCard>
+  if (type === "checkbox") {
+    const data = countBy(rows, (r) => getAnswer(r, question.id)).sort((a, b) => b.value - a.value);
+    return <QCard q={qTitle} type={typeLabel}><BarsList data={data} /></QCard>;
+  }
 
-      <QCard q="Q5 · Department" type="Dropdown">
-        <div style={{ height: 260 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={dept} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-              <CartesianGrid stroke="#f0f0f0" strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="name" tick={{ fill: "#888", fontSize: 12 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "#888", fontSize: 12 }} allowDecimals={false} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
-              <Bar dataKey="value" radius={[10,10,0,0]}>
-                {dept.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </QCard>
-
-      <QCard q="Q6 · Skills you bring (select all that apply)" type="Checkboxes">
-        <BarsList data={skills} />
-      </QCard>
-
-      <QCard q="Q7 · Preferred team size" type={`Linear scale 1–5 · avg ${avgTeam}`}>
+  if (type === "date") {
+    const data = countBy(rows, (r) => toShortDate(getAnswer(r, question.id))).sort((a,b)=>a.name.localeCompare(b.name));
+    return (
+      <QCard q={qTitle} type={typeLabel}>
         <div style={{ height: 220 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={teamScale} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
-              <CartesianGrid stroke="#f0f0f0" strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="name" tick={{ fill: "#888", fontSize: 12 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: "#888", fontSize: 12 }} allowDecimals={false} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
-              <Bar dataKey="value" radius={[10,10,0,0]}>
-                {teamScale.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </QCard>
-
-      <QCard q="Q8 · How experienced are you?" type={`Rating · avg ${avgRating} / 5`}>
-        <RatingBlock data={ratingDist} avg={+avgRating} />
-      </QCard>
-
-      <QCard q="Q9 · Preferred event date" type="Date">
-        <div style={{ height: 220 }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={dateDist} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+            <LineChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
               <CartesianGrid stroke="#f0f0f0" strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="name" tick={{ fill: "#888", fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: "#888", fontSize: 12 }} allowDecimals={false} axisLine={false} tickLine={false} />
@@ -365,49 +376,60 @@ function QuestionView({ rows }) {
           </ResponsiveContainer>
         </div>
       </QCard>
+    );
+  }
 
-      <QCard q="Q10 · Preferred arrival time" type="Time">
+  if (type === "time") {
+    const data = countBy(rows, (r) => getAnswer(r, question.id)).sort((a,b)=>a.name.localeCompare(b.name));
+    return (
+      <QCard q={qTitle} type={typeLabel}>
         <div style={{ height: 220 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={timeDist} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+            <BarChart data={data} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
               <CartesianGrid stroke="#f0f0f0" strokeDasharray="3 3" vertical={false} />
               <XAxis dataKey="name" tick={{ fill: "#888", fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: "#888", fontSize: 12 }} allowDecimals={false} axisLine={false} tickLine={false} />
               <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
               <Bar dataKey="value" radius={[10,10,0,0]}>
-                {timeDist.map((_, i) => <Cell key={i} fill={COLORS[(i+1) % COLORS.length]} />)}
+                {data.map((_, i) => <Cell key={i} fill={COLORS[(i+1) % COLORS.length]} />)}
               </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
       </QCard>
+    );
+  }
 
-      <QCard q="Q11 · How did you hear about us?" type="Multiple choice">
-        <BarsList data={hear} />
-      </QCard>
-
-      <QCard q="Q12 · What do you hope to get out of this event?" type="Paragraph">
+  if (type === "long") {
+    return (
+      <QCard q={qTitle} type={typeLabel}>
         <div className="cc-quotes">
-          {rows.slice(0, 6).map((r) => (
-            <blockquote key={r.id} className="cc-quote">
-              <p>“{r.expectations}”</p>
-              <cite>— {r.name}</cite>
+          {values.slice(0, 6).map(({ row, value }) => (
+            <blockquote key={row.id} className="cc-quote">
+              <p>“{value}”</p>
+              <cite>— {row.name}</cite>
             </blockquote>
           ))}
         </div>
       </QCard>
+    );
+  }
 
-      <QCard q="Q13 · Upload your resume" type="File upload">
-        <FileBlock total={rows.length} count={filesCount} files={rows.filter(r=>r.resume).slice(0,6)} />
-      </QCard>
-    </div>
+  return (
+    <QCard q={qTitle} type={typeLabel}>
+      <ShortAnswerList items={values.slice(0, 8).map(({ value }) => formatDisplayValue(value))} total={values.length} />
+    </QCard>
   );
 }
 
 /* ----------------------------- Individual ----------------------------- */
-function IndividualView({ rows }) {
+function IndividualView({ rows, questions }) {
   const [selectedId, setSelectedId] = useState(rows[0]?.id);
   const selected = rows.find((r) => r.id === selectedId) || rows[0];
+
+  useEffect(() => {
+    if (!rows.find((r) => r.id === selectedId)) setSelectedId(rows[0]?.id);
+  }, [rows, selectedId]);
 
   return (
     <div className="cc-indiv">
@@ -428,7 +450,7 @@ function IndividualView({ rows }) {
       </aside>
 
       <section className="cc-indiv-detail">
-        {selected && (
+        {selected ? (
           <>
             <header className="cc-indiv-header">
               <div>
@@ -442,20 +464,18 @@ function IndividualView({ rows }) {
               <Field label="Event">{selected.event}</Field>
               <Field label="Year">{selected.year}</Field>
               <Field label="Department">{selected.department}</Field>
-              <Field label="Team size">{selected.teamSize}</Field>
-              <Field label="Skills">{selected.skills.join(", ")}</Field>
-              <Field label="Experience">{"★".repeat(selected.experience)}{"☆".repeat(5 - selected.experience)}</Field>
-              <Field label="Heard via">{selected.hearAbout}</Field>
-              <Field label="Event date">{selected.eventDate}</Field>
-              <Field label="Arrival time">{selected.arrivalTime}</Field>
-              <Field label="Resume">{selected.resume || "—"}</Field>
+              {questions.map((question) => (
+                <Field key={question.id} label={question.question || question.id}>{formatDisplayValue(getAnswer(selected, question.id))}</Field>
+              ))}
             </div>
 
             <div className="cc-feedback">
-              <div className="cc-feedback-label">Expectations</div>
-              <p>{selected.expectations}</p>
+              <div className="cc-feedback-label">Submitted at</div>
+              <p>{new Date(selected.submittedAt).toLocaleString()}</p>
             </div>
           </>
+        ) : (
+          <div className="cc-sa-meta">No submissions found.</div>
         )}
       </section>
     </div>
