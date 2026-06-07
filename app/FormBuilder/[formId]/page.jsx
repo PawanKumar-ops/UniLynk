@@ -21,6 +21,7 @@ import {
   ChevronUp,
   ChevronDown as ChevronDownIcon,
   Tag,
+  Users,
 } from 'lucide-react';
 import './FormBuilder.css';
 import { PublishCard } from '@/components/PublishCard';
@@ -37,12 +38,24 @@ const questionTypes = [
   { value: 'phone', label: 'Phone', icon: Phone },
 ];
 
+const MEMBER_FIELD_OPTIONS = [
+  { key: 'name', label: 'Full Name' },
+  { key: 'email', label: 'Email' },
+  { key: 'phone', label: 'Phone' },
+  { key: 'rollNo', label: 'Roll No.' },
+  { key: 'branch', label: 'Branch / Dept.' },
+  { key: 'year', label: 'Year of Study' },
+  { key: 'role', label: 'Role' },
+  { key: 'linkedin', label: 'LinkedIn' },
+  { key: 'github', label: 'GitHub' },
+];
+
 export default function FormBuilder() {
   const params = useParams();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
- const descriptionRef = useRef(null);
-const publishCardRef = useRef(null);
+  const descriptionRef = useRef(null);
+  const publishCardRef = useRef(null);
   const [formData, setFormData] = useState({
     _id: '',
     title: "Untitled Form",
@@ -52,26 +65,29 @@ const publishCardRef = useRef(null);
     location: "",
     seats: "",
     questions: [],
+    isTeamEvent: false,
+    teamConfig: {
+      minSize: 2,
+      maxSize: 5,
+      memberFields: ['name', 'email'],
+      customFields: [],
+    },
   });
 
 
   const [isPublishCardOpen, setIsPublishCardOpen] = useState(false);
   const [userClubs, setUserClubs] = useState([]);
   const [publishing, setPublishing] = useState(false);
-  // FIXED: Set mounted to true after component mounts to prevent hydration mismatch
+
   useEffect(() => {
     setMounted(true);
   }, []);
 
-
-  // FIXED: Load form data only after component is mounted
   useEffect(() => {
     if (!mounted || !params?.formId) return;
 
     const loadForm = async () => {
       try {
-
-        // ⭐ Draft Case
         if (params?.formId?.startsWith("draft_")) {
           const draft = getDraft(params.formId);
 
@@ -80,13 +96,14 @@ const publishCardRef = useRef(null);
             return;
           }
 
-          // ⭐ Draft missing → recreate
           const newDraft = {
             _id: params.formId,
             title: "Untitled Form",
             description: "",
             questions: [],
             seats: "",
+            isTeamEvent: false,
+            teamConfig: { minSize: 2, maxSize: 5, memberFields: ['name', 'email'], customFields: [] },
             createdAt: new Date().toISOString(),
           };
 
@@ -95,7 +112,6 @@ const publishCardRef = useRef(null);
           return;
         }
 
-        // ⭐ Mongo Case
         const res = await fetch(`/api/forms/${params.formId}`);
 
         if (res.ok) {
@@ -104,13 +120,14 @@ const publishCardRef = useRef(null);
           return;
         }
 
-        // ⭐ Mongo failed → fallback draft
         const fallbackDraft = {
           _id: `draft_${Date.now()}`,
           title: "Untitled Form",
           description: "",
           questions: [],
           seats: "",
+          isTeamEvent: false,
+          teamConfig: { minSize: 2, maxSize: 5, memberFields: ['name', 'email'], customFields: [] },
           createdAt: new Date().toISOString(),
         };
 
@@ -123,13 +140,8 @@ const publishCardRef = useRef(null);
       }
     };
 
-
-
     loadForm();
-
   }, [mounted, params?.formId]);
-
-
 
 
   useEffect(() => {
@@ -139,21 +151,21 @@ const publishCardRef = useRef(null);
   }, [formData.description]);
 
   useEffect(() => {
-  const handleClickOutside = (event) => {
-    if (
-      publishCardRef.current &&
-      !publishCardRef.current.contains(event.target)
-    ) {
-      setIsPublishCardOpen(false);
-    }
-  };
+    const handleClickOutside = (event) => {
+      if (
+        publishCardRef.current &&
+        !publishCardRef.current.contains(event.target)
+      ) {
+        setIsPublishCardOpen(false);
+      }
+    };
 
-  document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
 
-  return () => {
-    document.removeEventListener("mousedown", handleClickOutside);
-  };
-}, []);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
 
   useEffect(() => {
@@ -223,7 +235,6 @@ const publishCardRef = useRef(null);
           clubId: clubId || null,
         };
 
-       // Remove draft id → Mongo creates real _id
         if (payload._id?.startsWith("draft_")) {
           delete payload._id;
         }
@@ -237,7 +248,6 @@ const publishCardRef = useRef(null);
 
       if (!res.ok) throw new Error("Publish failed");
 
-      // Remove local draft after publish
       if (formData._id?.startsWith("draft_")) {
         localStorage.removeItem(`draft-${formData._id}`);
       }
@@ -255,38 +265,35 @@ const publishCardRef = useRef(null);
 
   const updateForm = (updates) => {
     const newData = { ...formData, ...updates };
-
     setFormData(newData);
-
-    // ✅ Save Draft Locally
     if (newData?._id?.startsWith("draft_")) {
       saveDraft(newData);
     }
   };
-const saveChanges = async () => {
-  if (!formData?._id) return;
 
-  try {
-    const { _id, ...safeData } = formData;
+  const saveChanges = async () => {
+    if (!formData?._id) return;
 
-    const res = await fetch("/api/forms/update", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        formId: _id,
-        formData: safeData
-      })
-    });
+    try {
+      const { _id, ...safeData } = formData;
 
-    if (!res.ok) throw new Error("Update failed");
+      const res = await fetch("/api/forms/update", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          formId: _id,
+          formData: safeData
+        })
+      });
 
-    // ✅ Redirect after saving
-    router.push("/dashboard/events/yourform");
+      if (!res.ok) throw new Error("Update failed");
+      router.push("/dashboard/events/yourform");
 
-  } catch (err) {
-    console.error(err);
-  }
-};
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const addQuestion = () => {
     const newQuestion = {
       id: Date.now().toString(),
@@ -349,9 +356,38 @@ const saveChanges = async () => {
     }
   };
 
-  // FIXED: Don't render interactive content until mounted to prevent hydration mismatch
+  const updateTeamConfig = (updates) => {
+    updateForm({
+      teamConfig: { ...(formData.teamConfig || {}), ...updates }
+    });
+  };
+
+  const toggleMemberField = (fieldKey) => {
+    const currentFields = formData.teamConfig?.memberFields || ['name', 'email'];
+    const isSelected = currentFields.includes(fieldKey);
+    const newFields = isSelected
+      ? currentFields.filter(f => f !== fieldKey)
+      : [...currentFields, fieldKey];
+    updateTeamConfig({ memberFields: newFields });
+  };
+
+  const addCustomField = () => {
+    const existing = formData.teamConfig?.customFields || [];
+    updateTeamConfig({ customFields: [...existing, ''] });
+  };
+
+  const updateCustomField = (index, value) => {
+    const existing = [...(formData.teamConfig?.customFields || [])];
+    existing[index] = value;
+    updateTeamConfig({ customFields: existing });
+  };
+
+  const removeCustomField = (index) => {
+    const existing = formData.teamConfig?.customFields || [];
+    updateTeamConfig({ customFields: existing.filter((_, i) => i !== index) });
+  };
+
   if (!mounted) {
-    // FIXED: Return simple static loading state
     return (
       <div className="form-builder-container">
         <header className="form-builder-header">
@@ -374,10 +410,17 @@ const saveChanges = async () => {
     );
   }
 
-  // FIXED: Get formId safely after mounted
   const formId = formData?._id;
   console.log("Preview ID:", formData._id);
 
+  // Always guarantee every field is defined to prevent controlled→uncontrolled errors
+  const raw = formData.teamConfig || {};
+  const safeTeamConfig = {
+    minSize:      raw.minSize      ?? 2,
+    maxSize:      raw.maxSize      ?? 5,
+    memberFields: raw.memberFields ?? ['name', 'email'],
+    customFields: raw.customFields ?? [],
+  };
 
   return (
     <div className="form-builder-container">
@@ -399,25 +442,22 @@ const saveChanges = async () => {
               />
             </div>
 
-
-
             <div style={{ display: "flex", gap: "10px" }}>
-
               <div className="relative" ref={publishCardRef}>
-              <button
-                onClick={formData.isPublished ? saveChanges : () => setIsPublishCardOpen((open) => !open)}
-                className="btn-preview-mode"
-                type="button"
-              >
-                {publishing ? "Publishing..." : formData.isPublished ? "Save Changes" : "Publish"}
-              </button>
-              {!formData.isPublished && (
-                <PublishCard
-                  open={isPublishCardOpen}
-                  clubs={userClubs}
-                  onPublish={publishForm}
-                />
-              )}
+                <button
+                  onClick={formData.isPublished ? saveChanges : () => setIsPublishCardOpen((open) => !open)}
+                  className="btn-preview-mode"
+                  type="button"
+                >
+                  {publishing ? "Publishing..." : formData.isPublished ? "Save Changes" : "Publish"}
+                </button>
+                {!formData.isPublished && (
+                  <PublishCard
+                    open={isPublishCardOpen}
+                    clubs={userClubs}
+                    onPublish={publishForm}
+                  />
+                )}
               </div>
               <button
                 disabled={!formData?._id}
@@ -435,7 +475,7 @@ const saveChanges = async () => {
 
       {/* Main Content */}
       <main className="form-builder-main">
-        {/* Form Header */}
+        {/* Form Header Card */}
         <div className="form-header-card">
           <div className="form-header-accent"></div>
           <input
@@ -499,7 +539,6 @@ const saveChanges = async () => {
           <div className="event-details-section">
             <h3 className="event-details-title">Event Details (Optional)</h3>
             <div className="event-details-grid">
-              {/* Date Picker */}
               <div className="event-field">
                 <label className="event-field-label">
                   <CalendarIcon />
@@ -513,7 +552,6 @@ const saveChanges = async () => {
                 />
               </div>
 
-              {/* Time Picker */}
               <div className="event-field">
                 <label className="event-field-label">
                   <Clock />
@@ -530,7 +568,6 @@ const saveChanges = async () => {
                 </div>
               </div>
 
-              {/* Location Input */}
               <div className="event-field">
                 <label className="event-field-label">
                   <MapPin />
@@ -548,7 +585,138 @@ const saveChanges = async () => {
               </div>
             </div>
           </div>
+
+          {/* Team Event Toggle */}
+          <div className="team-event-toggle-section">
+            <label className="team-toggle-row">
+              <div className="team-toggle-info">
+                <Users className="team-toggle-icon" />
+                <div>
+                  <div className="team-toggle-title">Is this a team based event?</div>
+                  <div className="team-toggle-desc">Collect information from each member separately</div>
+                </div>
+              </div>
+              <div className="toggle-switch" aria-label="Toggle team event">
+                <input
+                  type="checkbox"
+                  checked={formData.isTeamEvent || false}
+                  onChange={(e) => updateForm({ isTeamEvent: e.target.checked })}
+                />
+                <span className="toggle-slider"></span>
+              </div>
+            </label>
+          </div>
         </div>
+
+        {/* Team Configuration Card — Notion style */}
+        {formData.isTeamEvent && (
+          <div className="team-config-card">
+            {/* Card header */}
+            <div className="team-config-header">
+              <span className="team-config-title">Team Setup</span>
+            </div>
+
+            {/* Property table */}
+            <div className="team-config-body">
+
+              {/* Team size row */}
+              <div className="team-config-row">
+                <span className="team-config-row-label">Team size</span>
+                <div className="team-config-row-value">
+                  <div className="team-size-inputs">
+                    <div className="team-size-field">
+                      <span className="team-size-field-label">min</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max={safeTeamConfig.maxSize}
+                        value={safeTeamConfig.minSize}
+                        onChange={(e) => updateTeamConfig({ minSize: Math.max(1, Number(e.target.value)) })}
+                        className="team-size-input"
+                      />
+                    </div>
+                    <span className="team-size-divider">—</span>
+                    <div className="team-size-field">
+                      <span className="team-size-field-label">max</span>
+                      <input
+                        type="number"
+                        min={safeTeamConfig.minSize}
+                        value={safeTeamConfig.maxSize}
+                        onChange={(e) => updateTeamConfig({ maxSize: Math.max(safeTeamConfig.minSize, Number(e.target.value)) })}
+                        className="team-size-input"
+                      />
+                    </div>
+                    <span className="team-size-desc">members per team</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Per-member fields row */}
+              <div className="team-config-row team-config-row--top">
+                <span className="team-config-row-label">Per member</span>
+                <div className="team-config-row-value">
+                  <div className="member-fields-grid">
+                    {MEMBER_FIELD_OPTIONS.map((field) => {
+                      const isSelected = safeTeamConfig.memberFields.includes(field.key);
+                      return (
+                        <button
+                          key={field.key}
+                          type="button"
+                          onClick={() => toggleMemberField(field.key)}
+                          className={`member-field-chip${isSelected ? ' member-field-chip--active' : ''}`}
+                        >
+                          <span className="notion-checkbox">
+                            {isSelected && (
+                              <svg viewBox="0 0 10 8" fill="none" className="notion-checkmark">
+                                <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                              </svg>
+                            )}
+                          </span>
+                          {field.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Custom fields row */}
+              <div className="team-config-row team-config-row--top">
+                <span className="team-config-row-label">Custom fields</span>
+                <div className="team-config-row-value custom-fields-value">
+                  {safeTeamConfig.customFields.map((cf, idx) => (
+                    <div key={idx} className="custom-field-row">
+                      <input
+                        type="text"
+                        value={cf}
+                        onChange={(e) => updateCustomField(idx, e.target.value)}
+                        placeholder="e.g. T-shirt size"
+                        className="custom-field-input"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeCustomField(idx)}
+                        className="btn-remove-custom-field"
+                        aria-label="Remove field"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={addCustomField}
+                    className="btn-add-custom-field"
+                  >
+                    <Plus size={13} />
+                    Add field
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        )}
 
         {/* Questions */}
         {formData.questions.map((question, index) => (

@@ -775,3 +775,368 @@
   background-color: #f9fafb;
   border-color: #000000;
 }
+
+/* ───────────────────────────────────────────
+   Team Event Toggle — Notion style
+─────────────────────────────────────────── */
+.team-event-toggle-section {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #e9e9e7;
+}
+
+.team-toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 6px 8px;
+  border-radius: 5px;
+  transition: background 0.12s;
+  margin: -6px -8px;
+  cursor: pointer;
+}
+
+.team-toggle-row:hover {
+  background: rgba(55, 53, 47, 0.04);
+}
+
+.team-toggle-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.team-toggle-icon {
+  width: 16px;
+  height: 16px;
+  color: #9b9a97;
+  flex-shrink: 0;
+}
+
+.team-toggle-title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #37352f;
+  margin-bottom: 1px;
+}
+
+.team-toggle-desc {
+  font-size: 12px;
+  color: #9b9a97;
+  margin: 0;
+}
+
+/* Toggle Switch — compact Notion feel */
+.toggle-switch {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.toggle-slider {
+  position: absolute;
+  inset: 0;
+  background: #e3e2df;
+  border-radius: 22px;
+  transition: background 0.2s ease;
+  cursor: pointer;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  left: 3px;
+  bottom: 3px;
+  background: #ffffff;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14), 0 1px 1px rgba(0, 0, 0, 0.08);
+}
+
+.toggle-switch input:checked + .toggle-slider {
+  background: #37352f;
+}
+
+.toggle-switch input:checked + .toggle-slider::before {
+  transform: translateX(18px);
+}
+
+/* ───────────────────────────────────────────
+   Team Configuration Card — Notion style
+─────────────────────────────────────────── */
+.team-config-card {
+  background: #ffffff;
+  border: 1px solid #e9e9e7;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  animation: notionFadeIn 0.15s ease;
+}
+
+@keyframes notionFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.team-config-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-bottom: 1px solid #e9e9e7;
+}
+
+
+.team-config-title {
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Property table body */
+.team-config-body {
+  padding: 0;
+}
+
+.team-config-row {
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 0 20px;
+}
+
+.team-config-row + .team-config-row {
+  border-top: 1px solid #f0efec;
+}
+
+/* Rows where the value area needs top-padding (multi-line) */
+.team-config-row--top {
+  align-items: flex-start;
+}
+
+.team-config-row-label {
+  width: 120px;
+  flex-shrink: 0;
+  font-size: 13px;
+  color: #787774;
+  font-weight: 500;
+  padding-top: 13px;
+  align-self: flex-start;
+}
+
+.team-config-row-value {
+  flex: 1;
+  padding: 8px 0;
+}
+
+/* Team Size */
+.team-size-inputs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.team-size-field {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.team-size-field-label {
+  font-size: 12px;
+  color: #9b9a97;
+}
+
+.team-size-input {
+  width: 48px;
+  height: 28px;
+  padding: 0 6px;
+  border: 1px solid #e9e9e7;
+  border-radius: 4px;
+  outline: none;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  font-family: inherit;
+  color: #37352f;
+  background: #fff;
+  transition: background-color 0.15s;
+  -moz-appearance: textfield;
+}
+
+.team-size-input::-webkit-outer-spin-button,
+.team-size-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+
+.team-size-input:hover {
+  background-color: #fafafa;
+}
+
+.team-size-input:focus {
+    border-color: #9b9a97;
+}
+
+.team-size-divider {
+  font-size: 14px;
+  color: #c8c7c2;
+}
+
+.team-size-desc {
+  font-size: 13px;
+  color: #9b9a97;
+}
+
+/* Member field checkboxes — Notion style */
+.member-fields-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+}
+
+@media (max-width: 560px) {
+  .member-fields-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.member-field-chip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 6px;
+  border-radius: 4px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  color: #37352f;
+  font-family: inherit;
+  text-align: left;
+  transition: background 0.1s;
+}
+
+.member-field-chip:hover {
+  background: rgba(55, 53, 47, 0.06);
+}
+
+/* The Notion-style checkbox square */
+.notion-checkbox {
+  width: 15px;
+  height: 15px;
+  border: 1.5px solid #c8c7c2;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.12s, border-color 0.12s;
+  background: white;
+}
+
+.member-field-chip--active .notion-checkbox {
+  background: #37352f;
+  border-color: #37352f;
+}
+
+.notion-checkmark {
+  width: 9px;
+  height: 7px;
+  display: block;
+}
+
+/* Custom fields */
+.custom-fields-value {
+  padding-top: 6px;
+}
+
+.custom-field-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.custom-field-input {
+  flex: 1;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid #e9e9e7;
+  border-radius: 4px;
+  outline: none;
+  font-size: 13px;
+  font-family: inherit;
+  color: #37352f;
+  background: white;
+  transition: background-color 0.15s;
+  min-width: 0;
+}
+
+.custom-field-input:hover {
+  background-color: #fafafa;
+}
+
+.custom-field-input:focus {
+  border-color: #9b9a97;
+}
+
+.custom-field-input::placeholder {
+  color: #c8c7c2;
+}
+
+.btn-remove-custom-field {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 4px;
+  color: #9b9a97;
+  transition: all 0.12s;
+  flex-shrink: 0;
+}
+
+.btn-remove-custom-field:hover {
+  background: rgba(235, 87, 87, 0.08);
+  color: #eb5757;
+}
+
+.btn-add-custom-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 6px;
+  background: transparent;
+  border: none;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 400;
+  cursor: pointer;
+  transition: all 0.12s;
+  font-family: inherit;
+  margin-left: -6px;
+  margin-top: 2px;
+}
+
+.btn-add-custom-field:hover {
+  background: rgba(55, 53, 47, 0.06);
+  color: #37352f;
+}
