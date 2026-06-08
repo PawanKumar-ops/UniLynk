@@ -73,6 +73,20 @@ const FormSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+const cachedFormModel = mongoose.models.Form;
+
+if (
+  cachedFormModel &&
+  (
+    !cachedFormModel.schema.path("isTeamEvent") ||
+    !cachedFormModel.schema.path("teamConfig") ||
+    !cachedFormModel.schema.path("questions.teamConfig")
+  )
+) {
+  delete mongoose.models.Form;
+  delete mongoose.connection.models.Form;
+}
+
 // 🔥 FORCE collection name to avoid mismatch
 export default mongoose.models.Form ||
   mongoose.model("Form", FormSchema, "forms");
