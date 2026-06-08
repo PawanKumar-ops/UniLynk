@@ -9,6 +9,173 @@ import './FormPreview.css';
 import { getDraft } from "@/lib/drafts";
 import { TeamFinderCard } from "@/components/TeamFinderCard";
 
+const TEAM_REGISTRATION_ANSWER_ID = "teamRegistration";
+const DEFAULT_TEAM_CONFIG = {
+  minSize: 2,
+  maxSize: 5,
+  memberFields: ['name', 'email'],
+  customFields: [],
+};
+
+const TEAM_FIELD_LABELS = {
+  name: 'Full Name',
+  fullName: 'Full Name',
+  email: 'Email',
+  phone: 'Phone',
+  rollNo: 'Roll No.',
+  branch: 'Branch / Dept.',
+  year: 'Year of Study',
+  role: 'Role',
+  linkedin: 'LinkedIn',
+  github: 'GitHub',
+};
+
+const getTeamFields = (teamConfig = {}) => {
+  const memberFields = teamConfig.memberFields?.length
+    ? teamConfig.memberFields
+    : DEFAULT_TEAM_CONFIG.memberFields;
+  const customFields = teamConfig.customFields || [];
+
+  return [...memberFields, ...customFields].filter(Boolean);
+};
+
+const createEmptyMember = (teamConfig = {}) => (
+  Object.fromEntries(getTeamFields(teamConfig).map((field) => [field, '']))
+);
+
+const normalizeTeamConfig = (teamConfig = {}) => ({
+  minSize: Number(teamConfig.minSize) || DEFAULT_TEAM_CONFIG.minSize,
+  maxSize: Number(teamConfig.maxSize) || DEFAULT_TEAM_CONFIG.maxSize,
+  memberFields: teamConfig.memberFields?.length
+    ? teamConfig.memberFields
+    : DEFAULT_TEAM_CONFIG.memberFields,
+  customFields: teamConfig.customFields || [],
+});
+
+const createDefaultTeamAnswer = (teamConfig = {}) => ({
+  mode: 'team',
+  teamName: '',
+  members: [createEmptyMember(teamConfig)],
+});
+
+function TeamRegistrationCard({ teamConfig, value, onChange }) {
+  const cfg = normalizeTeamConfig(teamConfig);
+  const minSize = cfg.minSize;
+  const maxSize = Math.max(minSize, cfg.maxSize);
+  const allFields = getTeamFields(cfg);
+  const safeValue = value || createDefaultTeamAnswer(cfg);
+  const members = safeValue.members?.length ? safeValue.members : [createEmptyMember(cfg)];
+
+  const updateTeam = (patch) => onChange({ ...safeValue, members, ...patch });
+  const updateMember = (idx, field, v) => {
+    const updatedMembers = members.map((m, i) => (i === idx ? { ...m, [field]: v } : m));
+    updateTeam({ members: updatedMembers });
+  };
+  const addMember = () => {
+    if (members.length >= maxSize) return;
+    updateTeam({ members: [...members, createEmptyMember(cfg)] });
+  };
+  const removeMember = (idx) => {
+    if (members.length <= 1) return;
+    updateTeam({ members: members.filter((_, i) => i !== idx) });
+  };
+  const setMode = (mode) => {
+    if (mode === 'solo') updateTeam({ mode: 'solo', members: members.slice(0, 1) });
+    else updateTeam({ mode: 'team' });
+  };
+
+  return (
+    <div className="team-q">
+      {/* Mode toggle */}
+      <div className="team-q-mode">
+        <button type="button"
+          className={`team-q-mode-btn ${safeValue.mode === 'team' ? 'is-active' : ''}`}
+          onClick={() => setMode('team')}>
+          <span className="team-q-mode-dot" /> I have a team
+        </button>
+        <button type="button"
+          className={`team-q-mode-btn ${safeValue.mode === 'solo' ? 'is-active' : ''}`}
+          onClick={() => setMode('solo')}>
+          <span className="team-q-mode-dot" /> I don't have a team — find one
+        </button>
+      </div>
+
+      {safeValue.mode === 'solo' ? (
+        <div className="team-q-solo">
+          <p className="team-q-solo-title">You'll be added to the Team Finder</p>
+          <p className="team-q-solo-desc">
+            Other participants looking for teammates will be able to invite you.
+            Fill in your details below — we'll match you with a team of {minSize}–{maxSize}.
+          </p>
+          <div className="team-q-member">
+            <div className="team-q-member-head">
+              <span className="team-q-chip">You</span>
+            </div>
+            <div className="team-q-grid">
+              {allFields.map((f) => (
+                <div key={f} className="team-q-field">
+                  <label>{TEAM_FIELD_LABELS[f] || f}</label>
+                  <input type={f === 'email' ? 'email' : 'text'}
+                    value={members[0]?.[f] || ''}
+                    onChange={(e) => updateMember(0, f, e.target.value)}
+                    placeholder={TEAM_FIELD_LABELS[f] || f} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        <>
+          <div className="team-q-meta">
+            <div className="team-q-field team-q-field-full">
+              <label>Team Name</label>
+              <input type="text" value={safeValue.teamName || ''}
+                onChange={(e) => updateTeam({ teamName: e.target.value })}
+                placeholder="e.g. Pixel Pirates" />
+            </div>
+            <div className="team-q-size-hint">
+              {members.length} / {maxSize} members
+              <span className="team-q-size-sub">min {minSize}</span>
+            </div>
+          </div>
+
+          <div className="team-q-members">
+            {members.map((member, idx) => (
+              <div key={idx} className="team-q-member">
+                <div className="team-q-member-head">
+                  <span className="team-q-chip">
+                    {idx === 0 ? 'Team Lead' : `Member ${idx + 1}`}
+                  </span>
+                  {idx > 0 && (
+                    <button type="button" className="team-q-remove"
+                      onClick={() => removeMember(idx)}>Remove</button>
+                  )}
+                </div>
+                <div className="team-q-grid">
+                  {allFields.map((f) => (
+                    <div key={f} className="team-q-field">
+                      <label>{TEAM_FIELD_LABELS[f] || f}</label>
+                      <input type={f === 'email' ? 'email' : 'text'}
+                        value={member[f] || ''}
+                        onChange={(e) => updateMember(idx, f, e.target.value)}
+                        placeholder={TEAM_FIELD_LABELS[f] || f} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button type="button" className="team-q-add"
+            onClick={addMember} disabled={members.length >= maxSize}>
+            + Add member
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
 export default function FormPreview() {
   const { formId } = useParams();
   const [formData, setFormData] = useState(null);
@@ -87,6 +254,13 @@ export default function FormPreview() {
       return;
     }
 
+    const answers = { ...responses };
+
+    if (formData?.isTeamEvent) {
+      answers[TEAM_REGISTRATION_ANSWER_ID] =
+        responses[TEAM_REGISTRATION_ANSWER_ID] || createDefaultTeamAnswer(formData.teamConfig);
+    }
+
     try {
       const res = await fetch("/api/forms/submit", {
         method: "POST",
@@ -94,7 +268,7 @@ export default function FormPreview() {
         body: JSON.stringify({
           formId: safeFormId,
 
-          answers: responses,
+          answers,
         }),
       });
 
@@ -239,6 +413,19 @@ export default function FormPreview() {
               )}
             </div>
 
+            {formData.isTeamEvent && (
+              <div className="question-card">
+                <div className="question-text-wrapper">
+                  <h3 className="question-text">Team Registration</h3>
+                </div>
+                <TeamRegistrationCard
+                  teamConfig={formData.teamConfig}
+                  value={responses[TEAM_REGISTRATION_ANSWER_ID]}
+                  onChange={(value) => handleResponse(TEAM_REGISTRATION_ANSWER_ID, value)}
+                />
+              </div>
+            )}
+
             {/* Questions */}
             {(formData.questions || []).map((question) => (
               <div key={question.id} className="question-card">
@@ -374,134 +561,13 @@ export default function FormPreview() {
                   </select>
                 )}
                 {/* Team Registration */}
-                {question.type === 'team' && (() => {
-                  const cfg = question.teamConfig || {};
-                  const minSize = cfg.minSize ?? 2;
-                  const maxSize = cfg.maxSize ?? 5;
-                  const memberFields = cfg.memberFields || ['fullName', 'email'];
-                  const customFields = cfg.customFields || [];
-                  const fieldLabels = {
-                    fullName: 'Full Name', email: 'Email', phone: 'Phone',
-                    rollNo: 'Roll No.', branch: 'Branch / Dept.', year: 'Year of Study',
-                    role: 'Role', linkedin: 'LinkedIn', github: 'GitHub',
-                  };
-
-                  const value = responses[question.id] || {
-                    mode: 'team', teamName: '',
-                    members: [Object.fromEntries([...memberFields, ...customFields].map(f => [f, '']))],
-                  };
-
-                  const updateTeam = (patch) => handleResponse(question.id, { ...value, ...patch });
-                  const updateMember = (idx, field, v) => {
-                    const members = value.members.map((m, i) => i === idx ? { ...m, [field]: v } : m);
-                    updateTeam({ members });
-                  };
-                  const addMember = () => {
-                    if (value.members.length >= maxSize) return;
-                    updateTeam({
-                      members: [...value.members, Object.fromEntries([...memberFields, ...customFields].map(f => [f, '']))],
-                    });
-                  };
-                  const removeMember = (idx) => {
-                    if (value.members.length <= 1) return;
-                    updateTeam({ members: value.members.filter((_, i) => i !== idx) });
-                  };
-                  const setMode = (mode) => {
-                    if (mode === 'solo') updateTeam({ mode: 'solo', members: value.members.slice(0, 1) });
-                    else updateTeam({ mode: 'team' });
-                  };
-
-                  return (
-                    <div className="team-q">
-                      {/* Mode toggle */}
-                      <div className="team-q-mode">
-                        <button type="button"
-                          className={`team-q-mode-btn ${value.mode === 'team' ? 'is-active' : ''}`}
-                          onClick={() => setMode('team')}>
-                          <span className="team-q-mode-dot" /> I have a team
-                        </button>
-                        <button type="button"
-                          className={`team-q-mode-btn ${value.mode === 'solo' ? 'is-active' : ''}`}
-                          onClick={() => setMode('solo')}>
-                          <span className="team-q-mode-dot" /> I don't have a team — find one
-                        </button>
-                      </div>
-
-                      {value.mode === 'solo' ? (
-                        <div className="team-q-solo">
-                          <p className="team-q-solo-title">You'll be added to the Team Finder</p>
-                          <p className="team-q-solo-desc">
-                            Other participants looking for teammates will be able to invite you.
-                            Fill in your details below — we'll match you with a team of {minSize}–{maxSize}.
-                          </p>
-                          <div className="team-q-member">
-                            <div className="team-q-member-head">
-                              <span className="team-q-chip">You</span>
-                            </div>
-                            <div className="team-q-grid">
-                              {[...memberFields, ...customFields].map((f) => (
-                                <div key={f} className="team-q-field">
-                                  <label>{fieldLabels[f] || f}</label>
-                                  <input type={f === 'email' ? 'email' : 'text'}
-                                    value={value.members[0]?.[f] || ''}
-                                    onChange={(e) => updateMember(0, f, e.target.value)}
-                                    placeholder={fieldLabels[f] || f} />
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="team-q-meta">
-                            <div className="team-q-field team-q-field-full">
-                              <label>Team Name</label>
-                              <input type="text" value={value.teamName}
-                                onChange={(e) => updateTeam({ teamName: e.target.value })}
-                                placeholder="e.g. Pixel Pirates" />
-                            </div>
-                            <div className="team-q-size-hint">
-                              {value.members.length} / {maxSize} members
-                              <span className="team-q-size-sub">min {minSize}</span>
-                            </div>
-                          </div>
-
-                          <div className="team-q-members">
-                            {value.members.map((member, idx) => (
-                              <div key={idx} className="team-q-member">
-                                <div className="team-q-member-head">
-                                  <span className="team-q-chip">
-                                    {idx === 0 ? 'Team Lead' : `Member ${idx + 1}`}
-                                  </span>
-                                  {idx > 0 && (
-                                    <button type="button" className="team-q-remove"
-                                      onClick={() => removeMember(idx)}>Remove</button>
-                                  )}
-                                </div>
-                                <div className="team-q-grid">
-                                  {[...memberFields, ...customFields].map((f) => (
-                                    <div key={f} className="team-q-field">
-                                      <label>{fieldLabels[f] || f}</label>
-                                      <input type={f === 'email' ? 'email' : 'text'}
-                                        value={member[f] || ''}
-                                        onChange={(e) => updateMember(idx, f, e.target.value)}
-                                        placeholder={fieldLabels[f] || f} />
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-
-                          <button type="button" className="team-q-add"
-                            onClick={addMember} disabled={value.members.length >= maxSize}>
-                            + Add member
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  );
-                })()}
+                {question.type === 'team' && (
+                  <TeamRegistrationCard
+                    teamConfig={question.teamConfig}
+                    value={responses[question.id]}
+                    onChange={(value) => handleResponse(question.id, value)}
+                  />
+                )}
 
               </div>
             ))}
