@@ -1,5 +1,15 @@
 import mongoose from "mongoose";
 
+const TeamConfigSchema = new mongoose.Schema(
+  {
+    minSize: { type: Number, default: 2 },
+    maxSize: { type: Number, default: 5 },
+    memberFields: { type: [String], default: ["name", "email"] },
+    customFields: { type: [String], default: [] },
+  },
+  { _id: false }
+);
+
 const QuestionSchema = new mongoose.Schema({
   id: String,
   type: String,
@@ -7,6 +17,7 @@ const QuestionSchema = new mongoose.Schema({
   description: String,
   required: Boolean,
   options: [String],
+  teamConfig: { type: TeamConfigSchema, default: undefined },
 });
 
 const FormSchema = new mongoose.Schema(
@@ -19,6 +30,19 @@ const FormSchema = new mongoose.Schema(
     time: String,
     location: String,
     questions: [QuestionSchema],
+    isTeamEvent: {
+      type: Boolean,
+      default: false,
+    },
+    teamConfig: {
+      type: TeamConfigSchema,
+      default: () => ({
+        minSize: 2,
+        maxSize: 5,
+        memberFields: ["name", "email"],
+        customFields: [],
+      }),
+    },
 
     createdBy: String,
 
