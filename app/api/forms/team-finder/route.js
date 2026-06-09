@@ -11,11 +11,15 @@ const toPlainMember = (member = {}) => ({
 });
 
 const countFilledMembers = (members = []) =>
-  members.filter((member) => Object.values(member || {}).some((value) => String(value || "").trim())).length;
+  members.filter((member) =>
+    Object.values(member || {}).some((value) => String(value || "").trim()),
+  ).length;
 
 const buildTeamFinderPayload = ({ type, teamRegistration, user, email }) => {
   const members = Array.isArray(teamRegistration?.members)
-    ? teamRegistration.members.map(toPlainMember).filter((member) => member.name || member.email)
+    ? teamRegistration.members
+        .map(toPlainMember)
+        .filter((member) => member.name || member.email)
     : [];
   const fallbackName = user?.name || email.split("@")[0] || "Participant";
   const profile = {
@@ -24,7 +28,10 @@ const buildTeamFinderPayload = ({ type, teamRegistration, user, email }) => {
   };
 
   if (type === "team") {
-    const total = Math.max(members.length, Number(teamRegistration?.maxSize) || members.length || 1);
+    const total = Math.max(
+      members.length,
+      Number(teamRegistration?.maxSize) || members.length || 1,
+    );
     const filled = countFilledMembers(members);
 
     return {
@@ -61,8 +68,12 @@ const serializeEntry = (response) => {
       id,
       name: team.name || "Open Team",
       lead: team.lead || teamFinder.profile?.name || "Team Lead",
+      leadEmail:
+        teamFinder.profile?.email || members[0]?.email || response.userEmail,
       needed: Number.isFinite(team.needed) ? team.needed : 0,
-      total: Number.isFinite(team.total) ? team.total : Math.max(members.length, 1),
+      total: Number.isFinite(team.total)
+        ? team.total
+        : Math.max(members.length, 1),
       tags: team.lookingFor?.length ? team.lookingFor : ["Open"],
       members,
       lookingFor: team.lookingFor?.length ? team.lookingFor : ["Teammates"],
@@ -95,8 +106,12 @@ export async function GET(req) {
       .lean();
 
     return Response.json({
-      solo: responses.filter((response) => response.teamFinder?.type === "solo").map(serializeEntry),
-      teams: responses.filter((response) => response.teamFinder?.type === "team").map(serializeEntry),
+      solo: responses
+        .filter((response) => response.teamFinder?.type === "solo")
+        .map(serializeEntry),
+      teams: responses
+        .filter((response) => response.teamFinder?.type === "team")
+        .map(serializeEntry),
     });
   } catch (error) {
     console.error("TEAM FINDER GET ERROR:", error);
@@ -115,14 +130,22 @@ export async function POST(req) {
     const { formId, type, teamRegistration } = await req.json();
 
     if (!formId || !["solo", "team"].includes(type)) {
-      return Response.json({ error: "A valid formId and type are required" }, { status: 400 });
+      return Response.json(
+        { error: "A valid formId and type are required" },
+        { status: 400 },
+      );
     }
 
     await connectDB();
 
     const userEmail = session.user.email.toLowerCase().trim();
     const user = await User.findOne({ email: userEmail }, { name: 1 }).lean();
-    const teamFinder = buildTeamFinderPayload({ type, teamRegistration, user, email: userEmail });
+    const teamFinder = buildTeamFinderPayload({
+      type,
+      teamRegistration,
+      user,
+      email: userEmail,
+    });
 
     const response = await ResponseModel.findOneAndUpdate(
       { formId, userEmail },
@@ -130,10 +153,13 @@ export async function POST(req) {
         $set: { teamFinder },
         $setOnInsert: { answers: {}, isSubmitted: false, submittedAt: null },
       },
-      { upsert: true, new: true, runValidators: true }
+      { upsert: true, new: true, runValidators: true },
     ).lean();
 
-    return Response.json({ entry: serializeEntry(response), type: teamFinder.type });
+    return Response.json({
+      entry: serializeEntry(response),
+      type: teamFinder.type,
+    });
   } catch (error) {
     console.error("TEAM FINDER POST ERROR:", error);
     return Response.json({ error: error.message }, { status: 500 });
