@@ -4,7 +4,25 @@ import { connectDB } from "@/lib/mongodb";
 import Club from "@/models/Club";
 import Form from "@/models/Form";
 
-export async function GET(req) {
+const parseEventDateTime = (date, time) => {
+  if (!date) return null;
+
+  // Parse event dates saved as either YYYY-MM-DD or ISO strings. The form
+  // builder stores dates as ISO strings, so appending another `T...` can
+  // produce an invalid date and hide dashboard notifications.
+  const datePart = String(date).split("T")[0];
+  const timePart = String(time || "00:00").trim() || "00:00";
+  const eventDateTime = new Date(`${datePart}T${timePart}`);
+
+  if (!Number.isNaN(eventDateTime.getTime())) {
+    return eventDateTime;
+  }
+
+  const fallbackDate = new Date(date);
+  return Number.isNaN(fallbackDate.getTime()) ? null : fallbackDate;
+};
+
+export async function GET() {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.email) {
@@ -16,7 +34,8 @@ export async function GET(req) {
 
     const userEmail = session.user.email.toLowerCase().trim();
 
-    // 1. Find all clubs where user is a leader
+    // Find all clubs where user is a leader because the past-activity modal
+    // posts back to the club activities endpoint, which is leader-only.
     const clubs = await Club.find({ "leaders.email": userEmail }).lean();
 
     if (!clubs || clubs.length === 0) {
@@ -29,43 +48,32 @@ export async function GET(req) {
       clubMap[c._id.toString()] = c;
     });
 
-    // 2. Find all forms (events) for these clubs that are published
+    // Find all published FormBuilder events for these clubs.
     const forms = await Form.find({
       clubId: { $in: clubIds },
       isPublished: true,
-    }).lean();
+    })
+      .sort({ date: -1, time: -1, publishedAt: -1, updatedAt: -1 })
+      .lean();
 
     const now = new Date();
     const pending = [];
 
     for (const form of forms) {
-      if (!form.date) continue;
+      const comparableDate = parseEventDateTime(form.date, form.time);
 
-      // Parse event dates saved as either YYYY-MM-DD or ISO strings. The form
-      // builder stores dates as ISO strings, so appending another `T...` can
-      // produce an invalid date and hide dashboard notifications.
-      const datePart = String(form.date).split("T")[0];
-      const dateTimeStr = form.time
-        ? `${datePart}T${form.time}`
-        : `${datePart}T00:00`;
-      const eventDateTime = new Date(dateTimeStr);
-      const fallbackDate = new Date(form.date);
-
-      const comparableDate = !Number.isNaN(eventDateTime.getTime())
-        ? eventDateTime
-        : fallbackDate;
-
-      if (Number.isNaN(comparableDate.getTime()) || comparableDate >= now) {
+      if (!comparableDate || comparableDate > now) {
         continue;
       }
 
-      const club = clubMap[form.clubId.toString()];
+      const club = clubMap[form.clubId?.toString?.()];
       if (!club) continue;
 
-      // Check if it already exists in the club's activities
-      const alreadyUpdated = (club.activities || []).some((act) => 
-        (act.formId && act.formId.toString() === form._id.toString()) ||
-        (!act.formId && act.title === form.title)
+      // Check if it already exists in the club's activities.
+      const alreadyUpdated = (club.activities || []).some(
+        (act) =>
+          (act.formId && act.formId.toString() === form._id.toString()) ||
+          (!act.formId && act.title === form.title),
       );
 
       if (!alreadyUpdated) {
@@ -74,6 +82,7 @@ export async function GET(req) {
           title: form.title,
           date: form.date,
           time: form.time,
+          eventDateTime: comparableDate.toISOString(),
           clubId: form.clubId.toString(),
           clubName: club.clubName,
           clubLogo: club.logo || "/Defaultclublogo.svg",
