@@ -8,6 +8,7 @@ import { format } from 'date-fns';
 import './FormPreview.css';
 import { getDraft } from "@/lib/drafts";
 import { TeamFinderCard } from "@/components/TeamFinderCard";
+import { AddTeamFinder } from "@/components/AddTeamFinder";
 
 const TEAM_REGISTRATION_ANSWER_ID = "teamRegistration";
 const DEFAULT_TEAM_CONFIG = {
@@ -57,7 +58,7 @@ const createDefaultTeamAnswer = (teamConfig = {}) => ({
   members: [createEmptyMember(teamConfig)],
 });
 
-function TeamRegistrationCard({ teamConfig, value, onChange, onFindTeammates }) {
+function TeamRegistrationCard({ teamConfig, value, onChange, onFindTeammates, onAddToTeamFinder }) {
   const cfg = normalizeTeamConfig(teamConfig);
   const minSize = cfg.minSize;
   const maxSize = Math.max(minSize, cfg.maxSize);
@@ -121,7 +122,11 @@ function TeamRegistrationCard({ teamConfig, value, onChange, onFindTeammates }) 
           </p>
           <div className="team-q-member no-team-card">
             <div className="team-finder-actions">
-              <button type="button" className="team-finder-btn team-finder-btn-primary">
+              <button
+                type="button"
+                className="team-finder-btn team-finder-btn-primary"
+                onClick={() => onAddToTeamFinder("solo")}
+              >
                 Add me to Team Finder
               </button>
               <button
@@ -196,7 +201,7 @@ function TeamRegistrationCard({ teamConfig, value, onChange, onFindTeammates }) 
             <button
               type="button"
               className="team-q-add-teamfinder flex gap-1 items-center justify-center p-2 rounded-lg bg-black text-white"
-              onClick={onFindTeammates}
+              onClick={() => onAddToTeamFinder("team")}
             >
               <div>Add team to TeamFinder</div>
             </button>
@@ -267,10 +272,17 @@ export default function FormPreview() {
 
   const [showHint, setShowHint] = useState(false);
   const [hintPos, setHintPos] = useState(null); // null = mobile/inline
+  const [teamFinderDialogOpen, setTeamFinderDialogOpen] = useState(false);
+  const [teamFinderDialogType, setTeamFinderDialogType] = useState("solo");
 
   const asideRef = useRef(null);
 
   const safeFormId = useMemo(() => (formId && formId !== "undefined" ? formId : null), [formId]);
+
+  const handleAddToTeamFinder = (type) => {
+    setTeamFinderDialogType(type);
+    setTeamFinderDialogOpen(true);
+  };
 
   const handleFindTeammates = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -377,6 +389,11 @@ export default function FormPreview() {
 
   return (
     <div className="form-preview-container">
+      <AddTeamFinder
+        open={teamFinderDialogOpen}
+        onOpenChange={setTeamFinderDialogOpen}
+        type={teamFinderDialogType}
+      />
 
       {/* Floating hint — rendered at root level so it escapes the grid */}
       {showHint && hintPos && (
@@ -449,6 +466,7 @@ export default function FormPreview() {
                   value={responses[TEAM_REGISTRATION_ANSWER_ID]}
                   onChange={(value) => handleResponse(TEAM_REGISTRATION_ANSWER_ID, value)}
                   onFindTeammates={handleFindTeammates}
+                  onAddToTeamFinder={handleAddToTeamFinder}
                 />
               </div>
             )}
@@ -516,6 +534,7 @@ export default function FormPreview() {
                     value={responses[question.id]}
                     onChange={(value) => handleResponse(question.id, value)}
                     onFindTeammates={handleFindTeammates}
+                    onAddToTeamFinder={handleAddToTeamFinder}
                   />
                 )}
               </div>

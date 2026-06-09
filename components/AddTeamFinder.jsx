@@ -1,7 +1,21 @@
 import { Users } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 
-export function AddTeamFinder({ open, onOpenChange }) {
+const TEAM_FINDER_COPY = {
+    solo: {
+        title: "Add to Team Finder?",
+        description: "Your profile will be visible to others looking for teammates.",
+        confirmLabel: "Add me to Team Finder",
+    },
+    team: {
+        title: "Add team to Team Finder?",
+        description: "Your team will be visible to solo participants looking for a team.",
+        confirmLabel: "Add team to Team Finder",
+    },
+};
+
+export function AddTeamFinder({ open, onOpenChange, type = "solo" }) {
+    const copy = TEAM_FINDER_COPY[type] || TEAM_FINDER_COPY.solo;
 
     return (
         <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -14,10 +28,10 @@ export function AddTeamFinder({ open, onOpenChange }) {
                         </div>
 
                         <Dialog.Title className="mt-3 text-black font-semibold text-base">
-                            Add to Team Finder?
+                            {copy.title}
                         </Dialog.Title>
                         <Dialog.Description className="mt-1 text-neutral-500 text-sm">
-                            Your profile will be visible to others looking for teammates.
+                            {copy.description}
                         </Dialog.Description>
                     </div>
 
@@ -26,7 +40,7 @@ export function AddTeamFinder({ open, onOpenChange }) {
                             type="button"
                             className="w-full rounded-full border border-black/10 bg-white px-4 py-2 text-sm text-black transition-colors hover:bg-neutral-50"
                         >
-                            Add me to Team Finder
+                            {copy.confirmLabel}
                         </button>
                         <button
                             type="button"
