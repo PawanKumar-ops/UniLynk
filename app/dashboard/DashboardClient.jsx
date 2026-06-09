@@ -134,10 +134,13 @@ export default function DashboardClient() {
   const [activePastEvent, setActivePastEvent] = useState(null);
 
   useEffect(() => {
-    if (!session?.user?.email) return;
+    if (!session?.user?.email) return undefined;
+
+    let isMounted = true;
+    const refreshIntervalMs = 60 * 1000;
 
     const fetchJsonList = async (url) => {
-      const response = await fetch(url);
+      const response = await fetch(url, { cache: "no-store" });
       if (!response.ok) {
         throw new Error(`${url} returned ${response.status}`);
       }
@@ -146,11 +149,22 @@ export default function DashboardClient() {
       return Array.isArray(data) ? data : [];
     };
 
+    const notificationTimestamp = (notification) => {
+      const candidate =
+        notification.notificationType === "past-event"
+          ? notification.eventDateTime || notification.date
+          : notification.createdAt;
+      const timestamp = new Date(candidate || 0).getTime();
+      return Number.isNaN(timestamp) ? 0 : timestamp;
+    };
+
     const fetchPendingNotifications = async () => {
       const [pastResult, teamFinderResult] = await Promise.allSettled([
         fetchJsonList("/api/clubs/past-pending"),
         fetchJsonList("/api/notifications"),
       ]);
+
+      if (!isMounted) return;
 
       const pastNotifications =
         pastResult.status === "fulfilled"
@@ -182,14 +196,24 @@ export default function DashboardClient() {
         );
       }
 
-      setPendingNotifications([
-        ...teamFinderNotifications,
-        ...pastNotifications,
-      ]);
+      setPendingNotifications(
+        [...teamFinderNotifications, ...pastNotifications].sort(
+          (a, b) => notificationTimestamp(b) - notificationTimestamp(a),
+        ),
+      );
     };
 
     fetchPendingNotifications();
-  }, [session]);
+    const intervalId = window.setInterval(
+      fetchPendingNotifications,
+      refreshIntervalMs,
+    );
+
+    return () => {
+      isMounted = false;
+      window.clearInterval(intervalId);
+    };
+  }, [session?.user?.email]);
 
   useEffect(() => {
     setDashboardView(pathname === "/dashboard/explore" ? "explore" : "feed");
@@ -948,7 +972,11 @@ export default function DashboardClient() {
               onSuccess={() => {
                 if (activePastEvent) {
                   setPendingNotifications((prev) =>
-                    prev.filter((evt) => evt._id !== activePastEvent._id),
+                    prev.filter(
+                      (evt) =>
+                        evt.notificationType !== "past-event" ||
+                        evt._id !== activePastEvent._id,
+                    ),
                   );
                 }
                 setActivePastEvent(null);
