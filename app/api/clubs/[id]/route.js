@@ -11,56 +11,6 @@ import {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const hydrateClubForResponse = async (club) => {
-  if (!club) return null;
-
-  const plainClub = typeof club.toObject === "function" ? club.toObject() : club;
-  const leaderEmails = Array.isArray(plainClub.leaders)
-    ? plainClub.leaders.map((leader) => leader.email).filter(Boolean)
-    : [];
-
-  const memberEmails = Array.isArray(plainClub.members)
-    ? plainClub.members.map((member) => member.email).filter(Boolean)
-    : [];
-
-  const allEmails = [...new Set([...leaderEmails, ...memberEmails].map(normalizeEmail).filter(Boolean))];
-
-  const users = allEmails.length
-    ? await User.find({ email: { $in: allEmails } }).select("_id email name img").lean()
-    : [];
-
-  const userMap = new Map(users.map((user) => [normalizeEmail(user.email), user]));
-
-  const leaders = (plainClub.leaders || []).map((leader) => {
-    const user = userMap.get(normalizeEmail(leader.email));
-    const profile = getUserClubProfile(user, leader.email);
-    return {
-      userId: user?._id?.toString() || null,
-      email: leader.email,
-      position: leader.position,
-      image: user ? profile.profilePicture : (leader.image || profile.profilePicture),
-      name: user ? profile.name : leader.email,
-    };
-  });
-
-  const members = (plainClub.members || []).map((member) => {
-    const user = userMap.get(normalizeEmail(member.email));
-    const profile = getUserClubProfile(user, member.email);
-    return {
-      ...member,
-      userId: user?._id?.toString() || null,
-      name: user ? profile.name : (member.name || profile.name),
-      profilePicture: user ? profile.profilePicture : (member.profilePicture || profile.profilePicture),
-    };
-  });
-
-  return {
-    ...plainClub,
-    leaders,
-    members,
-  };
-};
-
 export async function GET(_req, { params }) {
   try {
     await connectDB();
@@ -72,7 +22,52 @@ export async function GET(_req, { params }) {
       return Response.json({ message: "Club not found" }, { status: 404 });
     }
 
-    return Response.json({ club: await hydrateClubForResponse(club) });
+    const leaderEmails = Array.isArray(club.leaders)
+      ? club.leaders.map((leader) => leader.email).filter(Boolean)
+      : [];
+
+    const memberEmails = Array.isArray(club.members)
+      ? club.members.map((member) => member.email).filter(Boolean)
+      : [];
+
+    const allEmails = [...new Set([...leaderEmails, ...memberEmails].map(normalizeEmail).filter(Boolean))];
+
+    const users = allEmails.length
+      ? await User.find({ email: { $in: allEmails } }).select("_id email name img").lean()
+      : [];
+
+    const userMap = new Map(users.map((user) => [normalizeEmail(user.email), user]));
+
+    const leaders = (club.leaders || []).map((leader) => {
+      const user = userMap.get(normalizeEmail(leader.email));
+      const profile = getUserClubProfile(user, leader.email);
+      return {
+        userId: user?._id?.toString() || null,
+        email: leader.email,
+        position: leader.position,
+        image: user ? profile.profilePicture : (leader.image || profile.profilePicture),
+        name: user ? profile.name : leader.email,
+      };
+    });
+
+    const members = (club.members || []).map((member) => {
+      const user = userMap.get(normalizeEmail(member.email));
+      const profile = getUserClubProfile(user, member.email);
+      return {
+        ...member,
+        userId: user?._id?.toString() || null,
+        name: user ? profile.name : (member.name || profile.name),
+        profilePicture: user ? profile.profilePicture : (member.profilePicture || profile.profilePicture),
+      };
+    });
+
+    return Response.json({
+      club: {
+        ...club,
+        leaders,
+        members,
+      },
+    });
   } catch (error) {
     console.error("FETCH CLUB BY ID ERROR:", error);
     return Response.json({ message: "Failed to fetch club" }, { status: 500 });
@@ -109,12 +104,7 @@ export async function PATCH(req, { params }) {
     const userMap = new Map(users.map((user) => [normalizeEmail(user.email), user]));
 
     const existingMembers = Array.isArray(club.members) ? club.members : [];
-    const existingLeaders = Array.isArray(club.leaders) ? club.leaders : [];
-    const existingEmails = new Set(
-      [...existingMembers, ...existingLeaders]
-        .map((person) => normalizeEmail(person?.email))
-        .filter(Boolean)
-    );
+    const existingEmails = new Set(existingMembers.map((member) => normalizeEmail(member?.email)).filter(Boolean));
 
     const newMembers = normalizedEmails
       .filter((email) => !existingEmails.has(email))
@@ -153,11 +143,11 @@ export async function PATCH(req, { params }) {
       }
     );
 
-    const updatedClub = await Club.findById(club._id).lean();
+    const updatedClub = await Club.findById(club._id);
     await syncClubCommunity(updatedClub);
 
     return Response.json({
-      club: await hydrateClubForResponse(updatedClub),
+      club: updatedClub,
       addedCount: newMembers.length,
       message: "Members added successfully",
     });
