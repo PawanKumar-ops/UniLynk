@@ -15,12 +15,44 @@ const ResponseSchema = new mongoose.Schema({
 
   answers: {
     type: Object,
-    required: true
+    default: {}
+  },
+
+  isSubmitted: {
+    type: Boolean,
+    default: false
+  },
+
+  teamFinder: {
+    type: {
+      type: String,
+      enum: ["solo", "team"]
+    },
+    profile: {
+      name: String,
+      email: String,
+      img: String
+    },
+    team: {
+      name: String,
+      lead: String,
+      members: {
+        type: [Object],
+        default: []
+      },
+      needed: Number,
+      total: Number,
+      lookingFor: {
+        type: [String],
+        default: []
+      }
+    },
+    addedAt: Date
   },
 
   submittedAt: {
     type: Date,
-    default: Date.now
+    default: null
   }
 
 });

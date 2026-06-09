@@ -39,8 +39,24 @@ const getTeamFields = (teamConfig = {}) => {
   return [...memberFields, ...customFields].filter(Boolean);
 };
 
-const createEmptyMember = (teamConfig = {}) => (
-  Object.fromEntries(getTeamFields(teamConfig).map((field) => [field, '']))
+const getUserFieldValue = (user = {}, field) => {
+  if (!user) return '';
+
+  const values = {
+    name: user.name,
+    fullName: user.name,
+    email: user.email,
+    branch: user.branch,
+    year: user.year,
+    rollNo: user.rollNumber,
+    rollNumber: user.rollNumber,
+  };
+
+  return values[field] || '';
+};
+
+const createEmptyMember = (teamConfig = {}, defaultMemberDetails = null) => (
+  Object.fromEntries(getTeamFields(teamConfig).map((field) => [field, getUserFieldValue(defaultMemberDetails, field)]))
 );
 
 const normalizeTeamConfig = (teamConfig = {}) => ({
@@ -52,19 +68,19 @@ const normalizeTeamConfig = (teamConfig = {}) => ({
   customFields: teamConfig.customFields || [],
 });
 
-const createDefaultTeamAnswer = (teamConfig = {}) => ({
+const createDefaultTeamAnswer = (teamConfig = {}, defaultMemberDetails = null) => ({
   mode: 'team',
   teamName: '',
-  members: [createEmptyMember(teamConfig)],
+  members: [createEmptyMember(teamConfig, defaultMemberDetails)],
 });
 
-function TeamRegistrationCard({ teamConfig, value, onChange, onFindTeammates, onAddToTeamFinder }) {
+function TeamRegistrationCard({ teamConfig, value, onChange, onFindTeammates, onAddToTeamFinder, defaultMemberDetails }) {
   const cfg = normalizeTeamConfig(teamConfig);
   const minSize = cfg.minSize;
   const maxSize = Math.max(minSize, cfg.maxSize);
   const allFields = getTeamFields(cfg);
-  const safeValue = value || createDefaultTeamAnswer(cfg);
-  const members = safeValue.members?.length ? safeValue.members : [createEmptyMember(cfg)];
+  const safeValue = value || createDefaultTeamAnswer(cfg, defaultMemberDetails);
+  const members = safeValue.members?.length ? safeValue.members : [createEmptyMember(cfg, defaultMemberDetails)];
 
   const updateTeam = (patch) => onChange({ ...safeValue, members, ...patch });
   const updateMember = (idx, field, v) => {
@@ -269,19 +285,70 @@ export default function FormPreview() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(true);
   const [alreadyApplied, setAlreadyApplied] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
 
   const [showHint, setShowHint] = useState(false);
   const [hintPos, setHintPos] = useState(null); // null = mobile/inline
   const [teamFinderDialogOpen, setTeamFinderDialogOpen] = useState(false);
   const [teamFinderDialogType, setTeamFinderDialogType] = useState("solo");
+  const [teamFinderSaving, setTeamFinderSaving] = useState(false);
+  const [teamFinderRefreshKey, setTeamFinderRefreshKey] = useState(0);
 
   const asideRef = useRef(null);
 
   const safeFormId = useMemo(() => (formId && formId !== "undefined" ? formId : null), [formId]);
 
+  const getTeamFinderRegistration = () => {
+    const registration = responses[TEAM_REGISTRATION_ANSWER_ID] ||
+      Object.values(responses).find((value) => value && typeof value === "object" && Array.isArray(value.members));
+
+    return {
+      ...(registration || createDefaultTeamAnswer(formData?.teamConfig, currentUser)),
+      maxSize: formData?.teamConfig?.maxSize,
+      memberFields: formData?.teamConfig?.memberFields,
+      customFields: formData?.teamConfig?.customFields,
+    };
+  };
+
   const handleAddToTeamFinder = (type) => {
     setTeamFinderDialogType(type);
     setTeamFinderDialogOpen(true);
+  };
+
+  const handleConfirmTeamFinder = async () => {
+    if (!safeFormId || safeFormId.startsWith("draft_")) {
+      alert("Draft forms cannot use Team Finder yet");
+      return;
+    }
+
+    setTeamFinderSaving(true);
+
+    try {
+      const res = await fetch("/api/forms/team-finder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          formId: safeFormId,
+          type: teamFinderDialogType,
+          teamRegistration: getTeamFinderRegistration(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "Could not add to Team Finder");
+        return;
+      }
+
+      setTeamFinderDialogOpen(false);
+      setTeamFinderRefreshKey((key) => key + 1);
+    } catch (error) {
+      console.error(error);
+      alert("Could not add to Team Finder");
+    } finally {
+      setTeamFinderSaving(false);
+    }
   };
 
   const handleFindTeammates = () => {
@@ -303,6 +370,51 @@ export default function FormPreview() {
     setShowHint(false);
     setHintPos(null);
   };
+
+  // LOAD CURRENT USER DETAILS FOR TEAM REGISTRATION DEFAULTS
+  useEffect(() => {
+    let ignore = false;
+
+    fetch("/api/user/me")
+      .then((res) => {
+        if (!res.ok) return null;
+        return res.json();
+      })
+      .then((data) => {
+        if (!ignore) setCurrentUser(data?.user || null);
+      })
+      .catch((error) => {
+        console.error("Current user fetch failed:", error);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  // PREFILL TEAM REGISTRATION FIELDS ONCE FROM THE CURRENT USER PROFILE
+  useEffect(() => {
+    if (!formData || !currentUser) return;
+
+    setResponses((prev) => {
+      const next = { ...prev };
+      let changed = false;
+
+      if (formData.isTeamEvent && !next[TEAM_REGISTRATION_ANSWER_ID]) {
+        next[TEAM_REGISTRATION_ANSWER_ID] = createDefaultTeamAnswer(formData.teamConfig, currentUser);
+        changed = true;
+      }
+
+      (formData.questions || []).forEach((question) => {
+        if (question.type === 'team' && !next[question.id]) {
+          next[question.id] = createDefaultTeamAnswer(question.teamConfig, currentUser);
+          changed = true;
+        }
+      });
+
+      return changed ? next : prev;
+    });
+  }, [formData, currentUser]);
 
   // LOAD FORM
   useEffect(() => {
@@ -340,7 +452,7 @@ export default function FormPreview() {
     const answers = { ...responses };
     if (formData?.isTeamEvent) {
       answers[TEAM_REGISTRATION_ANSWER_ID] =
-        responses[TEAM_REGISTRATION_ANSWER_ID] || createDefaultTeamAnswer(formData.teamConfig);
+        responses[TEAM_REGISTRATION_ANSWER_ID] || createDefaultTeamAnswer(formData.teamConfig, currentUser);
     }
 
     try {
@@ -393,6 +505,8 @@ export default function FormPreview() {
         open={teamFinderDialogOpen}
         onOpenChange={setTeamFinderDialogOpen}
         type={teamFinderDialogType}
+        onConfirm={handleConfirmTeamFinder}
+        loading={teamFinderSaving}
       />
 
       {/* Floating hint — rendered at root level so it escapes the grid */}
@@ -467,6 +581,7 @@ export default function FormPreview() {
                   onChange={(value) => handleResponse(TEAM_REGISTRATION_ANSWER_ID, value)}
                   onFindTeammates={handleFindTeammates}
                   onAddToTeamFinder={handleAddToTeamFinder}
+                  defaultMemberDetails={currentUser}
                 />
               </div>
             )}
@@ -535,6 +650,7 @@ export default function FormPreview() {
                     onChange={(value) => handleResponse(question.id, value)}
                     onFindTeammates={handleFindTeammates}
                     onAddToTeamFinder={handleAddToTeamFinder}
+                    defaultMemberDetails={currentUser}
                   />
                 )}
               </div>
@@ -557,7 +673,7 @@ export default function FormPreview() {
           style={showHint && hintPos ? { top: '108px', transition: 'top 0.4s cubic-bezier(0.22,1,0.36,1)' } : { transition: 'top 0.3s ease' }}
           aria-label="Find a team"
         >
-          <TeamFinderCard />
+          <TeamFinderCard formId={safeFormId} refreshKey={teamFinderRefreshKey} />
         </aside>
       </div>
     </div>

@@ -72,18 +72,25 @@ const MAX_MESSAGE = 240;
 const initials = (n) =>
   n.split(" ").map((p) => p[0]).slice(0, 2).join("");
 
-function AvatarCircle({ name, size = 32, textSize = "text-[10px]" }) {
+function AvatarCircle({ name, src, size = 32, textSize = "text-[10px]" }) {
+  const imageSrc = src || "";
+
   return (
     <div
-      className={`rounded-full bg-neutral-900 text-white flex items-center justify-center ring-2 ring-white shadow-sm shrink-0 ${textSize}`}
-      style={{ height: size, width: size }}
+      aria-label={name ? `${name} profile picture` : "Profile picture"}
+      className={`rounded-full bg-neutral-900 text-white flex items-center justify-center ring-2 ring-white shadow-sm shrink-0 overflow-hidden bg-cover bg-center ${textSize}`}
+      style={{
+        height: size,
+        width: size,
+        backgroundImage: imageSrc ? `url(${imageSrc})` : undefined,
+      }}
     >
-      {initials(name)}
+      {!imageSrc && initials(name || "?")}
     </div>
   );
 }
 
-export function TeamFinderCard() {
+export function TeamFinderCard({ formId, refreshKey = 0 }) {
   const [activeTab, setActiveTab] = useState("solo");
   const [selected, setSelected] = useState([]);
   const [query, setQuery] = useState("");
@@ -92,18 +99,58 @@ export function TeamFinderCard() {
   const [expandedTeam, setExpandedTeam] = useState(null);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [soloUsers, setSoloUsers] = useState(formId ? [] : SOLO_USERS);
+  const [openTeams, setOpenTeams] = useState(formId ? [] : OPEN_TEAMS);
+  const [loadingEntries, setLoadingEntries] = useState(Boolean(formId));
+
+  useEffect(() => {
+    if (!formId) {
+      setSoloUsers(SOLO_USERS);
+      setOpenTeams(OPEN_TEAMS);
+      setLoadingEntries(false);
+      return;
+    }
+
+    let ignore = false;
+    setLoadingEntries(true);
+
+    fetch(`/api/forms/team-finder?formId=${formId}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Could not load Team Finder");
+        return res.json();
+      })
+      .then((data) => {
+        if (ignore) return;
+        setSoloUsers(data.solo || []);
+        setOpenTeams(data.teams || []);
+      })
+      .catch((error) => {
+        console.error(error);
+        if (!ignore) {
+          setSoloUsers([]);
+          setOpenTeams([]);
+        }
+      })
+      .finally(() => {
+        if (!ignore) setLoadingEntries(false);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [formId, refreshKey]);
 
   const toggle = (id) =>
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
-  const filtered = SOLO_USERS.filter(
+  const filtered = soloUsers.filter(
     (u) =>
-      u.name.toLowerCase().includes(query.toLowerCase()) ||
-      u.email.toLowerCase().includes(query.toLowerCase()),
+      (u.name || "").toLowerCase().includes(query.toLowerCase()) ||
+      (u.email || "").toLowerCase().includes(query.toLowerCase()),
   );
 
   const openUsersRequest = () => {
-    const users = SOLO_USERS.filter((u) => selected.includes(u.id));
+    const users = soloUsers.filter((u) => selected.includes(u.id));
     if (!users.length) return;
     setRequestTarget({ kind: "users", users });
   };
@@ -187,7 +234,11 @@ export function TeamFinderCard() {
             </div>
 
             <div className={`mt-3 space-y-1.5 max-h-60 pr-1 -mr-1 ${scrollClass}`}>
-              {filtered.map((u) => {
+              {loadingEntries ? (
+                <div className="flex items-center justify-center gap-2 text-xs text-neutral-500 py-6">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading Team Finder
+                </div>
+              ) : filtered.map((u) => {
                 const isSelected = selected.includes(u.id);
                 return (
                   <div
@@ -198,7 +249,7 @@ export function TeamFinderCard() {
   : "border-neutral-200 bg-white hover:border-neutral-300"
                     }`}
                   >
-                    <AvatarCircle name={u.name} size={32} />
+                    <AvatarCircle name={u.name} src={u.img || u.image || u.profilePicture} size={32} />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-neutral-900 truncate leading-tight">{u.name}</p>
                       <p className="text-[10px] text-neutral-500 truncate mt-0.5">{u.email}</p>
@@ -217,8 +268,8 @@ export function TeamFinderCard() {
                   </div>
                 );
               })}
-              {filtered.length === 0 && (
-                <p className="text-center text-xs text-neutral-500 py-6">No matches found</p>
+              {!loadingEntries && filtered.length === 0 && (
+                <p className="text-center text-xs text-neutral-500 py-6">No solo users found</p>
               )}
             </div>
 
@@ -246,7 +297,11 @@ export function TeamFinderCard() {
         {activeTab === "teams" && (
         <div className="px-4 pt-3 pb-4">
             <div className={`space-y-1.5 max-h-[22rem] pr-1 -mr-1 ${scrollClass}`}>
-              {OPEN_TEAMS.map((t) => {
+              {loadingEntries ? (
+                <div className="flex items-center justify-center gap-2 text-xs text-neutral-500 py-6">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading Team Finder
+                </div>
+              ) : openTeams.map((t) => {
                 const isOpen = expandedTeam === t.id;
                 return (
                   <div
@@ -274,10 +329,13 @@ export function TeamFinderCard() {
                       <div className="flex items-center justify-between mt-2">
                         <div className="flex items-center gap-1.5">
                           <div className="flex -space-x-1">
-                            {Array.from({ length: t.total - t.needed }).map((_, i) => (
-                              <div
-                                key={i}
-                                className="h-4 w-4 rounded-full bg-neutral-900 ring-2 ring-white"
+                            {(t.members || []).slice(0, Math.max(t.total - t.needed, 0)).map((member, i) => (
+                              <AvatarCircle
+                                key={member.email || member.name || i}
+                                name={member.name}
+                                src={member.img || member.image || member.profilePicture}
+                                size={16}
+                                textSize="text-[7px]"
                               />
                             ))}
                             {Array.from({ length: t.needed }).map((_, i) => (
@@ -308,7 +366,7 @@ export function TeamFinderCard() {
                           <div className="space-y-1.5">
                             {t.members.map((m) => (
                               <div key={m.name} className="flex items-center gap-2">
-                                <AvatarCircle name={m.name} size={24} textSize="text-[9px]" />
+                                <AvatarCircle name={m.name} src={m.img || m.image || m.profilePicture} size={24} textSize="text-[9px]" />
                                 <div className="min-w-0">
                                   <p className="text-[11px] text-neutral-900 leading-tight truncate">
                                     {m.name}
@@ -349,6 +407,9 @@ export function TeamFinderCard() {
                   </div>
                 );
               })}
+              {!loadingEntries && openTeams.length === 0 && (
+                <p className="text-center text-xs text-neutral-500 py-6">No open teams found</p>
+              )}
             </div>
         </div>
         )}
