@@ -5,12 +5,12 @@ const TEAM_FINDER_COPY = {
     solo: {
         title: "Add to Team Finder?",
         description: "Your profile will be visible to others looking for teammates.",
-        confirmLabel: "Add me to Team Finder",
+        confirmLabel: "Add",
     },
     team: {
         title: "Add team to Team Finder?",
         description: "Your team will be visible to solo participants looking for a team.",
-        confirmLabel: "Add team to Team Finder",
+        confirmLabel: "Add",
     },
 };
 
