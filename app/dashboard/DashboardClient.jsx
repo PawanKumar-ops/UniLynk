@@ -18,6 +18,7 @@ import { Bell, BookOpen } from "lucide-react";
 import { Icon } from "@iconify/react";
 import ImageWithFallback from "../../components/ReliableImage";
 import { NewsLetterCard } from "@/components/NewsLetterCard";
+import { DashboardNotificationItem } from "@/components/DashboardNotificationItem";
 
 const DASHBOARD_SCROLL_STORAGE_KEY = "dashboard-feed-scroll-position";
 
@@ -136,6 +137,9 @@ export default function DashboardClient() {
     if (!session?.user?.email) return;
 
     const fetchPendingNotifications = async () => {
+      let pastNotifications = [];
+      let teamFinderNotifications = [];
+
       try {
         const [pastRes, teamFinderRes] = await Promise.all([
           fetch("/api/clubs/past-pending"),
@@ -160,8 +164,26 @@ export default function DashboardClient() {
           ...pastNotifications,
         ]);
       } catch (err) {
-        console.error("Failed to fetch pending notifications:", err);
+        console.error("Failed to fetch past activity notifications:", err);
       }
+
+      try {
+        const teamFinderRes = await fetch("/api/notifications");
+        if (teamFinderRes.ok) {
+          const teamFinderData = await teamFinderRes.json();
+          teamFinderNotifications = (teamFinderData || []).map((notif) => ({
+            ...notif,
+            notificationType: "team-finder-request",
+          }));
+        }
+      } catch (err) {
+        console.error("Failed to fetch Team Finder notifications:", err);
+      }
+
+      setPendingNotifications([
+        ...teamFinderNotifications,
+        ...pastNotifications,
+      ]);
     };
 
     fetchPendingNotifications();
