@@ -123,7 +123,7 @@ export async function PATCH(req, { params }) {
 
     if (newMembers.length === 0) {
       return Response.json({
-        club,
+        club: await hydrateClubForResponse(club),
         addedCount: 0,
         message: "All members already exist",
       });

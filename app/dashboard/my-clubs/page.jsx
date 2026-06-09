@@ -46,7 +46,7 @@ const MyClubsPage = () => {
   useEffect(() => {
     const fetchMyClubs = async () => {
       try {
-        const response = await fetch("/api/clubs?leadershipOnly=true", { cache: "no-store" });
+        const response = await fetch("/api/clubs?memberOf=true", { cache: "no-store" });
         if (!response.ok) throw new Error("Failed to fetch clubs");
 
         const data = await response.json();
@@ -109,7 +109,7 @@ const MyClubsPage = () => {
               <li>{getJoinedLabel(club.foundedDate, club.createdAt)}</li>
             </ul>
             <div className="post-time">
-              <div className="userpostcapsule">Leadership Team</div>
+              <div className="userpostcapsule">{club.roleLabel || "Member"}</div>
               <img src="/myclubs/pulse.svg" alt="pulse" />
               <div className="lastpost">{getLastPostLabel(club.updatedAt)}</div>
             </div>
