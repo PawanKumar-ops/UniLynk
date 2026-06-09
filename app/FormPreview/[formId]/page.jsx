@@ -182,14 +182,25 @@ function TeamRegistrationCard({ teamConfig, value, onChange, onFindTeammates }) 
             ))}
           </div>
 
-          <button
-            type="button"
-            className="team-q-add flex gap-1 items-center justify-center p-2 rounded-lg"
-            onClick={addMember}
-            disabled={members.length >= maxSize}
-          >
-            <Plus height={15} width={15} /> <div>Add member</div>
-          </button>
+          <div className="flex items-center justify-between w-full">
+            <button
+              type="button"
+              className="team-q-add flex gap-1 items-center justify-center p-2 rounded-lg"
+              onClick={addMember}
+              disabled={members.length >= maxSize}
+            >
+              <Plus height={15} width={15} />
+              <div>Add member</div>
+            </button>
+
+            <button
+              type="button"
+              className="team-q-add-teamfinder flex gap-1 items-center justify-center p-2 rounded-lg bg-black text-white"
+              onClick={onFindTeammates}
+            >
+              <div>Add team to TeamFinder</div>
+            </button>
+          </div>
         </>
       )}
     </div>

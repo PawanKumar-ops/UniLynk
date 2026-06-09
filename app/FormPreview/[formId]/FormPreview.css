@@ -660,6 +660,24 @@
   transition: all .15s ease;
 }
 
+.team-q-add-teamfinder {
+  align-self: flex-start;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  background: #000000;
+  color: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 999px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all .15s ease;
+}
+
+.team-q-add-teamfinder:hover {
+  background: #262626;
+}
+
 .team-q-add:hover:not(:disabled) {
   background: #fafafa;
 }
