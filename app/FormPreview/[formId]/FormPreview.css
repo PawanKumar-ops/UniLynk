@@ -910,3 +910,8 @@
   color: #111827;
   background: #f3f4f6;
 }
+.team-finder-required-done {
+  color: #047857;
+  font-size: 13px;
+  margin: 6px 0 0;
+}

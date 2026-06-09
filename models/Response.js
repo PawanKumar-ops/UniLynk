@@ -49,6 +49,15 @@ const ResponseSchema = new mongoose.Schema({
     addedAt: Date
   },
 
+  teamFinderRequest: {
+    kind: {
+      type: String,
+      enum: ["team"]
+    },
+    targetId: String,
+    sentAt: Date
+  },
+
   submittedAt: {
     type: Date,
     default: null

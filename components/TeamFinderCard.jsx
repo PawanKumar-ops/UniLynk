@@ -94,7 +94,7 @@ function AvatarCircle({ name, src, size = 32, textSize = "text-[10px]" }) {
   );
 }
 
-export function TeamFinderCard({ formId, refreshKey = 0 }) {
+export function TeamFinderCard({ formId, refreshKey = 0, onTeamFinderActionComplete }) {
   const [activeTab, setActiveTab] = useState("solo");
   const [selected, setSelected] = useState([]);
   const [query, setQuery] = useState("");
@@ -214,6 +214,7 @@ export function TeamFinderCard({ formId, refreshKey = 0 }) {
       }
 
       setSent(true);
+      if (requestTarget.kind === "team") onTeamFinderActionComplete?.();
       if (requestTarget.kind === "users") setSelected([]);
     } catch (error) {
       setSendError(
@@ -255,6 +256,7 @@ export function TeamFinderCard({ formId, refreshKey = 0 }) {
               }}
             />
             <button
+              type="button"
               onClick={() => setActiveTab("solo")}
               className={`relative z-10 rounded-md text-xs transition-colors ${
                 activeTab === "solo"
@@ -265,6 +267,7 @@ export function TeamFinderCard({ formId, refreshKey = 0 }) {
               Solo
             </button>
             <button
+              type="button"
               onClick={() => setActiveTab("teams")}
               className={`relative z-10 rounded-md text-xs transition-colors ${
                 activeTab === "teams"
@@ -324,6 +327,7 @@ export function TeamFinderCard({ formId, refreshKey = 0 }) {
                         </p>
                       </div>
                       <button
+                        type="button"
                         onClick={() => toggle(u.id)}
                         aria-label={isSelected ? "Deselect" : "Select"}
                         className={`h-5 w-5 rounded-full border flex items-center justify-center transition-all shrink-0 cursor-pointer ${
@@ -363,6 +367,7 @@ export function TeamFinderCard({ formId, refreshKey = 0 }) {
                 )}
               </p>
               <button
+                type="button"
                 disabled={selected.length === 0}
                 onClick={openUsersRequest}
                 className="inline-flex items-center bg-neutral-900 hover:bg-neutral-800 text-white rounded-lg h-8 px-3 text-xs disabled:opacity-40 disabled:hover:bg-neutral-900 transition-colors"
@@ -398,6 +403,7 @@ export function TeamFinderCard({ formId, refreshKey = 0 }) {
                       }`}
                     >
                       <button
+                        type="button"
                         onClick={() => setExpandedTeam(isOpen ? null : t.id)}
                         className="w-full p-2.5 text-left"
                       >
@@ -500,6 +506,7 @@ export function TeamFinderCard({ formId, refreshKey = 0 }) {
                           </div>
 
                           <button
+                            type="button"
                             onClick={() => openTeamRequest(t)}
                             className="w-full inline-flex items-center justify-center h-7 text-xs bg-neutral-900 hover:bg-neutral-800 text-white rounded-md transition-colors"
                           >
@@ -604,6 +611,7 @@ function RequestModal({
 
         {/* Close */}
         <button
+          type="button"
           onClick={onClose}
           disabled={sending}
           aria-label="Close"
@@ -704,6 +712,7 @@ function RequestModal({
         {!sent && (
           <div className="mt-4 flex items-center justify-end gap-1.5 border-t border-black/5 bg-black/[0.02] px-5 py-3">
             <button
+              type="button"
               onClick={onClose}
               disabled={sending}
               className="w-full py-2 bg-[#eceef1] text-black rounded-xl font-medium hover:bg-gray-200 active:scale-[0.98] transition-all duration-150"
@@ -711,6 +720,7 @@ function RequestModal({
               Cancel
             </button>
             <button
+              type="button"
               onClick={onSend}
               disabled={sending}
               className="w-full py-2 bg-black text-white rounded-xl font-medium hover:bg-gray-800 active:scale-[0.98] transition-all duration-150"
@@ -785,6 +795,7 @@ function SuccessBody({ onClose }) {
       </div>
 
       <button
+        type="button"
         onClick={onClose}
         className="w-full py-2 bg-black text-white rounded-xl font-medium hover:bg-gray-800 active:scale-[0.98] transition-all duration-150"
       >

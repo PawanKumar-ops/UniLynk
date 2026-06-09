@@ -349,6 +349,23 @@ export async function POST(req) {
       throw emailError;
     }
 
+    if (targetKind === "team") {
+      await ResponseModel.findOneAndUpdate(
+        { formId, userEmail: senderEmail },
+        {
+          $set: {
+            teamFinderRequest: {
+              kind: "team",
+              targetId: target.teamId,
+              sentAt: new Date(),
+            },
+          },
+          $setOnInsert: { answers: {}, isSubmitted: false, submittedAt: null },
+        },
+        { upsert: true, new: true, runValidators: true },
+      );
+    }
+
     return Response.json({ success: true, delivered: recipients.length });
   } catch (error) {
     console.error("TEAM FINDER REQUEST ERROR:", error);
