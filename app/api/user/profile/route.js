@@ -2,6 +2,7 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/user";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { syncUserClubProfile } from "@/lib/clubProfileSync";
 
 export async function PATCH(req) {
   try {
@@ -46,6 +47,8 @@ export async function PATCH(req) {
     if (!user) {
       return Response.json({ error: "User not found" }, { status: 404 });
     }
+
+    await syncUserClubProfile(user);
 
     return Response.json({ success: true, user }, { status: 200 });
   } catch (error) {
