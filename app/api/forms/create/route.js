@@ -27,6 +27,7 @@ export async function POST(req) {
     const payload = {
       ...data,
       ...(Number.isFinite(parsedSeats) ? { seats: parsedSeats } : { seats: undefined }),
+      ...(data?.isPublished && !data?.publishedAt ? { publishedAt: new Date() } : {}),
       createdBy: normalizedEmail,
     };
     
