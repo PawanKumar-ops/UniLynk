@@ -7,65 +7,23 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 const toPlainMember = (member = {}) => ({
   name: member.name || member.fullName || member.email || "Participant",
   email: member.email || "",
-  img: member.img || member.image || member.profilePicture || "",
   ...member,
 });
-
-const createCurrentUserMember = (user, email) => {
-  const fallbackName = user?.name || email.split("@")[0] || "Participant";
-
-  return {
-    name: fallbackName,
-    fullName: fallbackName,
-    email,
-    img: user?.img || "",
-    image: user?.img || "",
-    profilePicture: user?.img || "",
-    branch: user?.branch || "",
-    year: user?.year || "",
-    rollNo: user?.rollNumber || "",
-    rollNumber: user?.rollNumber || "",
-  };
-};
-
-const ensureCurrentUserMember = (members, user, email) => {
-  const currentUserMember = createCurrentUserMember(user, email);
-  const currentUserIndex = members.findIndex((member) => member.email?.toLowerCase() === email);
-
-  if (currentUserIndex === -1) return [currentUserMember, ...members];
-
-  return members.map((member, index) => {
-    if (index !== currentUserIndex) return member;
-
-    return {
-      ...currentUserMember,
-      ...member,
-      name: member.name || currentUserMember.name,
-      fullName: member.fullName || member.name || currentUserMember.fullName,
-      email: member.email || email,
-      img: member.img || member.image || member.profilePicture || currentUserMember.img,
-      image: member.image || member.img || member.profilePicture || currentUserMember.image,
-      profilePicture: member.profilePicture || member.img || member.image || currentUserMember.profilePicture,
-    };
-  });
-};
 
 const countFilledMembers = (members = []) =>
   members.filter((member) => Object.values(member || {}).some((value) => String(value || "").trim())).length;
 
 const buildTeamFinderPayload = ({ type, teamRegistration, user, email }) => {
-  const submittedMembers = Array.isArray(teamRegistration?.members)
+  const members = Array.isArray(teamRegistration?.members)
     ? teamRegistration.members.map(toPlainMember).filter((member) => member.name || member.email)
     : [];
-  const currentUserMember = createCurrentUserMember(user, email);
+  const fallbackName = user?.name || email.split("@")[0] || "Participant";
   const profile = {
-    name: currentUserMember.name,
-    email,
-    img: currentUserMember.img,
+    name: members[0]?.name || fallbackName,
+    email: members[0]?.email || email,
   };
 
   if (type === "team") {
-    const members = ensureCurrentUserMember(submittedMembers, user, email);
     const total = Math.max(members.length, Number(teamRegistration?.maxSize) || members.length || 1);
     const filled = countFilledMembers(members);
 
@@ -73,7 +31,7 @@ const buildTeamFinderPayload = ({ type, teamRegistration, user, email }) => {
       type: "team",
       profile,
       team: {
-        name: teamRegistration?.teamName?.trim() || `${profile.name}'s Team`,
+        name: teamRegistration?.teamName?.trim() || `${fallbackName}'s Team`,
         lead: profile.name,
         members,
         needed: Math.max(total - filled, 0),
@@ -86,11 +44,7 @@ const buildTeamFinderPayload = ({ type, teamRegistration, user, email }) => {
 
   return {
     type: "solo",
-    profile: {
-      name: submittedMembers[0]?.name || profile.name,
-      email: submittedMembers[0]?.email || profile.email,
-      img: submittedMembers[0]?.img || submittedMembers[0]?.image || submittedMembers[0]?.profilePicture || profile.img,
-    },
+    profile,
     team: undefined,
     addedAt: new Date(),
   };
@@ -112,7 +66,6 @@ const serializeEntry = (response) => {
       tags: team.lookingFor?.length ? team.lookingFor : ["Open"],
       members,
       lookingFor: team.lookingFor?.length ? team.lookingFor : ["Teammates"],
-      img: teamFinder.profile?.img || members[0]?.img || members[0]?.image || members[0]?.profilePicture || "",
     };
   }
 
@@ -120,7 +73,6 @@ const serializeEntry = (response) => {
     id,
     name: teamFinder.profile?.name || response.userEmail.split("@")[0],
     email: teamFinder.profile?.email || response.userEmail,
-    img: teamFinder.profile?.img || "",
   };
 };
 
@@ -169,10 +121,7 @@ export async function POST(req) {
     await connectDB();
 
     const userEmail = session.user.email.toLowerCase().trim();
-    const user = await User.findOne(
-      { email: userEmail },
-      { name: 1, email: 1, img: 1, branch: 1, year: 1, rollNumber: 1 }
-    ).lean();
+    const user = await User.findOne({ email: userEmail }, { name: 1 }).lean();
     const teamFinder = buildTeamFinderPayload({ type, teamRegistration, user, email: userEmail });
 
     const response = await ResponseModel.findOneAndUpdate(

@@ -303,10 +303,8 @@ export default function FormPreview() {
       Object.values(responses).find((value) => value && typeof value === "object" && Array.isArray(value.members));
 
     return {
-      ...(registration || createDefaultTeamAnswer(formData?.teamConfig, currentUser)),
+      ...(registration || createDefaultTeamAnswer(formData?.teamConfig)),
       maxSize: formData?.teamConfig?.maxSize,
-      memberFields: formData?.teamConfig?.memberFields,
-      customFields: formData?.teamConfig?.customFields,
     };
   };
 
