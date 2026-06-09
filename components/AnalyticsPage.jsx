@@ -1068,7 +1068,7 @@ function Styles() {
       }
       .cc-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.04); }
       .cc-card-wide { grid-column: 1 / -1; }
-      @media (min-width: 1024px) { .cc-card-wide { grid-column: span 2; } }
+      @media (min-width: 1024px) { .cc-card-wide { grid-column: 1/-1; } }
       .cc-card-title { font-size: 13px; font-weight: 600; color: var(--fg); margin-bottom: 12px; letter-spacing: -0.01em; }
 
       /* Stat card */
