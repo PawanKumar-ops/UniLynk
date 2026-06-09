@@ -293,6 +293,7 @@ export default function FormPreview() {
   const [teamFinderDialogType, setTeamFinderDialogType] = useState("solo");
   const [teamFinderSaving, setTeamFinderSaving] = useState(false);
   const [teamFinderRefreshKey, setTeamFinderRefreshKey] = useState(0);
+  const [teamFinderComplete, setTeamFinderComplete] = useState(false);
 
   const asideRef = useRef(null);
 
@@ -340,6 +341,7 @@ export default function FormPreview() {
       }
 
       setTeamFinderDialogOpen(false);
+      setTeamFinderComplete(true);
       setTeamFinderRefreshKey((key) => key + 1);
     } catch (error) {
       console.error(error);
@@ -435,7 +437,10 @@ export default function FormPreview() {
     if (!safeFormId) return;
     fetch(`/api/forms/check-applied?formId=${safeFormId}`)
       .then(res => res.json())
-      .then(data => setAlreadyApplied(data.applied));
+      .then((data) => {
+        setAlreadyApplied(data.applied);
+        setTeamFinderComplete(Boolean(data.teamFinderComplete));
+      });
   }, [safeFormId]);
 
   const handleSubmit = async (e) => {
@@ -446,6 +451,11 @@ export default function FormPreview() {
 
     const missingRequired = (formData?.questions || []).filter((q) => q.required && !responses[q.id]);
     if (missingRequired && missingRequired.length > 0) { alert("Please fill in all required fields"); return; }
+
+    if (formData?.isTeamEvent && !teamFinderComplete) {
+      alert("Team Registration is required. Request to join an open team or add your team to Team Finder before submitting.");
+      return;
+    }
 
     const answers = { ...responses };
     if (formData?.isTeamEvent) {
@@ -571,7 +581,9 @@ export default function FormPreview() {
             {formData.isTeamEvent && (
               <div className="question-card">
                 <div className="question-text-wrapper">
-                  <h3 className="question-text">Team Registration</h3>
+                  <h3 className="question-text">Team Registration<span className="question-required">*</span></h3>
+                  <p className="question-desc">Required: request to join an open team or add your team to Team Finder before submitting.</p>
+                  {teamFinderComplete && <p className="team-finder-required-done">Team Finder requirement completed.</p>}
                 </div>
                 <TeamRegistrationCard
                   teamConfig={formData.teamConfig}
@@ -671,7 +683,11 @@ export default function FormPreview() {
           style={showHint && hintPos ? { top: '108px', transition: 'top 0.4s cubic-bezier(0.22,1,0.36,1)' } : { transition: 'top 0.3s ease' }}
           aria-label="Find a team"
         >
-          <TeamFinderCard formId={safeFormId} refreshKey={teamFinderRefreshKey} />
+          <TeamFinderCard
+            formId={safeFormId}
+            refreshKey={teamFinderRefreshKey}
+            onTeamFinderActionComplete={() => setTeamFinderComplete(true)}
+          />
         </aside>
       </div>
     </div>

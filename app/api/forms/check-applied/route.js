@@ -18,13 +18,13 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const formId = searchParams.get("formId");
 
-    const exists = await ResponseModel.findOne({
-      formId,
-      userEmail,
-      $or: [{ isSubmitted: true }, { submittedAt: { $ne: null } }]
-    });
+    const response = await ResponseModel.findOne({ formId, userEmail }).lean();
+    const applied = Boolean(response?.isSubmitted || response?.submittedAt);
+    const teamFinderComplete = Boolean(
+      response?.teamFinder?.type || response?.teamFinderRequest?.kind === "team"
+    );
 
-    return Response.json({ applied: !!exists });
+    return Response.json({ applied, teamFinderComplete });
 
   } catch (error) {
     console.error(error);
