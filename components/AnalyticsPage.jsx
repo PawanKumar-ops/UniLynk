@@ -96,8 +96,67 @@ const toShortDate = (value) => {
 
 const formatDisplayValue = (value) => {
   if (Array.isArray(value)) return value.length ? value.join(", ") : "—";
+  if (value && typeof value === "object") return JSON.stringify(value);
   return value || "—";
 };
+
+const formatExportDate = (value) => {
+  if (!value) return "";
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
+};
+
+const formatExportList = (value) => {
+  if (Array.isArray(value)) return value.filter(Boolean).join(", ");
+  return value || "";
+};
+
+const makeSheet = (rows, fallbackMessage) => {
+  const safeRows = rows.length ? rows : [{ Message: fallbackMessage }];
+  const ws = XLSX.utils.json_to_sheet(safeRows);
+  ws["!cols"] = Object.keys(safeRows[0] || {}).map((key) => ({ wch: Math.max(key.length, 18) }));
+  return ws;
+};
+
+const buildTeamRows = (teamList = [], statusLabel = "") =>
+  (Array.isArray(teamList) ? teamList : []).flatMap((team) => {
+    const members = Array.isArray(team.members) ? team.members : [];
+    const base = {
+      "Team ID": team.id || team._id || "",
+      "Team Name": team.name || "",
+      Status: statusLabel || team.status || "",
+      Lead: team.lead || members[0]?.name || "",
+      "Submitted By": team.submittedBy || "",
+      "Created At": formatExportDate(team.createdAt),
+      "Total Members": members.length,
+      "Looking For Count": team.lookingForCount ?? team.needed ?? "",
+      "Target Size": team.total || "",
+      "Looking For": formatExportList(team.lookingFor),
+    };
+
+    if (!members.length) return [{ ...base, "Member #": "", "Member Name": "", "Member Email": "", "Member Roll No": "", "Member Branch": "", "Member Year": "" }];
+
+    return members.map((member, index) => ({
+      ...base,
+      "Member #": index + 1,
+      "Member Name": member.name || "",
+      "Member Email": member.email || "",
+      "Member Roll No": member.rollNo || member.rollNumber || "",
+      "Member Branch": member.branch || "",
+      "Member Year": member.year || "",
+    }));
+  });
+
+const buildSoloRows = (soloStudents = []) =>
+  (Array.isArray(soloStudents) ? soloStudents : []).map((student) => ({
+    "Student ID": student.id || student._id || "",
+    Name: student.name || "",
+    Email: student.email || "",
+    Branch: student.branch || "",
+    Year: student.year || "",
+    "Looking For": student.lookingFor || "",
+    "Joined At": formatExportDate(student.joinedAt),
+  }));
 
 const normalizeResponses = (responses, form) => {
   const questions = form?.questions || [];
@@ -220,10 +279,11 @@ export default function AnalyticsPage({ formId: formIdProp }) {
       });
       return row;
     });
-    const ws = XLSX.utils.json_to_sheet(data.length ? data : [{ Message: "No responses found" }]);
-    ws["!cols"] = Object.keys(data[0] ?? { Message: "No responses found" }).map((k) => ({ wch: Math.max(k.length, 18) }));
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Responses");
+    XLSX.utils.book_append_sheet(wb, makeSheet(data, "No responses found"), "Responses");
+    XLSX.utils.book_append_sheet(wb, makeSheet(buildTeamRows(teams, "Registered"), "No registered teams found"), "Registered Teams");
+    XLSX.utils.book_append_sheet(wb, makeSheet(buildTeamRows(teamFinder.incompleteTeams || [], "TeamFinder Open"), "No TeamFinder teams found"), "TeamFinder Teams");
+    XLSX.utils.book_append_sheet(wb, makeSheet(buildSoloRows(teamFinder.soloStudents || []), "No TeamFinder solo students found"), "TeamFinder Solo");
     XLSX.writeFile(wb, `${(form?.title || "event").toLowerCase().replace(/[^a-z0-9]+/g, "-")}-responses-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
 
@@ -745,11 +805,6 @@ function SoloCard({ student, accent }) {
         <div className="cc-solo-name">{student.name || "—"}</div>
         <div className="cc-solo-meta">{[student.email, student.branch, student.year].filter(Boolean).join(" · ") || "—"}</div>
         {student.lookingFor && <div className="cc-solo-looking">Looking for: {student.lookingFor}</div>}
-        {Array.isArray(student.skills) && student.skills.length > 0 && (
-          <div className="cc-solo-skills">
-            {student.skills.slice(0, 6).map((s, i) => <span key={i} className="cc-solo-skill">{s}</span>)}
-          </div>
-        )}
       </div>
     </div>
   );
