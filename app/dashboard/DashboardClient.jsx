@@ -16,6 +16,7 @@ import { ExplorePage } from "@/components/ExplorePage";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bell, BookOpen } from "lucide-react";
 import { Icon } from "@iconify/react";
+import ImageWithFallback from "../../components/ReliableImage";
 import { NewsLetterCard } from "@/components/NewsLetterCard";
 import { DashboardNotificationItem } from "@/components/DashboardNotificationItem";
 
@@ -140,14 +141,28 @@ export default function DashboardClient() {
       let teamFinderNotifications = [];
 
       try {
-        const pastRes = await fetch("/api/clubs/past-pending");
-        if (pastRes.ok) {
-          const pastData = await pastRes.json();
-          pastNotifications = (pastData || []).map((notif) => ({
-            ...notif,
-            notificationType: "past-event",
-          }));
-        }
+        const [pastRes, teamFinderRes] = await Promise.all([
+          fetch("/api/clubs/past-pending"),
+          fetch("/api/notifications"),
+        ]);
+        const [pastData, teamFinderData] = await Promise.all([
+          pastRes.ok ? pastRes.json() : [],
+          teamFinderRes.ok ? teamFinderRes.json() : [],
+        ]);
+
+        const pastNotifications = (pastData || []).map((notif) => ({
+          ...notif,
+          notificationType: "past-event",
+        }));
+        const teamFinderNotifications = (teamFinderData || []).map((notif) => ({
+          ...notif,
+          notificationType: "team-finder-request",
+        }));
+
+        setPendingNotifications([
+          ...teamFinderNotifications,
+          ...pastNotifications,
+        ]);
       } catch (err) {
         console.error("Failed to fetch past activity notifications:", err);
       }
@@ -1010,27 +1025,43 @@ export default function DashboardClient() {
                 pendingNotifications.map((notif) => {
                   const isTeamFinder =
                     notif.notificationType === "team-finder-request";
-
                   return (
-                    <DashboardNotificationItem
+                    <div
                       key={`${notif.notificationType}-${notif._id}`}
-                      title={notif.title}
-                      subtitle={
-                        isTeamFinder
-                          ? notif.body
-                          : "Please update Past Activities Page"
-                      }
-                      imageSrc={isTeamFinder ? null : notif.clubLogo}
-                      imageAlt={
-                        isTeamFinder ? "Team Finder request" : notif.clubName
-                      }
-                      Icon={Bell}
-                      onClick={
-                        isTeamFinder
-                          ? undefined
-                          : () => setActivePastEvent(notif)
-                      }
-                    />
+                      onClick={() => {
+                        if (!isTeamFinder) setActivePastEvent(notif);
+                      }}
+                      className={`flex w-full min-h-[60px] items-center gap-3 p-3 rounded-2xl border border-neutral-200 hover:border-neutral-300 hover:shadow-sm transition bg-white ${
+                        isTeamFinder ? "cursor-default" : "cursor-pointer"
+                      }`}
+                    >
+                      <div className="w-11 h-11 rounded-full overflow-hidden bg-neutral-100 shrink-0 flex items-center justify-center">
+                        {isTeamFinder ? (
+                          <Bell className="h-5 w-5 text-neutral-700" />
+                        ) : (
+                          <ImageWithFallback
+                            src={notif.clubLogo}
+                            alt={notif.clubName}
+                            className="w-full h-full object-cover"
+                          />
+                        )}
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-sm font-semibold truncate text-black">
+                          {notif.title}
+                        </div>
+                        <div className="text-xs text-neutral-500 truncate">
+                          {isTeamFinder
+                            ? notif.body
+                            : "Please update Past Activities Page"}
+                        </div>
+                        {isTeamFinder && notif.message && (
+                          <div className="mt-1 rounded-lg bg-neutral-50 border border-neutral-100 px-2 py-1 text-[11px] text-neutral-600 line-clamp-2">
+                            {notif.message}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   );
                 })
               ) : (
