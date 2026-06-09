@@ -72,13 +72,20 @@ const MAX_MESSAGE = 240;
 const initials = (n) =>
   n.split(" ").map((p) => p[0]).slice(0, 2).join("");
 
-function AvatarCircle({ name, size = 32, textSize = "text-[10px]" }) {
+function AvatarCircle({ name, src, size = 32, textSize = "text-[10px]" }) {
+  const imageSrc = src || "";
+
   return (
     <div
-      className={`rounded-full bg-neutral-900 text-white flex items-center justify-center ring-2 ring-white shadow-sm shrink-0 ${textSize}`}
-      style={{ height: size, width: size }}
+      aria-label={name ? `${name} profile picture` : "Profile picture"}
+      className={`rounded-full bg-neutral-900 text-white flex items-center justify-center ring-2 ring-white shadow-sm shrink-0 overflow-hidden bg-cover bg-center ${textSize}`}
+      style={{
+        height: size,
+        width: size,
+        backgroundImage: imageSrc ? `url(${imageSrc})` : undefined,
+      }}
     >
-      {initials(name)}
+      {!imageSrc && initials(name || "?")}
     </div>
   );
 }
@@ -242,7 +249,7 @@ export function TeamFinderCard({ formId, refreshKey = 0 }) {
   : "border-neutral-200 bg-white hover:border-neutral-300"
                     }`}
                   >
-                    <AvatarCircle name={u.name} size={32} />
+                    <AvatarCircle name={u.name} src={u.img || u.image || u.profilePicture} size={32} />
                     <div className="flex-1 min-w-0">
                       <p className="text-xs text-neutral-900 truncate leading-tight">{u.name}</p>
                       <p className="text-[10px] text-neutral-500 truncate mt-0.5">{u.email}</p>
@@ -322,10 +329,13 @@ export function TeamFinderCard({ formId, refreshKey = 0 }) {
                       <div className="flex items-center justify-between mt-2">
                         <div className="flex items-center gap-1.5">
                           <div className="flex -space-x-1">
-                            {Array.from({ length: t.total - t.needed }).map((_, i) => (
-                              <div
-                                key={i}
-                                className="h-4 w-4 rounded-full bg-neutral-900 ring-2 ring-white"
+                            {(t.members || []).slice(0, Math.max(t.total - t.needed, 0)).map((member, i) => (
+                              <AvatarCircle
+                                key={member.email || member.name || i}
+                                name={member.name}
+                                src={member.img || member.image || member.profilePicture}
+                                size={16}
+                                textSize="text-[7px]"
                               />
                             ))}
                             {Array.from({ length: t.needed }).map((_, i) => (
@@ -356,7 +366,7 @@ export function TeamFinderCard({ formId, refreshKey = 0 }) {
                           <div className="space-y-1.5">
                             {t.members.map((m) => (
                               <div key={m.name} className="flex items-center gap-2">
-                                <AvatarCircle name={m.name} size={24} textSize="text-[9px]" />
+                                <AvatarCircle name={m.name} src={m.img || m.image || m.profilePicture} size={24} textSize="text-[9px]" />
                                 <div className="min-w-0">
                                   <p className="text-[11px] text-neutral-900 leading-tight truncate">
                                     {m.name}
