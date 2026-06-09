@@ -1,28 +1,25 @@
-"use client"
+"use client";
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import './dashboard.css';
-import { ArrowLeft, EllipsisVertical, ArrowRight } from 'lucide-react';
-import { useSession } from 'next-auth/react';
-import { usePathname, useRouter } from 'next/navigation';
-import PostFAB from '../../components/PostFAB';
-import Post from '../../components/Post';
-import ReliableImage from '../../components/ReliableImage';
-import CommentModal from '@/components/CommentModal';
-import ShareModal from '@/components/ShareModal';
-import { ReportPostModal } from '@/components/ReportPostModal';
-import PastEventNotifiModal from '@/components/PastEventNotifiModal';
-import { ExplorePage } from '@/components/ExplorePage';
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import "./dashboard.css";
+import { ArrowLeft, EllipsisVertical, ArrowRight } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { usePathname, useRouter } from "next/navigation";
+import PostFAB from "../../components/PostFAB";
+import Post from "../../components/Post";
+import ReliableImage from "../../components/ReliableImage";
+import CommentModal from "@/components/CommentModal";
+import ShareModal from "@/components/ShareModal";
+import { ReportPostModal } from "@/components/ReportPostModal";
+import PastEventNotifiModal from "@/components/PastEventNotifiModal";
+import { ExplorePage } from "@/components/ExplorePage";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-  Bell,
-  BookOpen,
-} from "lucide-react";
-import { Icon } from '@iconify/react';
-import ImageWithFallback from '../../components/ReliableImage';
+import { Bell, BookOpen } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { NewsLetterCard } from "@/components/NewsLetterCard";
+import { DashboardNotificationItem } from "@/components/DashboardNotificationItem";
 
-const DASHBOARD_SCROLL_STORAGE_KEY = 'dashboard-feed-scroll-position';
+const DASHBOARD_SCROLL_STORAGE_KEY = "dashboard-feed-scroll-position";
 
 const Loading = () => (
   <div className="userpostsloadani">
@@ -36,7 +33,7 @@ const Loading = () => (
 const formatRelativeTime = (dateString) => {
   const date = new Date(dateString);
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (seconds < 60) return 'now';
+  if (seconds < 60) return "now";
   const mins = Math.floor(seconds / 60);
   if (mins < 60) return `${mins}m`;
   const hrs = Math.floor(mins / 60);
@@ -51,16 +48,21 @@ const buildAvatarFallback = (name) => {
 };
 
 const normalizeComment = (comment, index = 0) => {
-  if (!comment || typeof comment !== 'object') return null;
+  if (!comment || typeof comment !== "object") return null;
 
   const candidateId = comment.id ?? comment._id ?? `comment-${index}`;
-  const safeId = typeof candidateId === 'string' ? candidateId.trim() : String(candidateId || '').trim();
+  const safeId =
+    typeof candidateId === "string"
+      ? candidateId.trim()
+      : String(candidateId || "").trim();
 
   return {
     ...comment,
     id: safeId || `comment-${index}`,
     images: Array.isArray(comment.images)
-      ? comment.images.filter((image) => typeof image === 'string' && image.trim())
+      ? comment.images.filter(
+          (image) => typeof image === "string" && image.trim(),
+        )
       : [],
   };
 };
@@ -97,7 +99,8 @@ const likePost = async (postId, method) => {
 };
 
 const isElementVisibleWithinContainer = (element, container) => {
-  if (!(element instanceof HTMLElement) || !(container instanceof HTMLElement)) return false;
+  if (!(element instanceof HTMLElement) || !(container instanceof HTMLElement))
+    return false;
 
   const elementTop = element.offsetTop;
   const elementBottom = elementTop + element.offsetHeight;
@@ -121,7 +124,9 @@ export default function DashboardClient() {
   const [reportPostId, setReportPostId] = useState(null);
   const router = useRouter();
   const pathname = usePathname();
-  const [dashboardView, setDashboardView] = useState(pathname === '/dashboard/explore' ? 'explore' : 'feed');
+  const [dashboardView, setDashboardView] = useState(
+    pathname === "/dashboard/explore" ? "explore" : "feed",
+  );
   const [error, setError] = useState(null);
   const [mode, setMode] = useState("newsletter");
   const [pendingNotifications, setPendingNotifications] = useState([]);
@@ -131,22 +136,46 @@ export default function DashboardClient() {
     if (!session?.user?.email) return;
 
     const fetchPendingNotifications = async () => {
+      let pastNotifications = [];
+      let teamFinderNotifications = [];
+
       try {
-        const res = await fetch("/api/clubs/past-pending");
-        if (res.ok) {
-          const data = await res.json();
-          setPendingNotifications(data || []);
+        const pastRes = await fetch("/api/clubs/past-pending");
+        if (pastRes.ok) {
+          const pastData = await pastRes.json();
+          pastNotifications = (pastData || []).map((notif) => ({
+            ...notif,
+            notificationType: "past-event",
+          }));
         }
       } catch (err) {
-        console.error("Failed to fetch pending notifications:", err);
+        console.error("Failed to fetch past activity notifications:", err);
       }
+
+      try {
+        const teamFinderRes = await fetch("/api/notifications");
+        if (teamFinderRes.ok) {
+          const teamFinderData = await teamFinderRes.json();
+          teamFinderNotifications = (teamFinderData || []).map((notif) => ({
+            ...notif,
+            notificationType: "team-finder-request",
+          }));
+        }
+      } catch (err) {
+        console.error("Failed to fetch Team Finder notifications:", err);
+      }
+
+      setPendingNotifications([
+        ...teamFinderNotifications,
+        ...pastNotifications,
+      ]);
     };
 
     fetchPendingNotifications();
   }, [session]);
 
   useEffect(() => {
-    setDashboardView(pathname === '/dashboard/explore' ? 'explore' : 'feed');
+    setDashboardView(pathname === "/dashboard/explore" ? "explore" : "feed");
   }, [pathname]);
 
   const likeTimersRef = useRef({});
@@ -157,21 +186,36 @@ export default function DashboardClient() {
   const pendingRestorePostIdRef = useRef(null);
   const hasRestoredInitialFeedScrollRef = useRef(false);
 
-  const selectedAudience = useMemo(() => (isAnnual ? "for-you" : "clubs"), [isAnnual]);
+  const selectedAudience = useMemo(
+    () => (isAnnual ? "for-you" : "clubs"),
+    [isAnnual],
+  );
   const selectedThreadPost = useMemo(
-    () => (Array.isArray(posts) ? posts.find((post) => post.id === threadPostId) ?? null : null),
-    [posts, threadPostId]
+    () =>
+      Array.isArray(posts)
+        ? (posts.find((post) => post.id === threadPostId) ?? null)
+        : null,
+    [posts, threadPostId],
   );
 
-  useEffect(() => () => {
-    Object.values(likeTimersRef.current).forEach((timer) => clearTimeout(timer));
-  }, []);
+  useEffect(
+    () => () => {
+      Object.values(likeTimersRef.current).forEach((timer) =>
+        clearTimeout(timer),
+      );
+    },
+    [],
+  );
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
 
-    const savedFeedScroll = Number(window.sessionStorage.getItem(DASHBOARD_SCROLL_STORAGE_KEY) || 0);
-    restoreFeedScrollRef.current = Number.isFinite(savedFeedScroll) ? savedFeedScroll : 0;
+    const savedFeedScroll = Number(
+      window.sessionStorage.getItem(DASHBOARD_SCROLL_STORAGE_KEY) || 0,
+    );
+    restoreFeedScrollRef.current = Number.isFinite(savedFeedScroll)
+      ? savedFeedScroll
+      : 0;
   }, []);
 
   useEffect(() => {
@@ -200,11 +244,16 @@ export default function DashboardClient() {
   }, [selectedAudience]);
 
   const persistFeedScroll = (scrollTop) => {
-    if (typeof window === 'undefined') return;
+    if (typeof window === "undefined") return;
 
-    const safeScrollTop = Number.isFinite(scrollTop) ? Math.max(0, scrollTop) : 0;
+    const safeScrollTop = Number.isFinite(scrollTop)
+      ? Math.max(0, scrollTop)
+      : 0;
     restoreFeedScrollRef.current = safeScrollTop;
-    window.sessionStorage.setItem(DASHBOARD_SCROLL_STORAGE_KEY, String(safeScrollTop));
+    window.sessionStorage.setItem(
+      DASHBOARD_SCROLL_STORAGE_KEY,
+      String(safeScrollTop),
+    );
   };
 
   useEffect(() => {
@@ -219,13 +268,18 @@ export default function DashboardClient() {
     const restorePostId = pendingRestorePostIdRef.current;
 
     const restoreFeedPosition = () => {
-      const savedScrollTop = Number.isFinite(restoreFeedScrollRef.current) ? restoreFeedScrollRef.current : 0;
+      const savedScrollTop = Number.isFinite(restoreFeedScrollRef.current)
+        ? restoreFeedScrollRef.current
+        : 0;
       feedElement.scrollTop = savedScrollTop;
 
       if (restorePostId) {
         const restorePostElement = postRefs.current[restorePostId];
-        if (restorePostElement && !isElementVisibleWithinContainer(restorePostElement, feedElement)) {
-          restorePostElement.scrollIntoView({ block: 'center' });
+        if (
+          restorePostElement &&
+          !isElementVisibleWithinContainer(restorePostElement, feedElement)
+        ) {
+          restorePostElement.scrollIntoView({ block: "center" });
         }
       }
 
@@ -255,8 +309,10 @@ export default function DashboardClient() {
 
     setPosts((prev) =>
       Array.isArray(prev)
-        ? prev.map((post) => (post.id === normalizedUpdatedPost.id ? normalizedUpdatedPost : post))
-        : prev
+        ? prev.map((post) =>
+            post.id === normalizedUpdatedPost.id ? normalizedUpdatedPost : post,
+          )
+        : prev,
     );
   };
 
@@ -295,20 +351,20 @@ export default function DashboardClient() {
   const handleCommentSubmit = async (postId, payload) => {
     try {
       const res = await fetch(`/api/posts/${postId}/comments`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || 'Failed to add comment');
+      if (!res.ok) throw new Error(data?.error || "Failed to add comment");
 
       updateSinglePost(data.post);
       setActivePostId(null);
       setThreadPostId(postId);
     } catch (error) {
       console.error(error);
-      alert('Could not publish comment');
+      alert("Could not publish comment");
     }
   };
 
@@ -332,11 +388,11 @@ export default function DashboardClient() {
         prev.map((post) =>
           post.id === postId
             ? {
-              ...post,
-              savedByCurrentUser: data.saved,
-            }
-            : post
-        )
+                ...post,
+                savedByCurrentUser: data.saved,
+              }
+            : post,
+        ),
       );
     } catch (err) {
       console.error(err);
@@ -356,7 +412,10 @@ export default function DashboardClient() {
         if (post.id !== postId) return post;
 
         const nextLiked = !currentlyLiked;
-        const nextLikeCount = Math.max(0, Number(post.likeCount || 0) + (nextLiked ? 1 : -1));
+        const nextLikeCount = Math.max(
+          0,
+          Number(post.likeCount || 0) + (nextLiked ? 1 : -1),
+        );
 
         return {
           ...post,
@@ -364,7 +423,7 @@ export default function DashboardClient() {
           likeCount: nextLikeCount,
           likePending: true,
         };
-      })
+      }),
     );
 
     if (likeTimersRef.current[postId]) {
@@ -375,25 +434,25 @@ export default function DashboardClient() {
       pendingLikePostIdsRef.current.add(postId);
 
       try {
-        const method = currentlyLiked ? 'DELETE' : 'POST';
+        const method = currentlyLiked ? "DELETE" : "POST";
         const res = await likePost(postId, method);
         const data = await res.json();
 
         if (!res.ok) {
-          throw new Error(data?.error || 'Failed to update like');
+          throw new Error(data?.error || "Failed to update like");
         }
 
         setPosts((prev) =>
           prev.map((post) =>
             post.id === postId
               ? {
-                ...post,
-                likedByCurrentUser: Boolean(data.likedByCurrentUser),
-                likeCount: Number(data.likeCount || 0),
-                likePending: false,
-              }
-              : post
-          )
+                  ...post,
+                  likedByCurrentUser: Boolean(data.likedByCurrentUser),
+                  likeCount: Number(data.likeCount || 0),
+                  likePending: false,
+                }
+              : post,
+          ),
         );
       } catch (error) {
         console.error(error);
@@ -405,10 +464,13 @@ export default function DashboardClient() {
             return {
               ...post,
               likedByCurrentUser: rollbackLiked,
-              likeCount: Math.max(0, Number(post.likeCount || 0) + (rollbackLiked ? 1 : -1)),
+              likeCount: Math.max(
+                0,
+                Number(post.likeCount || 0) + (rollbackLiked ? 1 : -1),
+              ),
               likePending: false,
             };
-          })
+          }),
         );
       } finally {
         pendingLikePostIdsRef.current.delete(postId);
@@ -419,20 +481,24 @@ export default function DashboardClient() {
 
   const renderPostCard = (post, { isThread = false } = {}) => (
     <div
-      className={`userpost ${menuPostId === post.id ? "menu-open" : ""} ${isThread ? 'thread-root-post' : ''}`}
+      className={`userpost ${menuPostId === post.id ? "menu-open" : ""} ${isThread ? "thread-root-post" : ""}`}
       key={post.id}
-      ref={isThread ? undefined : (node) => {
-        if (node) {
-          postRefs.current[post.id] = node;
-        } else {
-          delete postRefs.current[post.id];
-        }
-      }}
+      ref={
+        isThread
+          ? undefined
+          : (node) => {
+              if (node) {
+                postRefs.current[post.id] = node;
+              } else {
+                delete postRefs.current[post.id];
+              }
+            }
+      }
       onClick={() => handleOpenThread(post.id)}
       role="button"
       tabIndex={0}
       onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
+        if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
           handleOpenThread(post.id);
         }
@@ -441,7 +507,7 @@ export default function DashboardClient() {
       <div className="post-left">
         <div className="profilepic">
           <ReliableImage
-            className='profileimg'
+            className="profileimg"
             src={post.authorImage}
             alt={post.authorName || "User"}
             fallbackSrc={buildAvatarFallback(post.authorName)}
@@ -455,15 +521,33 @@ export default function DashboardClient() {
           <div className="posth-left">
             <div className="user-name">
               {post.authorName || "UniLynk User"}
-              {post.postAs === "club" && <Icon icon="heroicons-solid:badge-check" color='#1d9bf0' width={18} />}
+              {post.postAs === "club" && (
+                <Icon
+                  icon="heroicons-solid:badge-check"
+                  color="#1d9bf0"
+                  width={18}
+                />
+              )}
             </div>
-            <div className="post-time"><span className='post-dot'><svg width="8" height="8" viewBox="0 0 8 8" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="4" cy="4" r="1.5" fill="grey" />
-            </svg></span><div className='post-timeli'>{formatRelativeTime(post.createdAt)}</div></div>
+            <div className="post-time">
+              <span className="post-dot">
+                <svg
+                  width="8"
+                  height="8"
+                  viewBox="0 0 8 8"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <circle cx="4" cy="4" r="1.5" fill="grey" />
+                </svg>
+              </span>
+              <div className="post-timeli">
+                {formatRelativeTime(post.createdAt)}
+              </div>
+            </div>
           </div>
           <div className="posth-right">
             <button
-              className='posth-right-btn'
+              className="posth-right-btn"
               onClick={(event) => {
                 event.stopPropagation();
                 setMenuPostId(menuPostId === post.id ? null : post.id);
@@ -474,11 +558,24 @@ export default function DashboardClient() {
               <EllipsisVertical />
             </button>
             {menuPostId === post.id && (
-              <div className="post-dropdown-menu" onClick={(event) => event.stopPropagation()}>
-                <button className="menu-item" onClick={() => {
-                  handleReportClick(post.id);
-                }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <div
+                className="post-dropdown-menu"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <button
+                  className="menu-item"
+                  onClick={() => {
+                    handleReportClick(post.id);
+                  }}
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
                     <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
                     <line x1="12" y1="9" x2="12" y2="13" />
                     <line x1="12" y1="17" x2="12.01" y2="17" />
@@ -493,17 +590,34 @@ export default function DashboardClient() {
                     setMenuPostId(null);
                   }}
                 >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
                     <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
                   </svg>
                   Save Post
                 </button>
-                <button className="menu-item" onClick={() => {
-                  setMenuPostId(null);
-                  setSharePost(post);
-                  setOpenShare(true);
-                }}>
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <button
+                  className="menu-item"
+                  onClick={() => {
+                    setMenuPostId(null);
+                    setSharePost(post);
+                    setOpenShare(true);
+                  }}
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
                     <circle cx="18" cy="5" r="3" />
                     <circle cx="6" cy="12" r="3" />
                     <circle cx="18" cy="19" r="3" />
@@ -523,7 +637,11 @@ export default function DashboardClient() {
             <div className="image-post">
               <div className={getImageGridClass(post.images.length)}>
                 {post.images.map((imageUrl, idx) => (
-                  <img key={`${post.id}-${idx}`} src={imageUrl} alt="Post image" />
+                  <img
+                    key={`${post.id}-${idx}`}
+                    src={imageUrl}
+                    alt="Post image"
+                  />
                 ))}
               </div>
             </div>
@@ -543,36 +661,58 @@ export default function DashboardClient() {
               }}
               disabled={Boolean(post.likePending)}
               aria-label={post.likedByCurrentUser ? "Unlike post" : "Like post"}
-              className={`like-button ${post.likedByCurrentUser ? 'liked' : ''}`}
+              className={`like-button ${post.likedByCurrentUser ? "liked" : ""}`}
               type="button"
             >
-              <img className='post-foot-icon' src="Postimg/thumb.svg" alt="Like" />
+              <img
+                className="post-foot-icon"
+                src="Postimg/thumb.svg"
+                alt="Like"
+              />
             </button>
-            <span className='post-like-count'>{Number(post.likeCount || 0)}</span>
-          </div>
-          <div className="post-foot-iconcont">
-            <button onClick={() => {
-              if (!post?.id) return;
-              setThreadPostId(post.id);
-              setActivePostId(post.id);
-            }} type="button">
-              <img className='post-foot-icon' src="Postimg/comment.svg" alt="Comment" />
-            </button>
-            <span className='post-comment-count'>{Number(post.commentCount || 0)}</span>
-          </div>
-          <div className="post-foot-iconcont">
-            <button onClick={() => { setSharePost(post); setOpenShare(true); }} type="button">
-              <img className="post-foot-icon" src="Postimg/share.svg" alt="Share" />
-            </button>
-            <span className='post-share-count'>0</span>
+            <span className="post-like-count">
+              {Number(post.likeCount || 0)}
+            </span>
           </div>
           <div className="post-foot-iconcont">
             <button
+              onClick={() => {
+                if (!post?.id) return;
+                setThreadPostId(post.id);
+                setActivePostId(post.id);
+              }}
               type="button"
-              onClick={() => toggleSavePost(post.id)}
             >
               <img
-                className='post-foot-icon'
+                className="post-foot-icon"
+                src="Postimg/comment.svg"
+                alt="Comment"
+              />
+            </button>
+            <span className="post-comment-count">
+              {Number(post.commentCount || 0)}
+            </span>
+          </div>
+          <div className="post-foot-iconcont">
+            <button
+              onClick={() => {
+                setSharePost(post);
+                setOpenShare(true);
+              }}
+              type="button"
+            >
+              <img
+                className="post-foot-icon"
+                src="Postimg/share.svg"
+                alt="Share"
+              />
+            </button>
+            <span className="post-share-count">0</span>
+          </div>
+          <div className="post-foot-iconcont">
+            <button type="button" onClick={() => toggleSavePost(post.id)}>
+              <img
+                className="post-foot-icon"
                 src="Postimg/bookmark.svg"
                 alt="bookmark"
                 style={{
@@ -581,7 +721,7 @@ export default function DashboardClient() {
               />
             </button>
 
-            <span className='post-bookmark-count'>
+            <span className="post-bookmark-count">
               {post.savedByCurrentUser ? 1 : 0}
             </span>
           </div>
@@ -594,27 +734,46 @@ export default function DashboardClient() {
     <div className="thread-comment" key={comment.id}>
       <div className="thread-comment-avatar">
         <ReliableImage
-          className='profileimg'
+          className="profileimg"
           src={comment.authorImage}
-          alt={comment.authorName || 'User'}
+          alt={comment.authorName || "User"}
           fallbackSrc={buildAvatarFallback(comment.authorName)}
           maxRetries={3}
         />
       </div>
       <div className="thread-comment-body">
         <div className="thread-comment-meta">
-          <span className="user-name">{comment.authorName || 'UniLynk User'}</span>
+          <span className="user-name">
+            {comment.authorName || "UniLynk User"}
+          </span>
           <span className="post-time">
-            <span className='post-dot'><svg width="8" height="8" viewBox="0 0 8 8" xmlns="http://www.w3.org/2000/svg"><circle cx="4" cy="4" r="1.5" fill="grey" /></svg></span>
-            <span className='post-timeli'>{formatRelativeTime(comment.createdAt)}</span>
+            <span className="post-dot">
+              <svg
+                width="8"
+                height="8"
+                viewBox="0 0 8 8"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <circle cx="4" cy="4" r="1.5" fill="grey" />
+              </svg>
+            </span>
+            <span className="post-timeli">
+              {formatRelativeTime(comment.createdAt)}
+            </span>
           </span>
         </div>
-        {!!comment.content && <div className="thread-comment-content">{comment.content}</div>}
+        {!!comment.content && (
+          <div className="thread-comment-content">{comment.content}</div>
+        )}
         {!!comment.images?.length && (
           <div className="thread-comment-media">
             <div className={getImageGridClass(comment.images.length)}>
               {comment.images.map((imageUrl, index) => (
-                <img key={`${comment.id}-${index}`} src={imageUrl} alt="Reply media" />
+                <img
+                  key={`${comment.id}-${index}`}
+                  src={imageUrl}
+                  alt="Reply media"
+                />
               ))}
             </div>
           </div>
@@ -625,9 +784,9 @@ export default function DashboardClient() {
 
   return (
     <div className="homebody">
-      <main className='dashmain'>
-        {dashboardView === 'explore' ? (
-          <ExplorePage onBack={() => router.push('/dashboard')} />
+      <main className="dashmain">
+        {dashboardView === "explore" ? (
+          <ExplorePage onBack={() => router.push("/dashboard")} />
         ) : (
           <>
             {!selectedThreadPost && (
@@ -651,17 +810,29 @@ export default function DashboardClient() {
             )}
 
             <div className="feed" ref={feedRef} onScroll={handleFeedScroll}>
-              <div className={`userposts ${selectedThreadPost ? "thread-userposts" : ""}`}>
+              <div
+                className={`userposts ${selectedThreadPost ? "thread-userposts" : ""}`}
+              >
                 {(loadingPosts || !posts) && <Loading />}
 
-                {!loadingPosts && Array.isArray(posts) && posts.length === 0 && <div className="noposts-illuistration">
-                  <img src="./dashboard/NoPosts.svg" alt="No Posts" />
-                  <h1 className='noposts-illuistrationh'>No Posts Yet</h1>
-                  <p className='noposts-illuistrationp'>It looks a little empty here. Check back later or be the first to create something amazing!</p>
-                </div>}
+                {!loadingPosts &&
+                  Array.isArray(posts) &&
+                  posts.length === 0 && (
+                    <div className="noposts-illuistration">
+                      <img src="./dashboard/NoPosts.svg" alt="No Posts" />
+                      <h1 className="noposts-illuistrationh">No Posts Yet</h1>
+                      <p className="noposts-illuistrationp">
+                        It looks a little empty here. Check back later or be the
+                        first to create something amazing!
+                      </p>
+                    </div>
+                  )}
 
                 {!loadingPosts && selectedThreadPost && (
-                  <section className="thread-view" aria-label="Post thread view">
+                  <section
+                    className="thread-view"
+                    aria-label="Post thread view"
+                  >
                     <div className="thread-view-header">
                       <button
                         type="button"
@@ -673,7 +844,6 @@ export default function DashboardClient() {
                       </button>
                       <div>
                         <h2 className="thread-view-title">Post</h2>
-
                       </div>
                     </div>
 
@@ -683,7 +853,9 @@ export default function DashboardClient() {
                       <div className="thread-replies-header-row">
                         <div>
                           <h3 className="thread-replies-title">Replies</h3>
-                          <p className="thread-replies-subtitle">Join the conversation under this post.</p>
+                          <p className="thread-replies-subtitle">
+                            Join the conversation under this post.
+                          </p>
                         </div>
                         <button
                           type="button"
@@ -700,7 +872,9 @@ export default function DashboardClient() {
                         </div>
                       ) : (
                         <div className="thread-empty-state">
-                          <div className="nocomment-illuistration"><img src="./dashboard/nocomment.svg" alt="" /></div>
+                          <div className="nocomment-illuistration">
+                            <img src="./dashboard/nocomment.svg" alt="" />
+                          </div>
                           <h4>No replies yet</h4>
                           <p>Be the first person to reply to this post.</p>
                         </div>
@@ -709,11 +883,21 @@ export default function DashboardClient() {
                   </section>
                 )}
 
-                {!loadingPosts && Array.isArray(posts) && !selectedThreadPost && posts.map((post) => renderPostCard(post))}
+                {!loadingPosts &&
+                  Array.isArray(posts) &&
+                  !selectedThreadPost &&
+                  posts.map((post) => renderPostCard(post))}
               </div>
 
-              {ispost ? (<Post setIspost={setIspost} audience={selectedAudience} onPosted={handlePosted} />) : (
-                <PostFAB setIspost={setIspost} />)}
+              {ispost ? (
+                <Post
+                  setIspost={setIspost}
+                  audience={selectedAudience}
+                  onPosted={handlePosted}
+                />
+              ) : (
+                <PostFAB setIspost={setIspost} />
+              )}
             </div>
             <CommentModal
               isOpen={Boolean(activePostId)}
@@ -747,7 +931,7 @@ export default function DashboardClient() {
               onSuccess={() => {
                 if (activePastEvent) {
                   setPendingNotifications((prev) =>
-                    prev.filter((evt) => evt._id !== activePastEvent._id)
+                    prev.filter((evt) => evt._id !== activePastEvent._id),
                   );
                 }
                 setActivePastEvent(null);
@@ -755,7 +939,7 @@ export default function DashboardClient() {
             />
           </>
         )}
-      </main >
+      </main>
       <div className="msgsidebar">
         <div className="msgsidebarmain">
           {/* <div className="msgsearchbar">
@@ -768,8 +952,8 @@ export default function DashboardClient() {
           </div> */}
           <button
             type="button"
-            onClick={() => router.push('/dashboard/explore')}
-            aria-pressed={dashboardView === 'explore'}
+            onClick={() => router.push("/dashboard/explore")}
+            aria-pressed={dashboardView === "explore"}
             className={`
                w-[325px] h-[54px]
                rounded-2xl border border-neutral-200
@@ -777,9 +961,11 @@ export default function DashboardClient() {
                flex items-center justify-center gap-2
                text-[16px] font-semibold
                shadow-sm transition-all duration-300
-               ${dashboardView === 'explore'
-                ? 'bg-black text-white hover:bg-neutral-900'
-                : 'bg-white/90 text-neutral-900 hover:bg-[#f5f8fa]'}
+               ${
+                 dashboardView === "explore"
+                   ? "bg-black text-white hover:bg-neutral-900"
+                   : "bg-white/90 text-neutral-900 hover:bg-[#f5f8fa]"
+               }
              `}
           >
             <span>Explore Campus</span>
@@ -807,8 +993,9 @@ export default function DashboardClient() {
                   setMode(id);
                   setError(null);
                 }}
-                className={`relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 text-xs transition ${mode === id ? "text-black" : "text-black/50"
-                  }`}
+                className={`relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 text-xs transition ${
+                  mode === id ? "text-black" : "text-black/50"
+                }`}
               >
                 <Icon className="h-3.5 w-3.5" />
                 {label}
@@ -820,25 +1007,32 @@ export default function DashboardClient() {
           {mode === "notification" ? (
             <div className="notifi-box p-1.5 space-y-2">
               {pendingNotifications.length > 0 ? (
-                pendingNotifications.map((notif) => (
-                  <div
-                    key={notif._id}
-                    onClick={() => setActivePastEvent(notif)}
-                    className="flex w-full h-[60px] items-center gap-3 p-3 rounded-2xl border border-neutral-200 hover:border-neutral-300 hover:shadow-sm cursor-pointer transition bg-white"
-                  >
-                    <div className="w-11 h-11 rounded-full overflow-hidden bg-neutral-100 shrink-0">
-                      <ImageWithFallback
-                        src={notif.clubLogo}
-                        alt={notif.clubName}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm font-semibold truncate text-black">{notif.title}</div>
-                      <div className="text-xs text-neutral-500 truncate">Please update Past Activities Page</div>
-                    </div>
-                  </div>
-                ))
+                pendingNotifications.map((notif) => {
+                  const isTeamFinder =
+                    notif.notificationType === "team-finder-request";
+
+                  return (
+                    <DashboardNotificationItem
+                      key={`${notif.notificationType}-${notif._id}`}
+                      title={notif.title}
+                      subtitle={
+                        isTeamFinder
+                          ? notif.body
+                          : "Please update Past Activities Page"
+                      }
+                      imageSrc={isTeamFinder ? null : notif.clubLogo}
+                      imageAlt={
+                        isTeamFinder ? "Team Finder request" : notif.clubName
+                      }
+                      Icon={Bell}
+                      onClick={
+                        isTeamFinder
+                          ? undefined
+                          : () => setActivePastEvent(notif)
+                      }
+                    />
+                  );
+                })
               ) : (
                 <div className="text-center py-8 text-xs text-neutral-400">
                   No new notifications
@@ -852,6 +1046,6 @@ export default function DashboardClient() {
           )}
         </div>
       </div>
-    </div >
+    </div>
   );
 }
