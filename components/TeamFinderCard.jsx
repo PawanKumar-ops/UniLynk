@@ -473,7 +473,7 @@ function RequestModal({ target, open, onClose, message, setMessage, sending, sen
   const overLimit = remaining < 20;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
       <div
         onClick={onClose}
         className="absolute inset-0 bg-neutral-950/50 backdrop-blur-md animate-in fade-in duration-200"

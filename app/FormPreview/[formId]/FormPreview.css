@@ -34,7 +34,8 @@
 
 .team-finder-preview-aside {
   grid-column: 3;
-  position: sticky;
+  position: relative !important;
+  z-index: 1 !important;
   top: 32px;
   width: 300px;
   margin-left: 46px;
