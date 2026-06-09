@@ -140,6 +140,8 @@ export default function AnalyticsPage({ formId: formIdProp }) {
   const [eventFilter, setEventFilter] = useState("All");
   const [form, setForm] = useState(null);
   const [responses, setResponses] = useState([]);
+  const [teams, setTeams] = useState([]);
+  const [teamFinder, setTeamFinder] = useState({ incompleteTeams: [], soloStudents: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -159,12 +161,25 @@ export default function AnalyticsPage({ formId: formIdProp }) {
         if (!active) return;
         setForm(data.form || null);
         setResponses(data.responses || []);
+        // Teams API contract (optional fields — safe defaults if backend doesn't return them yet):
+        //   data.teams: [{ _id, name, status: 'complete'|'incomplete', members: [{name,email,...}], createdAt, ...customFields }]
+        //   data.teamFinder: {
+        //     incompleteTeams: [{ _id, name, members:[...], lookingForCount, createdAt }],
+        //     soloStudents:    [{ _id, name, email, year, branch, skills:[], lookingFor, joinedAt }]
+        //   }
+        setTeams(Array.isArray(data.teams) ? data.teams : []);
+        setTeamFinder({
+          incompleteTeams: data?.teamFinder?.incompleteTeams || [],
+          soloStudents: data?.teamFinder?.soloStudents || [],
+        });
       })
       .catch((err) => {
         if (!active) return;
         setError(err.message || "Unable to load analytics data");
         setForm(null);
         setResponses([]);
+        setTeams([]);
+        setTeamFinder({ incompleteTeams: [], soloStudents: [] });
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -174,6 +189,8 @@ export default function AnalyticsPage({ formId: formIdProp }) {
       active = false;
     };
   }, [formId]);
+
+  const isTeamEvent = Boolean(form?.isTeamEvent);
 
   const rows = useMemo(() => normalizeResponses(responses, form), [responses, form]);
   const questions = useMemo(() => form?.questions || [], [form]);
@@ -240,7 +257,12 @@ export default function AnalyticsPage({ formId: formIdProp }) {
 
         <div className="cc-toolbar">
           <div className="cc-tabs">
-            {[["summary","Summary"],["question","Question"],["individual","Individual"]].map(([k,label]) => (
+            {[
+              ["summary","Summary"],
+              ["question","Question"],
+              ["individual","Individual"],
+              ...(isTeamEvent ? [["teams","Teams"]] : []),
+            ].map(([k,label]) => (
               <button key={k} className={"cc-tab " + (tab === k ? "cc-tab-active" : "")} onClick={() => setTab(k)}>
                 {label}
               </button>
@@ -264,6 +286,14 @@ export default function AnalyticsPage({ formId: formIdProp }) {
           {!loading && !error && tab === "summary" && <SummaryView rows={filtered} allRows={rows} form={form} questions={questions} />}
           {!loading && !error && tab === "question" && <QuestionView rows={filtered} questions={questions} />}
           {!loading && !error && tab === "individual" && <IndividualView rows={filtered} questions={questions} />}
+          {!loading && !error && tab === "teams" && (
+            <TeamsView
+              query={query}
+              teams={teams}
+              teamFinder={teamFinder}
+              teamConfig={form?.teamConfig}
+            />
+          )}
         </div>
       </main>
     </div>
@@ -539,6 +569,188 @@ function IndividualView({ rows, questions }) {
           <div className="cc-sa-meta">No submissions found.</div>
         )}
       </section>
+    </div>
+  );
+}
+
+
+/* ----------------------------- Teams ----------------------------- */
+function TeamsView({ teams, teamFinder, teamConfig, query }) {
+  const q = (query || "").toLowerCase().trim();
+
+  const matchTeam = (t) => {
+    if (!q) return true;
+    const hay = [
+      t.name,
+      ...(t.members || []).flatMap((m) => [m.name, m.email, m.rollNo, m.branch]),
+    ].filter(Boolean).join(" ").toLowerCase();
+    return hay.includes(q);
+  };
+  const matchStudent = (s) => {
+    if (!q) return true;
+    const hay = [s.name, s.email, s.branch, s.year, s.lookingFor, ...(s.skills || [])]
+      .filter(Boolean).join(" ").toLowerCase();
+    return hay.includes(q);
+  };
+
+  // Split complete vs incomplete (registered teams from the form)
+  const minSize = teamConfig?.minSize ?? 2;
+  const maxSize = teamConfig?.maxSize ?? 5;
+  const completeRegistered = teams.filter((t) => {
+    if (t.status) return t.status === "complete";
+    return (t.members?.length || 0) >= minSize;
+  }).filter(matchTeam);
+  const incompleteFromFinder = (teamFinder.incompleteTeams || []).filter(matchTeam);
+  const soloStudents = (teamFinder.soloStudents || []).filter(matchStudent);
+
+  const totalTeams = teams.length;
+  const totalMembers = teams.reduce((s, t) => s + (t.members?.length || 0), 0);
+  const avgSize = totalTeams ? (totalMembers / totalTeams).toFixed(1) : "0.0";
+
+  const sizeBuckets = useMemo(() => {
+    const map = new Map();
+    for (let i = 1; i <= Math.max(maxSize, 1); i++) map.set(i, 0);
+    teams.forEach((t) => {
+      const n = t.members?.length || 0;
+      if (n > 0) map.set(n, (map.get(n) || 0) + 1);
+    });
+    return Array.from(map, ([name, value]) => ({ name: `${name}`, value }));
+  }, [teams, maxSize]);
+
+  const completionData = [
+    { name: "Complete", value: completeRegistered.length },
+    { name: "Incomplete", value: incompleteFromFinder.length },
+    { name: "Solo / Unmatched", value: soloStudents.length },
+  ].filter((d) => d.value > 0);
+
+  return (
+    <div className="cc-grid">
+      <StatCard label="Registered teams" value={totalTeams} sub={`${totalMembers} members total`} color={COLORS[0]} />
+      <StatCard label="Complete teams" value={completeRegistered.length} sub={`min ${minSize} · max ${maxSize}`} color={COLORS[2]} />
+      <StatCard label="Incomplete in TeamFinder" value={incompleteFromFinder.length} sub="still looking for members" color={COLORS[3]} />
+      <StatCard label="Solo students" value={soloStudents.length} sub="not yet in any team" color={COLORS[4]} />
+
+      <Card title="Team size distribution" className="cc-card-span-2">
+        <div style={{ height: 240 }}>
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={sizeBuckets} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+              <CartesianGrid stroke="#f0f0f0" strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="name" tick={{ fill: "#888", fontSize: 12 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: "#888", fontSize: 12 }} allowDecimals={false} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(0,0,0,0.04)" }} />
+              <Bar dataKey="value" radius={[10,10,0,0]}>
+                {sizeBuckets.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </Card>
+
+      <Card title="Team status" className="cc-card-span-2">
+        {completionData.length ? <PieBlock data={completionData} /> : <div className="cc-sa-meta">No team data yet.</div>}
+      </Card>
+
+      <Card title={`Registered teams · ${completeRegistered.length}`} wide>
+        {completeRegistered.length === 0 ? (
+          <div className="cc-sa-meta">No complete teams registered yet.</div>
+        ) : (
+          <div className="cc-teamgrid">
+            {completeRegistered.map((t, i) => (
+              <TeamCard key={t._id || i} team={t} accent={COLORS[i % COLORS.length]} variant="complete" />
+            ))}
+          </div>
+        )}
+      </Card>
+
+      <Card title={`Incomplete teams in TeamFinder · ${incompleteFromFinder.length}`} wide>
+        {incompleteFromFinder.length === 0 ? (
+          <div className="cc-sa-meta">No incomplete teams in TeamFinder.</div>
+        ) : (
+          <div className="cc-teamgrid">
+            {incompleteFromFinder.map((t, i) => (
+              <TeamCard key={t._id || i} team={t} accent={COLORS[3]} variant="incomplete" minSize={minSize} maxSize={maxSize} />
+            ))}
+          </div>
+        )}
+      </Card>
+
+      <Card title={`Solo students in TeamFinder · ${soloStudents.length}`} wide>
+        {soloStudents.length === 0 ? (
+          <div className="cc-sa-meta">No solo students currently in TeamFinder.</div>
+        ) : (
+          <div className="cc-solo-grid">
+            {soloStudents.map((s, i) => (
+              <SoloCard key={s._id || s.email || i} student={s} accent={COLORS[(i + 1) % COLORS.length]} />
+            ))}
+          </div>
+        )}
+      </Card>
+    </div>
+  );
+}
+
+function TeamCard({ team, accent, variant, minSize, maxSize }) {
+  const members = team.members || [];
+  const need = variant === "incomplete" && minSize ? Math.max(0, minSize - members.length) : 0;
+  return (
+    <div className="cc-team-card">
+      <div className="cc-team-card-head">
+        <div className="cc-team-accent" style={{ background: accent }} />
+        <div className="cc-team-card-titles">
+          <div className="cc-team-name">{team.name || `Team ${(team._id || "").toString().slice(-4) || "—"}`}</div>
+          <div className="cc-team-meta">
+            {members.length} {members.length === 1 ? "member" : "members"}
+            {variant === "incomplete" && need > 0 ? ` · needs ${need} more` : ""}
+            {team.createdAt ? ` · ${new Date(team.createdAt).toLocaleDateString()}` : ""}
+          </div>
+        </div>
+        <span className={"cc-team-status " + (variant === "complete" ? "cc-team-status-ok" : "cc-team-status-warn")}>
+          {variant === "complete" ? "Complete" : "Open"}
+        </span>
+      </div>
+      <ul className="cc-team-members">
+        {members.map((m, idx) => (
+          <li key={m.email || m._id || idx} className="cc-team-member">
+            <div className="cc-team-avatar" style={{ background: AVATAR_COLORS[idx % AVATAR_COLORS.length].bg, color: AVATAR_COLORS[idx % AVATAR_COLORS.length].fg }}>
+              {getInitials(m.name || m.email || "?")}
+            </div>
+            <div className="cc-team-member-info">
+              <div className="cc-team-member-name">{m.name || "—"}</div>
+              <div className="cc-team-member-sub">{[m.email, m.rollNo, m.branch, m.year].filter(Boolean).join(" · ") || "—"}</div>
+            </div>
+            {idx === 0 && <span className="cc-team-pill">Lead</span>}
+          </li>
+        ))}
+        {variant === "incomplete" && need > 0 && Array.from({ length: need }).map((_, i) => (
+          <li key={`empty-${i}`} className="cc-team-member cc-team-member-empty">
+            <div className="cc-team-avatar cc-team-avatar-empty">+</div>
+            <div className="cc-team-member-info">
+              <div className="cc-team-member-name">Open slot</div>
+              <div className="cc-team-member-sub">Looking for a member</div>
+            </div>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function SoloCard({ student, accent }) {
+  return (
+    <div className="cc-solo-card">
+      <div className="cc-solo-avatar" style={{ background: accent + "22", color: accent }}>
+        {getInitials(student.name || student.email || "?")}
+      </div>
+      <div className="cc-solo-info">
+        <div className="cc-solo-name">{student.name || "—"}</div>
+        <div className="cc-solo-meta">{[student.email, student.branch, student.year].filter(Boolean).join(" · ") || "—"}</div>
+        {student.lookingFor && <div className="cc-solo-looking">Looking for: {student.lookingFor}</div>}
+        {Array.isArray(student.skills) && student.skills.length > 0 && (
+          <div className="cc-solo-skills">
+            {student.skills.slice(0, 6).map((s, i) => <span key={i} className="cc-solo-skill">{s}</span>)}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -1138,6 +1350,109 @@ gap: calc(var(--spacing) * 5) calc(var(--spacing) * 8);
         .cc-indiv-detail { padding: 24px; border-radius: 18px; }
         .cc-indiv-header { flex-direction: column; padding-bottom: 24px; margin-bottom: 24px; }
         .cc-submitted { text-align: left; padding-top: 0; }
+      }
+
+      /* Teams view */
+      .cc-teamgrid {
+        display: grid; gap: 14px;
+        grid-template-columns: repeat(1, 1fr);
+      }
+      @media (min-width: 720px) { .cc-teamgrid { grid-template-columns: repeat(2, 1fr); } }
+      @media (min-width: 1100px) { .cc-teamgrid { grid-template-columns: repeat(3, 1fr); } }
+
+      .cc-team-card {
+        position: relative;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 16px 16px 12px;
+        overflow: hidden;
+        transition: box-shadow .2s, transform .2s;
+      }
+      .cc-team-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.05); transform: translateY(-1px); }
+      .cc-team-card-head {
+        display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+      }
+      .cc-team-accent {
+        width: 4px; height: 36px; border-radius: 4px; flex-shrink: 0;
+      }
+      .cc-team-card-titles { flex: 1; min-width: 0; }
+      .cc-team-name {
+        font-size: 14.5px; font-weight: 600; color: #37352f;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        letter-spacing: -0.01em;
+      }
+      .cc-team-meta { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+      .cc-team-status {
+        font-size: 10.5px; font-weight: 600; padding: 4px 9px;
+        border-radius: 999px; letter-spacing: 0.04em; text-transform: uppercase;
+        white-space: nowrap;
+      }
+      .cc-team-status-ok { background: #e6f7ee; color: #0f8a4a; }
+      .cc-team-status-warn { background: #fff4e0; color: #b56b00; }
+
+      .cc-team-members { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+      .cc-team-member {
+        display: flex; align-items: center; gap: 10px;
+        padding: 8px 10px; border-radius: 10px;
+        background: #fafaf9;
+      }
+      .cc-team-member-empty { background: repeating-linear-gradient(45deg, #fafaf9, #fafaf9 6px, #f2f2f0 6px, #f2f2f0 12px); }
+      .cc-team-avatar {
+        width: 30px; height: 30px; border-radius: 8px;
+        display: grid; place-items: center;
+        font-size: 11.5px; font-weight: 600;
+        flex-shrink: 0;
+      }
+      .cc-team-avatar-empty {
+        background: #fff; color: #9b9a97; border: 1px dashed #d3d3d0;
+      }
+      .cc-team-member-info { flex: 1; min-width: 0; }
+      .cc-team-member-name {
+        font-size: 13px; font-weight: 500; color: #37352f;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .cc-team-member-sub {
+        font-size: 11px; color: #9b9a97; margin-top: 1px;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .cc-team-pill {
+        font-size: 10px; font-weight: 600; padding: 2px 7px;
+        border-radius: 999px; background: #0a0a0a; color: #fff;
+        letter-spacing: 0.04em;
+      }
+
+      /* Solo students grid */
+      .cc-solo-grid {
+        display: grid; gap: 12px;
+        grid-template-columns: repeat(1, 1fr);
+      }
+      @media (min-width: 720px) { .cc-solo-grid { grid-template-columns: repeat(2, 1fr); } }
+      @media (min-width: 1100px) { .cc-solo-grid { grid-template-columns: repeat(3, 1fr); } }
+      .cc-solo-card {
+        display: flex; gap: 12px; align-items: flex-start;
+        padding: 14px; background: #fff;
+        border: 1px solid var(--border); border-radius: 14px;
+        transition: box-shadow .2s, transform .2s;
+      }
+      .cc-solo-card:hover { box-shadow: 0 6px 20px rgba(0,0,0,0.04); transform: translateY(-1px); }
+      .cc-solo-avatar {
+        width: 40px; height: 40px; border-radius: 12px;
+        display: grid; place-items: center;
+        font-size: 13px; font-weight: 700;
+        flex-shrink: 0;
+      }
+      .cc-solo-info { flex: 1; min-width: 0; }
+      .cc-solo-name { font-size: 14px; font-weight: 600; color: #37352f; letter-spacing: -0.01em; }
+      .cc-solo-meta { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+      .cc-solo-looking {
+        margin-top: 8px; font-size: 12px; color: #37352f;
+        padding: 6px 10px; background: var(--accent); border-radius: 8px;
+      }
+      .cc-solo-skills { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 8px; }
+      .cc-solo-skill {
+        font-size: 10.5px; padding: 3px 8px; border-radius: 999px;
+        background: #f4f4f5; color: #555; font-weight: 500;
       }
     `}</style>
   );
