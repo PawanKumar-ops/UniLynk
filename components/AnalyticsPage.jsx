@@ -625,7 +625,7 @@ function TeamsView({ teams, teamFinder, teamConfig, query }) {
 
   return (
     <div className="cc-grid">
-      <StatCard label="Registered teams" value={totalTeams} sub={`${totalMembers} members total`} color={COLORS[0]} />
+      <StatCard label="Registered teams" value={totalTeams} sub={`${totalMembers} members total · avg ${avgSize}`} color={COLORS[0]} />
       <StatCard label="Complete teams" value={completeRegistered.length} sub={`min ${minSize} · max ${maxSize}`} color={COLORS[2]} />
       <StatCard label="Incomplete in TeamFinder" value={incompleteFromFinder.length} sub="still looking for members" color={COLORS[3]} />
       <StatCard label="Solo students" value={soloStudents.length} sub="not yet in any team" color={COLORS[4]} />
@@ -668,7 +668,7 @@ function TeamsView({ teams, teamFinder, teamConfig, query }) {
         ) : (
           <div className="cc-teamgrid">
             {incompleteFromFinder.map((t, i) => (
-              <TeamCard key={t._id || i} team={t} accent={COLORS[3]} variant="incomplete" minSize={minSize} maxSize={maxSize} />
+              <TeamCard key={t._id || i} team={t} accent={COLORS[3]} variant="incomplete" minSize={minSize} />
             ))}
           </div>
         )}
@@ -689,9 +689,9 @@ function TeamsView({ teams, teamFinder, teamConfig, query }) {
   );
 }
 
-function TeamCard({ team, accent, variant, minSize, maxSize }) {
+function TeamCard({ team, accent, variant, minSize }) {
   const members = team.members || [];
-  const need = variant === "incomplete" && minSize ? Math.max(0, minSize - members.length) : 0;
+  const need = variant === "incomplete" ? Math.max(0, Number(team.needed ?? team.lookingForCount ?? (minSize ? minSize - members.length : 0))) : 0;
   return (
     <div className="cc-team-card">
       <div className="cc-team-card-head">
