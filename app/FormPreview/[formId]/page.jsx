@@ -274,14 +274,62 @@ export default function FormPreview() {
   const [hintPos, setHintPos] = useState(null); // null = mobile/inline
   const [teamFinderDialogOpen, setTeamFinderDialogOpen] = useState(false);
   const [teamFinderDialogType, setTeamFinderDialogType] = useState("solo");
+  const [teamFinderSaving, setTeamFinderSaving] = useState(false);
+  const [teamFinderRefreshKey, setTeamFinderRefreshKey] = useState(0);
 
   const asideRef = useRef(null);
 
   const safeFormId = useMemo(() => (formId && formId !== "undefined" ? formId : null), [formId]);
 
+  const getTeamFinderRegistration = () => {
+    const registration = responses[TEAM_REGISTRATION_ANSWER_ID] ||
+      Object.values(responses).find((value) => value && typeof value === "object" && Array.isArray(value.members));
+
+    return {
+      ...(registration || createDefaultTeamAnswer(formData?.teamConfig)),
+      maxSize: formData?.teamConfig?.maxSize,
+    };
+  };
+
   const handleAddToTeamFinder = (type) => {
     setTeamFinderDialogType(type);
     setTeamFinderDialogOpen(true);
+  };
+
+  const handleConfirmTeamFinder = async () => {
+    if (!safeFormId || safeFormId.startsWith("draft_")) {
+      alert("Draft forms cannot use Team Finder yet");
+      return;
+    }
+
+    setTeamFinderSaving(true);
+
+    try {
+      const res = await fetch("/api/forms/team-finder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          formId: safeFormId,
+          type: teamFinderDialogType,
+          teamRegistration: getTeamFinderRegistration(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || "Could not add to Team Finder");
+        return;
+      }
+
+      setTeamFinderDialogOpen(false);
+      setTeamFinderRefreshKey((key) => key + 1);
+    } catch (error) {
+      console.error(error);
+      alert("Could not add to Team Finder");
+    } finally {
+      setTeamFinderSaving(false);
+    }
   };
 
   const handleFindTeammates = () => {
@@ -393,6 +441,8 @@ export default function FormPreview() {
         open={teamFinderDialogOpen}
         onOpenChange={setTeamFinderDialogOpen}
         type={teamFinderDialogType}
+        onConfirm={handleConfirmTeamFinder}
+        loading={teamFinderSaving}
       />
 
       {/* Floating hint — rendered at root level so it escapes the grid */}
@@ -557,7 +607,7 @@ export default function FormPreview() {
           style={showHint && hintPos ? { top: '108px', transition: 'top 0.4s cubic-bezier(0.22,1,0.36,1)' } : { transition: 'top 0.3s ease' }}
           aria-label="Find a team"
         >
-          <TeamFinderCard />
+          <TeamFinderCard formId={safeFormId} refreshKey={teamFinderRefreshKey} />
         </aside>
       </div>
     </div>

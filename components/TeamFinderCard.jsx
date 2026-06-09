@@ -83,7 +83,7 @@ function AvatarCircle({ name, size = 32, textSize = "text-[10px]" }) {
   );
 }
 
-export function TeamFinderCard() {
+export function TeamFinderCard({ formId, refreshKey = 0 }) {
   const [activeTab, setActiveTab] = useState("solo");
   const [selected, setSelected] = useState([]);
   const [query, setQuery] = useState("");
@@ -92,18 +92,58 @@ export function TeamFinderCard() {
   const [expandedTeam, setExpandedTeam] = useState(null);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [soloUsers, setSoloUsers] = useState(formId ? [] : SOLO_USERS);
+  const [openTeams, setOpenTeams] = useState(formId ? [] : OPEN_TEAMS);
+  const [loadingEntries, setLoadingEntries] = useState(Boolean(formId));
+
+  useEffect(() => {
+    if (!formId) {
+      setSoloUsers(SOLO_USERS);
+      setOpenTeams(OPEN_TEAMS);
+      setLoadingEntries(false);
+      return;
+    }
+
+    let ignore = false;
+    setLoadingEntries(true);
+
+    fetch(`/api/forms/team-finder?formId=${formId}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Could not load Team Finder");
+        return res.json();
+      })
+      .then((data) => {
+        if (ignore) return;
+        setSoloUsers(data.solo || []);
+        setOpenTeams(data.teams || []);
+      })
+      .catch((error) => {
+        console.error(error);
+        if (!ignore) {
+          setSoloUsers([]);
+          setOpenTeams([]);
+        }
+      })
+      .finally(() => {
+        if (!ignore) setLoadingEntries(false);
+      });
+
+    return () => {
+      ignore = true;
+    };
+  }, [formId, refreshKey]);
 
   const toggle = (id) =>
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
 
-  const filtered = SOLO_USERS.filter(
+  const filtered = soloUsers.filter(
     (u) =>
-      u.name.toLowerCase().includes(query.toLowerCase()) ||
-      u.email.toLowerCase().includes(query.toLowerCase()),
+      (u.name || "").toLowerCase().includes(query.toLowerCase()) ||
+      (u.email || "").toLowerCase().includes(query.toLowerCase()),
   );
 
   const openUsersRequest = () => {
-    const users = SOLO_USERS.filter((u) => selected.includes(u.id));
+    const users = soloUsers.filter((u) => selected.includes(u.id));
     if (!users.length) return;
     setRequestTarget({ kind: "users", users });
   };
@@ -187,7 +227,11 @@ export function TeamFinderCard() {
             </div>
 
             <div className={`mt-3 space-y-1.5 max-h-60 pr-1 -mr-1 ${scrollClass}`}>
-              {filtered.map((u) => {
+              {loadingEntries ? (
+                <div className="flex items-center justify-center gap-2 text-xs text-neutral-500 py-6">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading Team Finder
+                </div>
+              ) : filtered.map((u) => {
                 const isSelected = selected.includes(u.id);
                 return (
                   <div
@@ -217,8 +261,8 @@ export function TeamFinderCard() {
                   </div>
                 );
               })}
-              {filtered.length === 0 && (
-                <p className="text-center text-xs text-neutral-500 py-6">No matches found</p>
+              {!loadingEntries && filtered.length === 0 && (
+                <p className="text-center text-xs text-neutral-500 py-6">No solo users found</p>
               )}
             </div>
 
@@ -246,7 +290,11 @@ export function TeamFinderCard() {
         {activeTab === "teams" && (
         <div className="px-4 pt-3 pb-4">
             <div className={`space-y-1.5 max-h-[22rem] pr-1 -mr-1 ${scrollClass}`}>
-              {OPEN_TEAMS.map((t) => {
+              {loadingEntries ? (
+                <div className="flex items-center justify-center gap-2 text-xs text-neutral-500 py-6">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading Team Finder
+                </div>
+              ) : openTeams.map((t) => {
                 const isOpen = expandedTeam === t.id;
                 return (
                   <div
@@ -349,6 +397,9 @@ export function TeamFinderCard() {
                   </div>
                 );
               })}
+              {!loadingEntries && openTeams.length === 0 && (
+                <p className="text-center text-xs text-neutral-500 py-6">No open teams found</p>
+              )}
             </div>
         </div>
         )}
