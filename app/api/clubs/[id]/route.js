@@ -2,13 +2,14 @@ import { connectDB } from "@/lib/mongodb";
 import Club from "@/models/Club";
 import User from "@/models/user";
 import { syncClubCommunity } from "@/lib/communitySync";
+import {
+  getFallbackNameFromEmail,
+  getUniqueClubMemberCount,
+  getUserClubProfile,
+  normalizeEmail,
+} from "@/lib/clubProfileSync";
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-const getFallbackNameFromEmail = (email = "") => {
-  const localPart = String(email).split("@")[0]?.trim();
-  return localPart || "Member";
-};
 
 export async function GET(_req, { params }) {
   try {
@@ -29,32 +30,34 @@ export async function GET(_req, { params }) {
       ? club.members.map((member) => member.email).filter(Boolean)
       : [];
 
-    const allEmails = [...new Set([...leaderEmails, ...memberEmails].map((email) => String(email || "").toLowerCase()))];
+    const allEmails = [...new Set([...leaderEmails, ...memberEmails].map(normalizeEmail).filter(Boolean))];
 
     const users = allEmails.length
       ? await User.find({ email: { $in: allEmails } }).select("_id email name img").lean()
       : [];
 
-    const userMap = new Map(users.map((user) => [user.email?.toLowerCase(), user]));
+    const userMap = new Map(users.map((user) => [normalizeEmail(user.email), user]));
 
     const leaders = (club.leaders || []).map((leader) => {
-      const user = userMap.get(leader.email?.toLowerCase());
+      const user = userMap.get(normalizeEmail(leader.email));
+      const profile = getUserClubProfile(user, leader.email);
       return {
         userId: user?._id?.toString() || null,
         email: leader.email,
         position: leader.position,
-        image: leader.image || user?.img || "/Profilepic.png",
-        name: user?.name || leader.email,
+        image: user ? profile.profilePicture : (leader.image || profile.profilePicture),
+        name: user ? profile.name : leader.email,
       };
     });
 
     const members = (club.members || []).map((member) => {
-      const user = userMap.get(member.email?.toLowerCase());
+      const user = userMap.get(normalizeEmail(member.email));
+      const profile = getUserClubProfile(user, member.email);
       return {
         ...member,
         userId: user?._id?.toString() || null,
-        name: user?.name || member.name,
-        profilePicture: member.profilePicture || user?.img || "/Profilepic.png",
+        name: user ? profile.name : (member.name || profile.name),
+        profilePicture: user ? profile.profilePicture : (member.profilePicture || profile.profilePicture),
       };
     });
 
@@ -87,7 +90,7 @@ export async function PATCH(req, { params }) {
 
     const normalizedEmails = [...new Set(
       incomingEmails
-        .map((value) => String(value || "").trim().toLowerCase())
+        .map(normalizeEmail)
         .filter((email) => EMAIL_RE.test(email))
     )];
 
@@ -98,19 +101,20 @@ export async function PATCH(req, { params }) {
     const users = await User.find({ email: { $in: normalizedEmails } })
       .select("email name img")
       .lean();
-    const userMap = new Map(users.map((user) => [user.email?.toLowerCase(), user]));
+    const userMap = new Map(users.map((user) => [normalizeEmail(user.email), user]));
 
     const existingMembers = Array.isArray(club.members) ? club.members : [];
-    const existingEmails = new Set(existingMembers.map((member) => member.email?.toLowerCase()));
+    const existingEmails = new Set(existingMembers.map((member) => normalizeEmail(member?.email)).filter(Boolean));
 
     const newMembers = normalizedEmails
       .filter((email) => !existingEmails.has(email))
       .map((email) => {
         const user = userMap.get(email);
+        const profile = getUserClubProfile(user, email);
         return {
           email,
-          name: user?.name?.trim() || getFallbackNameFromEmail(email),
-          profilePicture: user?.img || "/Profilepic.png",
+          name: profile.name || getFallbackNameFromEmail(email),
+          profilePicture: profile.profilePicture,
           position: "Member",
           joiningYear: String(new Date().getFullYear()),
           joinedAt: new Date(),
@@ -125,13 +129,25 @@ export async function PATCH(req, { params }) {
       });
     }
 
-    club.members = [...existingMembers, ...newMembers];
-    club.memberCount = club.members.length;
-    await club.save();
-    await syncClubCommunity(club);
+    const updatedMembers = [...existingMembers.map((member) => member.toObject?.() || member), ...newMembers];
+    const memberCount = getUniqueClubMemberCount({
+      ...club.toObject(),
+      members: updatedMembers,
+    });
+
+    await Club.updateOne(
+      { _id: club._id },
+      {
+        $set: { memberCount },
+        $push: { members: { $each: newMembers } },
+      }
+    );
+
+    const updatedClub = await Club.findById(club._id);
+    await syncClubCommunity(updatedClub);
 
     return Response.json({
-      club,
+      club: updatedClub,
       addedCount: newMembers.length,
       message: "Members added successfully",
     });
