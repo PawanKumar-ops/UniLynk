@@ -13,14 +13,15 @@ export async function GET(req) {
       return Response.json({ applied: false });
     }
 
-    const userEmail = session.user.email;
+    const userEmail = session.user.email.toLowerCase().trim();
 
     const { searchParams } = new URL(req.url);
     const formId = searchParams.get("formId");
 
     const exists = await ResponseModel.findOne({
       formId,
-      userEmail
+      userEmail,
+      $or: [{ isSubmitted: true }, { submittedAt: { $ne: null } }]
     });
 
     return Response.json({ applied: !!exists });

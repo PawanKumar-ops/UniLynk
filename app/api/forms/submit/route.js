@@ -22,25 +22,35 @@ export async function POST(req) {
 
     console.log("Submit Payload:", formId, answers); // DEBUG
 
-    // ⭐ Prevent duplicate submission
+    const userEmail = session.user.email.toLowerCase().trim();
+
+    // ⭐ Prevent duplicate form submissions while still allowing Team Finder-only drafts
     const existing = await FormResponse.findOne({
       formId,
-      userEmail: session.user.email
+      userEmail
     });
 
-    if (existing) {
+    if (existing?.isSubmitted || existing?.submittedAt) {
       return Response.json(
         { error: "Already submitted" },
         { status: 400 }
       );
     }
 
-    const newResponse = await FormResponse.create({
-      formId,
-      userEmail: session.user.email,
-      answers,
-      submittedAt: new Date()
-    });
+    const submittedAt = new Date();
+    const newResponse = existing
+      ? await FormResponse.findByIdAndUpdate(
+          existing._id,
+          { $set: { answers, isSubmitted: true, submittedAt } },
+          { new: true, runValidators: true }
+        )
+      : await FormResponse.create({
+          formId,
+          userEmail,
+          answers,
+          isSubmitted: true,
+          submittedAt
+        });
 
     return Response.json(newResponse);
 
