@@ -85,46 +85,111 @@ const buildEmail = ({
 
   const html = `
     <!doctype html>
-    <html>
-      <body style="margin:0;background:#f6f7f9;font-family:Arial,Helvetica,sans-serif;color:#111827;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f6f7f9;padding:24px 12px;">
-          <tr>
-            <td align="center">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:18px;overflow:hidden;">
-                <tr>
-                  <td style="padding:24px 28px 18px;border-bottom:1px solid #eef0f3;">
-                    <div style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;margin-bottom:8px;">UniLynk Team Finder</div>
-                    <h1 style="font-size:22px;line-height:1.3;margin:0;color:#111827;font-weight:700;">New team request</h1>
-                  </td>
-                </tr>
-                <tr>
-                  <td style="padding:24px 28px;">
-                    <p style="font-size:15px;line-height:1.6;margin:0 0 16px;">Hi ${safeRecipientName},</p>
-                    <p style="font-size:15px;line-height:1.6;margin:0 0 18px;">${escapeHtml(requestLine)}</p>
-                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:18px 0;border:1px solid #e5e7eb;border-radius:14px;background:#f9fafb;">
-                      <tr>
-                        <td style="padding:16px;">
-                          <div style="font-size:12px;color:#6b7280;margin-bottom:6px;">From</div>
-                          <div style="font-size:15px;font-weight:700;color:#111827;">${safeSenderName}</div>
-                          <div style="font-size:13px;color:#4b5563;margin-top:2px;">${safeSenderEmail}</div>
-                        </td>
-                      </tr>
-                    </table>
-                    <div style="font-size:12px;color:#6b7280;margin:0 0 8px;">${hasMessage ? "Their message" : "Message"}</div>
-                    <div style="border-left:4px solid #111827;background:#f3f4f6;border-radius:12px;padding:16px 18px;margin-bottom:20px;">
-                      <p style="font-size:15px;line-height:1.6;margin:0;color:#111827;">${hasMessage ? safeMessage : "They did not add a custom note, but they would like to connect about teaming up."}</p>
-                    </div>
-                    <p style="font-size:14px;line-height:1.6;margin:0;color:#4b5563;">You can reply directly to this email to continue the conversation. This message was sent because you are listed in Team Finder${targetKind === "team" ? ` as the lead for ${safeTeamName}` : ""}.</p>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-        </table>
-      </body>
-    </html>`;
+<html>
+  <body style="margin:0;background:#f6f7f9;font-family:Arial,Helvetica,sans-serif;color:#111827;">
+  <div style="display:none!important;visibility:hidden;opacity:0;color:transparent;height:0;width:0;overflow:hidden;">
+  You have received a new Team Finder request on Unilynk.
+</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f6f7f9;padding:24px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:18px;overflow:hidden;">
 
-  const text = `Hi ${recipient.name || "there"},\n\n${requestLine}\n\nFrom: ${senderName} <${senderEmail}>${plainMessage}\nYou can reply directly to this email to continue the conversation.\n\nUniLynk Team Finder`;
+            <tr>
+              <td style="padding:24px 28px 18px;border-bottom:1px solid #eef0f3;">
+                <div style="font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;margin-bottom:8px;">
+                  Unilynk Team Finder
+                </div>
+
+                <h1 style="font-size:22px;line-height:1.3;margin:0;color:#111827;font-weight:700;">
+                  New Team Request
+                </h1>
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:24px 28px;">
+
+                <p style="font-size:15px;line-height:1.6;margin:0 0 16px;">
+                  Hi ${safeRecipientName},
+                </p>
+
+                <p style="font-size:15px;line-height:1.6;margin:0 0 18px;">
+                  ${escapeHtml(requestLine)}
+                </p>
+
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:18px 0;border:1px solid #e5e7eb;border-radius:14px;background:#f9fafb;">
+                  <tr>
+                    <td style="padding:16px;">
+                      <div style="font-size:12px;color:#6b7280;margin-bottom:6px;">
+                        From
+                      </div>
+
+                      <div style="font-size:15px;font-weight:700;color:#111827;">
+                        ${safeSenderName}
+                      </div>
+
+                      <div style="font-size:13px;color:#4b5563;margin-top:2px;">
+                        ${safeSenderEmail}
+                      </div>
+                    </td>
+                  </tr>
+                </table>
+
+                <div style="font-size:12px;color:#6b7280;margin:0 0 8px;">
+                  ${hasMessage ? "Message" : "Message"}
+                </div>
+
+                <div style="background:#f3f4f6;border-radius:12px;padding:16px 18px;margin-bottom:20px;">
+                  <p style="font-size:15px;line-height:1.6;margin:0;color:#111827;">
+                    ${hasMessage
+      ? safeMessage
+      : "No custom message was included with this request."
+    }
+                  </p>
+                </div>
+
+                <p style="font-size:14px;line-height:1.6;margin:0 0 14px;color:#4b5563;">
+                  To accept this team request or add this user to your team, please visit <strong>Unilynk</strong> and manage your team from your account.
+                </p>
+
+                <p style="font-size:13px;line-height:1.6;margin:0;color:#6b7280;">
+                  Please do not reply to this email. This is an automated notification and replies are not monitored.
+                </p>
+
+              </td>
+            </tr>
+
+            <tr>
+              <td style="padding:18px 28px;background:#fafafa;border-top:1px solid #eef0f3;">
+                <p style="margin:0;font-size:12px;line-height:1.6;color:#9ca3af;">
+                  This notification was sent because you are listed in Team Finder${targetKind === "team"
+      ? ` as the lead for ${safeTeamName}`
+      : ""
+    }.
+                </p>
+              </td>
+            </tr>
+
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+
+  const text = `Hi ${recipient.name || "there"},
+
+${requestLine}
+
+From: ${senderName} <${senderEmail}>
+${plainMessage}
+
+To accept this request or add this user to your team, please visit Unilynk.
+
+Please do not reply to this email. This is an automated notification.
+
+UniLynk Team Finder`;
 
   return { html, text };
 };
@@ -269,8 +334,7 @@ export async function POST(req) {
           return transporter.sendMail({
             from: fromAddress,
             to: recipient.email,
-            replyTo: `${senderName} <${senderEmail}>`,
-            subject: `${senderName} sent a Team Finder request`,
+            subject: `${senderName} wants to join your team on Unilynk`,
             text,
             html,
           });
