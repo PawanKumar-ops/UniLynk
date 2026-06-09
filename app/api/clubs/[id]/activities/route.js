@@ -21,10 +21,13 @@ export async function POST(req, { params }) {
       return Response.json({ message: "Club not found" }, { status: 404 });
     }
 
-    // Verify the user is a leader of this club
-    const userEmail = session.user.email.toLowerCase().trim();
+    // Verify the user is a leader of this club. Some older club records may
+    // contain incomplete leader entries, so normalize defensively instead of
+    // assuming every embedded leader has an email.
+    const normalizeEmail = (email) => String(email || "").toLowerCase().trim();
+    const userEmail = normalizeEmail(session.user.email);
     const isLeader = (club.leaders || []).some(
-      (leader) => leader.email.toLowerCase().trim() === userEmail
+      (leader) => normalizeEmail(leader?.email) === userEmail,
     );
 
     if (!isLeader) {
@@ -50,15 +53,16 @@ export async function POST(req, { params }) {
       return Response.json({ message: "Form not found" }, { status: 400 });
     }
 
-    if (form.clubId.toString() !== id) {
+    const formClubId = form.clubId?.toString?.();
+
+    if (!formClubId || formClubId !== id) {
       return Response.json(
         { message: "Form does not belong to this club" },
         { status: 400 }
       );
     }
 
-    // Add activity
-    club.activities.push({
+    const activity = {
       title,
       description,
       date: date || form.date || "",
@@ -66,11 +70,20 @@ export async function POST(req, { params }) {
       participants: Number(participants) || 0,
       images: Array.isArray(images) ? images : [],
       formId,
+    };
+
+    // Push the activity without re-validating unrelated legacy embedded
+    // documents on the club, such as old leader entries missing emails.
+    const updatedClub = await Club.findByIdAndUpdate(
+      id,
+      { $push: { activities: activity } },
+      { new: true },
+    );
+
+    return Response.json({
+      message: "Activity added successfully",
+      club: updatedClub,
     });
-
-    await club.save();
-
-    return Response.json({ message: "Activity added successfully", club });
   } catch (error) {
     console.error("ADD PAST EVENT ACTIVITY ERROR:", error);
     return Response.json({ message: "Internal server error" }, { status: 500 });
