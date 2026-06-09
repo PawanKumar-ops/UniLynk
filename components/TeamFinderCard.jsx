@@ -70,7 +70,11 @@ const scrollClass =
 const MAX_MESSAGE = 240;
 
 const initials = (n) =>
-  n.split(" ").map((p) => p[0]).slice(0, 2).join("");
+  n
+    .split(" ")
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join("");
 
 function AvatarCircle({ name, src, size = 32, textSize = "text-[10px]" }) {
   const imageSrc = src || "";
@@ -99,6 +103,7 @@ export function TeamFinderCard({ formId, refreshKey = 0 }) {
   const [expandedTeam, setExpandedTeam] = useState(null);
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [sendError, setSendError] = useState("");
   const [soloUsers, setSoloUsers] = useState(formId ? [] : SOLO_USERS);
   const [openTeams, setOpenTeams] = useState(formId ? [] : OPEN_TEAMS);
   const [loadingEntries, setLoadingEntries] = useState(Boolean(formId));
@@ -141,7 +146,9 @@ export function TeamFinderCard({ formId, refreshKey = 0 }) {
   }, [formId, refreshKey]);
 
   const toggle = (id) =>
-    setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]));
+    setSelected((s) =>
+      s.includes(id) ? s.filter((x) => x !== id) : [...s, id],
+    );
 
   const filtered = soloUsers.filter(
     (u) =>
@@ -165,15 +172,56 @@ export function TeamFinderCard({ formId, refreshKey = 0 }) {
     setTimeout(() => {
       setMessage("");
       setSent(false);
+      setSendError("");
     }, 200);
   };
 
   const handleSend = async () => {
+    if (!requestTarget || !formId) {
+      setSendError(
+        "We couldn't find this event. Please refresh and try again.",
+      );
+      return;
+    }
+
     setSending(true);
-    await new Promise((r) => setTimeout(r, 900));
-    setSending(false);
-    setSent(true);
-    if (requestTarget?.kind === "users") setSelected([]);
+    setSendError("");
+
+    try {
+      const payload = {
+        formId,
+        message,
+        target:
+          requestTarget.kind === "team"
+            ? { kind: "team", teamId: requestTarget.team?.id }
+            : {
+                kind: "users",
+                userIds: requestTarget.users.map((user) => user.id),
+              },
+      };
+
+      const res = await fetch("/api/team-finder/requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) {
+        throw new Error(
+          data?.error || "Could not deliver the request. Please try again.",
+        );
+      }
+
+      setSent(true);
+      if (requestTarget.kind === "users") setSelected([]);
+    } catch (error) {
+      setSendError(
+        error.message || "Could not deliver the request. Please try again.",
+      );
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -184,8 +232,12 @@ export function TeamFinderCard({ formId, refreshKey = 0 }) {
           <div className="flex items-start justify-between gap-2">
             <div className="flex items-center gap-2">
               <div>
-                <h3 className="text-sm text-neutral-900 leading-tight">Find Your Team</h3>
-                <p className="text-[11px] text-neutral-500 mt-0.5">Connect with solo applicants</p>
+                <h3 className="text-sm text-neutral-900 leading-tight">
+                  Find Your Team
+                </h3>
+                <p className="text-[11px] text-neutral-500 mt-0.5">
+                  Connect with solo applicants
+                </p>
               </div>
             </div>
           </div>
@@ -198,13 +250,16 @@ export function TeamFinderCard({ formId, refreshKey = 0 }) {
               aria-hidden
               className="absolute top-0.5 bottom-0.5 left-0.5 w-[calc(50%-2px)] rounded-md bg-white shadow-sm transition-transform duration-300 ease-out"
               style={{
-                transform: activeTab === "solo" ? "translateX(0%)" : "translateX(100%)",
+                transform:
+                  activeTab === "solo" ? "translateX(0%)" : "translateX(100%)",
               }}
             />
             <button
               onClick={() => setActiveTab("solo")}
               className={`relative z-10 rounded-md text-xs transition-colors ${
-                activeTab === "solo" ? "text-neutral-900" : "text-neutral-600 hover:text-neutral-900"
+                activeTab === "solo"
+                  ? "text-neutral-900"
+                  : "text-neutral-600 hover:text-neutral-900"
               }`}
             >
               Solo
@@ -212,7 +267,9 @@ export function TeamFinderCard({ formId, refreshKey = 0 }) {
             <button
               onClick={() => setActiveTab("teams")}
               className={`relative z-10 rounded-md text-xs transition-colors ${
-                activeTab === "teams" ? "text-neutral-900" : "text-neutral-600 hover:text-neutral-900"
+                activeTab === "teams"
+                  ? "text-neutral-900"
+                  : "text-neutral-600 hover:text-neutral-900"
               }`}
             >
               Open Teams
@@ -222,7 +279,7 @@ export function TeamFinderCard({ formId, refreshKey = 0 }) {
 
         {/* Solo Tab */}
         {activeTab === "solo" && (
-        <div className="px-4 pt-3 pb-4">
+          <div className="px-4 pt-3 pb-4">
             <div className="relative">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-neutral-400" />
               <input
@@ -233,43 +290,63 @@ export function TeamFinderCard({ formId, refreshKey = 0 }) {
               />
             </div>
 
-            <div className={`mt-3 space-y-1.5 max-h-60 pr-1 -mr-1 ${scrollClass}`}>
+            <div
+              className={`mt-3 space-y-1.5 max-h-60 pr-1 -mr-1 ${scrollClass}`}
+            >
               {loadingEntries ? (
                 <div className="flex items-center justify-center gap-2 text-xs text-neutral-500 py-6">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Loading Team Finder
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading Team
+                  Finder
                 </div>
-              ) : filtered.map((u) => {
-                const isSelected = selected.includes(u.id);
-                return (
-                  <div
-                    key={u.id}
-                    className={`w-full flex items-center gap-2.5 p-2 rounded-lg border transition-all ${
-                      isSelected
-  ? "border-neutral-200 bg-neutral-50"
-  : "border-neutral-200 bg-white hover:border-neutral-300"
-                    }`}
-                  >
-                    <AvatarCircle name={u.name} src={u.img || u.image || u.profilePicture} size={32} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs text-neutral-900 truncate leading-tight">{u.name}</p>
-                      <p className="text-[10px] text-neutral-500 truncate mt-0.5">{u.email}</p>
-                    </div>
-                    <button
-                      onClick={() => toggle(u.id)}
-                      aria-label={isSelected ? "Deselect" : "Select"}
-                      className={`h-5 w-5 rounded-full border flex items-center justify-center transition-all shrink-0 cursor-pointer ${
+              ) : (
+                filtered.map((u) => {
+                  const isSelected = selected.includes(u.id);
+                  return (
+                    <div
+                      key={u.id}
+                      className={`w-full flex items-center gap-2.5 p-2 rounded-lg border transition-all ${
                         isSelected
-  ? "bg-neutral-900 border-neutral-300 scale-105"
-  : "border-neutral-300 hover:border-neutral-300 hover:bg-neutral-50"
+                          ? "border-neutral-200 bg-neutral-50"
+                          : "border-neutral-200 bg-white hover:border-neutral-300"
                       }`}
                     >
-                      {isSelected && <Check className="h-3 w-3 text-white" strokeWidth={3} />}
-                    </button>
-                  </div>
-                );
-              })}
+                      <AvatarCircle
+                        name={u.name}
+                        src={u.img || u.image || u.profilePicture}
+                        size={32}
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-neutral-900 truncate leading-tight">
+                          {u.name}
+                        </p>
+                        <p className="text-[10px] text-neutral-500 truncate mt-0.5">
+                          {u.email}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => toggle(u.id)}
+                        aria-label={isSelected ? "Deselect" : "Select"}
+                        className={`h-5 w-5 rounded-full border flex items-center justify-center transition-all shrink-0 cursor-pointer ${
+                          isSelected
+                            ? "bg-neutral-900 border-neutral-300 scale-105"
+                            : "border-neutral-300 hover:border-neutral-300 hover:bg-neutral-50"
+                        }`}
+                      >
+                        {isSelected && (
+                          <Check
+                            className="h-3 w-3 text-white"
+                            strokeWidth={3}
+                          />
+                        )}
+                      </button>
+                    </div>
+                  );
+                })
+              )}
               {!loadingEntries && filtered.length === 0 && (
-                <p className="text-center text-xs text-neutral-500 py-6">No solo users found</p>
+                <p className="text-center text-xs text-neutral-500 py-6">
+                  No solo users found
+                </p>
               )}
             </div>
 
@@ -278,7 +355,9 @@ export function TeamFinderCard({ formId, refreshKey = 0 }) {
             <div className="flex items-center justify-between gap-2">
               <p className="text-[10px] text-neutral-500">
                 {selected.length > 0 ? (
-                  <span className="text-neutral-900">{selected.length} selected</span>
+                  <span className="text-neutral-900">
+                    {selected.length} selected
+                  </span>
                 ) : (
                   "Tap circle to select"
                 )}
@@ -287,131 +366,158 @@ export function TeamFinderCard({ formId, refreshKey = 0 }) {
                 disabled={selected.length === 0}
                 onClick={openUsersRequest}
                 className="inline-flex items-center bg-neutral-900 hover:bg-neutral-800 text-white rounded-lg h-8 px-3 text-xs disabled:opacity-40 disabled:hover:bg-neutral-900 transition-colors"
-              > Send Request
+              >
+                {" "}
+                Send Request
               </button>
             </div>
-        </div>
+          </div>
         )}
 
         {/* Teams Tab */}
         {activeTab === "teams" && (
-        <div className="px-4 pt-3 pb-4">
-            <div className={`space-y-1.5 max-h-[22rem] pr-1 -mr-1 ${scrollClass}`}>
+          <div className="px-4 pt-3 pb-4">
+            <div
+              className={`space-y-1.5 max-h-[22rem] pr-1 -mr-1 ${scrollClass}`}
+            >
               {loadingEntries ? (
                 <div className="flex items-center justify-center gap-2 text-xs text-neutral-500 py-6">
-                  <Loader2 className="h-4 w-4 animate-spin" /> Loading Team Finder
+                  <Loader2 className="h-4 w-4 animate-spin" /> Loading Team
+                  Finder
                 </div>
-              ) : openTeams.map((t) => {
-                const isOpen = expandedTeam === t.id;
-                return (
-                  <div
-                    key={t.id}
-                    className={`rounded-lg border transition-all overflow-hidden ${
-                      isOpen
-  ? "border-neutral-200 bg-neutral-50/60"
-  : "border-neutral-200 bg-white hover:border-neutral-300"
-                    }`}
-                  >
-                    <button
-                      onClick={() => setExpandedTeam(isOpen ? null : t.id)}
-                      className="w-full p-2.5 text-left"
+              ) : (
+                openTeams.map((t) => {
+                  const isOpen = expandedTeam === t.id;
+                  return (
+                    <div
+                      key={t.id}
+                      className={`rounded-lg border transition-all overflow-hidden ${
+                        isOpen
+                          ? "border-neutral-200 bg-neutral-50/60"
+                          : "border-neutral-200 bg-white hover:border-neutral-300"
+                      }`}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0 flex-1">
-                          <p className="text-xs text-neutral-900 leading-tight">{t.name}</p>
-                          <p className="text-[10px] text-neutral-500 mt-0.5">Led by {t.lead}</p>
-                        </div>
-                        <span className="inline-flex items-center bg-neutral-900 text-white rounded-full shrink-0 text-[9px] px-1.5 py-0">
-                          {t.needed} open
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between mt-2">
-                        <div className="flex items-center gap-1.5">
-                          <div className="flex -space-x-1">
-                            {(t.members || []).slice(0, Math.max(t.total - t.needed, 0)).map((member, i) => (
-                              <AvatarCircle
-                                key={member.email || member.name || i}
-                                name={member.name}
-                                src={member.img || member.image || member.profilePicture}
-                                size={16}
-                                textSize="text-[7px]"
-                              />
-                            ))}
-                            {Array.from({ length: t.needed }).map((_, i) => (
-                              <div
-                                key={i}
-                                className="h-4 w-4 rounded-full bg-neutral-100 ring-2 ring-white border border-dashed border-neutral-300"
-                              />
-                            ))}
+                      <button
+                        onClick={() => setExpandedTeam(isOpen ? null : t.id)}
+                        className="w-full p-2.5 text-left"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs text-neutral-900 leading-tight">
+                              {t.name}
+                            </p>
+                            <p className="text-[10px] text-neutral-500 mt-0.5">
+                              Led by {t.lead}
+                            </p>
                           </div>
-                          <span className="text-[10px] text-neutral-500">
-                            {t.total - t.needed}/{t.total}
+                          <span className="inline-flex items-center bg-neutral-900 text-white rounded-full shrink-0 text-[9px] px-1.5 py-0">
+                            {t.needed} open
                           </span>
                         </div>
-                        <ChevronDown
-                          className={`h-3.5 w-3.5 text-neutral-400 transition-transform ${
-                            isOpen ? "rotate-180" : ""
-                          }`}
-                        />
-                      </div>
-                    </button>
 
-                    {isOpen && (
-                      <div className="px-2.5 pb-2.5 border-t border-neutral-200/70 pt-2.5 mt-0.5 space-y-2.5">
-                        <div>
-                          <p className="text-[9px] uppercase tracking-wider text-neutral-500 mb-1.5">
-                            Members ({t.members.length})
-                          </p>
-                          <div className="space-y-1.5">
-                            {t.members.map((m) => (
-                              <div key={m.name} className="flex items-center gap-2">
-                                <AvatarCircle name={m.name} src={m.img || m.image || m.profilePicture} size={24} textSize="text-[9px]" />
-                                <div className="min-w-0">
-                                  <p className="text-[11px] text-neutral-900 leading-tight truncate">
-                                    {m.name}
-                                  </p>
-                                  <p className="text-[9px] text-neutral-500 mt-0.5 truncate">
-                                    {m.email}
-                                  </p>
+                        <div className="flex items-center justify-between mt-2">
+                          <div className="flex items-center gap-1.5">
+                            <div className="flex -space-x-1">
+                              {(t.members || [])
+                                .slice(0, Math.max(t.total - t.needed, 0))
+                                .map((member, i) => (
+                                  <AvatarCircle
+                                    key={member.email || member.name || i}
+                                    name={member.name}
+                                    src={
+                                      member.img ||
+                                      member.image ||
+                                      member.profilePicture
+                                    }
+                                    size={16}
+                                    textSize="text-[7px]"
+                                  />
+                                ))}
+                              {Array.from({ length: t.needed }).map((_, i) => (
+                                <div
+                                  key={i}
+                                  className="h-4 w-4 rounded-full bg-neutral-100 ring-2 ring-white border border-dashed border-neutral-300"
+                                />
+                              ))}
+                            </div>
+                            <span className="text-[10px] text-neutral-500">
+                              {t.total - t.needed}/{t.total}
+                            </span>
+                          </div>
+                          <ChevronDown
+                            className={`h-3.5 w-3.5 text-neutral-400 transition-transform ${
+                              isOpen ? "rotate-180" : ""
+                            }`}
+                          />
+                        </div>
+                      </button>
+
+                      {isOpen && (
+                        <div className="px-2.5 pb-2.5 border-t border-neutral-200/70 pt-2.5 mt-0.5 space-y-2.5">
+                          <div>
+                            <p className="text-[9px] uppercase tracking-wider text-neutral-500 mb-1.5">
+                              Members ({t.members.length})
+                            </p>
+                            <div className="space-y-1.5">
+                              {t.members.map((m) => (
+                                <div
+                                  key={m.name}
+                                  className="flex items-center gap-2"
+                                >
+                                  <AvatarCircle
+                                    name={m.name}
+                                    src={m.img || m.image || m.profilePicture}
+                                    size={24}
+                                    textSize="text-[9px]"
+                                  />
+                                  <div className="min-w-0">
+                                    <p className="text-[11px] text-neutral-900 leading-tight truncate">
+                                      {m.name}
+                                    </p>
+                                    <p className="text-[9px] text-neutral-500 mt-0.5 truncate">
+                                      {m.email}
+                                    </p>
+                                  </div>
                                 </div>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
-                        </div>
 
-                        <div>
-                          <p className="text-[9px] uppercase tracking-wider text-neutral-500 mb-1.5">
-                            Looking for
-                          </p>
-                          <div className="flex gap-1 flex-wrap">
-                            {t.lookingFor.map((r) => (
-                              <span
-                                key={r}
-                                className="text-[10px] px-1.5 py-0.5 rounded-full bg-white border border-neutral-200 text-neutral-700"
-                              >
-                                {r}
-                              </span>
-                            ))}
+                          <div>
+                            <p className="text-[9px] uppercase tracking-wider text-neutral-500 mb-1.5">
+                              Looking for
+                            </p>
+                            <div className="flex gap-1 flex-wrap">
+                              {t.lookingFor.map((r) => (
+                                <span
+                                  key={r}
+                                  className="text-[10px] px-1.5 py-0.5 rounded-full bg-white border border-neutral-200 text-neutral-700"
+                                >
+                                  {r}
+                                </span>
+                              ))}
+                            </div>
                           </div>
-                        </div>
 
-                        <button
-                          onClick={() => openTeamRequest(t)}
-                          className="w-full inline-flex items-center justify-center h-7 text-xs bg-neutral-900 hover:bg-neutral-800 text-white rounded-md transition-colors"
-                        >
-                          <Mail className="h-3 w-3 mr-1" /> Request to Join
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
+                          <button
+                            onClick={() => openTeamRequest(t)}
+                            className="w-full inline-flex items-center justify-center h-7 text-xs bg-neutral-900 hover:bg-neutral-800 text-white rounded-md transition-colors"
+                          >
+                            <Mail className="h-3 w-3 mr-1" /> Request to Join
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
               {!loadingEntries && openTeams.length === 0 && (
-                <p className="text-center text-xs text-neutral-500 py-6">No open teams found</p>
+                <p className="text-center text-xs text-neutral-500 py-6">
+                  No open teams found
+                </p>
               )}
             </div>
-        </div>
+          </div>
         )}
       </div>
 
@@ -424,12 +530,23 @@ export function TeamFinderCard({ formId, refreshKey = 0 }) {
         sending={sending}
         sent={sent}
         onSend={handleSend}
+        error={sendError}
       />
     </>
   );
 }
 
-function RequestModal({ target, open, onClose, message, setMessage, sending, sent, onSend }) {
+function RequestModal({
+  target,
+  open,
+  onClose,
+  message,
+  setMessage,
+  sending,
+  sent,
+  onSend,
+  error,
+}) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => {
@@ -454,16 +571,16 @@ function RequestModal({ target, open, onClose, message, setMessage, sending, sen
   const title = sent
     ? "Request delivered"
     : isTeam
-    ? "Join this team"
-    : recipientCount === 1
-    ? "Send a team request"
-    : "Form a team";
+      ? "Join this team"
+      : recipientCount === 1
+        ? "Send a team request"
+        : "Form a team";
 
   const subtitle = sent
     ? "We'll let you know the moment they reply."
     : isTeam && team
-    ? `Introduce yourself to ${team.lead} and the ${team.name} crew.`
-    : `Reach out to ${recipientCount} ${recipientCount === 1 ? "person" : "people"} and start building.`;
+      ? `Introduce yourself to ${team.lead} and the ${team.name} crew.`
+      : `Reach out to ${recipientCount} ${recipientCount === 1 ? "person" : "people"} and start building.`;
 
   const placeholder = isTeam
     ? "Briefly introduce yourself and why you'd be a great fit…"
@@ -480,7 +597,10 @@ function RequestModal({ target, open, onClose, message, setMessage, sending, sen
       />
       <div className="relative w-full max-w-[440px] flex flex-col overflow-hidden rounded-[20px] bg-white shadow-[0_1px_0_0_rgba(255,255,255,0.6)_inset,0_30px_80px_-20px_rgba(0,0,0,0.35),0_0_0_1px_rgba(0,0,0,0.06)] animate-in fade-in zoom-in-95 slide-in-from-bottom-2 duration-200">
         {/* Ambient top accent */}
-        <div aria-hidden className="absolute inset-x-0 top-0 h-32 bg-[radial-gradient(80%_120%_at_50%_0%,rgba(0,0,0,0.04),transparent_70%)] pointer-events-none" />
+        <div
+          aria-hidden
+          className="absolute inset-x-0 top-0 h-32 bg-[radial-gradient(80%_120%_at_50%_0%,rgba(0,0,0,0.04),transparent_70%)] pointer-events-none"
+        />
 
         {/* Close */}
         <button
@@ -495,10 +615,13 @@ function RequestModal({ target, open, onClose, message, setMessage, sending, sen
         {/* Header */}
         <div className="relative px-6 pt-6 pb-5 border-b border-neutral-100 bg-gradient-to-b from-neutral-50/70 to-white shrink-0">
           <div className="flex items-start gap-3">
-            
             <div className="min-w-0 pr-6">
-              <h2 className="text-neutral-900 font-medium text-lg leading-tight">{title}</h2>
-              <p className="text-xs text-neutral-500 mt-1 leading-relaxed">{subtitle}</p>
+              <h2 className="text-neutral-900 font-medium text-lg leading-tight">
+                {title}
+              </h2>
+              <p className="text-xs text-neutral-500 mt-1 leading-relaxed">
+                {subtitle}
+              </p>
             </div>
           </div>
         </div>
@@ -507,7 +630,9 @@ function RequestModal({ target, open, onClose, message, setMessage, sending, sen
         {sent ? (
           <SuccessBody onClose={onClose} />
         ) : (
-          <div className={`flex-1 min-h-0 px-7 pt-7 pb-2 space-y-5 ${scrollClass}`}>
+          <div
+            className={`flex-1 min-h-0 px-7 pt-7 pb-2 space-y-5 ${scrollClass}`}
+          >
             <div>
               <div className="flex items-center justify-between mb-2">
                 <label className="text-[11px] text-neutral-500 tracking-tight">
@@ -523,8 +648,14 @@ function RequestModal({ target, open, onClose, message, setMessage, sending, sen
                       key={u.id}
                       className="flex items-center gap-1.5 pl-0.5 pr-3 py-0.5 rounded-full bg-neutral-50 border border-neutral-200/80 shadow-[0_1px_0_rgba(0,0,0,0.02)]"
                     >
-                      <AvatarCircle name={u.name} size={22} textSize="text-[9px]" />
-                      <span className="text-[12px] text-neutral-800 tracking-tight">{u.name}</span>
+                      <AvatarCircle
+                        name={u.name}
+                        size={22}
+                        textSize="text-[9px]"
+                      />
+                      <span className="text-[12px] text-neutral-800 tracking-tight">
+                        {u.name}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -547,7 +678,9 @@ function RequestModal({ target, open, onClose, message, setMessage, sending, sen
               <div className="group relative rounded-2xl border border-neutral-200 bg-neutral-50/70 focus-within:bg-white focus-within:border-neutral-900 focus-within:shadow-[0_0_0_4px_rgba(0,0,0,0.04)] transition-all">
                 <textarea
                   value={message}
-                  onChange={(e) => setMessage(e.target.value.slice(0, MAX_MESSAGE))}
+                  onChange={(e) =>
+                    setMessage(e.target.value.slice(0, MAX_MESSAGE))
+                  }
                   placeholder={placeholder}
                   rows={4}
                   disabled={sending}
@@ -555,8 +688,14 @@ function RequestModal({ target, open, onClose, message, setMessage, sending, sen
                 />
               </div>
               <p className="text-[11px] text-neutral-400 mt-2 leading-relaxed">
-                A clear note about your skills and intent gets the best response.
+                A clear note about your skills and intent gets the best
+                response.
               </p>
+              {error && (
+                <p className="mt-3 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-[11px] leading-relaxed text-red-700">
+                  {error}
+                </p>
+              )}
             </div>
           </div>
         )}
@@ -581,9 +720,7 @@ function RequestModal({ target, open, onClose, message, setMessage, sending, sen
                   <Loader2 className="h-full mr-1.5 animate-spin" />
                 </div>
               ) : (
-                <>
-                  Send request
-                </>
+                <>Send request</>
               )}
             </button>
           </div>
@@ -600,7 +737,9 @@ function TeamRecipientChip({ team }) {
         <Users className="h-4 w-4" strokeWidth={2.25} />
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-[13px] text-neutral-950 leading-tight truncate tracking-tight">{team.name}</p>
+        <p className="text-[13px] text-neutral-950 leading-tight truncate tracking-tight">
+          {team.name}
+        </p>
         <p className="text-[11px] text-neutral-500 mt-1">Led by {team.lead}</p>
       </div>
       <span className="inline-flex items-center gap-1 bg-white border border-neutral-200 text-neutral-700 rounded-full text-[10px] px-2 py-0.5 shadow-sm">
@@ -620,9 +759,12 @@ function SuccessBody({ onClose }) {
             <Mail className="h-4 w-4 text-neutral-700" strokeWidth={2.25} />
           </div>
           <div className="min-w-0">
-            <p className="text-[13px] text-neutral-950 leading-tight tracking-tight">Check your inbox</p>
+            <p className="text-[13px] text-neutral-950 leading-tight tracking-tight">
+              Check your inbox
+            </p>
             <p className="text-[11px] text-neutral-500 mt-1 leading-relaxed">
-              We've sent a confirmation and we'll ping you the moment they reply.
+              We've sent a confirmation and we'll ping you the moment they
+              reply.
             </p>
           </div>
         </div>
@@ -632,7 +774,9 @@ function SuccessBody({ onClose }) {
             <Bell className="h-4 w-4 text-neutral-700" strokeWidth={2.25} />
           </div>
           <div className="min-w-0">
-            <p className="text-[13px] text-neutral-950 leading-tight tracking-tight">Stay tuned in‑app</p>
+            <p className="text-[13px] text-neutral-950 leading-tight tracking-tight">
+              Stay tuned in‑app
+            </p>
             <p className="text-[11px] text-neutral-500 mt-1 leading-relaxed">
               Replies and team updates land in your Unilynk notifications.
             </p>
