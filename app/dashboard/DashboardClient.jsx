@@ -136,48 +136,50 @@ export default function DashboardClient() {
   useEffect(() => {
     if (!session?.user?.email) return;
 
-    const fetchPendingNotifications = async () => {
-      let pastNotifications = [];
-      let teamFinderNotifications = [];
-
-      try {
-        const [pastRes, teamFinderRes] = await Promise.all([
-          fetch("/api/clubs/past-pending"),
-          fetch("/api/notifications"),
-        ]);
-        const [pastData, teamFinderData] = await Promise.all([
-          pastRes.ok ? pastRes.json() : [],
-          teamFinderRes.ok ? teamFinderRes.json() : [],
-        ]);
-
-        const pastNotifications = (pastData || []).map((notif) => ({
-          ...notif,
-          notificationType: "past-event",
-        }));
-        const teamFinderNotifications = (teamFinderData || []).map((notif) => ({
-          ...notif,
-          notificationType: "team-finder-request",
-        }));
-
-        setPendingNotifications([
-          ...teamFinderNotifications,
-          ...pastNotifications,
-        ]);
-      } catch (err) {
-        console.error("Failed to fetch past activity notifications:", err);
+    const fetchJsonList = async (url) => {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`${url} returned ${response.status}`);
       }
 
-      try {
-        const teamFinderRes = await fetch("/api/notifications");
-        if (teamFinderRes.ok) {
-          const teamFinderData = await teamFinderRes.json();
-          teamFinderNotifications = (teamFinderData || []).map((notif) => ({
-            ...notif,
-            notificationType: "team-finder-request",
-          }));
-        }
-      } catch (err) {
-        console.error("Failed to fetch Team Finder notifications:", err);
+      const data = await response.json();
+      return Array.isArray(data) ? data : [];
+    };
+
+    const fetchPendingNotifications = async () => {
+      const [pastResult, teamFinderResult] = await Promise.allSettled([
+        fetchJsonList("/api/clubs/past-pending"),
+        fetchJsonList("/api/notifications"),
+      ]);
+
+      const pastNotifications =
+        pastResult.status === "fulfilled"
+          ? pastResult.value.map((notif) => ({
+              ...notif,
+              notificationType: "past-event",
+            }))
+          : [];
+
+      const teamFinderNotifications =
+        teamFinderResult.status === "fulfilled"
+          ? teamFinderResult.value.map((notif) => ({
+              ...notif,
+              notificationType: "team-finder-request",
+            }))
+          : [];
+
+      if (pastResult.status === "rejected") {
+        console.error(
+          "Failed to fetch past activity notifications:",
+          pastResult.reason,
+        );
+      }
+
+      if (teamFinderResult.status === "rejected") {
+        console.error(
+          "Failed to fetch Team Finder notifications:",
+          teamFinderResult.reason,
+        );
       }
 
       setPendingNotifications([

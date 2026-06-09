@@ -41,21 +41,23 @@ export async function GET(req) {
     for (const form of forms) {
       if (!form.date) continue;
 
-      // Parse the event date and time
-      const dateTimeStr = form.time ? `${form.date}T${form.time}` : `${form.date}T00:00`;
+      // Parse event dates saved as either YYYY-MM-DD or ISO strings. The form
+      // builder stores dates as ISO strings, so appending another `T...` can
+      // produce an invalid date and hide dashboard notifications.
+      const datePart = String(form.date).split("T")[0];
+      const dateTimeStr = form.time
+        ? `${datePart}T${form.time}`
+        : `${datePart}T00:00`;
       const eventDateTime = new Date(dateTimeStr);
+      const fallbackDate = new Date(form.date);
 
-      let isPast = false;
-      if (!Number.isNaN(eventDateTime.getTime())) {
-        isPast = eventDateTime < now;
-      } else {
-        const fallbackDate = new Date(form.date);
-        if (!Number.isNaN(fallbackDate.getTime())) {
-          isPast = fallbackDate < now;
-        }
+      const comparableDate = !Number.isNaN(eventDateTime.getTime())
+        ? eventDateTime
+        : fallbackDate;
+
+      if (Number.isNaN(comparableDate.getTime()) || comparableDate >= now) {
+        continue;
       }
-
-      if (!isPast) continue;
 
       const club = clubMap[form.clubId.toString()];
       if (!club) continue;
