@@ -4,6 +4,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import cloudinary from "@/lib/cloudinary";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/user";
+import { syncUserClubProfile } from "@/lib/clubProfileSync";
 
 export async function POST(req) {
   try {
@@ -40,11 +41,15 @@ export async function POST(req) {
     const imageUrl = uploadResult.secure_url;
 
     // ✅ Save image in DB
-    await User.findOneAndUpdate(
+    const user = await User.findOneAndUpdate(
       { email: session.user.email },
       { img: imageUrl },
       { new: true }
     );
+
+    if (user) {
+      await syncUserClubProfile(user);
+    }
 
     // ✅ VERY IMPORTANT
     return NextResponse.json({ url: imageUrl });

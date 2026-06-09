@@ -2,6 +2,7 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/user";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { syncUserClubProfile } from "@/lib/clubProfileSync";
 
 export async function POST(req) {
   try {
@@ -14,19 +15,29 @@ export async function POST(req) {
 
     const { name, branch, year, skills } = await req.json();
 
-    await User.findOneAndUpdate(
+    const user = await User.findOneAndUpdate(
       { email: session.user.email },
       {
-        name,
-        branch,
-        year,
-        skills,
-        profileCompleted: true, 
-      }
-    );
+        name: typeof name === "string" ? name.trim() : "",
+        branch: typeof branch === "string" ? branch.trim() : "",
+        year: typeof year === "string" ? year.trim() : "",
+        skills: Array.isArray(skills)
+          ? skills.map((skill) => (typeof skill === "string" ? skill.trim() : "")).filter(Boolean)
+          : [],
+        profileCompleted: true,
+      },
+      { new: true }
+    ).select("-password");
 
-    return Response.json({ success: true });
+    if (!user) {
+      return Response.json({ error: "User not found" }, { status: 404 });
+    }
+
+    await syncUserClubProfile(user);
+
+    return Response.json({ success: true, user });
   } catch (err) {
+    console.error("USER UPDATE ERROR:", err);
     return Response.json({ error: "Server error" }, { status: 500 });
   }
 }
