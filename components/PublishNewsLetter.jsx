@@ -1,14 +1,20 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ImagePlus, Newspaper, Loader2, Minus, Plus, ArrowLeft, CropIcon } from "lucide-react";
-import ReactCrop, { centerCrop, makeAspectCrop } from "react-image-crop";
+import ReactCrop, { centerCrop, convertToPixelCrop, makeAspectCrop } from "react-image-crop";
 import "react-image-crop/dist/ReactCrop.css";
 
 const MAX_DESC = 120;
 const CARD_WIDTH = 325;
 const CARD_HEIGHT = 475;
 const CARD_ASPECT = CARD_WIDTH / CARD_HEIGHT;
+const CROP_OUTPUT_TYPE = "image/jpeg";
+const CROP_OUTPUT_QUALITY = 1;
+
+function revokeObjectUrl(url) {
+  if (url) URL.revokeObjectURL(url);
+}
 
 function centerAspectCrop(mediaW, mediaH, aspect) {
   return centerCrop(
@@ -23,12 +29,16 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [dragOver, setDragOver] = useState(false);
+  const [applyingCrop, setApplyingCrop] = useState(false);
 
   const [cropSrc, setCropSrc] = useState(null);
   const [crop, setCrop] = useState();
   const [completedCrop, setCompletedCrop] = useState(null);
   const imgRef = useRef(null);
   const fileRef = useRef(null);
+  const pendingFileRef = useRef(null);
+  const cropObjectUrlRef = useRef(null);
+  const previewObjectUrlRef = useRef(null);
 
   const [form, setForm] = useState({
     price: 0,
@@ -39,11 +49,38 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
     error: "",
   });
 
+  useEffect(() => {
+    return () => {
+      revokeObjectUrl(cropObjectUrlRef.current);
+      revokeObjectUrl(previewObjectUrlRef.current);
+    };
+  }, []);
+
+  const clearCropSource = useCallback(() => {
+    revokeObjectUrl(cropObjectUrlRef.current);
+    cropObjectUrlRef.current = null;
+    setCropSrc(null);
+    setCrop(undefined);
+    setCompletedCrop(null);
+    setApplyingCrop(false);
+  }, []);
+
   const handleFile = (file) => {
-    if (!file.type.startsWith("image/")) return;
+    if (!file?.type?.startsWith("image/")) {
+      setForm((f) => ({ ...f, error: "Please choose a valid image file." }));
+      return;
+    }
+
     const url = URL.createObjectURL(file);
+    revokeObjectUrl(cropObjectUrlRef.current);
+    cropObjectUrlRef.current = url;
+    pendingFileRef.current = file;
+
+    setCrop(undefined);
+    setCompletedCrop(null);
+    setApplyingCrop(false);
     setCropSrc(url);
-    setForm((f) => ({ ...f, coverImage: file, croppedBlob: null, error: "" }));
+    setForm((f) => ({ ...f, error: "" }));
   };
 
   const handleDrop = (e) => {
@@ -55,47 +92,85 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
 
   const onImageLoad = useCallback((e) => {
     const { naturalWidth: w, naturalHeight: h } = e.currentTarget;
-    setCrop(centerAspectCrop(w, h, CARD_ASPECT));
+    const nextCrop = centerAspectCrop(w, h, CARD_ASPECT);
+
+    setCrop(nextCrop);
+    setCompletedCrop(convertToPixelCrop(nextCrop, w, h));
   }, []);
 
   const applyCrop = () => {
-    if (!completedCrop || !imgRef.current) return;
-    const img = imgRef.current;
-    const canvas = document.createElement("canvas");
-    const scaleX = img.naturalWidth / img.width;
-    const scaleY = img.naturalHeight / img.height;
-    canvas.width = CARD_WIDTH;
-    canvas.height = CARD_HEIGHT;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.drawImage(
-      img,
-      completedCrop.x * scaleX,
-      completedCrop.y * scaleY,
-      completedCrop.width * scaleX,
-      completedCrop.height * scaleY,
-      0,
-      0,
-      CARD_WIDTH,
-      CARD_HEIGHT,
-    );
-    canvas.toBlob(
-      (blob) => {
-        if (!blob) return;
-        const url = URL.createObjectURL(blob);
-        setForm((f) => ({ ...f, coverPreview: url, croppedBlob: blob, error: "" }));
-        setCropSrc(null);
-        setCompletedCrop(null);
-      },
-      "image/jpeg",
-      0.95,
-    );
+    if (!completedCrop || !imgRef.current || applyingCrop) return;
+
+    setApplyingCrop(true);
+
+    requestAnimationFrame(() => {
+      const img = imgRef.current;
+      if (!img) {
+        setApplyingCrop(false);
+        return;
+      }
+
+      const scaleX = img.naturalWidth / img.width;
+      const scaleY = img.naturalHeight / img.height;
+      const sourceX = Math.round(completedCrop.x * scaleX);
+      const sourceY = Math.round(completedCrop.y * scaleY);
+      const sourceWidth = Math.max(1, Math.round(completedCrop.width * scaleX));
+      const sourceHeight = Math.max(1, Math.round(completedCrop.height * scaleY));
+      const canvas = document.createElement("canvas");
+
+      canvas.width = sourceWidth;
+      canvas.height = sourceHeight;
+
+      const ctx = canvas.getContext("2d", { alpha: false });
+      if (!ctx) {
+        setApplyingCrop(false);
+        return;
+      }
+
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
+      ctx.drawImage(
+        img,
+        sourceX,
+        sourceY,
+        sourceWidth,
+        sourceHeight,
+        0,
+        0,
+        sourceWidth,
+        sourceHeight,
+      );
+
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            setApplyingCrop(false);
+            return;
+          }
+
+          const url = URL.createObjectURL(blob);
+          revokeObjectUrl(previewObjectUrlRef.current);
+          previewObjectUrlRef.current = url;
+
+          setForm((f) => ({
+            ...f,
+            coverImage: pendingFileRef.current || f.coverImage,
+            coverPreview: url,
+            croppedBlob: blob,
+            error: "",
+          }));
+          pendingFileRef.current = null;
+          clearCropSource();
+        },
+        CROP_OUTPUT_TYPE,
+        CROP_OUTPUT_QUALITY,
+      );
+    });
   };
 
   const cancelCrop = () => {
-    setCropSrc(null);
-    setCompletedCrop(null);
-    if (!form.coverPreview) setForm((f) => ({ ...f, coverImage: null, croppedBlob: null }));
+    pendingFileRef.current = null;
+    clearCropSource();
   };
 
   const adjustPrice = (delta) => {
@@ -103,6 +178,10 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
   };
 
   const resetForm = () => {
+    pendingFileRef.current = null;
+    clearCropSource();
+    revokeObjectUrl(previewObjectUrlRef.current);
+    previewObjectUrlRef.current = null;
     setForm({
       price: 0,
       description: "",
@@ -115,8 +194,21 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const coverImageToUpload = form.croppedBlob || form.coverImage;
+
     if (!clubId) {
       setForm((f) => ({ ...f, error: "Club details are still loading. Please try again." }));
+      return;
+    }
+
+    if (!form.description.trim()) {
+      setForm((f) => ({ ...f, error: "Please add a short description before publishing." }));
+      return;
+    }
+
+    if (!coverImageToUpload) {
+      setForm((f) => ({ ...f, error: "Please apply the cover crop before publishing." }));
       return;
     }
 
@@ -128,7 +220,7 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
       body.append("clubId", clubId);
       body.append("price", String(form.price));
       body.append("description", form.description.trim());
-      body.append("coverImage", form.croppedBlob || form.coverImage, "newsletter-cover.jpg");
+      body.append("coverImage", coverImageToUpload, "newsletter-cover.jpg");
 
       const response = await fetch("/api/newsletter", {
         method: "POST",
@@ -155,13 +247,14 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
   };
 
   const isCropping = !!cropSrc;
-  const isValid = form.description.trim() && form.coverImage && form.coverPreview && !isCropping && clubId;
+  const hasAppliedCover = Boolean(form.croppedBlob || form.coverImage || form.coverPreview);
+  const isValid = Boolean(form.description.trim() && hasAppliedCover && !isCropping);
 
   return (
     <Dialog.Root
       open={open}
       onOpenChange={(v) => {
-        if (!v) { setCropSrc(null); setCompletedCrop(null); setSubmitted(false); setSubmitting(false); }
+        if (!v) { cancelCrop(); setSubmitted(false); setSubmitting(false); }
         setOpen(v);
       }}
     >
@@ -190,15 +283,7 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
                 transition={{ duration: 0.18 }}
                 className={`fixed inset-0 z-50 ${isCropping ? "overflow-hidden bg-black/25" : "bg-black/25 backdrop-blur-[2px]"}`}
               >
-                {isCropping && cropSrc ? (
-                  <>
-                    <div
-                      className="absolute inset-0 scale-110 bg-cover bg-center blur-md"
-                      style={{ backgroundImage: `url(${cropSrc})` }}
-                    />
-                    <div className="absolute inset-0 bg-white/55" />
-                  </>
-                ) : null}
+                {isCropping ? <div className="absolute inset-0 bg-white/55" /> : null}
               </motion.div>
             </Dialog.Overlay>
 
@@ -276,6 +361,7 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
                               alt="Crop source"
                               onLoad={onImageLoad}
                               className="w-full select-none"
+                              decoding="sync"
                               style={{ maxHeight: "60vh", display: "block" }}
                             />
                           </ReactCrop>
@@ -293,11 +379,11 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
                           <button
                             type="button"
                             onClick={applyCrop}
-                            disabled={!completedCrop}
+                            disabled={!completedCrop || applyingCrop}
                             className="flex h-8 flex-1 items-center justify-center gap-1.5 rounded-lg bg-[#0a0a0a] px-4 text-white transition-all duration-150 hover:bg-[#1c1c1c] active:scale-[0.97] disabled:opacity-35 disabled:cursor-not-allowed"
                             style={{ fontSize: "12px", fontWeight: 500 }}
                           >
-                            Apply Crop
+                            {applyingCrop ? "Applying…" : "Apply Crop"}
                           </button>
                         </div>
                       </motion.div>
@@ -366,7 +452,7 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
                                 <p className="text-[#aaa] leading-snug" style={{ fontSize: "10.5px" }}>
                                   Front page
                                   <br />
-                                  <span className="text-[#ccc]" style={{ fontSize: "9.5px" }}>325 × 475</span>
+                                  <span className="text-[#ccc]" style={{ fontSize: "9.5px" }}>opens crop instantly</span>
                                 </p>
                               </div>
                             )}
