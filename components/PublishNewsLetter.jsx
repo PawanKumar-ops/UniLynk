@@ -9,11 +9,8 @@ const MAX_DESC = 120;
 const CARD_WIDTH = 325;
 const CARD_HEIGHT = 475;
 const CARD_ASPECT = CARD_WIDTH / CARD_HEIGHT;
-const CROP_EXPORT_SCALE = 2;
-const CROP_OUTPUT_WIDTH = CARD_WIDTH * CROP_EXPORT_SCALE;
-const CROP_OUTPUT_HEIGHT = CARD_HEIGHT * CROP_EXPORT_SCALE;
 const CROP_OUTPUT_TYPE = "image/jpeg";
-const CROP_OUTPUT_QUALITY = 1;
+const CROP_OUTPUT_QUALITY = 0.86;
 
 function revokeObjectUrl(url) {
   if (url) URL.revokeObjectURL(url);
@@ -110,8 +107,8 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
     const canvas = document.createElement("canvas");
     const scaleX = img.naturalWidth / img.width;
     const scaleY = img.naturalHeight / img.height;
-    canvas.width = CROP_OUTPUT_WIDTH;
-    canvas.height = CROP_OUTPUT_HEIGHT;
+    canvas.width = CARD_WIDTH;
+    canvas.height = CARD_HEIGHT;
 
     const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) {
