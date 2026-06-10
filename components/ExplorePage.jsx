@@ -256,7 +256,7 @@ export function ExplorePage({ onBack }) {
   const loadSuggestedUsers = useCallback(async (signal) => {
     try {
       setSuggestedUsersLoading(true);
-      const res = await fetch("/api/explore/suggested-users", { cache: "no-store", signal });
+      const res = await fetch("/api/explore/suggested-users", { signal });
       const data = await res.json();
 
       if (!res.ok) throw new Error(data?.message || "Failed to fetch suggested users");
@@ -917,14 +917,19 @@ export function ExplorePage({ onBack }) {
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            {suggestedUsersLoading
-              ? Array.from({ length: 4 }).map((_, index) => (
-                <SuggestedUserSkeleton key={`suggested-user-skeleton-${index}`} />
-              ))
-              : suggestedUsers.map((u) => (
+            {suggestedUsersLoading ? (
+              <div className="col-span-2 rounded-2xl border border-neutral-200 bg-white px-4 py-8 text-center text-sm text-neutral-500">
+                Loading suggestions...
+              </div>
+            ) : suggestedUsers.length === 0 ? (
+              <div className="col-span-2 rounded-2xl border border-neutral-200 bg-white px-4 py-8 text-center text-sm text-neutral-500">
+                No suggested users found.
+              </div>
+            ) : (
+              suggestedUsers.map((u) => (
                 <div
                   key={u.id}
-                  className={suggestedUserCardClass}
+                  className="flex items-center gap-3 p-3 rounded-2xl border border-neutral-200 hover:border-neutral-300 hover:shadow-sm transition bg-white"
                 >
                   <div className="w-12 h-12 rounded-full overflow-hidden bg-neutral-100 shrink-0">
                     <ImageWithFallback
@@ -947,7 +952,8 @@ export function ExplorePage({ onBack }) {
                     View
                   </button>
                 </div>
-              ))}
+              ))
+            )}
           </div>
         </section>
 
