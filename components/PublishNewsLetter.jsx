@@ -10,7 +10,7 @@ const CARD_WIDTH = 325;
 const CARD_HEIGHT = 475;
 const CARD_ASPECT = CARD_WIDTH / CARD_HEIGHT;
 const CROP_OUTPUT_TYPE = "image/jpeg";
-const CROP_OUTPUT_QUALITY = 1;
+const CROP_OUTPUT_QUALITY = 0.86;
 
 function revokeObjectUrl(url) {
   if (url) URL.revokeObjectURL(url);
@@ -103,69 +103,57 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
 
     setApplyingCrop(true);
 
-    requestAnimationFrame(() => {
-      const img = imgRef.current;
-      if (!img) {
-        setApplyingCrop(false);
-        return;
-      }
+    const img = imgRef.current;
+    const canvas = document.createElement("canvas");
+    const scaleX = img.naturalWidth / img.width;
+    const scaleY = img.naturalHeight / img.height;
+    canvas.width = CARD_WIDTH;
+    canvas.height = CARD_HEIGHT;
 
-      const scaleX = img.naturalWidth / img.width;
-      const scaleY = img.naturalHeight / img.height;
-      const sourceX = Math.round(completedCrop.x * scaleX);
-      const sourceY = Math.round(completedCrop.y * scaleY);
-      const sourceWidth = Math.max(1, Math.round(completedCrop.width * scaleX));
-      const sourceHeight = Math.max(1, Math.round(completedCrop.height * scaleY));
-      const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d", { alpha: false });
+    if (!ctx) {
+      setApplyingCrop(false);
+      return;
+    }
 
-      canvas.width = sourceWidth;
-      canvas.height = sourceHeight;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(
+      img,
+      completedCrop.x * scaleX,
+      completedCrop.y * scaleY,
+      completedCrop.width * scaleX,
+      completedCrop.height * scaleY,
+      0,
+      0,
+      CROP_OUTPUT_WIDTH,
+      CROP_OUTPUT_HEIGHT,
+    );
 
-      const ctx = canvas.getContext("2d", { alpha: false });
-      if (!ctx) {
-        setApplyingCrop(false);
-        return;
-      }
+    canvas.toBlob(
+      (blob) => {
+        if (!blob) {
+          setApplyingCrop(false);
+          return;
+        }
 
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = "high";
-      ctx.drawImage(
-        img,
-        sourceX,
-        sourceY,
-        sourceWidth,
-        sourceHeight,
-        0,
-        0,
-        sourceWidth,
-        sourceHeight,
-      );
+        const url = URL.createObjectURL(blob);
+        revokeObjectUrl(previewObjectUrlRef.current);
+        previewObjectUrlRef.current = url;
 
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) {
-            setApplyingCrop(false);
-            return;
-          }
-
-          const url = URL.createObjectURL(blob);
-          revokeObjectUrl(previewObjectUrlRef.current);
-          previewObjectUrlRef.current = url;
-
-          setForm((f) => ({
-            ...f,
-            coverImage: pendingFileRef.current || f.coverImage,
-            coverPreview: url,
-            croppedBlob: blob,
-            error: "",
-          }));
-          pendingFileRef.current = null;
-          clearCropSource();
-        },
-        CROP_OUTPUT_TYPE,
-        CROP_OUTPUT_QUALITY,
-      );
-    });
+        setForm((f) => ({
+          ...f,
+          coverImage: pendingFileRef.current || f.coverImage,
+          coverPreview: url,
+          croppedBlob: blob,
+          error: "",
+        }));
+        pendingFileRef.current = null;
+        clearCropSource();
+      },
+      CROP_OUTPUT_TYPE,
+      CROP_OUTPUT_QUALITY,
+    );
   };
 
   const cancelCrop = () => {
