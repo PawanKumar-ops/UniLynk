@@ -946,7 +946,7 @@ export function ExplorePage({ onBack }) {
                   <div className="min-w-0 flex-1">
                     <div className="text-sm truncate">{u.name}</div>
                     <div className="text-xs text-neutral-500 truncate">{u.role}</div>
-                    <div className="text-[11px] text-neutral-400 mt-0.5">{u.mutual} mutual</div>
+                  
                   </div>
                   <button
                     type="button"
