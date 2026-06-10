@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import ReliableImage from "./ReliableImage";
@@ -82,41 +82,33 @@ export function NewsLetterCard() {
   const [newsletters, setNewsletters] = useState([]);
   const [nowMs, setNowMs] = useState(() => Date.now());
 
-  useEffect(() => {
-    let isMounted = true;
+  const loadNewsletters = useCallback(async ({ resetIndex = true } = {}) => {
+    try {
+      const response = await fetch("/api/newsletter", { cache: "no-store" });
+      const data = await response.json();
 
-    const loadNewsletters = async () => {
-      try {
-        const response = await fetch("/api/newsletter", { cache: "no-store" });
-        const data = await response.json();
-
-        if (!response.ok) {
-          throw new Error(data?.error || "Failed to fetch newsletters");
-        }
-
-        if (isMounted) {
-          setNewsletters(
-            Array.isArray(data?.newsletters)
-              ? data.newsletters
-                  .map((newsletter, index) => normalizeNewsletter(newsletter, index))
-                  .filter(Boolean)
-              : []
-          );
-          setIndex(0);
-          setNowMs(Date.now());
-        }
-      } catch (error) {
-        console.error("NEWSLETTER FETCH ERROR:", error);
-        if (isMounted) setNewsletters([]);
+      if (!response.ok) {
+        throw new Error(data?.error || "Failed to fetch newsletters");
       }
-    };
 
-    loadNewsletters();
-
-    return () => {
-      isMounted = false;
-    };
+      setNewsletters(
+        Array.isArray(data?.newsletters)
+          ? data.newsletters
+              .map((newsletter, index) => normalizeNewsletter(newsletter, index))
+              .filter(Boolean)
+          : []
+      );
+      if (resetIndex) setIndex(0);
+      setNowMs(Date.now());
+    } catch (error) {
+      console.error("NEWSLETTER FETCH ERROR:", error);
+      setNewsletters([]);
+    }
   }, []);
+
+  useEffect(() => {
+    loadNewsletters();
+  }, [loadNewsletters]);
 
   const liveNewsletters = useMemo(
     () =>
@@ -137,10 +129,13 @@ export function NewsLetterCard() {
     if (!Number.isFinite(nextExpiryMs)) return undefined;
 
     const timeoutMs = Math.min(Math.max(nextExpiryMs - nowMs + 1000, 1000), 2147483647);
-    const timeoutId = window.setTimeout(() => setNowMs(Date.now()), timeoutMs);
+    const timeoutId = window.setTimeout(() => {
+      setNowMs(Date.now());
+      loadNewsletters({ resetIndex: false });
+    }, timeoutMs);
 
     return () => window.clearTimeout(timeoutId);
-  }, [liveNewsletters, nowMs]);
+  }, [liveNewsletters, loadNewsletters, nowMs]);
 
   const posts = liveNewsletters.length > 0 ? liveNewsletters : fallbackPosts;
 

@@ -3,12 +3,11 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import cloudinary from "@/lib/cloudinary";
 import { connectDB } from "@/lib/mongodb";
+import { cleanupExpiredNewsletters, NEWSLETTER_TTL_MS } from "@/lib/newsletterCleanup";
 import Club from "@/models/Club";
 import Newsletter from "@/models/Newsletter";
 
 const MAX_DESCRIPTION_LENGTH = 120;
-const SEVEN_DAYS_IN_MS = 7 * 24 * 60 * 60 * 1000;
-const MAX_CLEANUP_BATCH = 5;
 
 const normalizeEmail = (email) =>
   typeof email === "string" ? email.trim().toLowerCase() : "";
@@ -20,53 +19,6 @@ const normalizeImage = (image) => {
   const lowered = cleaned.toLowerCase();
   if (lowered === "null" || lowered === "undefined") return "";
   return cleaned;
-};
-
-const extractCloudinaryPublicId = (url) => {
-  if (typeof url !== "string" || !url.includes("/upload/")) return "";
-
-  try {
-    const pathname = new URL(url).pathname;
-    const uploadPath = pathname.split("/upload/")[1] || "";
-    const withoutVersion = uploadPath.replace(/^v\d+\//, "");
-    return withoutVersion.replace(/\.[^/.]+$/, "");
-  } catch {
-    const uploadPath = url.split("/upload/")[1] || "";
-    const withoutVersion = uploadPath.replace(/^v\d+\//, "");
-    return withoutVersion.replace(/\.[^/.?#]+([?#].*)?$/, "");
-  }
-};
-
-const deleteCloudinaryImage = async (newsletter) => {
-  const publicId =
-    normalizeImage(newsletter?.coverPublicId) ||
-    extractCloudinaryPublicId(newsletter?.coverImage);
-
-  if (!publicId) return;
-
-  try {
-    await cloudinary.uploader.destroy(publicId, { invalidate: true });
-  } catch (error) {
-    console.error("NEWSLETTER CLOUDINARY DELETE ERROR:", error);
-  }
-};
-
-const cleanupExpiredNewsletters = async (now = new Date()) => {
-  const expiredNewsletters = await Newsletter.find(
-    { expiresAt: { $lte: now } },
-    { _id: 1, coverImage: 1, coverPublicId: 1 }
-  )
-    .sort({ expiresAt: 1 })
-    .limit(MAX_CLEANUP_BATCH)
-    .lean();
-
-  if (!expiredNewsletters.length) return;
-
-  await Promise.allSettled(expiredNewsletters.map(deleteCloudinaryImage));
-
-  await Newsletter.deleteMany({
-    _id: { $in: expiredNewsletters.map((newsletter) => newsletter._id) },
-  });
 };
 
 const serializeNewsletter = (newsletter) => ({
@@ -158,7 +110,7 @@ export async function POST(req) {
     });
 
     const createdAt = new Date();
-    const expiresAt = new Date(createdAt.getTime() + SEVEN_DAYS_IN_MS);
+    const expiresAt = new Date(createdAt.getTime() + NEWSLETTER_TTL_MS);
 
     const newsletter = await Newsletter.create({
       clubId: club._id,
