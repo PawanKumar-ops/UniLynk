@@ -52,7 +52,9 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
 
   const onImageLoad = useCallback((e) => {
     const { naturalWidth: w, naturalHeight: h } = e.currentTarget;
-    setCrop(centerAspectCrop(w, h, CARD_ASPECT));
+    const initialCrop = centerAspectCrop(w, h, CARD_ASPECT);
+    setCrop(initialCrop);
+    setCompletedCrop(initialCrop);
   }, []);
 
   const applyCrop = () => {
@@ -195,7 +197,7 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 8 }}
                 transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                className="fixed left-1/2 top-1/2 z-50 w-full max-w-[410px] -translate-x-1/2 -translate-y-1/2 outline-none"
+                className="fixed left-1/2 top-1/2 z-50 w-auto max-w-[410px] max-h-[90vh] -translate-x-1/2 -translate-y-1/2 outline-none"
               >
                 <div className="rounded-2xl bg-white border border-black/[0.07] shadow-[0_20px_60px_rgba(0,0,0,0.12),0_4px_12px_rgba(0,0,0,0.05)] overflow-hidden">
 
@@ -338,7 +340,14 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
                                   alt="Cover"
                                   className="absolute inset-0 h-full w-full object-cover rounded-xl"
                                 />
-                                <div className="absolute inset-0 rounded-xl bg-black/45 flex flex-col items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200 gap-1.5">
+                                <div className="absolute inset-0 rounded-xl bg-black/45 flex flex-col items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-200 gap-1.5" onClick={() => {
+                                    if (form.coverImage) {
+                                      const url = URL.createObjectURL(form.coverImage);
+                                      setCropSrc(url);
+                                      setCrop(null);
+                                      setCompletedCrop(null);
+                                    }
+                                  }}>
                                   <CropIcon className="h-4 w-4 text-white" strokeWidth={1.8} />
                                   <span className="text-white leading-none" style={{ fontSize: "10px", fontWeight: 500 }}>Re-crop</span>
                                 </div>
