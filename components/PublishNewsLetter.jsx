@@ -126,8 +126,8 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
       completedCrop.height * scaleY,
       0,
       0,
-      CARD_WIDTH,
-      CARD_HEIGHT,
+      CROP_OUTPUT_WIDTH,
+      CROP_OUTPUT_HEIGHT,
     );
 
     canvas.toBlob(
@@ -182,8 +182,21 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const coverImageToUpload = form.croppedBlob || form.coverImage;
+
     if (!clubId) {
       setForm((f) => ({ ...f, error: "Club details are still loading. Please try again." }));
+      return;
+    }
+
+    if (!form.description.trim()) {
+      setForm((f) => ({ ...f, error: "Please add a short description before publishing." }));
+      return;
+    }
+
+    if (!coverImageToUpload) {
+      setForm((f) => ({ ...f, error: "Please apply the cover crop before publishing." }));
       return;
     }
 
@@ -195,7 +208,7 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
       body.append("clubId", clubId);
       body.append("price", String(form.price));
       body.append("description", form.description.trim());
-      body.append("coverImage", form.croppedBlob || form.coverImage, "newsletter-cover.jpg");
+      body.append("coverImage", coverImageToUpload, "newsletter-cover.jpg");
 
       const response = await fetch("/api/newsletter", {
         method: "POST",
@@ -222,7 +235,8 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
   };
 
   const isCropping = !!cropSrc;
-  const isValid = form.description.trim() && form.coverImage && form.coverPreview && !isCropping && clubId;
+  const hasAppliedCover = Boolean(form.croppedBlob || form.coverImage || form.coverPreview);
+  const isValid = Boolean(form.description.trim() && hasAppliedCover && !isCropping);
 
   return (
     <Dialog.Root
