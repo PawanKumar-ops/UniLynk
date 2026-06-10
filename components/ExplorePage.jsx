@@ -256,7 +256,10 @@ export function ExplorePage({ onBack }) {
   const loadSuggestedUsers = useCallback(async (signal) => {
     try {
       setSuggestedUsersLoading(true);
-      const res = await fetch("/api/explore/suggested-users", { signal });
+      const res = await fetch("/api/explore/suggested-users", {
+        cache: "no-store",
+        signal,
+      });
       const data = await res.json();
 
       if (!res.ok) throw new Error(data?.message || "Failed to fetch suggested users");

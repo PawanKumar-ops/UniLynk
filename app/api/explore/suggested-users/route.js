@@ -7,6 +7,13 @@ import User from "@/models/user";
 
 const SUGGESTION_LIMIT = 4;
 
+const buildJsonResponse = (body, init = {}) => {
+  const headers = new Headers(init.headers || {});
+  headers.set("Cache-Control", "no-store, max-age=0");
+
+  return Response.json(body, { ...init, headers });
+};
+
 const normalizeText = (value) => String(value || "").trim();
 
 const getUserRole = (user = {}) => {
@@ -43,7 +50,7 @@ export async function GET() {
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.email) {
-    return Response.json({ message: "Unauthorized" }, { status: 401 });
+    return buildJsonResponse({ message: "Unauthorized" }, { status: 401 });
   }
 
   try {
@@ -55,7 +62,7 @@ export async function GET() {
       .lean();
 
     if (!currentUser) {
-      return Response.json({ message: "User not found" }, { status: 404 });
+      return buildJsonResponse({ message: "User not found" }, { status: 404 });
     }
 
     const currentYear = normalizeText(currentUser.year);
@@ -82,6 +89,7 @@ export async function GET() {
 
     const suggestions = [];
     const selectedIds = new Set([currentUser._id.toString()]);
+    const selectedObjectIds = [currentUser._id];
 
     const addUsers = (users = []) => {
       for (const user of users) {
@@ -92,24 +100,31 @@ export async function GET() {
 
         suggestions.push(toSuggestion(user, sharedClubCounts));
         selectedIds.add(id);
+        selectedObjectIds.push(user._id);
 
         if (suggestions.length >= SUGGESTION_LIMIT) break;
       }
     };
 
     const baseFilter = () => ({
-      _id: { $nin: [...selectedIds] },
+      _id: { $nin: selectedObjectIds },
       email: { $ne: currentEmail },
     });
 
-    const fetchUsers = async (filter) => User.find({ ...baseFilter(), ...filter })
-      .select("_id email name img year branch")
-      .sort({ name: 1 })
-      .limit(SUGGESTION_LIMIT - suggestions.length)
-      .lean();
+    const fetchUsers = async (filter) => {
+      const remainingSlots = SUGGESTION_LIMIT - suggestions.length;
+      if (remainingSlots <= 0) return [];
+
+      return User.aggregate([
+        { $match: { ...baseFilter(), ...filter } },
+        { $sample: { size: remainingSlots } },
+        { $project: { _id: 1, email: 1, name: 1, img: 1, year: 1, branch: 1 } },
+      ]);
+    };
 
     // Fill four cards in priority order: same year/branch, same year/different branch,
-    // shared club plus same year, shared club, then any other user as a fallback.
+    // shared club plus same year, shared club, then any other user as a fallback. Each
+    // bucket is sampled randomly so section and page refreshes can surface new people.
     if (currentYear && currentBranch) {
       addUsers(await fetchUsers({ year: currentYear, branch: currentBranch }));
     }
@@ -130,9 +145,9 @@ export async function GET() {
       addUsers(await fetchUsers({}));
     }
 
-    return Response.json({ users: suggestions.slice(0, SUGGESTION_LIMIT) }, { status: 200 });
+    return buildJsonResponse({ users: suggestions.slice(0, SUGGESTION_LIMIT) }, { status: 200 });
   } catch (error) {
     console.error("FETCH SUGGESTED USERS ERROR:", error);
-    return Response.json({ message: "Failed to fetch suggested users" }, { status: 500 });
+    return buildJsonResponse({ message: "Failed to fetch suggested users" }, { status: 500 });
   }
 }
