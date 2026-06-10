@@ -126,8 +126,8 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
       completedCrop.height * scaleY,
       0,
       0,
-      CROP_OUTPUT_WIDTH,
-      CROP_OUTPUT_HEIGHT,
+      CARD_WIDTH,
+      CARD_HEIGHT,
     );
 
     canvas.toBlob(

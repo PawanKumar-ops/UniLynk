@@ -396,11 +396,9 @@ const Userprofile = () => {
                                     </>
                                 ) : (
                                     <>
-                                        <button className="action-btn primary-btn">
-                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                                            </svg>
-                                            Connect
+                                        <button className="action-btn primary-btn" onClick={handleOpenPosts}>
+                                            <Icon icon="solar:posts-carousel-vertical-line-duotone" width={22} />
+                                            Posts
                                         </button>
                                         <button className="action-btn secondary-btn">
                                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" id="message">

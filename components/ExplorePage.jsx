@@ -402,18 +402,18 @@ export function ExplorePage({ onBack }) {
     setSuggestedPosts((prev) =>
       Array.isArray(prev)
         ? prev.map((post) => {
-            if (post.id !== postId) return post;
+          if (post.id !== postId) return post;
 
-            const nextLiked = !currentlyLiked;
-            const nextLikeCount = Math.max(0, Number(post.likeCount || 0) + (nextLiked ? 1 : -1));
+          const nextLiked = !currentlyLiked;
+          const nextLikeCount = Math.max(0, Number(post.likeCount || 0) + (nextLiked ? 1 : -1));
 
-            return {
-              ...post,
-              likedByCurrentUser: nextLiked,
-              likeCount: nextLikeCount,
-              likePending: true,
-            };
-          })
+          return {
+            ...post,
+            likedByCurrentUser: nextLiked,
+            likeCount: nextLikeCount,
+            likePending: true,
+          };
+        })
         : prev
     );
 
@@ -436,15 +436,15 @@ export function ExplorePage({ onBack }) {
         setSuggestedPosts((prev) =>
           Array.isArray(prev)
             ? prev.map((post) =>
-                post.id === postId
-                  ? {
-                      ...post,
-                      likedByCurrentUser: Boolean(data.likedByCurrentUser),
-                      likeCount: Number(data.likeCount || 0),
-                      likePending: false,
-                    }
-                  : post
-              )
+              post.id === postId
+                ? {
+                  ...post,
+                  likedByCurrentUser: Boolean(data.likedByCurrentUser),
+                  likeCount: Number(data.likeCount || 0),
+                  likePending: false,
+                }
+                : post
+            )
             : prev
         );
       } catch (error) {
@@ -452,16 +452,16 @@ export function ExplorePage({ onBack }) {
         setSuggestedPosts((prev) =>
           Array.isArray(prev)
             ? prev.map((post) => {
-                if (post.id !== postId) return post;
+              if (post.id !== postId) return post;
 
-                const rollbackLiked = currentlyLiked;
-                return {
-                  ...post,
-                  likedByCurrentUser: rollbackLiked,
-                  likeCount: Math.max(0, Number(post.likeCount || 0) + (rollbackLiked ? 1 : -1)),
-                  likePending: false,
-                };
-              })
+              const rollbackLiked = currentlyLiked;
+              return {
+                ...post,
+                likedByCurrentUser: rollbackLiked,
+                likeCount: Math.max(0, Number(post.likeCount || 0) + (rollbackLiked ? 1 : -1)),
+                likePending: false,
+              };
+            })
             : prev
         );
       } finally {
@@ -910,9 +910,9 @@ export function ExplorePage({ onBack }) {
                   <div className="text-xs text-neutral-500 truncate">{u.role}</div>
                   <div className="text-[11px] text-neutral-400 mt-0.5">{u.mutual} mutual</div>
                 </div>
-                <button className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full bg-black text-white text-xs hover:bg-neutral-800 transition">
-                  <UserPlus size={12} />
-                  Follow
+                <button className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full bg-black text-white text-xs hover:bg-neutral-800 transition" onClick={() => handleViewUser(u.id)}>
+                  <Icon icon="iconamoon:profile" width={12} />
+                  View
                 </button>
               </div>
             ))}
@@ -986,7 +986,7 @@ export function ExplorePage({ onBack }) {
             </div>
           </div>
         </section>
-        
+
       </div>
 
       <CommentModal
