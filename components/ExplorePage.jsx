@@ -28,6 +28,23 @@ const ImageWithFallback = ({ src, alt, className = "" }) => (
   />
 );
 
+const suggestedUserCardClass = "flex items-center gap-3 p-3 rounded-2xl border border-neutral-200 hover:border-neutral-300 hover:shadow-sm transition bg-white";
+
+const SuggestedUserSkeleton = () => (
+  <div
+    className={suggestedUserCardClass}
+    aria-hidden="true"
+  >
+    <div className="w-12 h-12 rounded-full bg-neutral-100 shrink-0 animate-pulse" />
+    <div className="min-w-0 flex-1 space-y-1.5">
+      <div className="h-3.5 w-24 rounded-full bg-neutral-100 animate-pulse" />
+      <div className="h-3 w-20 rounded-full bg-neutral-100 animate-pulse" />
+      <div className="h-2.5 w-14 rounded-full bg-neutral-100 animate-pulse" />
+    </div>
+    <div className="h-7 w-[4.625rem] shrink-0 rounded-full bg-neutral-100 animate-pulse" />
+  </div>
+);
+
 const initials = (name = "") =>
   name
     .trim()
