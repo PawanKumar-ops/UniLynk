@@ -918,9 +918,11 @@ export function ExplorePage({ onBack }) {
 
           <div className="grid grid-cols-2 gap-3">
             {suggestedUsersLoading ? (
-              <div className="col-span-2 rounded-2xl border border-neutral-200 bg-white px-4 py-8 text-center text-sm text-neutral-500">
-                Loading suggestions...
-              </div>
+              <>
+    {Array.from({ length: 4 }).map((_, index) => (
+      <SuggestedUserSkeleton key={index} />
+    ))}
+  </>
             ) : suggestedUsers.length === 0 ? (
               <div className="col-span-2 rounded-2xl border border-neutral-200 bg-white px-4 py-8 text-center text-sm text-neutral-500">
                 No suggested users found.
