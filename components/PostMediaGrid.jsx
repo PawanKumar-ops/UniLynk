@@ -1,10 +1,15 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import ReliableImage from "./ReliableImage";
 import "./PostMediaGrid.css";
 
 const VIDEO_EXTENSIONS = [".mp4", ".webm", ".mov", ".m4v", ".ogg"];
 const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".avif", ".gif"];
+
+const X_SINGLE_MEDIA_MIN_RATIO = 3 / 4;
+const X_SINGLE_MEDIA_MAX_RATIO = 16 / 9;
+const DEFAULT_SINGLE_MEDIA_RATIO = 16 / 9;
 
 const cleanUrl = (url = "") => String(url).split("?")[0].toLowerCase();
 
@@ -46,16 +51,49 @@ const normalizeMediaItems = (media) => {
     .slice(0, 4);
 };
 
+const getSingleMediaAspectRatio = (dimensions) => {
+  if (!dimensions?.width || !dimensions?.height) return DEFAULT_SINGLE_MEDIA_RATIO;
+
+  const naturalRatio = dimensions.width / dimensions.height;
+  return Math.min(
+    X_SINGLE_MEDIA_MAX_RATIO,
+    Math.max(X_SINGLE_MEDIA_MIN_RATIO, naturalRatio),
+  );
+};
+
 export default function PostMediaGrid({ media, images, className = "", altPrefix = "Post media" }) {
-  const items = normalizeMediaItems(media || images);
+  const items = useMemo(() => normalizeMediaItems(media || images), [media, images]);
+  const [mediaDimensions, setMediaDimensions] = useState({});
 
   if (!items.length) return null;
 
   const countClass = `post-media-grid--count-${Math.min(items.length, 4)}`;
   const classes = ["post-media-grid", countClass, className].filter(Boolean).join(" ");
+  const isSingleMedia = items.length === 1;
+  const singleMediaStyle = isSingleMedia
+    ? {
+        "--post-media-aspect-ratio": getSingleMediaAspectRatio(mediaDimensions[items[0].url]),
+      }
+    : undefined;
+
+  const updateMediaDimensions = (url, width, height) => {
+    if (!width || !height) return;
+
+    setMediaDimensions((currentDimensions) => {
+      const existingDimensions = currentDimensions[url];
+      if (existingDimensions?.width === width && existingDimensions?.height === height) {
+        return currentDimensions;
+      }
+
+      return {
+        ...currentDimensions,
+        [url]: { width, height },
+      };
+    });
+  };
 
   return (
-    <div className={classes}>
+    <div className={classes} style={singleMediaStyle}>
       {items.map((item, index) => (
         <div className="post-media-grid__item" key={`${item.url}-${index}`}>
           {item.type === "video" ? (
@@ -65,6 +103,13 @@ export default function PostMediaGrid({ media, images, className = "", altPrefix
               controls
               playsInline
               preload="metadata"
+              onLoadedMetadata={(event) => {
+                updateMediaDimensions(
+                  item.url,
+                  event.currentTarget.videoWidth,
+                  event.currentTarget.videoHeight,
+                );
+              }}
             />
           ) : (
             <ReliableImage
@@ -73,6 +118,13 @@ export default function PostMediaGrid({ media, images, className = "", altPrefix
               className="post-media-grid__media"
               maxRetries={2}
               fallbackSrc="/Profilepic.png"
+              onLoad={(event) => {
+                updateMediaDimensions(
+                  item.url,
+                  event.currentTarget.naturalWidth,
+                  event.currentTarget.naturalHeight,
+                );
+              }}
             />
           )}
         </div>
