@@ -317,3 +317,8 @@
 .comment-gif-card {
   width: 100%;
 }
+.comment-media-remove-inline {
+  position: static;
+  margin-right: 6px;
+  margin-top: 8px;
+}

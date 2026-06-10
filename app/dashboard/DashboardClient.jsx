@@ -8,6 +8,7 @@ import { usePathname, useRouter } from "next/navigation";
 import PostFAB from "../../components/PostFAB";
 import Post from "../../components/Post";
 import ReliableImage from "../../components/ReliableImage";
+import PostMediaGrid from "../../components/PostMediaGrid";
 import CommentModal from "@/components/CommentModal";
 import ShareModal from "@/components/ShareModal";
 import { ReportPostModal } from "@/components/ReportPostModal";
@@ -357,13 +358,6 @@ export default function DashboardClient() {
     );
   };
 
-  const getImageGridClass = (count) => {
-    if (count <= 1) return "image-grid count-1";
-    if (count === 2) return "image-grid count-2";
-    if (count === 3) return "image-grid count-3";
-    return "image-grid count-4";
-  };
-
   const handleReportClick = (postId) => {
     setMenuPostId(null);
     setReportPostId(postId);
@@ -676,15 +670,7 @@ export default function DashboardClient() {
           {post.content}
           {!!post.images?.length && (
             <div className="image-post">
-              <div className={getImageGridClass(post.images.length)}>
-                {post.images.map((imageUrl, idx) => (
-                  <img
-                    key={`${post.id}-${idx}`}
-                    src={imageUrl}
-                    alt="Post image"
-                  />
-                ))}
-              </div>
+              <PostMediaGrid images={post.images} altPrefix="Post media" />
             </div>
           )}
         </div>
@@ -808,15 +794,7 @@ export default function DashboardClient() {
         )}
         {!!comment.images?.length && (
           <div className="thread-comment-media">
-            <div className={getImageGridClass(comment.images.length)}>
-              {comment.images.map((imageUrl, index) => (
-                <img
-                  key={`${comment.id}-${index}`}
-                  src={imageUrl}
-                  alt="Reply media"
-                />
-              ))}
-            </div>
+            <PostMediaGrid images={comment.images} altPrefix="Reply media" />
           </div>
         )}
       </div>
