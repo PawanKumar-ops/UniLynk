@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Search,
   UserPlus,
@@ -13,33 +13,6 @@ import CommentModal from "./CommentModal";
 import ShareModal from "./ShareModal";
 import { ReportPostModal } from "./ReportPostModal";
 import { AllClubsModal } from "./AllClubsModal";
-
-const users = [
-  {
-    name: "Aarav Mehta",
-    role: "Third Year · CSE",
-    avatar: "https://images.unsplash.com/photo-1654110455429-cf322b40a906?w=200",
-    mutual: 12,
-  },
-  {
-    name: "Priya Sharma",
-    role: "Second Year · Design",
-    avatar: "https://images.unsplash.com/photo-1542909168-82c3e7fdca5c?w=200",
-    mutual: 8,
-  },
-  {
-    name: "Rohan Verma",
-    role: "Final Year · ECE",
-    avatar: "https://images.unsplash.com/photo-1707396172424-f3293f788364?w=200",
-    mutual: 5,
-  },
-  {
-    name: "Ishita Roy",
-    role: "First Year · MBA",
-    avatar: "https://images.unsplash.com/photo-1740252117044-2af197eea287?w=200",
-    mutual: 21,
-  },
-];
 
 // Random club will be fetched from the API
 
@@ -207,6 +180,8 @@ export function ExplorePage({ onBack }) {
   const [randomClub, setRandomClub] = useState(null);
   const [suggestedPosts, setSuggestedPosts] = useState(null);
   const [suggestedPostsLoading, setSuggestedPostsLoading] = useState(true);
+  const [suggestedUsers, setSuggestedUsers] = useState([]);
+  const [suggestedUsersLoading, setSuggestedUsersLoading] = useState(true);
   const [activePostId, setActivePostId] = useState(null);
   const [threadPostId, setThreadPostId] = useState(null);
   const [sharePost, setSharePost] = useState(null);
@@ -260,6 +235,32 @@ export function ExplorePage({ onBack }) {
 
     return () => controller.abort();
   }, []);
+
+  const loadSuggestedUsers = useCallback(async (signal) => {
+    try {
+      setSuggestedUsersLoading(true);
+      const res = await fetch("/api/explore/suggested-users", { signal });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data?.message || "Failed to fetch suggested users");
+
+      setSuggestedUsers(Array.isArray(data.users) ? data.users : []);
+    } catch (error) {
+      if (error.name !== "AbortError") {
+        console.error(error);
+        setSuggestedUsers([]);
+      }
+    } finally {
+      if (!signal?.aborted) setSuggestedUsersLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    loadSuggestedUsers(controller.signal);
+
+    return () => controller.abort();
+  }, [loadSuggestedUsers]);
 
   useEffect(() => {
     if (!query.trim()) {
@@ -889,33 +890,53 @@ export function ExplorePage({ onBack }) {
 
               <h3 className="text-[1.125rem] font-bold">Suggested for you</h3>
             </div>
-            <button className="text-xs text-neutral-500 hover:text-black">Refresh</button>
+            <button
+              type="button"
+              onClick={() => loadSuggestedUsers()}
+              className="text-xs text-neutral-500 hover:text-black"
+            >
+              Refresh
+            </button>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
-            {users.map((u) => (
-              <div
-                key={u.name}
-                className="flex items-center gap-3 p-3 rounded-2xl border border-neutral-200 hover:border-neutral-300 hover:shadow-sm transition bg-white"
-              >
-                <div className="w-12 h-12 rounded-full overflow-hidden bg-neutral-100 shrink-0">
-                  <ImageWithFallback
-                    src={u.avatar}
-                    alt={u.name}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm truncate">{u.name}</div>
-                  <div className="text-xs text-neutral-500 truncate">{u.role}</div>
-                  <div className="text-[11px] text-neutral-400 mt-0.5">{u.mutual} mutual</div>
-                </div>
-                <button className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full bg-black text-white text-xs hover:bg-neutral-800 transition" onClick={() => handleViewUser(u.id)}>
-                  <Icon icon="iconamoon:profile" width={12} />
-                  View
-                </button>
+            {suggestedUsersLoading ? (
+              <div className="col-span-2 rounded-2xl border border-neutral-200 bg-white px-4 py-8 text-center text-sm text-neutral-500">
+                Loading suggestions...
               </div>
-            ))}
+            ) : suggestedUsers.length === 0 ? (
+              <div className="col-span-2 rounded-2xl border border-neutral-200 bg-white px-4 py-8 text-center text-sm text-neutral-500">
+                No suggested users found.
+              </div>
+            ) : (
+              suggestedUsers.map((u) => (
+                <div
+                  key={u.id}
+                  className="flex items-center gap-3 p-3 rounded-2xl border border-neutral-200 hover:border-neutral-300 hover:shadow-sm transition bg-white"
+                >
+                  <div className="w-12 h-12 rounded-full overflow-hidden bg-neutral-100 shrink-0">
+                    <ImageWithFallback
+                      src={u.avatar}
+                      alt={u.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm truncate">{u.name}</div>
+                    <div className="text-xs text-neutral-500 truncate">{u.role}</div>
+                    <div className="text-[11px] text-neutral-400 mt-0.5">{u.mutual} mutual</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => router.push(`/dashboard/Userprofile?userId=${u.id}`)}
+                    className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full bg-black text-white text-xs hover:bg-neutral-800 transition"
+                  >
+                    <UserPlus size={12} />
+                    View
+                  </button>
+                </div>
+              ))
+            )}
           </div>
         </section>
 
