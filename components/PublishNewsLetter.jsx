@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence } from "framer-motion";
 import { X, ImagePlus, Newspaper, Loader2, Minus, Plus, ArrowLeft, CropIcon } from "lucide-react";
 import ReactCrop, { centerCrop, makeAspectCrop } from "react-image-crop";
 
@@ -15,7 +15,7 @@ function centerAspectCrop(mediaW, mediaH, aspect) {
   );
 }
 
-export function PublishNewsLetter() {
+export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
   const [open, setOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -32,13 +32,15 @@ export function PublishNewsLetter() {
     description: "",
     coverImage: null,
     coverPreview: null,
+    croppedBlob: null,
+    error: "",
   });
 
   const handleFile = (file) => {
     if (!file.type.startsWith("image/")) return;
     const url = URL.createObjectURL(file);
     setCropSrc(url);
-    setForm((f) => ({ ...f, coverImage: file }));
+    setForm((f) => ({ ...f, coverImage: file, croppedBlob: null, error: "" }));
   };
 
   const handleDrop = (e) => {
@@ -77,7 +79,7 @@ export function PublishNewsLetter() {
       (blob) => {
         if (!blob) return;
         const url = URL.createObjectURL(blob);
-        setForm((f) => ({ ...f, coverPreview: url }));
+        setForm((f) => ({ ...f, coverPreview: url, croppedBlob: blob, error: "" }));
         setCropSrc(null);
         setCompletedCrop(null);
       },
@@ -89,34 +91,73 @@ export function PublishNewsLetter() {
   const cancelCrop = () => {
     setCropSrc(null);
     setCompletedCrop(null);
-    if (!form.coverPreview) setForm((f) => ({ ...f, coverImage: null }));
+    if (!form.coverPreview) setForm((f) => ({ ...f, coverImage: null, croppedBlob: null }));
   };
 
   const adjustPrice = (delta) => {
     setForm((f) => ({ ...f, price: Math.max(0, f.price + delta) }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 1400));
-    setSubmitting(false);
-    setSubmitted(true);
-    setTimeout(() => {
-      setOpen(false);
-      setSubmitted(false);
-      setForm({ price: 0, description: "", coverImage: null, coverPreview: null });
-    }, 1600);
+  const resetForm = () => {
+    setForm({
+      price: 0,
+      description: "",
+      coverImage: null,
+      coverPreview: null,
+      croppedBlob: null,
+      error: "",
+    });
   };
 
-  const isValid = form.description.trim() && form.coverImage && form.coverPreview;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!clubId) {
+      setForm((f) => ({ ...f, error: "Club details are still loading. Please try again." }));
+      return;
+    }
+
+    setSubmitting(true);
+    setForm((f) => ({ ...f, error: "" }));
+
+    try {
+      const body = new FormData();
+      body.append("clubId", clubId);
+      body.append("price", String(form.price));
+      body.append("description", form.description.trim());
+      body.append("coverImage", form.croppedBlob || form.coverImage, "newsletter-cover.jpg");
+
+      const response = await fetch("/api/newsletter", {
+        method: "POST",
+        body,
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data?.error || "Failed to publish newsletter");
+      }
+
+      setSubmitted(true);
+      onPublished?.(data?.newsletter);
+      setTimeout(() => {
+        setOpen(false);
+        setSubmitted(false);
+        resetForm();
+      }, 1600);
+    } catch (error) {
+      setForm((f) => ({ ...f, error: error.message || "Failed to publish newsletter" }));
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const isValid = form.description.trim() && form.coverImage && form.coverPreview && !isCropping && clubId;
   const isCropping = !!cropSrc;
 
   return (
     <Dialog.Root
       open={open}
       onOpenChange={(v) => {
-        if (!v) { setCropSrc(null); setCompletedCrop(null); }
+        if (!v) { setCropSrc(null); setCompletedCrop(null); setSubmitted(false); setSubmitting(false); }
         setOpen(v);
       }}
     >
@@ -325,6 +366,12 @@ export function PublishNewsLetter() {
 
                           {/* Right column: price + description */}
                           <div className="flex flex-1 flex-col gap-3 min-w-0">
+
+                            {form.error && (
+                              <p className="rounded-lg bg-red-50 px-3 py-2 text-red-600" style={{ fontSize: "11px" }}>
+                                {form.error}
+                              </p>
+                            )}
 
                             {/* Price stepper */}
                             <div className="flex flex-col gap-1.5">

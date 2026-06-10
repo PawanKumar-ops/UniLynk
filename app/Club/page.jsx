@@ -6,6 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { AddMembersModal } from '@/components/AddMembersFab';
 import { MembersModal } from "@/components/ClubMembersModal";
 import { ClubPostsModal } from "@/components/ClubPostsModal";
+import { PublishNewsLetter } from "@/components/PublishNewsLetter";
 import { Calendar, Users, Trophy, Heart } from 'lucide-react';
 import Link from "next/link";
 
@@ -152,6 +153,8 @@ const ClubPageContent = () => {
         <div className='clubbody'>
 
 
+
+            <PublishNewsLetter clubId={clubData?._id || searchParams.get("clubId") || ""} />
 
             {/* ===========================Club banner and logo============================= */}
             <div className="clubbanner">
