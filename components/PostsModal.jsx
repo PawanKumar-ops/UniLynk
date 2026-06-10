@@ -1,18 +1,8 @@
 import { useEffect, useState } from "react";
 import { Bookmark, Heart, MessageCircle, MoreHorizontal, Share2, X } from "lucide-react";
-import ReliableImage from "./ReliableImage";
+import PostMediaGrid from "./PostMediaGrid";
 import "./PostsModal.css";
 
-
-const ImageWithFallback = ({ src, alt, className = "" }) => (
-    <ReliableImage
-        src={src}
-        alt={alt}
-        className={className}
-        maxRetries={2}
-        fallbackSrc="/Profilepic.png"
-    />
-);
 
 const formatRelativeTime = (dateString) => {
     const date = new Date(dateString);
@@ -69,10 +59,7 @@ function PostCard({ post }) {
 
             {!!post.images?.length && (
                 <div className="pm-card-image">
-                    <ImageWithFallback
-                        src={post.images[0]}
-                        alt="Post"
-                    />
+                    <PostMediaGrid images={post.images} altPrefix="Post media" />
                 </div>
             )}
 

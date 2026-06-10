@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Icon } from "@iconify/react";
 import ReliableImage from "./ReliableImage";
+import PostMediaGrid from "./PostMediaGrid";
 import CommentModal from "./CommentModal";
 import ShareModal from "./ShareModal";
 import { ReportPostModal } from "./ReportPostModal";
@@ -124,13 +125,6 @@ const likePost = async (postId, method) => {
   }
 
   return fetch(`/api/posts/${postId}/like`, { method });
-};
-
-const getImageGridClass = (count) => {
-  if (count <= 1) return "image-grid count-1";
-  if (count === 2) return "image-grid count-2";
-  if (count === 3) return "image-grid count-3";
-  return "image-grid count-4";
 };
 
 const ParticipantAvatarStack = ({ event }) => {
@@ -580,11 +574,7 @@ export function ExplorePage({ onBack }) {
           {post.content}
           {!!post.images?.length && (
             <div className="image-post">
-              <div className={getImageGridClass(post.images.length)}>
-                {post.images.map((imageUrl, idx) => (
-                  <img key={`${post.id}-${idx}`} src={imageUrl} alt="Post image" />
-                ))}
-              </div>
+              <PostMediaGrid images={post.images} altPrefix="Post media" />
             </div>
           )}
         </div>
@@ -656,11 +646,7 @@ export function ExplorePage({ onBack }) {
         {!!comment.content && <div className="thread-comment-content">{comment.content}</div>}
         {!!comment.images?.length && (
           <div className="thread-comment-media">
-            <div className={getImageGridClass(comment.images.length)}>
-              {comment.images.map((imageUrl, index) => (
-                <img key={`${comment.id}-${index}`} src={imageUrl} alt="Reply media" />
-              ))}
-            </div>
+            <PostMediaGrid images={comment.images} altPrefix="Reply media" />
           </div>
         )}
       </div>

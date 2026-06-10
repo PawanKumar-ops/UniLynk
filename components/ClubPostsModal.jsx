@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Heart, MessageCircle, Share2, Bookmark, MoreHorizontal, X } from "lucide-react";
 import { Icon } from "@iconify/react";
+import PostMediaGrid from "./PostMediaGrid";
 
 const formatRelativeTime = (value) => {
   const date = new Date(value);
@@ -116,12 +117,8 @@ export function ClubPostsModal({ open, onOpenChange, clubName, clubLogo, posts }
                     </div>
 
                     {!!post.images?.length && (
-                      <div className="mt-3 rounded-2xl overflow-hidden bg-black/[0.04] ring-1 ring-black/[0.06]">
-                        <img
-                          src={post.images[0]}
-                          alt="Post media"
-                          className="w-full h-44 object-cover"
-                        />
+                      <div className="mt-3">
+                        <PostMediaGrid images={post.images} altPrefix="Post media" />
                       </div>
                     )}
 

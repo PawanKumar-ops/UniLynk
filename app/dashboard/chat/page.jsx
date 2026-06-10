@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import "./chat.css";
 import ReliableImage from "@/components/ReliableImage";
+import PostMediaGrid from "@/components/PostMediaGrid";
 import ChatComposer from "@/components/shared/ChatComposer";
 import CommunityPanel from "@/components/CommunityPanel";
 import { DeleteMessageModal } from "@/components/DeleteMessageModal";
@@ -947,19 +948,11 @@ export default function ChatPage() {
                                   <p className="chat-shared-post-content">{msg.sharedPost.content}</p>
                                 ) : null}
                                 {!!msg.sharedPost.images?.length && (
-                                  <div
-                                    className={`chat-shared-post-media ${msg.sharedPost.images.length > 1 ? "chat-shared-post-media-grid" : ""
-                                      }`}
-                                  >
-                                    {msg.sharedPost.images.slice(0, 4).map((imageUrl, index) => (
-                                      <img
-                                        key={`${msg.id}-post-image-${index}`}
-                                        src={imageUrl}
-                                        alt={`Shared post media ${index + 1}`}
-                                        className="chat-shared-post-image"
-                                      />
-                                    ))}
-                                  </div>
+                                  <PostMediaGrid
+                                    images={msg.sharedPost.images}
+                                    className="chat-shared-post-media"
+                                    altPrefix="Shared post media"
+                                  />
                                 )}
                               </Link>
                             </div>

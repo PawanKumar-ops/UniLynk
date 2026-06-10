@@ -10,6 +10,7 @@ import {
 import EmojiPicker from "emoji-picker-react";
 import { GiphyFetch } from "@giphy/js-fetch-api";
 import { Grid } from "@giphy/react-components";
+import PostMediaGrid from './PostMediaGrid';
 import './CommentModal.css';
 
 const GIPHY_API_KEY = process.env.NEXT_PUBLIC_GIPHY_API_KEY || "";
@@ -182,12 +183,12 @@ const CommentModal = ({ isOpen, onClose, onSubmit }) => {
         try {
             setUploadingImage(true);
             const uploadedMedia = await uploadSelectedFiles(selectedFiles);
-            const imageUrls = uploadedMedia
-                .filter((media) => media?.mimeType?.startsWith('image/') && media?.url)
+            const mediaUrls = uploadedMedia
+                .filter((media) => (media?.mimeType?.startsWith('image/') || media?.mimeType?.startsWith('video/')) && media?.url)
                 .map((media) => media.url);
 
-            if (imageUrls.length) {
-                setImageAttachments((prev) => [...prev, ...imageUrls]);
+            if (mediaUrls.length) {
+                setImageAttachments((prev) => [...prev, ...mediaUrls].slice(0, 4));
             }
 
             setShowEmojiPicker(false);
@@ -249,18 +250,17 @@ const CommentModal = ({ isOpen, onClose, onSubmit }) => {
 
                     {!!imageAttachments.length && (
                         <div className="comment-image-grid">
+                            <PostMediaGrid images={imageAttachments} altPrefix="Selected media" />
                             {imageAttachments.map((imageUrl, index) => (
-                                <div className="comment-media-card" key={`${imageUrl}-${index}`}>
-                                    <img src={imageUrl} alt={`Selected image ${index + 1}`} className="comment-image-preview" />
-                                    <button
-                                        type="button"
-                                        className="comment-media-remove"
-                                        onClick={() => setImageAttachments((prev) => prev.filter((_, idx) => idx !== index))}
-                                        aria-label={`Remove selected image ${index + 1}`}
-                                    >
-                                        <X size={14} />
-                                    </button>
-                                </div>
+                                <button
+                                    key={`${imageUrl}-${index}`}
+                                    type="button"
+                                    className="comment-media-remove comment-media-remove-inline"
+                                    onClick={() => setImageAttachments((prev) => prev.filter((_, idx) => idx !== index))}
+                                    aria-label={`Remove selected media ${index + 1}`}
+                                >
+                                    <X size={14} />
+                                </button>
                             ))}
                         </div>
                     )}
@@ -321,7 +321,7 @@ const CommentModal = ({ isOpen, onClose, onSubmit }) => {
                             type="file"
                             className="comment-hidden-input"
                             onChange={handleMediaUpload}
-                            accept="image/*"
+                            accept="image/*,video/mp4,video/webm,video/quicktime"
                             multiple
                         />
 

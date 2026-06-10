@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import EmojiPicker from "emoji-picker-react";
 import { useSession } from 'next-auth/react';
 import ChatGiphyPicker from "@/components/shared/ChatGiphyPicker";
+import PostMediaGrid from "./PostMediaGrid";
 import "./Post.css"
 
 const FLOATING_PANEL_STYLE = {
@@ -125,13 +126,13 @@ const Post = ({ setIspost, audience = "for-you", onPosted }) => {
                     body: formData,
                 });
                 const data = await res.json();
-                if (!res.ok) throw new Error(data?.error || "Image upload failed");
+                if (!res.ok) throw new Error(data?.error || "Media upload failed");
                 uploaded.push(data.url);
             }
             setImages((prev) => [...prev, ...uploaded].slice(0, 4));
         } catch (error) {
             console.error(error);
-            alert("Could not upload image");
+            alert("Could not upload media");
         } finally {
             setIsSubmitting(false);
             e.target.value = "";
@@ -252,11 +253,7 @@ const Post = ({ setIspost, audience = "for-you", onPosted }) => {
                 placeholder='Write a post...'
             />
             {!!images.length && (
-                <div className="image-grid count-2" style={{ marginBottom: "10px" }}>
-                    {images.map((url, idx) => (
-                        <img key={`${url}-${idx}`} src={url} alt="Post upload" />
-                    ))}
-                </div>
+                <PostMediaGrid images={images} className="post-composer-media" altPrefix="Post upload" />
             )}
             <hr className='mt-2 mb-4' />
 
@@ -296,7 +293,7 @@ const Post = ({ setIspost, audience = "for-you", onPosted }) => {
             <input
                 ref={fileInputRef}
                 type="file"
-                accept="image/*"
+                accept="image/*,video/mp4,video/webm,video/quicktime"
                 multiple
                 hidden
                 onChange={handleImageChange}
