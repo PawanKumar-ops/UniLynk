@@ -3,9 +3,12 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, ImagePlus, Newspaper, Loader2, Minus, Plus, ArrowLeft, CropIcon } from "lucide-react";
 import ReactCrop, { centerCrop, makeAspectCrop } from "react-image-crop";
+import "react-image-crop/dist/ReactCrop.css";
 
 const MAX_DESC = 120;
-const CARD_ASPECT = 325 / 475;
+const CARD_WIDTH = 325;
+const CARD_HEIGHT = 475;
+const CARD_ASPECT = CARD_WIDTH / CARD_HEIGHT;
 
 function centerAspectCrop(mediaW, mediaH, aspect) {
   return centerCrop(
@@ -61,8 +64,8 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
     const canvas = document.createElement("canvas");
     const scaleX = img.naturalWidth / img.width;
     const scaleY = img.naturalHeight / img.height;
-    canvas.width = completedCrop.width * scaleX;
-    canvas.height = completedCrop.height * scaleY;
+    canvas.width = CARD_WIDTH;
+    canvas.height = CARD_HEIGHT;
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
     ctx.drawImage(
@@ -71,9 +74,10 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
       completedCrop.y * scaleY,
       completedCrop.width * scaleX,
       completedCrop.height * scaleY,
-      0, 0,
-      canvas.width,
-      canvas.height,
+      0,
+      0,
+      CARD_WIDTH,
+      CARD_HEIGHT,
     );
     canvas.toBlob(
       (blob) => {
@@ -150,8 +154,8 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
     }
   };
 
-  const isValid = form.description.trim() && form.coverImage && form.coverPreview && !isCropping && clubId;
   const isCropping = !!cropSrc;
+  const isValid = form.description.trim() && form.coverImage && form.coverPreview && !isCropping && clubId;
 
   return (
     <Dialog.Root
@@ -184,8 +188,18 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.18 }}
-                className="fixed inset-0 z-50 bg-black/25 backdrop-blur-[2px]"
-              />
+                className={`fixed inset-0 z-50 ${isCropping ? "overflow-hidden bg-black/25" : "bg-black/25 backdrop-blur-[2px]"}`}
+              >
+                {isCropping && cropSrc ? (
+                  <>
+                    <div
+                      className="absolute inset-0 scale-110 bg-cover bg-center blur-md"
+                      style={{ backgroundImage: `url(${cropSrc})` }}
+                    />
+                    <div className="absolute inset-0 bg-white/55" />
+                  </>
+                ) : null}
+              </motion.div>
             </Dialog.Overlay>
 
             <Dialog.Content asChild>
@@ -195,7 +209,7 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.96, y: 8 }}
                 transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
-                className="fixed left-1/2 top-1/2 z-50 w-full max-w-[410px] -translate-x-1/2 -translate-y-1/2 outline-none"
+                className={`fixed left-1/2 top-1/2 z-50 w-[calc(100vw-32px)] -translate-x-1/2 -translate-y-1/2 outline-none ${isCropping ? "max-w-[512px]" : "max-w-[410px]"}`}
               >
                 <div className="rounded-2xl bg-white border border-black/[0.07] shadow-[0_20px_60px_rgba(0,0,0,0.12),0_4px_12px_rgba(0,0,0,0.05)] overflow-hidden">
 
@@ -250,18 +264,19 @@ export function PublishNewsLetter({ clubId = "", onPublished } = {}) {
                         <div className="flex items-center justify-center rounded-xl overflow-hidden bg-[#f5f5f5] border border-[#ebebeb]">
                           <ReactCrop
                             crop={crop}
-                            onChange={(c) => setCrop(c)}
-                            onComplete={(c) => setCompletedCrop(c)}
+                            onChange={(_, percentCrop) => setCrop(percentCrop)}
+                            onComplete={(pixelCrop) => setCompletedCrop(pixelCrop)}
                             aspect={CARD_ASPECT}
                             minWidth={40}
-                            className="max-w-full"
+                            className="w-full bg-[#858583] [&_.ReactCrop__child-wrapper]:w-full"
                           >
                             <img
                               ref={imgRef}
                               src={cropSrc}
                               alt="Crop source"
                               onLoad={onImageLoad}
-                              style={{ maxHeight: 300, maxWidth: "100%", display: "block" }}
+                              className="w-full select-none"
+                              style={{ maxHeight: "60vh", display: "block" }}
                             />
                           </ReactCrop>
                         </div>
