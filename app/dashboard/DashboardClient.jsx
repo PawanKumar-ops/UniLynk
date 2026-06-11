@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import "./dashboard.css";
 import { ArrowLeft, EllipsisVertical, ArrowRight } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -21,6 +22,24 @@ import { DashboardNotificationItem } from "@/components/DashboardNotificationIte
 
 const DASHBOARD_SCROLL_STORAGE_KEY = "dashboard-feed-scroll-position";
 const DASHBOARD_OPEN_POST_STORAGE_KEY = "dashboard-feed-open-post-id";
+const DASHBOARD_OPENED_FROM_FEED_STORAGE_KEY = "dashboard-post-opened-from-feed";
+
+const DASHBOARD_POSTS_QUERY_ROOT = ["dashboard", "posts"];
+const DASHBOARD_FEED_STALE_TIME = 30 * 60 * 1000;
+const DASHBOARD_POST_STALE_TIME = 30 * 60 * 1000;
+const DASHBOARD_POSTS_GC_TIME = 30 * 60 * 1000;
+
+const dashboardFeedQueryKey = (audience) => [
+  ...DASHBOARD_POSTS_QUERY_ROOT,
+  "feed",
+  audience,
+];
+const dashboardPostQueryKey = (postId) => [
+  ...DASHBOARD_POSTS_QUERY_ROOT,
+  "detail",
+  postId,
+];
+
 
 // ─── Poll Card ────────────────────────────────────────────────────────────────
 
@@ -267,6 +286,24 @@ const likePost = async (postId, method) => {
   return fetch(`/api/posts/${postId}/like`, { method });
 };
 
+const fetchDashboardFeedPosts = async (audience) => {
+  const res = await fetch(`/api/posts?audience=${audience}`);
+  const data = await res.json();
+
+  if (!res.ok) throw new Error(data?.error || "Failed to fetch posts");
+
+  return (data.posts || []).map(normalizePost).filter(Boolean);
+};
+
+const fetchDashboardPostById = async (postId) => {
+  const res = await fetch(`/api/posts/${postId}`);
+  const data = await res.json();
+
+  if (!res.ok) throw new Error(data?.error || "Failed to fetch post");
+
+  return normalizePost(data.post);
+};
+
 const isElementVisibleWithinContainer = (element, container) => {
   if (!(element instanceof HTMLElement) || !(container instanceof HTMLElement))
     return false;
@@ -281,9 +318,8 @@ const isElementVisibleWithinContainer = (element, container) => {
 
 export default function DashboardClient({ postId: routePostId = null } = {}) {
   const { data: session } = useSession();
+  const queryClient = useQueryClient();
   const [isAnnual, setIsAnnual] = useState(true);
-  const [posts, setPosts] = useState(null);
-  const [loadingPosts, setLoadingPosts] = useState(true);
   const [activePostId, setActivePostId] = useState(null);
   const [sharePost, setSharePost] = useState(null);
   const [openShare, setOpenShare] = useState(false);
@@ -398,13 +434,53 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
     () => (isAnnual ? "for-you" : "clubs"),
     [isAnnual],
   );
-  const selectedThreadPost = useMemo(
-    () =>
-      Array.isArray(posts) && routePostId
-        ? (posts.find((post) => post.id === routePostId) ?? null)
-        : null,
-    [posts, routePostId],
-  );
+  const isThreadRoute = Boolean(routePostId);
+
+  const getCachedPost = (postId) => {
+    if (!postId) return undefined;
+
+    const cachedPost = queryClient.getQueryData(dashboardPostQueryKey(postId));
+    if (cachedPost) return cachedPost;
+
+    const feedQueries = queryClient.getQueriesData({
+      queryKey: [...DASHBOARD_POSTS_QUERY_ROOT, "feed"],
+    });
+
+    for (const [, cachedPosts] of feedQueries) {
+      if (!Array.isArray(cachedPosts)) continue;
+      const matchingPost = cachedPosts.find((post) => post.id === postId);
+      if (matchingPost) return matchingPost;
+    }
+
+    return undefined;
+  };
+
+  const feedQuery = useQuery({
+    queryKey: dashboardFeedQueryKey(selectedAudience),
+    queryFn: () => fetchDashboardFeedPosts(selectedAudience),
+    enabled: !isThreadRoute && dashboardView === "feed",
+    staleTime: DASHBOARD_FEED_STALE_TIME,
+    gcTime: DASHBOARD_POSTS_GC_TIME,
+  });
+
+  const postQuery = useQuery({
+    queryKey: dashboardPostQueryKey(routePostId),
+    queryFn: () => fetchDashboardPostById(routePostId),
+    enabled: isThreadRoute && dashboardView === "feed",
+    staleTime: DASHBOARD_POST_STALE_TIME,
+    gcTime: DASHBOARD_POSTS_GC_TIME,
+    initialData: () => getCachedPost(routePostId),
+  });
+
+  const selectedThreadPost = isThreadRoute ? postQuery.data ?? null : null;
+  const posts = isThreadRoute
+    ? selectedThreadPost
+      ? [selectedThreadPost]
+      : postQuery.isPending
+        ? null
+        : []
+    : feedQuery.data ?? null;
+  const loadingPosts = isThreadRoute ? postQuery.isPending : feedQuery.isPending;
 
   useEffect(
     () => () => {
@@ -432,32 +508,23 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
   }, []);
 
   useEffect(() => {
-    const loadPosts = async () => {
-      setLoadingPosts(true);
-      try {
-        const url = routePostId
-          ? `/api/posts/${routePostId}`
-          : `/api/posts?audience=${selectedAudience}`;
-        const res = await fetch(url, { cache: "no-store" });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.error || "Failed to fetch posts");
-        const normalizedPosts = routePostId
-          ? [normalizePost(data.post)].filter(Boolean)
-          : (data.posts || []).map(normalizePost).filter(Boolean);
-
-        setPosts(normalizedPosts);
-      } catch (error) {
-        console.error(error);
-        setPosts([]);
-      } finally {
-        setLoadingPosts(false);
-      }
-    };
-
     setActivePostId(null);
     setMenuPostId(null);
-    loadPosts();
   }, [routePostId, selectedAudience]);
+
+  useEffect(() => {
+    if (isThreadRoute || typeof window === "undefined") return;
+
+    window.sessionStorage.removeItem(DASHBOARD_OPENED_FROM_FEED_STORAGE_KEY);
+  }, [isThreadRoute]);
+
+  useEffect(() => {
+    if (feedQuery.error) console.error(feedQuery.error);
+  }, [feedQuery.error]);
+
+  useEffect(() => {
+    if (postQuery.error) console.error(postQuery.error);
+  }, [postQuery.error]);
 
   const persistFeedScroll = (scrollTop) => {
     if (typeof window === "undefined") return;
@@ -520,35 +587,61 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
     persistFeedScroll(feedRef.current.scrollTop);
   };
 
-  const handlePosted = (createdPost) => {
-    const normalizedPost = normalizePost(createdPost);
-    if (!normalizedPost || normalizedPost.audience !== selectedAudience) return;
-    setPosts((prev) => [normalizedPost, ...(Array.isArray(prev) ? prev : [])]);
+  const updateCachedPost = (postId, updater) => {
+    if (!postId || typeof updater !== "function") return;
+
+    queryClient.setQueriesData(
+      { queryKey: DASHBOARD_POSTS_QUERY_ROOT },
+      (cachedData) => {
+        if (Array.isArray(cachedData)) {
+          return cachedData.map((post) =>
+            post.id === postId ? updater(post) : post,
+          );
+        }
+
+        if (cachedData?.id === postId) {
+          return updater(cachedData);
+        }
+
+        return cachedData;
+      },
+    );
   };
 
   const updateSinglePost = (updatedPost) => {
     const normalizedUpdatedPost = normalizePost(updatedPost);
     if (!normalizedUpdatedPost) return;
 
-    setPosts((prev) =>
-      Array.isArray(prev)
-        ? prev.map((post) =>
-          post.id === normalizedUpdatedPost.id ? normalizedUpdatedPost : post,
-        )
-        : prev,
+    queryClient.setQueryData(
+      dashboardPostQueryKey(normalizedUpdatedPost.id),
+      normalizedUpdatedPost,
     );
+    queryClient.setQueriesData(
+      { queryKey: [...DASHBOARD_POSTS_QUERY_ROOT, "feed"] },
+      (cachedPosts) =>
+        Array.isArray(cachedPosts)
+          ? cachedPosts.map((post) =>
+            post.id === normalizedUpdatedPost.id ? normalizedUpdatedPost : post,
+          )
+          : cachedPosts,
+    );
+  };
+
+  const handlePosted = (createdPost) => {
+    const normalizedPost = normalizePost(createdPost);
+    if (!normalizedPost || normalizedPost.audience !== selectedAudience) return;
+
+    queryClient.setQueryData(
+      dashboardFeedQueryKey(selectedAudience),
+      (cachedPosts) => [normalizedPost, ...(Array.isArray(cachedPosts) ? cachedPosts : [])],
+    );
+    queryClient.setQueryData(dashboardPostQueryKey(normalizedPost.id), normalizedPost);
   };
 
   const handlePollChange = (postId, nextPoll) => {
     if (!postId || !nextPoll) return;
 
-    setPosts((prev) =>
-      Array.isArray(prev)
-        ? prev.map((post) =>
-          post.id === postId ? { ...post, poll: nextPoll } : post,
-        )
-        : prev,
-    );
+    updateCachedPost(postId, (post) => ({ ...post, poll: nextPoll }));
   };
 
   const getImageGridClass = (count) => {
@@ -566,9 +659,17 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
   const handleOpenThread = (postId) => {
     if (!postId) return;
 
+    const cachedPost = getCachedPost(postId);
+    if (cachedPost) {
+      queryClient.setQueryData(dashboardPostQueryKey(postId), cachedPost);
+    }
+
     const currentFeedScroll = feedRef.current?.scrollTop ?? 0;
     persistFeedScroll(currentFeedScroll);
     rememberOpenPost(postId);
+    if (typeof window !== "undefined") {
+      window.sessionStorage.setItem(DASHBOARD_OPENED_FROM_FEED_STORAGE_KEY, "true");
+    }
 
     setMenuPostId(null);
     router.push(`/dashboard/post/${postId}`);
@@ -579,7 +680,21 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
       rememberOpenPost(selectedThreadPost.id);
     }
 
+    const openedFromFeed =
+      typeof window !== "undefined" &&
+      window.sessionStorage.getItem(DASHBOARD_OPENED_FROM_FEED_STORAGE_KEY) === "true";
+
+    if (typeof window !== "undefined") {
+      window.sessionStorage.removeItem(DASHBOARD_OPENED_FROM_FEED_STORAGE_KEY);
+    }
+
     setMenuPostId(null);
+
+    if (openedFromFeed) {
+      router.back();
+      return;
+    }
+
     router.push("/dashboard");
   };
 
@@ -622,16 +737,10 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
         throw new Error("Failed");
       }
 
-      setPosts((prev) =>
-        prev.map((post) =>
-          post.id === postId
-            ? {
-              ...post,
-              savedByCurrentUser: data.saved,
-            }
-            : post,
-        ),
-      );
+      updateCachedPost(postId, (post) => ({
+        ...post,
+        savedByCurrentUser: data.saved,
+      }));
     } catch (err) {
       console.error(err);
     }
@@ -645,24 +754,20 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
 
     if (pendingLikePostIdsRef.current.has(postId)) return;
 
-    setPosts((prev) =>
-      prev.map((post) => {
-        if (post.id !== postId) return post;
+    updateCachedPost(postId, (post) => {
+      const nextLiked = !currentlyLiked;
+      const nextLikeCount = Math.max(
+        0,
+        Number(post.likeCount || 0) + (nextLiked ? 1 : -1),
+      );
 
-        const nextLiked = !currentlyLiked;
-        const nextLikeCount = Math.max(
-          0,
-          Number(post.likeCount || 0) + (nextLiked ? 1 : -1),
-        );
-
-        return {
-          ...post,
-          likedByCurrentUser: nextLiked,
-          likeCount: nextLikeCount,
-          likePending: true,
-        };
-      }),
-    );
+      return {
+        ...post,
+        likedByCurrentUser: nextLiked,
+        likeCount: nextLikeCount,
+        likePending: true,
+      };
+    });
 
     if (likeTimersRef.current[postId]) {
       clearTimeout(likeTimersRef.current[postId]);
@@ -680,36 +785,26 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
           throw new Error(data?.error || "Failed to update like");
         }
 
-        setPosts((prev) =>
-          prev.map((post) =>
-            post.id === postId
-              ? {
-                ...post,
-                likedByCurrentUser: Boolean(data.likedByCurrentUser),
-                likeCount: Number(data.likeCount || 0),
-                likePending: false,
-              }
-              : post,
-          ),
-        );
+        updateCachedPost(postId, (post) => ({
+          ...post,
+          likedByCurrentUser: Boolean(data.likedByCurrentUser),
+          likeCount: Number(data.likeCount || 0),
+          likePending: false,
+        }));
       } catch (error) {
         console.error(error);
-        setPosts((prev) =>
-          prev.map((post) => {
-            if (post.id !== postId) return post;
-
-            const rollbackLiked = currentlyLiked;
-            return {
-              ...post,
-              likedByCurrentUser: rollbackLiked,
-              likeCount: Math.max(
-                0,
-                Number(post.likeCount || 0) + (rollbackLiked ? 1 : -1),
-              ),
-              likePending: false,
-            };
-          }),
-        );
+        updateCachedPost(postId, (post) => {
+          const rollbackLiked = currentlyLiked;
+          return {
+            ...post,
+            likedByCurrentUser: rollbackLiked,
+            likeCount: Math.max(
+              0,
+              Number(post.likeCount || 0) + (rollbackLiked ? 1 : -1),
+            ),
+            likePending: false,
+          };
+        });
       } finally {
         pendingLikePostIdsRef.current.delete(postId);
         delete likeTimersRef.current[postId];
