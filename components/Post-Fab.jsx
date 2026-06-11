@@ -1,4 +1,7 @@
+"use client";
+
 import { useEffect, useRef, useState } from "react";
+import { useSession } from "next-auth/react";
 import {
   Image as ImageIcon,
   Smile,
@@ -10,21 +13,14 @@ import {
   Globe2,
   Trash2,
 } from "lucide-react";
-const PlusIcon = Plus;
-import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
-type MediaItem = {
-  id: string;
-  url: string;
-  kind: "image" | "gif" | "video";
-};
+const PlusIcon = Plus;
 
 const EMOJIS = [
-  "😀","😂","🥲","😊","😍","😎","🤩","🤗","🤔","😴",
-  "😭","😡","🤯","🥳","😇","🤤","😜","🙃","🤫","🤥",
-  "❤️","🔥","✨","🎉","💯","👀","🙌","👏","🙏","💀",
-  "🚀","🌈","🌙","☀️","⭐","🍀","🌸","🍕","☕","🍷",
+  "😀", "😂", "🥲", "😊", "😍", "😎", "🤩", "🤗", "🤔", "😴",
+  "😭", "😡", "🤯", "🥳", "😇", "🤤", "😜", "🙃", "🤫", "🤥",
+  "❤️", "🔥", "✨", "🎉", "💯", "👀", "🙌", "👏", "🙏", "💀",
+  "🚀", "🌈", "🌙", "☀️", "⭐", "🍀", "🌸", "🍕", "☕", "🍷",
 ];
 
 const GIFS = [
@@ -36,23 +32,41 @@ const GIFS = [
   "https://media.giphy.com/media/3o7TKsQ8gqVrxZw1Vu/giphy.gif",
 ];
 
-export function PostFab() {
+const createId = () => {
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
+    return crypto.randomUUID();
+  }
+
+  return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+};
+
+export function PostFab({ audience = "for-you", onPosted }) {
+  const { data: session } = useSession();
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
-  const [media, setMedia] = useState<MediaItem[]>([]);
+  const [media, setMedia] = useState([]);
   const [showPoll, setShowPoll] = useState(false);
-  const [pollOptions, setPollOptions] = useState<string[]>(["", ""]);
+  const [pollOptions, setPollOptions] = useState(["", ""]);
   const [pollDays, setPollDays] = useState(1);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [showGifPicker, setShowGifPicker] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [leadershipClubs, setLeadershipClubs] = useState([]);
+  const [showPostAsDrawer, setShowPostAsDrawer] = useState(false);
+  const fileRef = useRef(null);
+  const textareaRef = useRef(null);
 
   const MAX_MEDIA = 4;
   const MAX_CHARS = 280;
   const remaining = MAX_CHARS - text.length;
+  const pollHasEnoughOptions = pollOptions.filter((p) => p.trim()).length >= 2;
+  const hasReadyMedia = media.some((item) => item.url);
   const canPost =
-    (text.trim().length > 0 || media.length > 0 ||
-      (showPoll && pollOptions.filter((p) => p.trim()).length >= 2)) &&
-    remaining >= 0;
+    (text.trim().length > 0 || hasReadyMedia || (showPoll && pollHasEnoughOptions)) &&
+    remaining >= 0 &&
+    !isUploading &&
+    !isSubmitting;
 
   useEffect(() => {
     if (open && textareaRef.current) {
@@ -63,49 +77,165 @@ export function PostFab() {
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
-      textareaRef.current.style.height =
-        textareaRef.current.scrollHeight + "px";
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
     }
   }, [text, open]);
 
-  const close = () => {
-    setOpen(false);
+  useEffect(() => {
+    const fetchLeadershipClubs = async () => {
+      try {
+        const res = await fetch("/api/clubs?leadershipOnly=true", { cache: "no-store" });
+        const data = await res.json();
+        if (!res.ok) return;
+        setLeadershipClubs(Array.isArray(data?.clubs) ? data.clubs : []);
+      } catch (error) {
+        console.error("Failed to load leadership clubs", error);
+      }
+    };
+
+    fetchLeadershipClubs();
+  }, []);
+
+  const resetComposer = () => {
     setText("");
     setMedia([]);
     setShowPoll(false);
     setPollOptions(["", ""]);
     setPollDays(1);
+    setShowGifPicker(false);
+    setShowEmojiPicker(false);
+    setShowPostAsDrawer(false);
   };
 
-  const onFiles = (files: FileList | null) => {
+  const close = () => {
+    setOpen(false);
+    resetComposer();
+  };
+
+  const uploadFile = async (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const res = await fetch("/api/posts/upload-image", {
+      method: "POST",
+      body: formData,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data?.error || "Image upload failed");
+
+    return data.url;
+  };
+
+  const onFiles = async (files) => {
     if (!files) return;
-    const remaining = MAX_MEDIA - media.length;
-    const arr = Array.from(files).slice(0, remaining);
-    const next: MediaItem[] = arr.map((f) => ({
-      id: crypto.randomUUID(),
-      url: URL.createObjectURL(f),
-      kind: f.type.startsWith("video")
-        ? "video"
-        : f.type.includes("gif")
-        ? "gif"
-        : "image",
-    }));
-    setMedia((m) => [...m, ...next]);
+
+    const remainingSlots = MAX_MEDIA - media.length;
+    const arr = Array.from(files).slice(0, remainingSlots);
+    if (!arr.length) return;
+
+    setIsUploading(true);
+    try {
+      const uploaded = [];
+      for (const file of arr) {
+        const previewUrl = URL.createObjectURL(file);
+        const kind = file.type.startsWith("video")
+          ? "video"
+          : file.type.includes("gif")
+            ? "gif"
+            : "image";
+        const uploadedUrl = await uploadFile(file);
+        uploaded.push({ id: createId(), url: uploadedUrl, previewUrl, kind });
+      }
+      setMedia((m) => [...m, ...uploaded].slice(0, MAX_MEDIA));
+    } catch (error) {
+      console.error(error);
+      alert("Could not upload image");
+    } finally {
+      setIsUploading(false);
+    }
   };
 
-  const removeMedia = (id: string) =>
+  const removeMedia = (id) => {
     setMedia((m) => m.filter((x) => x.id !== id));
+  };
 
-  const addPollOption = () =>
+  const addGif = (gifUrl) => {
+    if (media.length >= MAX_MEDIA) return;
+    setMedia((m) => [...m, { id: createId(), url: gifUrl, kind: "gif" }].slice(0, MAX_MEDIA));
+    setShowGifPicker(false);
+  };
+
+  const addPollOption = () => {
     setPollOptions((p) => (p.length < 4 ? [...p, ""] : p));
-  const updatePollOption = (i: number, v: string) =>
+  };
+
+  const updatePollOption = (i, v) => {
     setPollOptions((p) => p.map((x, idx) => (idx === i ? v : x)));
-  const removePollOption = (i: number) =>
+  };
+
+  const removePollOption = (i) => {
     setPollOptions((p) => (p.length > 2 ? p.filter((_, idx) => idx !== i) : p));
+  };
+
+  const buildContent = () => {
+    const safeText = text.trim();
+    if (!showPoll || !pollHasEnoughOptions) return safeText;
+
+    const pollText = [
+      "Poll:",
+      ...pollOptions.filter((option) => option.trim()).map((option, index) => `${index + 1}. ${option.trim()}`),
+      `Duration: ${pollDays} day${pollDays > 1 ? "s" : ""}`,
+    ].join("\n");
+
+    return safeText ? `${safeText}\n\n${pollText}` : pollText;
+  };
+
+  const submitPost = async ({ postAs = "user", clubId = "" } = {}) => {
+    if (!canPost) return;
+
+    setIsSubmitting(true);
+    try {
+      const postImages = media.map((item) => item.url).filter(Boolean).slice(0, MAX_MEDIA);
+      const res = await fetch("/api/posts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          content: buildContent(),
+          audience,
+          images: postImages,
+          authorName: session?.user?.name,
+          authorImage: session?.user?.image,
+          authorEmail: session?.user?.email,
+          postAs,
+          clubId,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Post failed");
+
+      onPosted?.(data.post);
+      close();
+    } catch (error) {
+      console.error(error);
+      alert("Could not publish post");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!canPost) return;
+
+    if (leadershipClubs.length === 0) {
+      await submitPost({ postAs: "user" });
+      return;
+    }
+
+    setShowPostAsDrawer(true);
+  };
 
   const ringDeg = Math.min(360, ((MAX_CHARS - Math.max(remaining, 0)) / MAX_CHARS) * 360);
-  const ringColor =
-    remaining < 0 ? "#ef4444" : remaining <= 20 ? "#f59e0b" : "#111111";
+  const ringColor = remaining < 0 ? "#ef4444" : remaining <= 20 ? "#f59e0b" : "#111111";
 
   return (
     <>
@@ -173,20 +303,16 @@ export function PostFab() {
                         media.length === 1
                           ? "grid-cols-1"
                           : media.length === 2
-                          ? "grid-cols-2"
-                          : media.length === 3
-                          ? "grid-cols-2 grid-rows-2"
-                          : "grid-cols-2 grid-rows-2"
+                            ? "grid-cols-2"
+                            : media.length === 3
+                              ? "grid-cols-2 grid-rows-2"
+                              : "grid-cols-2 grid-rows-2"
                       }`}
                     >
                       {media.map((m, i) => (
                         <div
                           key={m.id}
-                          className={`relative ${
-                            media.length === 3 && i === 0
-                              ? "row-span-2"
-                              : ""
-                          }`}
+                          className={`relative ${media.length === 3 && i === 0 ? "row-span-2" : ""}`}
                         >
                           {m.kind === "video" ? (
                             <video
@@ -234,9 +360,7 @@ export function PostFab() {
                               <input
                                 value={opt}
                                 maxLength={25}
-                                onChange={(e) =>
-                                  updatePollOption(i, e.target.value)
-                                }
+                                onChange={(e) => updatePollOption(i, e.target.value)}
                                 placeholder={`Choice ${i + 1}`}
                                 className="w-full rounded-xl border border-black/10 bg-white px-3 py-2 pr-12 text-sm text-black placeholder:text-black/35 transition focus:border-black focus:outline-none"
                               />
@@ -270,9 +394,7 @@ export function PostFab() {
                           <span className="font-semibold">Duration</span>
                           <select
                             value={pollDays}
-                            onChange={(e) =>
-                              setPollDays(Number(e.target.value))
-                            }
+                            onChange={(e) => setPollDays(Number(e.target.value))}
                             className="rounded-lg border border-black/10 bg-white px-2 py-1 text-xs text-black focus:border-black focus:outline-none"
                           >
                             {[1, 2, 3, 7].map((d) => (
@@ -299,12 +421,50 @@ export function PostFab() {
             </div>
 
             {/* Footer toolbar */}
-            <div className="flex items-center justify-between gap-3 border-t border-black/5 bg-white px-5 py-3">
+            <div className="relative flex items-center justify-between gap-3 border-t border-black/5 bg-white px-5 py-3">
+              {showGifPicker && (
+                <div className="absolute bottom-14 left-16 z-10 w-72 rounded-2xl border border-black/10 bg-white p-2 shadow-[0_10px_30px_rgba(0,0,0,0.12)]">
+                  <div className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-black/50">
+                    Trending
+                  </div>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {GIFS.map((g) => (
+                      <button
+                        key={g}
+                        onClick={() => addGif(g)}
+                        className="overflow-hidden rounded-lg ring-1 ring-black/10 transition hover:ring-black"
+                      >
+                        <img src={g} alt="gif" className="h-24 w-full object-cover" />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {showEmojiPicker && (
+                <div className="absolute bottom-14 left-36 z-10 w-72 rounded-2xl border border-black/10 bg-white p-3 shadow-[0_10px_30px_rgba(0,0,0,0.12)]">
+                  <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-black/50">
+                    Frequently used
+                  </div>
+                  <div className="grid grid-cols-8 gap-1">
+                    {EMOJIS.map((e) => (
+                      <button
+                        key={e}
+                        onClick={() => setText((t) => t + e)}
+                        className="grid h-8 w-8 place-items-center rounded-lg text-lg transition hover:bg-black/5"
+                      >
+                        {e}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="flex items-center gap-0.5">
                 {/* Image */}
                 <ToolbarBtn
                   label="Image"
-                  disabled={media.length >= MAX_MEDIA || showPoll}
+                  disabled={media.length >= MAX_MEDIA || showPoll || isUploading}
                   onClick={() => fileRef.current?.click()}
                 >
                   <ImageIcon className="h-[18px] w-[18px]" />
@@ -312,7 +472,7 @@ export function PostFab() {
                 <input
                   ref={fileRef}
                   type="file"
-                  accept="image/*,video/*"
+                  accept="image/*"
                   multiple
                   hidden
                   onChange={(e) => {
@@ -322,48 +482,17 @@ export function PostFab() {
                 />
 
                 {/* GIF */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button
-                      disabled={media.length >= MAX_MEDIA || showPoll}
-                      className="grid h-9 w-9 place-items-center rounded-full text-black transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-30"
-                      aria-label="GIF"
-                    >
-                      <span className="text-[11px] font-extrabold tracking-tight">
-                        GIF
-                      </span>
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    side="top"
-                    className="w-72 rounded-2xl border-black/10 p-2"
-                  >
-                    <div className="mb-2 px-1 text-[11px] font-semibold uppercase tracking-wider text-black/50">
-                      Trending
-                    </div>
-                    <div className="grid grid-cols-2 gap-1.5">
-                      {GIFS.map((g) => (
-                        <button
-                          key={g}
-                          onClick={() => {
-                            if (media.length >= MAX_MEDIA) return;
-                            setMedia((m) => [
-                              ...m,
-                              { id: crypto.randomUUID(), url: g, kind: "gif" },
-                            ]);
-                          }}
-                          className="overflow-hidden rounded-lg ring-1 ring-black/10 transition hover:ring-black"
-                        >
-                          <img
-                            src={g}
-                            alt="gif"
-                            className="h-24 w-full object-cover"
-                          />
-                        </button>
-                      ))}
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                <button
+                  disabled={media.length >= MAX_MEDIA || showPoll}
+                  onClick={() => {
+                    setShowGifPicker((value) => !value);
+                    setShowEmojiPicker(false);
+                  }}
+                  className="grid h-9 w-9 place-items-center rounded-full text-black transition hover:bg-black/5 disabled:cursor-not-allowed disabled:opacity-30"
+                  aria-label="GIF"
+                >
+                  <span className="text-[11px] font-extrabold tracking-tight">GIF</span>
+                </button>
 
                 {/* Poll */}
                 <ToolbarBtn
@@ -376,35 +505,16 @@ export function PostFab() {
                 </ToolbarBtn>
 
                 {/* Emoji */}
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button
-                      className="grid h-9 w-9 place-items-center rounded-full text-black transition hover:bg-black/5"
-                      aria-label="Emoji"
-                    >
-                      <Smile className="h-[18px] w-[18px]" />
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent
-                    side="top"
-                    className="w-72 rounded-2xl border-black/10 p-3"
-                  >
-                    <div className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-black/50">
-                      Frequently used
-                    </div>
-                    <div className="grid grid-cols-8 gap-1">
-                      {EMOJIS.map((e) => (
-                        <button
-                          key={e}
-                          onClick={() => setText((t) => t + e)}
-                          className="grid h-8 w-8 place-items-center rounded-lg text-lg transition hover:bg-black/5"
-                        >
-                          {e}
-                        </button>
-                      ))}
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                <button
+                  className="grid h-9 w-9 place-items-center rounded-full text-black transition hover:bg-black/5"
+                  aria-label="Emoji"
+                  onClick={() => {
+                    setShowEmojiPicker((value) => !value);
+                    setShowGifPicker(false);
+                  }}
+                >
+                  <Smile className="h-[18px] w-[18px]" />
+                </button>
               </div>
 
               <div className="flex items-center gap-3">
@@ -438,15 +548,46 @@ export function PostFab() {
                   </div>
                 )}
 
-                <Button
+                <button
                   disabled={!canPost}
-                  onClick={close}
+                  onClick={handleSubmit}
                   className="h-9 rounded-full bg-black px-5 text-sm font-bold text-white shadow-sm transition hover:bg-black/85 disabled:bg-black/30 disabled:text-white"
                 >
-                  Post
-                </Button>
+                  {isUploading ? "Uploading..." : isSubmitting ? "Posting..." : "Post"}
+                </button>
               </div>
             </div>
+
+            {showPostAsDrawer && (
+              <div className="absolute inset-0 z-20 flex items-end justify-center bg-black/30" onClick={() => setShowPostAsDrawer(false)}>
+                <div className="w-full rounded-t-3xl bg-white p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.18)]" onClick={(event) => event.stopPropagation()}>
+                  <h3 className="mb-3 text-sm font-bold uppercase tracking-[0.18em] text-black/40">Post as</h3>
+                  <button
+                    type="button"
+                    className="mb-2 flex w-full rounded-2xl border border-black/10 px-4 py-3 text-left transition hover:bg-black/5"
+                    onClick={() => submitPost({ postAs: "user" })}
+                  >
+                    <div>
+                      <strong>{session?.user?.name || "User"}</strong>
+                      <p className="text-sm text-black/50">Post as your personal profile</p>
+                    </div>
+                  </button>
+                  {leadershipClubs.map((club) => (
+                    <button
+                      key={club._id}
+                      type="button"
+                      className="mb-2 flex w-full rounded-2xl border border-black/10 px-4 py-3 text-left transition hover:bg-black/5"
+                      onClick={() => submitPost({ postAs: "club", clubId: club._id })}
+                    >
+                      <div>
+                        <strong>{club.clubName || "Club"}</strong>
+                        <p className="text-sm text-black/50">Post as club</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -454,19 +595,7 @@ export function PostFab() {
   );
 }
 
-function ToolbarBtn({
-  children,
-  onClick,
-  disabled,
-  active,
-  label,
-}: {
-  children: React.ReactNode;
-  onClick?: () => void;
-  disabled?: boolean;
-  active?: boolean;
-  label: string;
-}) {
+function ToolbarBtn({ children, onClick, disabled, active, label }) {
   return (
     <button
       onClick={onClick}
@@ -480,3 +609,5 @@ function ToolbarBtn({
     </button>
   );
 }
+
+export default PostFab;
