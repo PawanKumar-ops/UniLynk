@@ -1,7 +1,7 @@
 "use client"
 
 import React from 'react'
-import "./PostplusFAB.css"
+import "./PostplusFab.css"
 
 const PostplusFAB = ({ setIspost }) => {
 
