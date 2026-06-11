@@ -341,38 +341,38 @@ export function PostFab({ audience = "for-you", onPosted }) {
   const pickerNode = typeof document !== "undefined" && isPickerVisible
     ? showEmojiPicker
       ? createPortal(
-          <div
-            ref={pickerPanelRef}
-            className="chat-picker"
-            style={{
-              ...FLOATING_PANEL_STYLE,
-              top: pickerPosition.top,
-              left: pickerPosition.left,
-            }}
-          >
-            <EmojiPicker onEmojiClick={handleEmojiSelect} width={320} height={360} lazyLoadEmojis />
-          </div>,
-          document.body
-        )
+        <div
+          ref={pickerPanelRef}
+          className="chat-picker"
+          style={{
+            ...FLOATING_PANEL_STYLE,
+            top: pickerPosition.top,
+            left: pickerPosition.left,
+          }}
+        >
+          <EmojiPicker onEmojiClick={handleEmojiSelect} width={320} height={360} lazyLoadEmojis />
+        </div>,
+        document.body
+      )
       : createPortal(
-          <div
-            ref={pickerPanelRef}
-            className="chat-picker chat-gif-picker"
-            style={{
-              ...FLOATING_PANEL_STYLE,
-              top: pickerPosition.top,
-              left: pickerPosition.left,
-              width: pickerPosition.width,
-              maxWidth: "min(92vw, 380px)",
-              height: "420px",
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            <ChatGiphyPicker onSelect={addGif} />
-          </div>,
-          document.body
-        )
+        <div
+          ref={pickerPanelRef}
+          className="chat-picker chat-gif-picker"
+          style={{
+            ...FLOATING_PANEL_STYLE,
+            top: pickerPosition.top,
+            left: pickerPosition.left,
+            width: pickerPosition.width,
+            maxWidth: "min(92vw, 380px)",
+            height: "420px",
+            display: "flex",
+            flexDirection: "column",
+          }}
+        >
+          <ChatGiphyPicker onSelect={addGif} />
+        </div>,
+        document.body
+      )
     : null;
 
   const ringDeg = Math.min(360, ((MAX_CHARS - Math.max(remaining, 0)) / MAX_CHARS) * 360);
@@ -427,15 +427,14 @@ export function PostFab({ audience = "for-you", onPosted }) {
 
                   {media.length > 0 && (
                     <div
-                      className={`mt-2 grid gap-1.5 overflow-hidden rounded-2xl ring-1 ring-black/10 ${
-                        media.length === 1
+                      className={`mt-2 grid gap-1.5 overflow-hidden rounded-2xl ring-1 ring-black/10 ${media.length === 1
                           ? "grid-cols-1"
                           : media.length === 2
                             ? "grid-cols-2"
                             : media.length === 3
                               ? "grid-cols-2 grid-rows-2"
                               : "grid-cols-2 grid-rows-2"
-                      }`}
+                        }`}
                     >
                       {media.map((m, i) => {
                         const mediaSrc = m.previewUrl || m.url;
@@ -701,9 +700,8 @@ function ToolbarBtn({ children, onClick, disabled, active, label }) {
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
-      className={`grid h-9 w-9 place-items-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-30 ${
-        active ? "bg-black text-white" : "text-black hover:bg-black/5"
-      }`}
+      className={`grid h-9 w-9 place-items-center rounded-full transition disabled:cursor-not-allowed disabled:opacity-30 ${active ? "bg-black text-white" : "text-black hover:bg-black/5"
+        }`}
     >
       {children}
     </button>
