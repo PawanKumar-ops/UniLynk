@@ -5,8 +5,7 @@ import "./dashboard.css";
 import { ArrowLeft, EllipsisVertical, ArrowRight } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
-import PostFAB from "../../components/PostFAB";
-import Post from "../../components/Post";
+import PostFab from "../../components/Post-Fab";
 import ReliableImage from "../../components/ReliableImage";
 import CommentModal from "@/components/CommentModal";
 import ShareModal from "@/components/ShareModal";
@@ -228,7 +227,6 @@ const isElementVisibleWithinContainer = (element, container) => {
 export default function DashboardClient() {
   const { data: session } = useSession();
   const [isAnnual, setIsAnnual] = useState(true);
-  const [ispost, setIspost] = useState(false);
   const [posts, setPosts] = useState(null);
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [activePostId, setActivePostId] = useState(null);
@@ -1074,15 +1072,10 @@ export default function DashboardClient() {
                   posts.map((post) => renderPostCard(post))}
               </div>
 
-              {ispost ? (
-                <Post
-                  setIspost={setIspost}
-                  audience={selectedAudience}
-                  onPosted={handlePosted}
-                />
-              ) : (
-                <PostFAB setIspost={setIspost} />
-              )}
+              <PostFab
+                audience={selectedAudience}
+                onPosted={handlePosted}
+              />
             </div>
             <CommentModal
               isOpen={Boolean(activePostId)}
