@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import "./dashboard.css";
 import { ArrowLeft, EllipsisVertical, ArrowRight } from "lucide-react";
 import { useSession } from "next-auth/react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import PostFab from "../../components/Post-Fab";
 import ReliableImage from "../../components/ReliableImage";
 import CommentModal from "@/components/CommentModal";
@@ -20,6 +20,7 @@ import { NewsLetterCard } from "@/components/NewsLetterCard";
 import { DashboardNotificationItem } from "@/components/DashboardNotificationItem";
 
 const DASHBOARD_SCROLL_STORAGE_KEY = "dashboard-feed-scroll-position";
+const DASHBOARD_RESTORE_POST_STORAGE_KEY = "dashboard-feed-restore-post-id";
 
 // ─── Poll Card ────────────────────────────────────────────────────────────────
 
@@ -278,19 +279,21 @@ const isElementVisibleWithinContainer = (element, container) => {
   return elementTop >= containerTop && elementBottom <= containerBottom;
 };
 
-export default function DashboardClient() {
+export default function DashboardClient({ initialThreadPostId = null } = {}) {
   const { data: session } = useSession();
   const [isAnnual, setIsAnnual] = useState(true);
   const [posts, setPosts] = useState(null);
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [activePostId, setActivePostId] = useState(null);
-  const [threadPostId, setThreadPostId] = useState(null);
+  const [threadPostId, setThreadPostId] = useState(initialThreadPostId);
+  const [standaloneThreadPost, setStandaloneThreadPost] = useState(null);
   const [sharePost, setSharePost] = useState(null);
   const [openShare, setOpenShare] = useState(false);
   const [menuPostId, setMenuPostId] = useState(null);
   const [reportPostId, setReportPostId] = useState(null);
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [dashboardView, setDashboardView] = useState(
     pathname === "/dashboard/explore" ? "explore" : "feed",
   );
@@ -299,6 +302,7 @@ export default function DashboardClient() {
   const [pendingNotifications, setPendingNotifications] = useState([]);
   const [activePastEvent, setActivePastEvent] = useState(null);
   const [imageRatios, setImageRatios] = useState({});
+  const isThreadRoute = Boolean(initialThreadPostId);
 
   useEffect(() => {
     if (!session?.user?.email) return undefined;
@@ -401,9 +405,9 @@ export default function DashboardClient() {
   const selectedThreadPost = useMemo(
     () =>
       Array.isArray(posts)
-        ? (posts.find((post) => post.id === threadPostId) ?? null)
-        : null,
-    [posts, threadPostId],
+        ? (posts.find((post) => post.id === threadPostId) ?? standaloneThreadPost ?? null)
+        : standaloneThreadPost,
+    [posts, threadPostId, standaloneThreadPost],
   );
 
   useEffect(
@@ -424,7 +428,15 @@ export default function DashboardClient() {
     restoreFeedScrollRef.current = Number.isFinite(savedFeedScroll)
       ? savedFeedScroll
       : 0;
-  }, []);
+
+    const restorePostId =
+      searchParams?.get("post") ||
+      window.sessionStorage.getItem(DASHBOARD_RESTORE_POST_STORAGE_KEY);
+    if (!initialThreadPostId && restorePostId) {
+      pendingRestorePostIdRef.current = restorePostId;
+      window.sessionStorage.removeItem(DASHBOARD_RESTORE_POST_STORAGE_KEY);
+    }
+  }, [initialThreadPostId, searchParams]);
 
   useEffect(() => {
     const loadPosts = async () => {
@@ -445,11 +457,48 @@ export default function DashboardClient() {
       }
     };
 
-    setThreadPostId(null);
+    if (!isThreadRoute) {
+      setThreadPostId(null);
+      setStandaloneThreadPost(null);
+    } else {
+      setThreadPostId(initialThreadPostId);
+    }
     setActivePostId(null);
     setMenuPostId(null);
     loadPosts();
-  }, [selectedAudience]);
+  }, [initialThreadPostId, isThreadRoute, selectedAudience]);
+
+  useEffect(() => {
+    if (!isThreadRoute || !initialThreadPostId) return undefined;
+
+    let isMounted = true;
+
+    const loadThreadPost = async () => {
+      try {
+        const res = await fetch(`/api/posts/${initialThreadPostId}`, {
+          cache: "no-store",
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+          throw new Error(data?.error || "Failed to fetch post");
+        }
+
+        if (!isMounted) return;
+        const normalizedPost = normalizePost(data.post);
+        setStandaloneThreadPost(normalizedPost);
+        setThreadPostId(normalizedPost?.id ?? initialThreadPostId);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    loadThreadPost();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [initialThreadPostId, isThreadRoute]);
 
   const persistFeedScroll = (scrollTop) => {
     if (typeof window === "undefined") return;
@@ -522,6 +571,9 @@ export default function DashboardClient() {
         )
         : prev,
     );
+    setStandaloneThreadPost((prev) =>
+      prev?.id === normalizedUpdatedPost.id ? normalizedUpdatedPost : prev,
+    );
   };
 
   const handlePollChange = (postId, nextPoll) => {
@@ -533,6 +585,9 @@ export default function DashboardClient() {
           post.id === postId ? { ...post, poll: nextPoll } : post,
         )
         : prev,
+    );
+    setStandaloneThreadPost((prev) =>
+      prev?.id === postId ? { ...prev, poll: nextPoll } : prev,
     );
   };
 
@@ -555,8 +610,17 @@ export default function DashboardClient() {
     persistFeedScroll(currentFeedScroll);
     pendingRestorePostIdRef.current = postId;
 
-    setThreadPostId(postId);
     setMenuPostId(null);
+
+    if (isThreadRoute) {
+      setThreadPostId(postId);
+      if (postId !== initialThreadPostId) {
+        router.replace(`/dashboard/comments/${postId}`);
+      }
+      return;
+    }
+
+    router.push(`/dashboard/comments/${postId}`);
   };
 
   const handleBackToFeed = () => {
@@ -564,8 +628,20 @@ export default function DashboardClient() {
       pendingRestorePostIdRef.current = selectedThreadPost.id;
     }
 
+    if (selectedThreadPost?.id && typeof window !== "undefined") {
+      window.sessionStorage.setItem(
+        DASHBOARD_RESTORE_POST_STORAGE_KEY,
+        selectedThreadPost.id,
+      );
+    }
+
     setThreadPostId(null);
+    setStandaloneThreadPost(null);
     setMenuPostId(null);
+
+    if (isThreadRoute && selectedThreadPost?.id) {
+      router.push(`/dashboard?post=${selectedThreadPost.id}`);
+    }
   };
 
   const handleCommentSubmit = async (postId, payload) => {
@@ -605,14 +681,22 @@ export default function DashboardClient() {
       }
 
       setPosts((prev) =>
-        prev.map((post) =>
+        Array.isArray(prev) ? prev.map((post) =>
           post.id === postId
             ? {
               ...post,
               savedByCurrentUser: data.saved,
             }
             : post,
-        ),
+        ) : prev,
+      );
+      setStandaloneThreadPost((prev) =>
+        prev?.id === postId
+          ? {
+            ...prev,
+            savedByCurrentUser: data.saved,
+          }
+          : prev,
       );
     } catch (err) {
       console.error(err);
@@ -628,7 +712,7 @@ export default function DashboardClient() {
     if (pendingLikePostIdsRef.current.has(postId)) return;
 
     setPosts((prev) =>
-      prev.map((post) => {
+      Array.isArray(prev) ? prev.map((post) => {
         if (post.id !== postId) return post;
 
         const nextLiked = !currentlyLiked;
@@ -643,8 +727,24 @@ export default function DashboardClient() {
           likeCount: nextLikeCount,
           likePending: true,
         };
-      }),
+      }) : prev,
     );
+    setStandaloneThreadPost((prev) => {
+      if (prev?.id !== postId) return prev;
+
+      const nextLiked = !currentlyLiked;
+      const nextLikeCount = Math.max(
+        0,
+        Number(prev.likeCount || 0) + (nextLiked ? 1 : -1),
+      );
+
+      return {
+        ...prev,
+        likedByCurrentUser: nextLiked,
+        likeCount: nextLikeCount,
+        likePending: true,
+      };
+    });
 
     if (likeTimersRef.current[postId]) {
       clearTimeout(likeTimersRef.current[postId]);
@@ -663,21 +763,33 @@ export default function DashboardClient() {
         }
 
         setPosts((prev) =>
-          prev.map((post) =>
-            post.id === postId
-              ? {
-                ...post,
-                likedByCurrentUser: Boolean(data.likedByCurrentUser),
-                likeCount: Number(data.likeCount || 0),
-                likePending: false,
-              }
-              : post,
-          ),
+          Array.isArray(prev)
+            ? prev.map((post) =>
+              post.id === postId
+                ? {
+                  ...post,
+                  likedByCurrentUser: Boolean(data.likedByCurrentUser),
+                  likeCount: Number(data.likeCount || 0),
+                  likePending: false,
+                }
+                : post,
+            )
+            : prev,
+        );
+        setStandaloneThreadPost((prev) =>
+          prev?.id === postId
+            ? {
+              ...prev,
+              likedByCurrentUser: Boolean(data.likedByCurrentUser),
+              likeCount: Number(data.likeCount || 0),
+              likePending: false,
+            }
+            : prev,
         );
       } catch (error) {
         console.error(error);
         setPosts((prev) =>
-          prev.map((post) => {
+          Array.isArray(prev) ? prev.map((post) => {
             if (post.id !== postId) return post;
 
             const rollbackLiked = currentlyLiked;
@@ -690,8 +802,22 @@ export default function DashboardClient() {
               ),
               likePending: false,
             };
-          }),
+          }) : prev,
         );
+        setStandaloneThreadPost((prev) => {
+          if (prev?.id !== postId) return prev;
+
+          const rollbackLiked = currentlyLiked;
+          return {
+            ...prev,
+            likedByCurrentUser: rollbackLiked,
+            likeCount: Math.max(
+              0,
+              Number(prev.likeCount || 0) + (rollbackLiked ? 1 : -1),
+            ),
+            likePending: false,
+          };
+        });
       } finally {
         pendingLikePostIdsRef.current.delete(postId);
         delete likeTimersRef.current[postId];
@@ -1033,6 +1159,8 @@ export default function DashboardClient() {
     </div>
   );
 
+  const isThreadLoading = isThreadRoute && !selectedThreadPost;
+
   return (
     <div className="homebody">
       <main className="dashmain">
@@ -1040,7 +1168,7 @@ export default function DashboardClient() {
           <ExplorePage onBack={() => router.push("/dashboard")} />
         ) : (
           <>
-            {!selectedThreadPost && (
+            {!selectedThreadPost && !isThreadRoute && (
               <div className="pricing-toggle">
                 <div className={`toggle-track ${!isAnnual ? "right" : ""}`}>
                   <div className="toggle-bg"></div>
@@ -1064,9 +1192,9 @@ export default function DashboardClient() {
 
             <div className="feed" ref={feedRef} onScroll={handleFeedScroll}>
               <div
-                className={`userposts ${selectedThreadPost ? "thread-userposts" : ""}`}
+                className={`userposts ${selectedThreadPost || isThreadRoute ? "thread-userposts" : ""}`}
               >
-                {(loadingPosts || !posts) && <Loading />}
+                {(loadingPosts || !posts || isThreadLoading) && <Loading />}
 
                 {!loadingPosts &&
                   Array.isArray(posts) &&
@@ -1140,6 +1268,7 @@ export default function DashboardClient() {
                 {!loadingPosts &&
                   Array.isArray(posts) &&
                   !selectedThreadPost &&
+                  !isThreadRoute &&
                   posts.map((post) => renderPostCard(post))}
               </div>
 
