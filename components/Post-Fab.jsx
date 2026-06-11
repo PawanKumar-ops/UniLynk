@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import ChatGiphyPicker from "@/components/shared/ChatGiphyPicker";
 import PostplusFab from "./PostplusFab";
+import "./PostplusFab.css";
 
 const PlusIcon = Plus;
 const MAX_MEDIA = 4;
@@ -383,14 +384,9 @@ export function PostFab({ audience = "for-you", onPosted }) {
       {!open && <PostplusFab setIspost={setOpen} />}
 
       {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-end bg-black/30 p-6 backdrop-blur-sm sm:items-end sm:justify-end animate-in fade-in duration-200"
-          onClick={close}
-        >
+        <div className="post-fab-panel-shell">
           <div
-            onClick={(e) => e.stopPropagation()}
-            style={{ width: "565.35px", maxWidth: "calc(100vw - 24px)" }}
-            className="relative max-h-[90vh] overflow-hidden rounded-3xl bg-white text-black shadow-[0_30px_80px_-20px_rgba(0,0,0,0.45)] ring-1 ring-black/10 animate-in slide-in-from-bottom-4 fade-in duration-300"
+            className="post-fab-panel relative max-h-[90vh] overflow-hidden rounded-3xl bg-white text-black shadow-[0_30px_80px_-20px_rgba(0,0,0,0.35)] ring-1 ring-black/10"
           >
             <div className="flex items-center justify-between border-b border-black/5 px-5 py-3">
               <button
