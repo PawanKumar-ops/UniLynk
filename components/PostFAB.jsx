@@ -2,7 +2,6 @@
 
 import React from 'react'
 import "./PostFAB.css"
-import { useState } from 'react'
 
 const PostFAB = ({ setIspost }) => {
 

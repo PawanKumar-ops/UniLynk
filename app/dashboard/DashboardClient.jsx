@@ -62,8 +62,8 @@ const normalizeComment = (comment, index = 0) => {
     id: safeId || `comment-${index}`,
     images: Array.isArray(comment.images)
       ? comment.images.filter(
-          (image) => typeof image === "string" && image.trim(),
-        )
+        (image) => typeof image === "string" && image.trim(),
+      )
       : [],
   };
 };
@@ -132,6 +132,7 @@ export default function DashboardClient() {
   const [mode, setMode] = useState("newsletter");
   const [pendingNotifications, setPendingNotifications] = useState([]);
   const [activePastEvent, setActivePastEvent] = useState(null);
+  const [imageRatios, setImageRatios] = useState({});
 
   useEffect(() => {
     if (!session?.user?.email) return undefined;
@@ -169,17 +170,17 @@ export default function DashboardClient() {
       const pastNotifications =
         pastResult.status === "fulfilled"
           ? pastResult.value.map((notif) => ({
-              ...notif,
-              notificationType: "past-event",
-            }))
+            ...notif,
+            notificationType: "past-event",
+          }))
           : [];
 
       const teamFinderNotifications =
         teamFinderResult.status === "fulfilled"
           ? teamFinderResult.value.map((notif) => ({
-              ...notif,
-              notificationType: "team-finder-request",
-            }))
+            ...notif,
+            notificationType: "team-finder-request",
+          }))
           : [];
 
       if (pastResult.status === "rejected") {
@@ -351,14 +352,14 @@ export default function DashboardClient() {
     setPosts((prev) =>
       Array.isArray(prev)
         ? prev.map((post) =>
-            post.id === normalizedUpdatedPost.id ? normalizedUpdatedPost : post,
-          )
+          post.id === normalizedUpdatedPost.id ? normalizedUpdatedPost : post,
+        )
         : prev,
     );
   };
 
   const getImageGridClass = (count) => {
-    if (count <= 1) return "image-grid count-1";
+    if (count === 1) return "x-single-image";
     if (count === 2) return "image-grid count-2";
     if (count === 3) return "image-grid count-3";
     return "image-grid count-4";
@@ -429,9 +430,9 @@ export default function DashboardClient() {
         prev.map((post) =>
           post.id === postId
             ? {
-                ...post,
-                savedByCurrentUser: data.saved,
-              }
+              ...post,
+              savedByCurrentUser: data.saved,
+            }
             : post,
         ),
       );
@@ -487,11 +488,11 @@ export default function DashboardClient() {
           prev.map((post) =>
             post.id === postId
               ? {
-                  ...post,
-                  likedByCurrentUser: Boolean(data.likedByCurrentUser),
-                  likeCount: Number(data.likeCount || 0),
-                  likePending: false,
-                }
+                ...post,
+                likedByCurrentUser: Boolean(data.likedByCurrentUser),
+                likeCount: Number(data.likeCount || 0),
+                likePending: false,
+              }
               : post,
           ),
         );
@@ -528,12 +529,12 @@ export default function DashboardClient() {
         isThread
           ? undefined
           : (node) => {
-              if (node) {
-                postRefs.current[post.id] = node;
-              } else {
-                delete postRefs.current[post.id];
-              }
+            if (node) {
+              postRefs.current[post.id] = node;
+            } else {
+              delete postRefs.current[post.id];
             }
+          }
       }
       onClick={() => handleOpenThread(post.id)}
       role="button"
@@ -676,14 +677,38 @@ export default function DashboardClient() {
           {post.content}
           {!!post.images?.length && (
             <div className="image-post">
-              <div className={getImageGridClass(post.images.length)}>
-                {post.images.map((imageUrl, idx) => (
-                  <img
-                    key={`${post.id}-${idx}`}
-                    src={imageUrl}
-                    alt="Post image"
-                  />
-                ))}
+              <div
+                className={getImageGridClass(
+                  post.images.length,
+                  imageRatios[post.id] || 1
+                )}
+              >
+                {post.images.length === 1 ? (
+                  <div className="x-single-image">
+                    <img
+                      src={post.images[0]}
+                      alt=""
+                      loading="lazy"
+                      onLoad={(e) => {
+                        setImageRatios(prev => ({
+                          ...prev,
+                          [post.id]:
+                            e.target.naturalWidth /
+                            e.target.naturalHeight
+                        }));
+                      }}
+                    />
+                  </div>
+                ) : (
+                  post.images.map((imageUrl, idx) => (
+                    <img
+                      key={`${post.id}-${idx}`}
+                      src={imageUrl}
+                      alt=""
+                      loading="lazy"
+                    />
+                  ))
+                )}
               </div>
             </div>
           )}
@@ -1006,11 +1031,10 @@ export default function DashboardClient() {
                flex items-center justify-center gap-2
                text-[16px] font-semibold
                shadow-sm transition-all duration-300
-               ${
-                 dashboardView === "explore"
-                   ? "bg-black text-white hover:bg-neutral-900"
-                   : "bg-white/90 text-neutral-900 hover:bg-[#f5f8fa]"
-               }
+               ${dashboardView === "explore"
+                ? "bg-black text-white hover:bg-neutral-900"
+                : "bg-white/90 text-neutral-900 hover:bg-[#f5f8fa]"
+              }
              `}
           >
             <span>Explore Campus</span>
@@ -1038,9 +1062,8 @@ export default function DashboardClient() {
                   setMode(id);
                   setError(null);
                 }}
-                className={`relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 text-xs transition ${
-                  mode === id ? "text-black" : "text-black/50"
-                }`}
+                className={`relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 text-xs transition ${mode === id ? "text-black" : "text-black/50"
+                  }`}
               >
                 <Icon className="h-3.5 w-3.5" />
                 {label}
@@ -1061,9 +1084,8 @@ export default function DashboardClient() {
                       onClick={() => {
                         if (!isTeamFinder) setActivePastEvent(notif);
                       }}
-                      className={`flex w-full min-h-[60px] items-center gap-3 p-3 rounded-2xl border border-neutral-200 hover:border-neutral-300 hover:shadow-sm transition bg-white ${
-                        isTeamFinder ? "cursor-default" : "cursor-pointer"
-                      }`}
+                      className={`flex w-full min-h-[60px] items-center gap-3 p-3 rounded-2xl border border-neutral-200 hover:border-neutral-300 hover:shadow-sm transition bg-white ${isTeamFinder ? "cursor-default" : "cursor-pointer"
+                        }`}
                     >
                       <div className="w-11 h-11 rounded-full overflow-hidden bg-neutral-100 shrink-0 flex items-center justify-center">
                         {isTeamFinder ? (
