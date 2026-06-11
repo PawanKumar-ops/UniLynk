@@ -1043,6 +1043,7 @@ body {
   z-index: 50;
 
   padding: 5px 14px;
+  height: 54px;
 
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(14px);

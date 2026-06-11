@@ -1112,11 +1112,11 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
                     <div className="thread-view-header">
                       <button
                         type="button"
-                        className="thread-back-button"
+                        className="w-9 h-9 shrink-0 grid place-items-center rounded-full hover:bg-neutral-100 transition"
                         onClick={handleBackToFeed}
                       >
                         <ArrowLeft size={18} />
-                        <span>Back to feed</span>
+                       
                       </button>
                       <div>
                         <h2 className="thread-view-title">Post</h2>
