@@ -189,4 +189,8 @@ const PostSchema = new mongoose.Schema(
   }
 );
 
+if (mongoose.models.Post && !mongoose.models.Post.schema.path("poll")) {
+  delete mongoose.models.Post;
+}
+
 export default mongoose.models.Post || mongoose.model("Post", PostSchema);

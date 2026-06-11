@@ -4,6 +4,7 @@ import User from "@/models/user";
 import Club from "@/models/Club";
 import PostLike from "@/models/postLike";
 import { getLikeCount } from "@/lib/postLikeCache";
+import { buildPollDocument, parseLegacyPollContent } from "@/lib/polls";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
@@ -208,7 +209,9 @@ export async function POST(req) {
       poll,
     } = await req.json();
 
-    const safeContent = content?.trim() || "";
+    const initialContent = content?.trim() || "";
+    const legacyPoll = !poll ? parseLegacyPollContent(initialContent) : null;
+    const safeContent = legacyPoll?.content ?? initialContent;
     const safeImages = Array.isArray(images)
       ? images
           .filter((image) => typeof image === "string" && image.trim())
