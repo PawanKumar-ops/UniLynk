@@ -20,6 +20,7 @@ import { NewsLetterCard } from "@/components/NewsLetterCard";
 import { DashboardNotificationItem } from "@/components/DashboardNotificationItem";
 
 const DASHBOARD_SCROLL_STORAGE_KEY = "dashboard-feed-scroll-position";
+const DASHBOARD_OPEN_POST_STORAGE_KEY = "dashboard-feed-open-post-id";
 
 // ─── Poll Card ────────────────────────────────────────────────────────────────
 
@@ -278,13 +279,12 @@ const isElementVisibleWithinContainer = (element, container) => {
   return elementTop >= containerTop && elementBottom <= containerBottom;
 };
 
-export default function DashboardClient() {
+export default function DashboardClient({ postId: routePostId = null } = {}) {
   const { data: session } = useSession();
   const [isAnnual, setIsAnnual] = useState(true);
   const [posts, setPosts] = useState(null);
   const [loadingPosts, setLoadingPosts] = useState(true);
   const [activePostId, setActivePostId] = useState(null);
-  const [threadPostId, setThreadPostId] = useState(null);
   const [sharePost, setSharePost] = useState(null);
   const [openShare, setOpenShare] = useState(false);
   const [menuPostId, setMenuPostId] = useState(null);
@@ -400,10 +400,10 @@ export default function DashboardClient() {
   );
   const selectedThreadPost = useMemo(
     () =>
-      Array.isArray(posts)
-        ? (posts.find((post) => post.id === threadPostId) ?? null)
+      Array.isArray(posts) && routePostId
+        ? (posts.find((post) => post.id === routePostId) ?? null)
         : null,
-    [posts, threadPostId],
+    [posts, routePostId],
   );
 
   useEffect(
@@ -421,35 +421,43 @@ export default function DashboardClient() {
     const savedFeedScroll = Number(
       window.sessionStorage.getItem(DASHBOARD_SCROLL_STORAGE_KEY) || 0,
     );
+    const savedOpenPostId = window.sessionStorage.getItem(
+      DASHBOARD_OPEN_POST_STORAGE_KEY,
+    );
+
     restoreFeedScrollRef.current = Number.isFinite(savedFeedScroll)
       ? savedFeedScroll
       : 0;
+    pendingRestorePostIdRef.current = savedOpenPostId || null;
   }, []);
 
   useEffect(() => {
     const loadPosts = async () => {
       setLoadingPosts(true);
       try {
-        const res = await fetch(`/api/posts?audience=${selectedAudience}`);
+        const url = routePostId
+          ? `/api/posts/${routePostId}`
+          : `/api/posts?audience=${selectedAudience}`;
+        const res = await fetch(url, { cache: "no-store" });
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error || "Failed to fetch posts");
-        const normalizedPosts = (data.posts || [])
-          .map(normalizePost)
-          .filter(Boolean);
+        const normalizedPosts = routePostId
+          ? [normalizePost(data.post)].filter(Boolean)
+          : (data.posts || []).map(normalizePost).filter(Boolean);
 
         setPosts(normalizedPosts);
       } catch (error) {
         console.error(error);
+        setPosts([]);
       } finally {
         setLoadingPosts(false);
       }
     };
 
-    setThreadPostId(null);
     setActivePostId(null);
     setMenuPostId(null);
     loadPosts();
-  }, [selectedAudience]);
+  }, [routePostId, selectedAudience]);
 
   const persistFeedScroll = (scrollTop) => {
     if (typeof window === "undefined") return;
@@ -499,6 +507,13 @@ export default function DashboardClient() {
 
     return () => window.cancelAnimationFrame(frameId);
   }, [loadingPosts, posts, selectedThreadPost]);
+
+  const rememberOpenPost = (postId) => {
+    if (typeof window === "undefined" || !postId) return;
+
+    window.sessionStorage.setItem(DASHBOARD_OPEN_POST_STORAGE_KEY, postId);
+    pendingRestorePostIdRef.current = postId;
+  };
 
   const handleFeedScroll = () => {
     if (selectedThreadPost || !feedRef.current) return;
@@ -553,19 +568,19 @@ export default function DashboardClient() {
 
     const currentFeedScroll = feedRef.current?.scrollTop ?? 0;
     persistFeedScroll(currentFeedScroll);
-    pendingRestorePostIdRef.current = postId;
+    rememberOpenPost(postId);
 
-    setThreadPostId(postId);
     setMenuPostId(null);
+    router.push(`/dashboard/post/${postId}`);
   };
 
   const handleBackToFeed = () => {
     if (selectedThreadPost?.id) {
-      pendingRestorePostIdRef.current = selectedThreadPost.id;
+      rememberOpenPost(selectedThreadPost.id);
     }
 
-    setThreadPostId(null);
     setMenuPostId(null);
+    router.push("/dashboard");
   };
 
   const handleCommentSubmit = async (postId, payload) => {
@@ -581,7 +596,10 @@ export default function DashboardClient() {
 
       updateSinglePost(data.post);
       setActivePostId(null);
-      setThreadPostId(postId);
+      if (routePostId !== postId) {
+        rememberOpenPost(postId);
+        router.push(`/dashboard/post/${postId}`);
+      }
     } catch (error) {
       console.error(error);
       alert("Could not publish comment");
@@ -714,13 +732,15 @@ export default function DashboardClient() {
             }
           }
       }
-      onClick={() => handleOpenThread(post.id)}
+      onClick={() => {
+        if (!isThread) handleOpenThread(post.id);
+      }}
       role="button"
       tabIndex={0}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault();
-          handleOpenThread(post.id);
+          if (!isThread) handleOpenThread(post.id);
         }
       }}
     >
@@ -917,7 +937,7 @@ export default function DashboardClient() {
             >
               <img
                 className="post-foot-icon"
-                src="Postimg/thumb.svg"
+                src="/Postimg/thumb.svg"
                 alt="Like"
               />
             </button>
@@ -929,14 +949,17 @@ export default function DashboardClient() {
             <button
               onClick={() => {
                 if (!post?.id) return;
-                setThreadPostId(post.id);
+                rememberOpenPost(post.id);
+                if (routePostId !== post.id) {
+                  router.push(`/dashboard/post/${post.id}`);
+                }
                 setActivePostId(post.id);
               }}
               type="button"
             >
               <img
                 className="post-foot-icon"
-                src="Postimg/comment.svg"
+                src="/Postimg/comment.svg"
                 alt="Comment"
               />
             </button>
@@ -954,7 +977,7 @@ export default function DashboardClient() {
             >
               <img
                 className="post-foot-icon"
-                src="Postimg/share.svg"
+                src="/Postimg/share.svg"
                 alt="Share"
               />
             </button>
@@ -964,7 +987,7 @@ export default function DashboardClient() {
             <button type="button" onClick={() => toggleSavePost(post.id)}>
               <img
                 className="post-foot-icon"
-                src="Postimg/bookmark.svg"
+                src="/Postimg/bookmark.svg"
                 alt="bookmark"
                 style={{
                   opacity: post.savedByCurrentUser ? 1 : 0.6,
@@ -1072,7 +1095,7 @@ export default function DashboardClient() {
                   Array.isArray(posts) &&
                   posts.length === 0 && (
                     <div className="noposts-illuistration">
-                      <img src="./dashboard/NoPosts.svg" alt="No Posts" />
+                      <img src="/dashboard/NoPosts.svg" alt="No Posts" />
                       <h1 className="noposts-illuistrationh">No Posts Yet</h1>
                       <p className="noposts-illuistrationp">
                         It looks a little empty here. Check back later or be the
@@ -1100,38 +1123,40 @@ export default function DashboardClient() {
                       </div>
                     </div>
 
-                    {renderPostCard(selectedThreadPost, { isThread: true })}
+                    <div className="thread-view-content">
+                      {renderPostCard(selectedThreadPost, { isThread: true })}
 
-                    <div className="thread-replies-panel">
-                      <div className="thread-replies-header-row">
-                        <div>
-                          <h3 className="thread-replies-title">Replies</h3>
-                          <p className="thread-replies-subtitle">
-                            Join the conversation under this post.
-                          </p>
-                        </div>
-                        <button
-                          type="button"
-                          className="thread-reply-button"
-                          onClick={() => setActivePostId(selectedThreadPost.id)}
-                        >
-                          Reply
-                        </button>
-                      </div>
-
-                      {!!selectedThreadPost.comments?.length ? (
-                        <div className="thread-comments-list">
-                          {selectedThreadPost.comments.map(renderComment)}
-                        </div>
-                      ) : (
-                        <div className="thread-empty-state">
-                          <div className="nocomment-illuistration">
-                            <img src="./dashboard/nocomment.svg" alt="" />
+                      <div className="thread-replies-panel">
+                        <div className="thread-replies-header-row">
+                          <div>
+                            <h3 className="thread-replies-title">Replies</h3>
+                            <p className="thread-replies-subtitle">
+                              Join the conversation under this post.
+                            </p>
                           </div>
-                          <h4>No replies yet</h4>
-                          <p>Be the first person to reply to this post.</p>
+                          <button
+                            type="button"
+                            className="thread-reply-button"
+                            onClick={() => setActivePostId(selectedThreadPost.id)}
+                          >
+                            Reply
+                          </button>
                         </div>
-                      )}
+
+                        {!!selectedThreadPost.comments?.length ? (
+                          <div className="thread-comments-list">
+                            {selectedThreadPost.comments.map(renderComment)}
+                          </div>
+                        ) : (
+                          <div className="thread-empty-state">
+                            <div className="nocomment-illuistration">
+                              <img src="/dashboard/nocomment.svg" alt="" />
+                            </div>
+                            <h4>No replies yet</h4>
+                            <p>Be the first person to reply to this post.</p>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </section>
                 )}
