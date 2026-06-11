@@ -1,13 +1,88 @@
 import mongoose from "mongoose";
 
-function hasTextOrImages(content) {
+function hasTextOrImagesOrPoll(content) {
   const safeContent = typeof content === "string" ? content.trim() : "";
   const safeImages = Array.isArray(this?.images)
     ? this.images.filter((image) => typeof image === "string" && image.trim())
     : [];
+  const safePollOptions = Array.isArray(this?.poll?.options)
+    ? this.poll.options.filter((option) => typeof option?.text === "string" && option.text.trim())
+    : [];
 
-  return Boolean(safeContent) || safeImages.length > 0;
+  return Boolean(safeContent) || safeImages.length > 0 || safePollOptions.length >= 2;
 }
+
+const PollOptionSchema = new mongoose.Schema(
+  {
+    id: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    text: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 120,
+    },
+    votes: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+  },
+  { _id: false }
+);
+
+const PollVoteSchema = new mongoose.Schema(
+  {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    optionId: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    votedAt: {
+      type: Date,
+      default: Date.now,
+    },
+  },
+  { _id: false }
+);
+
+const PollSchema = new mongoose.Schema(
+  {
+    options: {
+      type: [PollOptionSchema],
+      default: undefined,
+      validate: {
+        validator(options) {
+          return Array.isArray(options) && options.length >= 2 && options.length <= 4;
+        },
+        message: "Poll must have between 2 and 4 options",
+      },
+    },
+    totalVotes: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    endsAt: {
+      type: Date,
+      required: true,
+      index: true,
+    },
+    votes: {
+      type: [PollVoteSchema],
+      default: [],
+    },
+  },
+  { _id: false }
+);
 
 const PostCommentSchema = new mongoose.Schema(
   {
@@ -48,8 +123,8 @@ const PostSchema = new mongoose.Schema(
       trim: true,
       default: "",
       validate: {
-        validator: hasTextOrImages,
-        message: "Post content or image is required",
+        validator: hasTextOrImagesOrPoll,
+        message: "Post content, image, or poll is required",
       },
     },
     audience: {
@@ -98,6 +173,10 @@ const PostSchema = new mongoose.Schema(
       type: [PostCommentSchema],
       default: [],
     },
+    poll: {
+      type: PollSchema,
+      default: undefined,
+    },
     likeCount: {
       type: Number,
       default: 0,
@@ -109,5 +188,9 @@ const PostSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+if (mongoose.models.Post && !mongoose.models.Post.schema.path("poll")) {
+  delete mongoose.models.Post;
+}
 
 export default mongoose.models.Post || mongoose.model("Post", PostSchema);

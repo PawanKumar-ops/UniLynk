@@ -4,6 +4,7 @@ import User from "@/models/user";
 import Club from "@/models/Club";
 import PostLike from "@/models/postLike";
 import { getLikeCount } from "@/lib/postLikeCache";
+import { buildPollDocument, parseLegacyPollContent } from "@/lib/polls";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
@@ -108,18 +109,43 @@ const resolveLikeState = async (posts, userId) => {
   );
 };
 
-const normalizePosts = (posts) =>
-  posts.map((post) => ({
-    ...post,
-    id: post.id ?? post._id?.toString?.() ?? String(post._id || ""),
-    comments: Array.isArray(post.comments)
-      ? post.comments.map((comment) => ({
-          ...comment,
-          id: comment.id ?? comment._id?.toString?.() ?? String(comment._id || ""),
-        }))
-      : [],
-    commentCount: Array.isArray(post.comments) ? post.comments.length : 0,
-  }));
+const normalizePollForUser = (poll, userId) => {
+  if (!poll || !Array.isArray(poll.options)) return undefined;
+
+  const votedOptionId = userId
+    ? poll.votes?.find((vote) => vote.userId?.toString?.() === userId)?.optionId || null
+    : null;
+
+  return {
+    options: poll.options.map((option) => ({
+      id: option.id,
+      text: option.text,
+      votes: Number(option.votes || 0),
+    })),
+    totalVotes: Number(poll.totalVotes || 0),
+    endsAt: poll.endsAt instanceof Date ? poll.endsAt.toISOString() : poll.endsAt,
+    votedOptionId,
+  };
+};
+
+const normalizePosts = (posts, userId = null) =>
+  posts.map((post) => {
+    const legacyPoll = !post.poll ? parseLegacyPollContent(post.content, post.createdAt) : null;
+
+    return {
+      ...post,
+      id: post.id ?? post._id?.toString?.() ?? String(post._id || ""),
+      content: legacyPoll?.content ?? post.content,
+      comments: Array.isArray(post.comments)
+        ? post.comments.map((comment) => ({
+            ...comment,
+            id: comment.id ?? comment._id?.toString?.() ?? String(comment._id || ""),
+          }))
+        : [],
+      commentCount: Array.isArray(post.comments) ? post.comments.length : 0,
+      poll: normalizePollForUser(post.poll || legacyPoll?.poll, userId),
+    };
+  });
 
 export async function GET(req) {
   try {
@@ -165,7 +191,7 @@ export async function GET(req) {
       ...post,
       savedByCurrentUser: savedPostIds.has(post._id.toString()),
     }));
-    const normalizedPosts = normalizePosts(enrichedPostsWithSave);
+    const normalizedPosts = normalizePosts(enrichedPostsWithSave, user?._id?.toString());
 
     return Response.json({ posts: normalizedPosts }, { status: 200 });
   } catch (error) {
@@ -185,9 +211,12 @@ export async function POST(req) {
       images = [],
       postAs = "user",
       clubId = "",
+      poll,
     } = await req.json();
 
-    const safeContent = content?.trim() || "";
+    const initialContent = content?.trim() || "";
+    const legacyPoll = !poll ? parseLegacyPollContent(initialContent) : null;
+    const safeContent = legacyPoll?.content ?? initialContent;
     const safeImages = Array.isArray(images)
       ? images
           .filter((image) => typeof image === "string" && image.trim())
@@ -195,8 +224,20 @@ export async function POST(req) {
           .slice(0, 4)
       : [];
 
-    if (!safeContent && safeImages.length === 0) {
-      return new Response("Post content or image is required", { status: 400 });
+    const normalizedPoll = poll
+      ? buildPollDocument({
+          options: poll.options,
+          durationDays: poll.durationDays || poll.days,
+        })
+      : legacyPoll?.poll;
+    const hasPoll = Boolean(normalizedPoll);
+
+    if (!safeContent && safeImages.length === 0 && !hasPoll) {
+      return new Response("Post content, image, or poll is required", { status: 400 });
+    }
+
+    if (poll && !hasPoll) {
+      return Response.json({ error: "Poll must include at least 2 options" }, { status: 400 });
     }
 
     const safeAudience = audience === "clubs" ? "clubs" : "for-you";
@@ -256,6 +297,7 @@ export async function POST(req) {
       authorEmail: safeAuthorEmail,
       authorImage: postAuthorImage,
       images: safeImages,
+      poll: normalizedPoll,
     });
 
     const normalizedPost = {
@@ -263,6 +305,7 @@ export async function POST(req) {
       id: post._id.toString(),
       comments: [],
       commentCount: 0,
+      poll: normalizePollForUser(post.poll, null),
     };
 
     return Response.json({ post: normalizedPost }, { status: 201 });
