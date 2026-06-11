@@ -259,17 +259,13 @@ export function PostFab({ audience = "for-you", onPosted }) {
     setPollOptions((p) => (p.length > 2 ? p.filter((_, idx) => idx !== i) : p));
   };
 
-  const buildContent = () => {
-    const safeText = text.trim();
-    if (!showPoll || !pollHasEnoughOptions) return safeText;
+  const buildPollPayload = () => {
+    if (!showPoll || !pollHasEnoughOptions) return undefined;
 
-    const pollText = [
-      "Poll:",
-      ...pollOptions.filter((option) => option.trim()).map((option, index) => `${index + 1}. ${option.trim()}`),
-      `Duration: ${pollDays} day${pollDays > 1 ? "s" : ""}`,
-    ].join("\n");
-
-    return safeText ? `${safeText}\n\n${pollText}` : pollText;
+    return {
+      options: pollOptions.filter((option) => option.trim()).map((option) => option.trim()),
+      durationDays: pollDays,
+    };
   };
 
   const uploadPendingMedia = async () => {
@@ -305,7 +301,7 @@ export function PostFab({ audience = "for-you", onPosted }) {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          content: buildContent(),
+          content: text.trim(),
           audience,
           images: postImages,
           authorName: session?.user?.name,
@@ -313,6 +309,7 @@ export function PostFab({ audience = "for-you", onPosted }) {
           authorEmail: session?.user?.email,
           postAs,
           clubId,
+          poll: buildPollPayload(),
         }),
       });
       const data = await res.json();

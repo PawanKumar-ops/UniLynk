@@ -23,38 +23,122 @@ const DASHBOARD_SCROLL_STORAGE_KEY = "dashboard-feed-scroll-position";
 
 // ─── Poll Card ────────────────────────────────────────────────────────────────
 
-const PollCard = ({ poll }) => {
+const PollCard = ({ postId, poll, onPollChange }) => {
   const [votedOptionId, setVotedOptionId] = useState(poll.votedOptionId ?? null);
-  const [options, setOptions] = useState(poll.options);
-  const [totalVotes, setTotalVotes] = useState(poll.totalVotes);
+  const [options, setOptions] = useState(Array.isArray(poll.options) ? poll.options : []);
+  const [totalVotes, setTotalVotes] = useState(Number(poll.totalVotes || 0));
+  const [isSavingVote, setIsSavingVote] = useState(false);
+  const [hasEnded, setHasEnded] = useState(
+    new Date(poll.endsAt).getTime() <= Date.now(),
+  );
+
+  useEffect(() => {
+    setVotedOptionId(poll.votedOptionId ?? null);
+    setOptions(Array.isArray(poll.options) ? poll.options : []);
+    setTotalVotes(Number(poll.totalVotes || 0));
+    setHasEnded(new Date(poll.endsAt).getTime() <= Date.now());
+  }, [poll]);
+
+  useEffect(() => {
+    const endsAtMs = new Date(poll.endsAt).getTime();
+    const delay = endsAtMs - Date.now();
+
+    if (!Number.isFinite(endsAtMs) || delay <= 0) {
+      setHasEnded(true);
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(
+      () => setHasEnded(true),
+      Math.min(delay, 2147483647),
+    );
+
+    return () => window.clearTimeout(timeoutId);
+  }, [poll.endsAt]);
 
   const hasVoted = votedOptionId !== null;
-  const maxVotes = Math.max(...options.map((o) => o.votes), 0);
+  const showResults = hasVoted || hasEnded;
+  const maxVotes = Math.max(...options.map((o) => Number(o.votes || 0)), 0);
 
   const formatTimeLeft = (endsAt) => {
     const diff = new Date(endsAt).getTime() - Date.now();
     if (diff <= 0) return "Final results";
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const hours = Math.ceil((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     if (days > 0) return `${days} day${days !== 1 ? "s" : ""} left`;
-    return `${hours}h left`;
+    return `${Math.max(hours, 1)}h left`;
   };
 
-  const handleVote = (optionId) => {
-    if (hasVoted) return;
-    setVotedOptionId(optionId);
-    setOptions((prev) =>
-      prev.map((o) => (o.id === optionId ? { ...o, votes: o.votes + 1 } : o)),
+  const applyPollSnapshot = (nextPoll) => {
+    if (!nextPoll) return;
+    setVotedOptionId(nextPoll.votedOptionId ?? null);
+    setOptions(Array.isArray(nextPoll.options) ? nextPoll.options : []);
+    setTotalVotes(Number(nextPoll.totalVotes || 0));
+    setHasEnded(new Date(nextPoll.endsAt).getTime() <= Date.now());
+    onPollChange?.(nextPoll);
+  };
+
+  const handleVote = async (optionId) => {
+    if (hasVoted || hasEnded || isSavingVote || !postId) return;
+
+    const previousState = { votedOptionId, options, totalVotes };
+    const optimisticOptions = options.map((option) =>
+      option.id === optionId
+        ? { ...option, votes: Number(option.votes || 0) + 1 }
+        : option,
     );
-    setTotalVotes((prev) => prev + 1);
+    const optimisticTotalVotes = totalVotes + 1;
+
+    setVotedOptionId(optionId);
+    setOptions(optimisticOptions);
+    setTotalVotes(optimisticTotalVotes);
+    onPollChange?.({
+      ...poll,
+      options: optimisticOptions,
+      totalVotes: optimisticTotalVotes,
+      votedOptionId: optionId,
+    });
+
+    setIsSavingVote(true);
+    try {
+      const response = await fetch(`/api/posts/${postId}/poll-vote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ optionId }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data?.poll) {
+          applyPollSnapshot(data.poll);
+          return;
+        }
+        throw new Error(data?.error || "Could not save poll vote");
+      }
+
+      applyPollSnapshot(data.poll);
+    } catch (error) {
+      console.error(error);
+      setVotedOptionId(previousState.votedOptionId);
+      setOptions(previousState.options);
+      setTotalVotes(previousState.totalVotes);
+      onPollChange?.({
+        ...poll,
+        options: previousState.options,
+        totalVotes: previousState.totalVotes,
+        votedOptionId: previousState.votedOptionId,
+      });
+    } finally {
+      setIsSavingVote(false);
+    }
   };
 
   return (
     <div className="poll-card" onClick={(e) => e.stopPropagation()}>
       {options.map((option) => {
-        const pct =
-          totalVotes > 0 ? Math.round((option.votes / totalVotes) * 100) : 0;
-        const isWinner = hasVoted && option.votes === maxVotes;
+        const optionVotes = Number(option.votes || 0);
+        const pct = totalVotes > 0 ? Math.round((optionVotes / totalVotes) * 100) : 0;
+        const isWinner = showResults && optionVotes === maxVotes && maxVotes > 0;
         const isMyVote = votedOptionId === option.id;
 
         return (
@@ -62,10 +146,10 @@ const PollCard = ({ poll }) => {
             key={option.id}
             className="poll-option"
             onClick={() => handleVote(option.id)}
-            disabled={hasVoted}
+            disabled={showResults || isSavingVote}
             type="button"
           >
-            {hasVoted && (
+            {showResults && (
               <div
                 className={`poll-option-fill ${isWinner ? "poll-fill-winner" : ""} ${isMyVote ? "poll-fill-myvote" : ""}`}
                 style={{ width: `${pct}%` }}
@@ -73,27 +157,25 @@ const PollCard = ({ poll }) => {
             )}
             <div className="poll-option-content">
               <span className="poll-option-label">
-  {option.text}
+                {option.text}
 
-  {isMyVote && hasVoted && (
-    <svg
-      className="poll-check-icon"
-      width="15"
-      height="15"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
-  )}
-</span>
-              {hasVoted && (
-                <span className="poll-option-pct">{pct}%</span>
-              )}
+                {isMyVote && showResults && (
+                  <svg
+                    className="poll-check-icon"
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+              </span>
+              {showResults && <span className="poll-option-pct">{pct}%</span>}
             </div>
           </button>
         );
@@ -105,35 +187,6 @@ const PollCard = ({ poll }) => {
       </div>
     </div>
   );
-};
-
-// ─── Mock Poll Post (remove once real poll data is wired up) ──────────────────
-
-const MOCK_POLL_POST = {
-  id: "mock-poll-post-001",
-  authorName: "UniLynk Team",
-  authorImage: null,
-  postAs: "club",
-  createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-  content: "Which study method works best for you during exam season? 📚",
-  images: [],
-  likeCount: 47,
-  likedByCurrentUser: false,
-  likePending: false,
-  commentCount: 12,
-  savedByCurrentUser: false,
-  comments: [],
-  poll: {
-    options: [
-      { id: "p1", text: "Pomodoro Technique", votes: 156 },
-      { id: "p2", text: "Spaced Repetition", votes: 89 },
-      { id: "p3", text: "Mind Mapping", votes: 63 },
-      { id: "p4", text: "Group Study Sessions", votes: 42 },
-    ],
-    totalVotes: 350,
-    endsAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-    votedOptionId: null,
-  },
 };
 
 const Loading = () => (
@@ -466,6 +519,18 @@ export default function DashboardClient() {
       Array.isArray(prev)
         ? prev.map((post) =>
           post.id === normalizedUpdatedPost.id ? normalizedUpdatedPost : post,
+        )
+        : prev,
+    );
+  };
+
+  const handlePollChange = (postId, nextPoll) => {
+    if (!postId || !nextPoll) return;
+
+    setPosts((prev) =>
+      Array.isArray(prev)
+        ? prev.map((post) =>
+          post.id === postId ? { ...post, poll: nextPoll } : post,
         )
         : prev,
     );
@@ -825,7 +890,13 @@ export default function DashboardClient() {
               </div>
             </div>
           )}
-          {post.poll && <PollCard poll={post.poll} />}
+          {post.poll && (
+            <PollCard
+              postId={post.id}
+              poll={post.poll}
+              onPollChange={(nextPoll) => handlePollChange(post.id, nextPoll)}
+            />
+          )}
         </div>
 
         <div className="post-foot" onClick={(event) => event.stopPropagation()}>
@@ -1065,9 +1136,6 @@ export default function DashboardClient() {
                   </section>
                 )}
 
-                {!loadingPosts && !selectedThreadPost && (
-                  renderPostCard(MOCK_POLL_POST)
-                )}
 
                 {!loadingPosts &&
                   Array.isArray(posts) &&
