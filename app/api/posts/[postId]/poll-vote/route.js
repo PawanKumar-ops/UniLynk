@@ -3,7 +3,6 @@ import { getServerSession } from "next-auth";
 
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/mongodb";
-import { parseLegacyPollContent } from "@/lib/polls";
 import { enforceUserRateLimit } from "@/lib/rateLimit";
 import Post from "@/models/post";
 import User from "@/models/user";
@@ -101,55 +100,8 @@ export async function POST(req, context) {
       return Response.json({ poll: normalizePoll(updatedPost.poll, user._id) }, { status: 200 });
     }
 
-    const currentPost = await Post.findById(postId, { content: 1, createdAt: 1, poll: 1 }).lean();
+    const currentPost = await Post.findById(postId, { poll: 1 }).lean();
     if (!currentPost?.poll) {
-      const legacyPoll = parseLegacyPollContent(currentPost?.content, currentPost?.createdAt);
-
-      if (legacyPoll?.poll) {
-        const initializedPost = await Post.findOneAndUpdate(
-          { _id: postId, poll: { $exists: false } },
-          {
-            $set: {
-              content: legacyPoll.content,
-              poll: legacyPoll.poll,
-            },
-          },
-          { new: true, projection: { poll: 1 } }
-        ).lean();
-
-        if (initializedPost?.poll) {
-          const initializedVotePost = await Post.findOneAndUpdate(
-            {
-              _id: postId,
-              "poll.endsAt": { $gt: now },
-              "poll.options.id": safeOptionId,
-              "poll.votes.userId": { $ne: user._id },
-            },
-            {
-              $inc: {
-                "poll.options.$.votes": 1,
-                "poll.totalVotes": 1,
-              },
-              $push: {
-                "poll.votes": {
-                  userId: user._id,
-                  optionId: safeOptionId,
-                  votedAt: now,
-                },
-              },
-            },
-            { new: true, projection: { poll: 1 } }
-          ).lean();
-
-          if (initializedVotePost?.poll) {
-            return Response.json(
-              { poll: normalizePoll(initializedVotePost.poll, user._id) },
-              { status: 200 }
-            );
-          }
-        }
-      }
-
       return Response.json({ error: "Poll not found" }, { status: 404 });
     }
 

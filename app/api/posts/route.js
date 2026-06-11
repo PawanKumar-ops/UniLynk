@@ -129,23 +129,18 @@ const normalizePollForUser = (poll, userId) => {
 };
 
 const normalizePosts = (posts, userId = null) =>
-  posts.map((post) => {
-    const legacyPoll = !post.poll ? parseLegacyPollContent(post.content, post.createdAt) : null;
-
-    return {
-      ...post,
-      id: post.id ?? post._id?.toString?.() ?? String(post._id || ""),
-      content: legacyPoll?.content ?? post.content,
-      comments: Array.isArray(post.comments)
-        ? post.comments.map((comment) => ({
-            ...comment,
-            id: comment.id ?? comment._id?.toString?.() ?? String(comment._id || ""),
-          }))
-        : [],
-      commentCount: Array.isArray(post.comments) ? post.comments.length : 0,
-      poll: normalizePollForUser(post.poll || legacyPoll?.poll, userId),
-    };
-  });
+  posts.map((post) => ({
+    ...post,
+    id: post.id ?? post._id?.toString?.() ?? String(post._id || ""),
+    comments: Array.isArray(post.comments)
+      ? post.comments.map((comment) => ({
+          ...comment,
+          id: comment.id ?? comment._id?.toString?.() ?? String(comment._id || ""),
+        }))
+      : [],
+    commentCount: Array.isArray(post.comments) ? post.comments.length : 0,
+    poll: normalizePollForUser(post.poll, userId),
+  }));
 
 export async function GET(req) {
   try {
@@ -224,13 +219,14 @@ export async function POST(req) {
           .slice(0, 4)
       : [];
 
-    const normalizedPoll = poll
-      ? buildPollDocument({
-          options: poll.options,
-          durationDays: poll.durationDays || poll.days,
-        })
-      : legacyPoll?.poll;
-    const hasPoll = Boolean(normalizedPoll);
+    const normalizedPollOptions = Array.isArray(poll?.options)
+      ? poll.options
+          .map((option) => (typeof option === "string" ? option : option?.text))
+          .filter((option) => typeof option === "string" && option.trim())
+          .map((option) => option.trim())
+          .slice(0, 4)
+      : [];
+    const hasPoll = normalizedPollOptions.length >= 2;
 
     if (!safeContent && safeImages.length === 0 && !hasPoll) {
       return new Response("Post content, image, or poll is required", { status: 400 });
@@ -239,6 +235,23 @@ export async function POST(req) {
     if (poll && !hasPoll) {
       return Response.json({ error: "Poll must include at least 2 options" }, { status: 400 });
     }
+
+    const requestedPollDays = Number(poll?.durationDays || poll?.days);
+    const safePollDays = Number.isFinite(requestedPollDays)
+      ? Math.min(Math.max(Math.floor(requestedPollDays), 1), 7)
+      : 1;
+    const normalizedPoll = hasPoll
+      ? {
+          options: normalizedPollOptions.map((text, index) => ({
+            id: `option-${index + 1}`,
+            text,
+            votes: 0,
+          })),
+          totalVotes: 0,
+          endsAt: new Date(Date.now() + safePollDays * 24 * 60 * 60 * 1000),
+          votes: [],
+        }
+      : undefined;
 
     const safeAudience = audience === "clubs" ? "clubs" : "for-you";
 
