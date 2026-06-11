@@ -22,6 +22,120 @@ import { DashboardNotificationItem } from "@/components/DashboardNotificationIte
 
 const DASHBOARD_SCROLL_STORAGE_KEY = "dashboard-feed-scroll-position";
 
+// ─── Poll Card ────────────────────────────────────────────────────────────────
+
+const PollCard = ({ poll }) => {
+  const [votedOptionId, setVotedOptionId] = useState(poll.votedOptionId ?? null);
+  const [options, setOptions] = useState(poll.options);
+  const [totalVotes, setTotalVotes] = useState(poll.totalVotes);
+
+  const hasVoted = votedOptionId !== null;
+  const maxVotes = Math.max(...options.map((o) => o.votes), 0);
+
+  const formatTimeLeft = (endsAt) => {
+    const diff = new Date(endsAt).getTime() - Date.now();
+    if (diff <= 0) return "Final results";
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    if (days > 0) return `${days} day${days !== 1 ? "s" : ""} left`;
+    return `${hours}h left`;
+  };
+
+  const handleVote = (optionId) => {
+    if (hasVoted) return;
+    setVotedOptionId(optionId);
+    setOptions((prev) =>
+      prev.map((o) => (o.id === optionId ? { ...o, votes: o.votes + 1 } : o)),
+    );
+    setTotalVotes((prev) => prev + 1);
+  };
+
+  return (
+    <div className="poll-card" onClick={(e) => e.stopPropagation()}>
+      {options.map((option) => {
+        const pct =
+          totalVotes > 0 ? Math.round((option.votes / totalVotes) * 100) : 0;
+        const isWinner = hasVoted && option.votes === maxVotes;
+        const isMyVote = votedOptionId === option.id;
+
+        return (
+          <button
+            key={option.id}
+            className="poll-option"
+            onClick={() => handleVote(option.id)}
+            disabled={hasVoted}
+            type="button"
+          >
+            {hasVoted && (
+              <div
+                className={`poll-option-fill ${isWinner ? "poll-fill-winner" : ""} ${isMyVote ? "poll-fill-myvote" : ""}`}
+                style={{ width: `${pct}%` }}
+              />
+            )}
+            <div className="poll-option-content">
+              <span className="poll-option-label">
+                {isMyVote && hasVoted && (
+                  <svg
+                    className="poll-check-icon"
+                    width="15"
+                    height="15"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+                {option.text}
+              </span>
+              {hasVoted && (
+                <span className="poll-option-pct">{pct}%</span>
+              )}
+            </div>
+          </button>
+        );
+      })}
+      <div className="poll-meta">
+        <span>{totalVotes.toLocaleString()} votes</span>
+        <span className="poll-meta-dot">·</span>
+        <span>{formatTimeLeft(poll.endsAt)}</span>
+      </div>
+    </div>
+  );
+};
+
+// ─── Mock Poll Post (remove once real poll data is wired up) ──────────────────
+
+const MOCK_POLL_POST = {
+  id: "mock-poll-post-001",
+  authorName: "UniLynk Team",
+  authorImage: null,
+  postAs: "club",
+  createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
+  content: "Which study method works best for you during exam season? 📚",
+  images: [],
+  likeCount: 47,
+  likedByCurrentUser: false,
+  likePending: false,
+  commentCount: 12,
+  savedByCurrentUser: false,
+  comments: [],
+  poll: {
+    options: [
+      { id: "p1", text: "Pomodoro Technique", votes: 156 },
+      { id: "p2", text: "Spaced Repetition", votes: 89 },
+      { id: "p3", text: "Mind Mapping", votes: 63 },
+      { id: "p4", text: "Group Study Sessions", votes: 42 },
+    ],
+    totalVotes: 350,
+    endsAt: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+    votedOptionId: null,
+  },
+};
+
 const Loading = () => (
   <div className="userpostsloadani">
     <div className="relative w-12 h-12">
@@ -712,6 +826,7 @@ export default function DashboardClient() {
               </div>
             </div>
           )}
+          {post.poll && <PollCard poll={post.poll} />}
         </div>
 
         <div className="post-foot" onClick={(event) => event.stopPropagation()}>
@@ -947,6 +1062,10 @@ export default function DashboardClient() {
                       )}
                     </div>
                   </section>
+                )}
+
+                {!loadingPosts && !selectedThreadPost && (
+                  renderPostCard(MOCK_POLL_POST)
                 )}
 
                 {!loadingPosts &&
