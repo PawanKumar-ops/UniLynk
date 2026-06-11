@@ -89,7 +89,8 @@
   position: fixed;
   right: calc(31.24% + 24px);
   bottom: 40px;
-  width: min(720px, calc(100vw - 29% - 31.24% - 28px));
+  width: 565.35px;
+  max-width: calc(100vw - 48px);
   z-index: 130;
 }
 

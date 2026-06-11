@@ -1193,3 +1193,30 @@ body {
     justify-content: center;
   }
 }
+
+.poll-option {
+  border: 1.5px solid #d9d9d9;
+  background: #fff;
+}
+
+.poll-option:not(:disabled):hover {
+  border-color: #e5e5e5;
+  background: #f7f7f7;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.poll-option-fill {
+  background: #efefef;
+}
+
+.poll-option-fill.poll-fill-myvote {
+  background: #e3e3e3;
+}
+
+.poll-option-fill.poll-fill-winner {
+  background: #d7d7d7;
+}
+
+.poll-check-icon {
+  color: #111111;
+}

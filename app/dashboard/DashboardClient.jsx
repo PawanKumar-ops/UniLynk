@@ -73,23 +73,24 @@ const PollCard = ({ poll }) => {
             )}
             <div className="poll-option-content">
               <span className="poll-option-label">
-                {isMyVote && hasVoted && (
-                  <svg
-                    className="poll-check-icon"
-                    width="15"
-                    height="15"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.8"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <polyline points="20 6 9 17 4 12" />
-                  </svg>
-                )}
-                {option.text}
-              </span>
+  {option.text}
+
+  {isMyVote && hasVoted && (
+    <svg
+      className="poll-check-icon"
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  )}
+</span>
               {hasVoted && (
                 <span className="poll-option-pct">{pct}%</span>
               )}
