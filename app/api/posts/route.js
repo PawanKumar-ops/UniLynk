@@ -108,7 +108,26 @@ const resolveLikeState = async (posts, userId) => {
   );
 };
 
-const normalizePosts = (posts) =>
+const normalizePollForUser = (poll, userId) => {
+  if (!poll || !Array.isArray(poll.options)) return undefined;
+
+  const votedOptionId = userId
+    ? poll.votes?.find((vote) => vote.userId?.toString?.() === userId)?.optionId || null
+    : null;
+
+  return {
+    options: poll.options.map((option) => ({
+      id: option.id,
+      text: option.text,
+      votes: Number(option.votes || 0),
+    })),
+    totalVotes: Number(poll.totalVotes || 0),
+    endsAt: poll.endsAt instanceof Date ? poll.endsAt.toISOString() : poll.endsAt,
+    votedOptionId,
+  };
+};
+
+const normalizePosts = (posts, userId = null) =>
   posts.map((post) => ({
     ...post,
     id: post.id ?? post._id?.toString?.() ?? String(post._id || ""),
@@ -119,6 +138,7 @@ const normalizePosts = (posts) =>
         }))
       : [],
     commentCount: Array.isArray(post.comments) ? post.comments.length : 0,
+    poll: normalizePollForUser(post.poll, userId),
   }));
 
 export async function GET(req) {
@@ -165,7 +185,7 @@ export async function GET(req) {
       ...post,
       savedByCurrentUser: savedPostIds.has(post._id.toString()),
     }));
-    const normalizedPosts = normalizePosts(enrichedPostsWithSave);
+    const normalizedPosts = normalizePosts(enrichedPostsWithSave, user?._id?.toString());
 
     return Response.json({ posts: normalizedPosts }, { status: 200 });
   } catch (error) {
@@ -185,6 +205,7 @@ export async function POST(req) {
       images = [],
       postAs = "user",
       clubId = "",
+      poll,
     } = await req.json();
 
     const safeContent = content?.trim() || "";
@@ -195,9 +216,39 @@ export async function POST(req) {
           .slice(0, 4)
       : [];
 
-    if (!safeContent && safeImages.length === 0) {
-      return new Response("Post content or image is required", { status: 400 });
+    const normalizedPollOptions = Array.isArray(poll?.options)
+      ? poll.options
+          .map((option) => (typeof option === "string" ? option : option?.text))
+          .filter((option) => typeof option === "string" && option.trim())
+          .map((option) => option.trim())
+          .slice(0, 4)
+      : [];
+    const hasPoll = normalizedPollOptions.length >= 2;
+
+    if (!safeContent && safeImages.length === 0 && !hasPoll) {
+      return new Response("Post content, image, or poll is required", { status: 400 });
     }
+
+    if (poll && !hasPoll) {
+      return Response.json({ error: "Poll must include at least 2 options" }, { status: 400 });
+    }
+
+    const requestedPollDays = Number(poll?.durationDays || poll?.days);
+    const safePollDays = Number.isFinite(requestedPollDays)
+      ? Math.min(Math.max(Math.floor(requestedPollDays), 1), 7)
+      : 1;
+    const normalizedPoll = hasPoll
+      ? {
+          options: normalizedPollOptions.map((text, index) => ({
+            id: `option-${index + 1}`,
+            text,
+            votes: 0,
+          })),
+          totalVotes: 0,
+          endsAt: new Date(Date.now() + safePollDays * 24 * 60 * 60 * 1000),
+          votes: [],
+        }
+      : undefined;
 
     const safeAudience = audience === "clubs" ? "clubs" : "for-you";
 
@@ -256,6 +307,7 @@ export async function POST(req) {
       authorEmail: safeAuthorEmail,
       authorImage: postAuthorImage,
       images: safeImages,
+      poll: normalizedPoll,
     });
 
     const normalizedPost = {
@@ -263,6 +315,7 @@ export async function POST(req) {
       id: post._id.toString(),
       comments: [],
       commentCount: 0,
+      poll: normalizePollForUser(post.poll, null),
     };
 
     return Response.json({ post: normalizedPost }, { status: 201 });
