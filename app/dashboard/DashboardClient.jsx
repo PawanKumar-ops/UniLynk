@@ -973,12 +973,14 @@ export default function DashboardClient() {
                 <div className={`toggle-track ${!isAnnual ? "right" : ""}`}>
                   <div className="toggle-bg"></div>
                   <button
+                    type="button"
                     className={`toggle-btn ${isAnnual ? "active" : ""}`}
                     onClick={() => setIsAnnual(true)}
                   >
                     For You
                   </button>
                   <button
+                    type="button"
                     className={`toggle-btn ${!isAnnual ? "active" : ""}`}
                     onClick={() => setIsAnnual(false)}
                   >
@@ -1169,6 +1171,7 @@ export default function DashboardClient() {
               { id: "notification", label: "Notification", Icon: Bell },
             ].map(({ id, label, Icon }) => (
               <button
+                type="button"
                 key={id}
                 onClick={() => {
                   setMode(id);

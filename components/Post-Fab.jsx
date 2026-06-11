@@ -242,6 +242,7 @@ export function PostFab({ audience = "for-you", onPosted }) {
       {/* FAB trigger */}
       {!open && (
         <button
+          type="button"
           aria-label="Create post"
           onClick={() => setOpen(true)}
           className="fixed bottom-6 right-6 z-40 grid h-14 w-14 place-items-center rounded-full bg-black text-white shadow-[0_10px_30px_-8px_rgba(0,0,0,0.45)] ring-1 ring-black/5 transition-all duration-300 hover:scale-105 hover:shadow-[0_18px_40px_-10px_rgba(0,0,0,0.55)] active:scale-95"
@@ -264,6 +265,7 @@ export function PostFab({ audience = "for-you", onPosted }) {
             {/* Header */}
             <div className="flex items-center justify-between border-b border-black/5 px-5 py-3">
               <button
+                type="button"
                 onClick={close}
                 aria-label="Close"
                 className="grid h-9 w-9 place-items-center rounded-full text-black/70 transition hover:bg-black/5"
@@ -381,6 +383,7 @@ export function PostFab({ audience = "for-you", onPosted }) {
                         ))}
                         {pollOptions.length < 4 && (
                           <button
+                            type="button"
                             onClick={addPollOption}
                             className="inline-flex items-center gap-1.5 text-xs font-semibold text-black/70 transition hover:text-black"
                           >
@@ -405,6 +408,7 @@ export function PostFab({ audience = "for-you", onPosted }) {
                           </select>
                         </div>
                         <button
+                          type="button"
                           onClick={() => {
                             setShowPoll(false);
                             setPollOptions(["", ""]);
@@ -431,6 +435,7 @@ export function PostFab({ audience = "for-you", onPosted }) {
                     {GIFS.map((g) => (
                       <button
                         key={g}
+                        type="button"
                         onClick={() => addGif(g)}
                         className="overflow-hidden rounded-lg ring-1 ring-black/10 transition hover:ring-black"
                       >
@@ -450,6 +455,7 @@ export function PostFab({ audience = "for-you", onPosted }) {
                     {EMOJIS.map((e) => (
                       <button
                         key={e}
+                        type="button"
                         onClick={() => setText((t) => t + e)}
                         className="grid h-8 w-8 place-items-center rounded-lg text-lg transition hover:bg-black/5"
                       >
@@ -483,6 +489,7 @@ export function PostFab({ audience = "for-you", onPosted }) {
 
                 {/* GIF */}
                 <button
+                  type="button"
                   disabled={media.length >= MAX_MEDIA || showPoll}
                   onClick={() => {
                     setShowGifPicker((value) => !value);
@@ -506,6 +513,7 @@ export function PostFab({ audience = "for-you", onPosted }) {
 
                 {/* Emoji */}
                 <button
+                  type="button"
                   className="grid h-9 w-9 place-items-center rounded-full text-black transition hover:bg-black/5"
                   aria-label="Emoji"
                   onClick={() => {
@@ -539,6 +547,7 @@ export function PostFab({ audience = "for-you", onPosted }) {
                     </div>
                     <div className="h-6 w-px bg-black/10" />
                     <button
+                      type="button"
                       disabled={media.length >= MAX_MEDIA}
                       className="grid h-7 w-7 place-items-center rounded-full border border-black/15 text-black transition hover:bg-black/5 disabled:opacity-30"
                       aria-label="Add post"
@@ -549,6 +558,7 @@ export function PostFab({ audience = "for-you", onPosted }) {
                 )}
 
                 <button
+                  type="button"
                   disabled={!canPost}
                   onClick={handleSubmit}
                   className="h-9 rounded-full bg-black px-5 text-sm font-bold text-white shadow-sm transition hover:bg-black/85 disabled:bg-black/30 disabled:text-white"
