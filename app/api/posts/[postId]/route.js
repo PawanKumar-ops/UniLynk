@@ -4,6 +4,7 @@ import Comment from "@/models/comment";
 import User from "@/models/user";
 import mongoose from "mongoose";
 import PostLike from "@/models/postLike";
+import cloudinary from "@/lib/cloudinary";
 import { getLikeCount } from "@/lib/postLikeCache";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
@@ -28,6 +29,51 @@ const normalizeImage = (image) => {
   if (lowered === "null" || lowered === "undefined") return "";
 
   return cleaned;
+};
+
+
+const extractCloudinaryPublicId = (url) => {
+  if (typeof url !== "string" || !url.includes("/upload/")) return "";
+
+  try {
+    const pathname = new URL(url).pathname;
+    const uploadPath = pathname.split("/upload/")[1] || "";
+    const withoutVersion = uploadPath.replace(/^v\d+\//, "");
+    return withoutVersion.replace(/\.[^/.]+$/, "");
+  } catch {
+    const uploadPath = url.split("/upload/")[1] || "";
+    const withoutVersion = uploadPath.replace(/^v\d+\//, "");
+    return withoutVersion.replace(/\.[^/.?#]+([?#].*)?$/, "");
+  }
+};
+
+const deletePostMediaFromCloudinary = async (images = []) => {
+  const publicIds = [...new Set(
+    (Array.isArray(images) ? images : [])
+      .map(extractCloudinaryPublicId)
+      .filter(Boolean)
+  )];
+
+  if (!publicIds.length) return { deletedCount: 0, failedCount: 0 };
+
+  const results = await Promise.allSettled(
+    publicIds.map((publicId) =>
+      cloudinary.uploader.destroy(publicId, { invalidate: true })
+    )
+  );
+
+  const failedResults = results.filter((result) => result.status === "rejected");
+  if (failedResults.length) {
+    console.error(
+      "POST MEDIA DELETE ERROR:",
+      failedResults.map((result) => result.reason)
+    );
+  }
+
+  return {
+    deletedCount: results.length - failedResults.length,
+    failedCount: failedResults.length,
+  };
 };
 
 const buildAvatarFallback = (name) => {
@@ -146,6 +192,62 @@ export async function GET(_req, { params }) {
     );
   } catch (error) {
     console.error("GET POST ERROR:", error);
+    return Response.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+export async function DELETE(_req, { params }) {
+  try {
+    await connectDB();
+
+    const { postId } = await params;
+    if (!postId) {
+      return Response.json({ error: "Post id is required" }, { status: 400 });
+    }
+
+    if (!mongoose.isValidObjectId(postId)) {
+      return Response.json({ error: "Post not found" }, { status: 404 });
+    }
+
+    const session = await getServerSession(authOptions);
+    const sessionEmail = normalizeEmail(session?.user?.email);
+    if (!sessionEmail) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const post = await Post.findById(postId, { authorEmail: 1, images: 1 }).lean();
+    if (!post) {
+      return Response.json({ error: "Post not found" }, { status: 404 });
+    }
+
+    if (normalizeEmail(post.authorEmail) !== sessionEmail) {
+      return Response.json({ error: "Only the post author can delete this post" }, { status: 403 });
+    }
+
+    const cloudinaryResult = await deletePostMediaFromCloudinary(post.images);
+
+    await Promise.all([
+      Comment.deleteMany({ postId }),
+      PostLike.deleteMany({ postId }),
+      User.updateMany(
+        { savedPosts: post._id },
+        { $pull: { savedPosts: post._id } }
+      ),
+    ]);
+
+    await Post.deleteOne({ _id: post._id });
+
+    return Response.json(
+      {
+        ok: true,
+        deletedPostId: post._id.toString(),
+        cloudinaryDeletedCount: cloudinaryResult.deletedCount,
+        cloudinaryFailedCount: cloudinaryResult.failedCount,
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("DELETE POST ERROR:", error);
     return Response.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }

@@ -11,6 +11,7 @@ import ReliableImage from "../../components/ReliableImage";
 import CommentModal from "@/components/CommentModal";
 import ShareModal from "@/components/ShareModal";
 import { ReportPostModal } from "@/components/ReportPostModal";
+import { DeleteModal } from "@/components/DeleteModal";
 import PastEventNotifiModal from "@/components/PastEventNotifiModal";
 import { ExplorePage } from "@/components/ExplorePage";
 import { AnimatePresence, motion } from "framer-motion";
@@ -429,6 +430,9 @@ const fetchDashboardFeedPosts = async ({ audience, cursor, signal }) => {
   };
 };
 
+const normalizeEmail = (email) =>
+  typeof email === "string" ? email.trim().toLowerCase() : "";
+
 const fetchDashboardPostById = async (postId) => {
   const res = await fetch(`/api/posts/${postId}`);
   const data = await res.json();
@@ -459,6 +463,8 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
   const [openShare, setOpenShare] = useState(false);
   const [menuPostId, setMenuPostId] = useState(null);
   const [reportPostId, setReportPostId] = useState(null);
+  const [deletePost, setDeletePost] = useState(null);
+  const [isDeletingPost, setIsDeletingPost] = useState(false);
   const router = useRouter();
   const pathname = usePathname();
   const [dashboardView, setDashboardView] = useState(
@@ -831,6 +837,32 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
     );
   };
 
+  const removeCachedPost = (postId) => {
+    if (!postId) return;
+
+    queryClient.removeQueries({ queryKey: dashboardPostQueryKey(postId) });
+    queryClient.setQueriesData(
+      { queryKey: [...DASHBOARD_POSTS_QUERY_ROOT, "feed"] },
+      (cachedData) => {
+        if (Array.isArray(cachedData)) {
+          return cachedData.filter((post) => post.id !== postId);
+        }
+
+        if (!cachedData?.pages) return cachedData;
+
+        return {
+          ...cachedData,
+          pages: cachedData.pages.map((page) => ({
+            ...page,
+            posts: Array.isArray(page?.posts)
+              ? page.posts.filter((post) => post.id !== postId)
+              : page?.posts,
+          })),
+        };
+      },
+    );
+  };
+
   const updateSinglePost = (updatedPost) => {
     const normalizedUpdatedPost = normalizePost(updatedPost);
     if (!normalizedUpdatedPost) return;
@@ -863,6 +895,51 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
         };
       },
     );
+  };
+
+  const isPostAuthor = (post) => {
+    const sessionEmail = normalizeEmail(session?.user?.email);
+    const authorEmail = normalizeEmail(post?.authorEmail);
+
+    return Boolean(sessionEmail && authorEmail && sessionEmail === authorEmail);
+  };
+
+  const handleDeleteClick = (post) => {
+    if (!isPostAuthor(post)) return;
+
+    setMenuPostId(null);
+    setDeletePost(post);
+  };
+
+  const handleDeletePost = async () => {
+    if (!deletePost?.id || isDeletingPost) return;
+
+    try {
+      setIsDeletingPost(true);
+      const res = await fetch(`/api/posts/${deletePost.id}`, { method: "DELETE" });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to delete post");
+      }
+
+      removeCachedPost(deletePost.id);
+      if (activePostId === deletePost.id) setActivePostId(null);
+      if (sharePost?.id === deletePost.id) {
+        setSharePost(null);
+        setOpenShare(false);
+      }
+      setDeletePost(null);
+
+      if (routePostId === deletePost.id) {
+        router.push("/dashboard");
+      }
+    } catch (error) {
+      console.error(error);
+      alert(error.message || "Could not delete post");
+    } finally {
+      setIsDeletingPost(false);
+    }
   };
 
   const handlePosted = (createdPost) => {
@@ -1200,6 +1277,29 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
                   </svg>
                   Save Post
                 </button>
+                {isPostAuthor(post) && (
+                  <button
+                    className="menu-item menu-item-danger"
+                    type="button"
+                    onClick={() => handleDeleteClick(post)}
+                  >
+                    <svg
+                      width="18"
+                      height="18"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                      <path d="M10 11v6" />
+                      <path d="M14 11v6" />
+                      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                    </svg>
+                    Delete post
+                  </button>
+                )}
                 <button
                   className="menu-item"
                   onClick={() => {
@@ -1558,6 +1658,15 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
               isOpen={Boolean(reportPostId)}
               postId={reportPostId}
               onClose={() => setReportPostId(null)}
+            />
+
+            <DeleteModal
+              open={Boolean(deletePost)}
+              onOpenChange={(open) => {
+                if (!open && !isDeletingPost) setDeletePost(null);
+              }}
+              onDelete={handleDeletePost}
+              isDeleting={isDeletingPost}
             />
 
             <PastEventNotifiModal

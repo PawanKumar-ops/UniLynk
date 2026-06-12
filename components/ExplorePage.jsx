@@ -12,6 +12,7 @@ import ReliableImage from "./ReliableImage";
 import CommentModal from "./CommentModal";
 import ShareModal from "./ShareModal";
 import { ReportPostModal } from "./ReportPostModal";
+import { DeleteModal } from "./DeleteModal";
 import { AllClubsModal } from "./AllClubsModal";
 
 // Random club will be fetched from the API
@@ -79,6 +80,9 @@ const buildAvatarFallback = (name) => {
   const safeName = (name || "UniLynk User").trim() || "UniLynk User";
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(safeName)}&background=random&color=fff&size=128&bold=true`;
 };
+
+const normalizeEmail = (email) =>
+  typeof email === "string" ? email.trim().toLowerCase() : "";
 
 const normalizeComment = (comment, index = 0) => {
   if (!comment || typeof comment !== "object") return null;
@@ -205,6 +209,8 @@ export function ExplorePage({ onBack }) {
   const [openShare, setOpenShare] = useState(false);
   const [menuPostId, setMenuPostId] = useState(null);
   const [reportPostId, setReportPostId] = useState(null);
+  const [deletePost, setDeletePost] = useState(null);
+  const [isDeletingPost, setIsDeletingPost] = useState(false);
   const likeTimersRef = useRef({});
   const pendingLikePostIdsRef = useRef(new Set());
   useEffect(() => {
@@ -373,6 +379,50 @@ export function ExplorePage({ onBack }) {
         ? prev.map((post) => (post.id === normalizedUpdatedPost.id ? normalizedUpdatedPost : post))
         : prev
     );
+  };
+
+  const isPostAuthor = (post) => {
+    const sessionEmail = normalizeEmail(session?.user?.email);
+    const authorEmail = normalizeEmail(post?.authorEmail);
+
+    return Boolean(sessionEmail && authorEmail && sessionEmail === authorEmail);
+  };
+
+  const handleDeleteClick = (post) => {
+    if (!isPostAuthor(post)) return;
+
+    setMenuPostId(null);
+    setDeletePost(post);
+  };
+
+  const handleDeletePost = async () => {
+    if (!deletePost?.id || isDeletingPost) return;
+
+    try {
+      setIsDeletingPost(true);
+      const res = await fetch(`/api/posts/${deletePost.id}`, { method: "DELETE" });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to delete post");
+      }
+
+      setSuggestedPosts((prev) =>
+        Array.isArray(prev) ? prev.filter((post) => post.id !== deletePost.id) : prev
+      );
+      if (threadPostId === deletePost.id) setThreadPostId(null);
+      if (activePostId === deletePost.id) setActivePostId(null);
+      if (sharePost?.id === deletePost.id) {
+        setSharePost(null);
+        setOpenShare(false);
+      }
+      setDeletePost(null);
+    } catch (error) {
+      console.error(error);
+      alert(error.message || "Could not delete post");
+    } finally {
+      setIsDeletingPost(false);
+    }
   };
 
   const handleReportClick = (postId) => {
@@ -557,6 +607,22 @@ export function ExplorePage({ onBack }) {
                   </svg>
                   Save Post
                 </button>
+                {isPostAuthor(post) && (
+                  <button
+                    className="menu-item menu-item-danger"
+                    type="button"
+                    onClick={() => handleDeleteClick(post)}
+                  >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <polyline points="3 6 5 6 21 6" />
+                      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                      <path d="M10 11v6" />
+                      <path d="M14 11v6" />
+                      <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
+                    </svg>
+                    Delete post
+                  </button>
+                )}
                 <button className="menu-item" onClick={() => {
                   setMenuPostId(null);
                   setSharePost(post);
@@ -1055,6 +1121,15 @@ export function ExplorePage({ onBack }) {
         isOpen={Boolean(reportPostId)}
         postId={reportPostId}
         onClose={() => setReportPostId(null)}
+      />
+
+      <DeleteModal
+        open={Boolean(deletePost)}
+        onOpenChange={(open) => {
+          if (!open && !isDeletingPost) setDeletePost(null);
+        }}
+        onDelete={handleDeletePost}
+        isDeleting={isDeletingPost}
       />
 
       <AllClubsModal

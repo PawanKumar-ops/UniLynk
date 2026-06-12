@@ -1459,3 +1459,10 @@ body {
     padding: 4px 12px;
   }
 }
+.menu-item-danger {
+  color: #dc2626;
+}
+
+.menu-item-danger:hover {
+  background: #fef2f2;
+}
