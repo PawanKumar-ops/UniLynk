@@ -84,38 +84,6 @@ const PollSchema = new mongoose.Schema(
   { _id: false }
 );
 
-const PostCommentSchema = new mongoose.Schema(
-  {
-    content: {
-      type: String,
-      trim: true,
-      default: "",
-    },
-    authorName: {
-      type: String,
-      trim: true,
-      default: "UniLynk User",
-    },
-    authorEmail: {
-      type: String,
-      trim: true,
-      lowercase: true,
-      default: "",
-    },
-    authorImage: {
-      type: String,
-      default: "",
-    },
-    images: {
-      type: [String],
-      default: [],
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
-
 const PostSchema = new mongoose.Schema(
   {
     content: {
@@ -169,9 +137,17 @@ const PostSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
-    comments: {
-      type: [PostCommentSchema],
-      default: [],
+    commentCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+      index: true,
+    },
+    bookmarkCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+      index: true,
     },
     poll: {
       type: PollSchema,
@@ -199,8 +175,9 @@ PostSchema.index({ clubId: 1, trendingScore: -1, _id: -1 });
 PostSchema.index({ visibility: 1, createdAt: -1, _id: -1 });
 PostSchema.index({ clubId: 1, createdAt: -1, _id: -1 });
 PostSchema.index({ createdAt: -1, _id: -1 });
+PostSchema.index({ trendingScore: -1, _id: -1 });
 
-if (mongoose.models.Post && (!mongoose.models.Post.schema.path("poll") || !mongoose.models.Post.schema.path("trendingScore"))) {
+if (mongoose.models.Post && (!mongoose.models.Post.schema.path("poll") || !mongoose.models.Post.schema.path("trendingScore") || !mongoose.models.Post.schema.path("commentCount") || !mongoose.models.Post.schema.path("bookmarkCount"))) {
   delete mongoose.models.Post;
 }
 

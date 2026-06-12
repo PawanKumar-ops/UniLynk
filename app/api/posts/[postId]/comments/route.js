@@ -1,5 +1,6 @@
 import { connectDB } from "@/lib/mongodb";
 import Post from "@/models/post";
+import Comment from "@/models/comment";
 import User from "@/models/user";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
@@ -31,11 +32,11 @@ const normalizeCommentForClient = (comment) => ({
   id: comment.id ?? comment._id?.toString?.() ?? String(comment._id || ""),
 });
 
-const normalizePostForClient = (post) => ({
+const normalizePostForClient = (post, comments = []) => ({
   ...post,
   id: post.id ?? post._id?.toString?.() ?? String(post._id || ""),
-  comments: Array.isArray(post.comments) ? post.comments.map(normalizeCommentForClient) : [],
-  commentCount: Array.isArray(post.comments) ? post.comments.length : 0,
+  comments: comments.map(normalizeCommentForClient),
+  commentCount: Number(post.commentCount ?? comments.length ?? 0),
 });
 
 export async function POST(req, { params }) {
@@ -71,25 +72,25 @@ export async function POST(req, { params }) {
     const safeAuthorName = dbUser?.name?.trim() || session?.user?.name?.trim() || "UniLynk User";
     const safeAuthorImage = normalizeImage(dbUser?.img) || normalizeImage(session?.user?.image) || buildAvatarFallback(safeAuthorName);
 
-    const updatedPost = await Post.findByIdAndUpdate(
-      postId,
-      {
-        $push: {
-          comments: {
-            content: safeContent,
-            images: safeImages,
-            authorName: safeAuthorName,
-            authorEmail: sessionEmail,
-            authorImage: safeAuthorImage,
-          },
-        },
-      },
-      { new: true }
-    ).lean();
-
-    if (!updatedPost) {
+    const existingPost = await Post.findById(postId, { _id: 1 }).lean();
+    if (!existingPost) {
       return Response.json({ error: "Post not found" }, { status: 404 });
     }
+
+    const comment = await Comment.create({
+      postId,
+      content: safeContent,
+      images: safeImages,
+      authorName: safeAuthorName,
+      authorEmail: sessionEmail,
+      authorImage: safeAuthorImage,
+    });
+
+    const updatedPost = await Post.findByIdAndUpdate(
+      postId,
+      { $inc: { commentCount: 1 } },
+      { new: true }
+    ).lean();
 
     try {
       const { updatePostTrendingScore } = await import("@/lib/feedRanking");
@@ -100,7 +101,7 @@ export async function POST(req, { params }) {
       console.error("Failed to import/run trending score updates for comment:", err);
     }
 
-    return Response.json({ post: normalizePostForClient(updatedPost) }, { status: 201 });
+    return Response.json({ post: normalizePostForClient(updatedPost, [comment.toObject()]) }, { status: 201 });
   } catch (error) {
     console.error("CREATE COMMENT ERROR:", error);
     return Response.json({ error: "Internal Server Error" }, { status: 500 });

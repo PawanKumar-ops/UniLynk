@@ -1,5 +1,6 @@
 import { connectDB } from "@/lib/mongodb";
 import Post from "@/models/post";
+import Comment from "@/models/comment";
 import User from "@/models/user";
 import mongoose from "mongoose";
 import PostLike from "@/models/postLike";
@@ -64,7 +65,8 @@ const normalizePostForClient = (post, userId = null) => ({
   ...post,
   id: post.id ?? post._id?.toString?.() ?? String(post._id || ""),
   comments: Array.isArray(post.comments) ? post.comments.map(normalizeCommentForClient) : [],
-  commentCount: Array.isArray(post.comments) ? post.comments.length : 0,
+  commentCount: Number(post.commentCount ?? (Array.isArray(post.comments) ? post.comments.length : 0)),
+  bookmarkCount: Number(post.bookmarkCount || 0),
   poll: normalizePollForUser(post.poll, userId),
 });
 
@@ -120,9 +122,10 @@ export async function GET(_req, { params }) {
     const userId = user?._id?.toString();
     const hydratedPost = await resolvePostAuthorImage(post);
     const postObjectId = hydratedPost._id.toString();
-    const [likeCount, likedPost] = await Promise.all([
+    const [likeCount, likedPost, comments] = await Promise.all([
       getLikeCount(postObjectId, Number(hydratedPost.likeCount || 0)),
       userId ? PostLike.findOne({ postId: postObjectId, userId }, { _id: 1 }).lean() : null,
+      Comment.find({ postId: postObjectId }).sort({ createdAt: 1, _id: 1 }).lean(),
     ]);
     const savedPostIds = new Set(user?.savedPosts?.map((id) => id.toString()) || []);
 
@@ -134,6 +137,7 @@ export async function GET(_req, { params }) {
             likeCount,
             likedByCurrentUser: Boolean(likedPost),
             savedByCurrentUser: savedPostIds.has(postObjectId),
+            comments,
           },
           userId,
         ),
