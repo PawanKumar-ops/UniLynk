@@ -1,8 +1,13 @@
 import { AlertTriangle } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
 
-export function DeleteModal({ open, onOpenChange }) {
-    const handle = () => {
+export function DeleteModal({ open, onOpenChange, onDelete, isDeleting = false }) {
+    const handleDelete = async () => {
+        if (typeof onDelete === "function") {
+            await onDelete();
+            return;
+        }
+
         onOpenChange(false);
     };
 
@@ -27,15 +32,17 @@ export function DeleteModal({ open, onOpenChange }) {
                     <div className="mt-5 flex flex-col gap-1.5">
                         <button
                             type="button"
-                            onClick={() => handle("me")}
-                            className="w-full rounded-full border border-black/10 bg-white px-4 py-2 text-sm text-black transition-colors hover:bg-neutral-50"
+                            onClick={handleDelete}
+                            disabled={isDeleting}
+                            className="w-full rounded-full border border-red-200 bg-white px-4 py-2 text-sm text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                            Delete
+                            {isDeleting ? "Deleting..." : "Delete"}
                         </button>
                         <button
                             type="button"
                             onClick={() => onOpenChange(false)}
-                            className="w-full rounded-full bg-neutral-100 px-4 py-2 text-sm text-black transition-colors hover:bg-neutral-200"
+                            disabled={isDeleting}
+                            className="w-full rounded-full bg-neutral-100 px-4 py-2 text-sm text-black transition-colors hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             Cancel
                         </button>
