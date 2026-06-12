@@ -55,6 +55,267 @@ const initials = (name = "") =>
     .map((part) => part[0]?.toUpperCase() || "")
     .join("");
 
+
+const ImageLightbox = ({ images, initialIndex, onClose }) => {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [isVisible, setIsVisible] = useState(false);
+  const touchStartRef = useRef(null);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setIsVisible(true));
+    document.body.style.overflow = "hidden";
+    return () => {
+      cancelAnimationFrame(frame);
+      document.body.style.overflow = "";
+    };
+  }, []);
+
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(onClose, 220);
+  };
+
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key === "Escape") handleClose();
+      if (e.key === "ArrowLeft" && images.length > 1) {
+        setCurrentIndex((i) => (i - 1 + images.length) % images.length);
+      }
+      if (e.key === "ArrowRight" && images.length > 1) {
+        setCurrentIndex((i) => (i + 1) % images.length);
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [images.length]);
+
+  const goTo = (idx) => setCurrentIndex((idx + images.length) % images.length);
+
+  const handleTouchStart = (e) => {
+    touchStartRef.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e) => {
+    if (touchStartRef.current === null) return;
+    const diff = touchStartRef.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 40) goTo(diff > 0 ? currentIndex + 1 : currentIndex - 1);
+    touchStartRef.current = null;
+  };
+
+  return (
+    <div
+      className={`lightbox-overlay ${isVisible ? "lightbox-visible" : ""}`}
+      onClick={handleClose}
+    >
+      <button className="lightbox-close" onClick={handleClose} type="button" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+
+      {images.length > 1 && <div className="lightbox-counter">{currentIndex + 1} / {images.length}</div>}
+
+      <div
+        className="lightbox-content"
+        onClick={(e) => e.stopPropagation()}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <img key={currentIndex} className="lightbox-img" src={images[currentIndex]} alt="" draggable={false} />
+      </div>
+
+      {images.length > 1 && (
+        <>
+          <button
+            className="lightbox-nav lightbox-nav-left"
+            onClick={(e) => { e.stopPropagation(); goTo(currentIndex - 1); }}
+            type="button"
+            aria-label="Previous image"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <button
+            className="lightbox-nav lightbox-nav-right"
+            onClick={(e) => { e.stopPropagation(); goTo(currentIndex + 1); }}
+            type="button"
+            aria-label="Next image"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+        </>
+      )}
+
+      {images.length > 1 && (
+        <div className="lightbox-thumbs" onClick={(e) => e.stopPropagation()}>
+          {images.map((img, i) => (
+            <button
+              key={i}
+              className={`lightbox-thumb-btn ${i === currentIndex ? "lightbox-thumb-active" : ""}`}
+              onClick={() => setCurrentIndex(i)}
+              type="button"
+              aria-label={`View image ${i + 1}`}
+            >
+              <img src={img} alt="" draggable={false} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const PollCard = ({ postId, poll, onPollChange }) => {
+  const [votedOptionId, setVotedOptionId] = useState(poll.votedOptionId ?? null);
+  const [options, setOptions] = useState(Array.isArray(poll.options) ? poll.options : []);
+  const [totalVotes, setTotalVotes] = useState(Number(poll.totalVotes || 0));
+  const [isSavingVote, setIsSavingVote] = useState(false);
+  const [hasEnded, setHasEnded] = useState(new Date(poll.endsAt).getTime() <= Date.now());
+
+  useEffect(() => {
+    setVotedOptionId(poll.votedOptionId ?? null);
+    setOptions(Array.isArray(poll.options) ? poll.options : []);
+    setTotalVotes(Number(poll.totalVotes || 0));
+    setHasEnded(new Date(poll.endsAt).getTime() <= Date.now());
+  }, [poll]);
+
+  useEffect(() => {
+    const endsAtMs = new Date(poll.endsAt).getTime();
+    const delay = endsAtMs - Date.now();
+
+    if (!Number.isFinite(endsAtMs) || delay <= 0) {
+      setHasEnded(true);
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => setHasEnded(true), Math.min(delay, 2147483647));
+    return () => window.clearTimeout(timeoutId);
+  }, [poll.endsAt]);
+
+  const hasVoted = votedOptionId !== null;
+  const showResults = hasVoted || hasEnded;
+  const maxVotes = Math.max(...options.map((o) => Number(o.votes || 0)), 0);
+
+  const formatTimeLeft = (endsAt) => {
+    const diff = new Date(endsAt).getTime() - Date.now();
+    if (diff <= 0) return "Final results";
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.ceil((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    if (days > 0) return `${days} day${days !== 1 ? "s" : ""} left`;
+    return `${Math.max(hours, 1)}h left`;
+  };
+
+  const applyPollSnapshot = (nextPoll) => {
+    if (!nextPoll) return;
+    setVotedOptionId(nextPoll.votedOptionId ?? null);
+    setOptions(Array.isArray(nextPoll.options) ? nextPoll.options : []);
+    setTotalVotes(Number(nextPoll.totalVotes || 0));
+    setHasEnded(new Date(nextPoll.endsAt).getTime() <= Date.now());
+    onPollChange?.(nextPoll);
+  };
+
+  const handleVote = async (optionId) => {
+    if (hasVoted || hasEnded || isSavingVote || !postId) return;
+
+    const previousState = { votedOptionId, options, totalVotes };
+    const optimisticOptions = options.map((option) =>
+      option.id === optionId ? { ...option, votes: Number(option.votes || 0) + 1 } : option,
+    );
+    const optimisticTotalVotes = totalVotes + 1;
+
+    setVotedOptionId(optionId);
+    setOptions(optimisticOptions);
+    setTotalVotes(optimisticTotalVotes);
+    onPollChange?.({
+      ...poll,
+      options: optimisticOptions,
+      totalVotes: optimisticTotalVotes,
+      votedOptionId: optionId,
+    });
+
+    setIsSavingVote(true);
+    try {
+      const response = await fetch(`/api/posts/${postId}/poll-vote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ optionId }),
+      });
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data?.poll) {
+          applyPollSnapshot(data.poll);
+          return;
+        }
+        throw new Error(data?.error || "Could not save poll vote");
+      }
+
+      applyPollSnapshot(data.poll);
+    } catch (error) {
+      console.error(error);
+      setVotedOptionId(previousState.votedOptionId);
+      setOptions(previousState.options);
+      setTotalVotes(previousState.totalVotes);
+      onPollChange?.({
+        ...poll,
+        options: previousState.options,
+        totalVotes: previousState.totalVotes,
+        votedOptionId: previousState.votedOptionId,
+      });
+    } finally {
+      setIsSavingVote(false);
+    }
+  };
+
+  return (
+    <div className="poll-card" onClick={(e) => e.stopPropagation()}>
+      {options.map((option) => {
+        const optionVotes = Number(option.votes || 0);
+        const pct = totalVotes > 0 ? Math.round((optionVotes / totalVotes) * 100) : 0;
+        const isWinner = showResults && optionVotes === maxVotes && maxVotes > 0;
+        const isMyVote = votedOptionId === option.id;
+
+        return (
+          <button
+            key={option.id}
+            className="poll-option"
+            onClick={() => handleVote(option.id)}
+            disabled={showResults || isSavingVote}
+            type="button"
+          >
+            {showResults && (
+              <div
+                className={`poll-option-fill ${isWinner ? "poll-fill-winner" : ""} ${isMyVote ? "poll-fill-myvote" : ""}`}
+                style={{ width: `${pct}%` }}
+              />
+            )}
+            <div className="poll-option-content">
+              <span className="poll-option-label">
+                {option.text}
+                {isMyVote && showResults && (
+                  <svg className="poll-check-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                )}
+              </span>
+              {showResults && <span className="poll-option-pct">{pct}%</span>}
+            </div>
+          </button>
+        );
+      })}
+      <div className="poll-meta">
+        <span>{totalVotes.toLocaleString()} votes</span>
+        <span className="poll-meta-dot">·</span>
+        <span>{formatTimeLeft(poll.endsAt)}</span>
+      </div>
+    </div>
+  );
+};
+
 const Loading = () => (
   <div className="userpostsloadani">
     <div className="relative w-12 h-12">
@@ -131,7 +392,7 @@ const likePost = async (postId, method) => {
 };
 
 const getImageGridClass = (count) => {
-  if (count <= 1) return "image-grid count-1";
+  if (count === 1) return "x-single-image";
   if (count === 2) return "image-grid count-2";
   if (count === 3) return "image-grid count-3";
   return "image-grid count-4";
@@ -205,6 +466,7 @@ export function ExplorePage({ onBack }) {
   const [suggestedUsersLoading, setSuggestedUsersLoading] = useState(true);
   const [activePostId, setActivePostId] = useState(null);
   const [threadPostId, setThreadPostId] = useState(null);
+  const [lightbox, setLightbox] = useState({ images: [], index: 0, open: false });
   const [sharePost, setSharePost] = useState(null);
   const [openShare, setOpenShare] = useState(false);
   const [menuPostId, setMenuPostId] = useState(null);
@@ -370,6 +632,10 @@ export function ExplorePage({ onBack }) {
     [suggestedPosts, threadPostId]
   );
 
+  const openLightbox = (images, index) => {
+    setLightbox({ images, index, open: true });
+  };
+
   const updateSingleSuggestedPost = (updatedPost) => {
     const normalizedUpdatedPost = normalizePost(updatedPost);
     if (!normalizedUpdatedPost) return;
@@ -433,8 +699,8 @@ export function ExplorePage({ onBack }) {
   const handleOpenThread = (postId) => {
     if (!postId) return;
 
-    setThreadPostId(postId);
     setMenuPostId(null);
+    router.push(`/dashboard/post/${postId}`);
   };
 
   const handleBackToSuggestedPosts = () => {
@@ -455,10 +721,46 @@ export function ExplorePage({ onBack }) {
 
       updateSingleSuggestedPost(data.post);
       setActivePostId(null);
-      setThreadPostId(postId);
+      router.push(`/dashboard/post/${postId}`);
     } catch (error) {
       console.error(error);
       alert("Could not publish comment");
+    }
+  };
+
+  const handlePollChange = (postId, nextPoll) => {
+    if (!postId || !nextPoll) return;
+
+    setSuggestedPosts((prev) =>
+      Array.isArray(prev)
+        ? prev.map((post) => (post.id === postId ? { ...post, poll: nextPoll } : post))
+        : prev
+    );
+  };
+
+  const toggleSavePost = async (postId) => {
+    try {
+      const res = await fetch("/api/posts/bookmark", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postId }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error("Failed");
+      }
+
+      setSuggestedPosts((prev) =>
+        Array.isArray(prev)
+          ? prev.map((post) =>
+            post.id === postId ? { ...post, savedByCurrentUser: data.saved } : post
+          )
+          : prev
+      );
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -601,7 +903,14 @@ export function ExplorePage({ onBack }) {
                   </svg>
                   Report Post
                 </button>
-                <button className="menu-item" type="button">
+                <button
+                  className="menu-item"
+                  type="button"
+                  onClick={() => {
+                    toggleSavePost(post.id);
+                    setMenuPostId(null);
+                  }}
+                >
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
                   </svg>
@@ -646,12 +955,41 @@ export function ExplorePage({ onBack }) {
           {post.content}
           {!!post.images?.length && (
             <div className="image-post">
-              <div className={getImageGridClass(post.images.length)}>
-                {post.images.map((imageUrl, idx) => (
-                  <img key={`${post.id}-${idx}`} src={imageUrl} alt="Post image" />
-                ))}
-              </div>
+              {post.images.length === 1 ? (
+                <div className="x-single-image">
+                  <img
+                    src={post.images[0]}
+                    alt=""
+                    loading="lazy"
+                    style={{ cursor: "pointer" }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openLightbox(post.images, 0);
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className={getImageGridClass(post.images.length)}>
+                  {post.images.map((imageUrl, idx) => (
+                    <img
+                      key={`${post.id}-${idx}`}
+                      src={imageUrl}
+                      alt=""
+                      loading="lazy"
+                      onClick={(e) => { e.stopPropagation(); openLightbox(post.images, idx); }}
+                      style={{ cursor: "pointer" }}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
+          )}
+          {post.poll && (
+            <PollCard
+              postId={post.id}
+              poll={post.poll}
+              onPollChange={(nextPoll) => handlePollChange(post.id, nextPoll)}
+            />
           )}
         </div>
 
@@ -678,8 +1016,7 @@ export function ExplorePage({ onBack }) {
           <div className="post-foot-iconcont">
             <button onClick={() => {
               if (!post?.id) return;
-              setThreadPostId(post.id);
-              setActivePostId(post.id);
+              router.push(`/dashboard/post/${post.id}`);
             }} type="button">
               <img className="post-foot-icon" src="/Postimg/comment.svg" alt="Comment" />
             </button>
@@ -692,8 +1029,15 @@ export function ExplorePage({ onBack }) {
             <span className="post-share-count">0</span>
           </div>
           <div className="post-foot-iconcont">
-            <img className="post-foot-icon" src="/Postimg/bookmark.svg" alt="bookmark" />
-            <span className="post-bookmark-count">0</span>
+            <button type="button" onClick={() => toggleSavePost(post.id)}>
+              <img
+                className="post-foot-icon"
+                src="/Postimg/bookmark.svg"
+                alt="bookmark"
+                style={{ opacity: post.savedByCurrentUser ? 1 : 0.6 }}
+              />
+            </button>
+            <span className="post-bookmark-count">{post.savedByCurrentUser ? 1 : 0}</span>
           </div>
         </div>
       </div>
@@ -724,7 +1068,13 @@ export function ExplorePage({ onBack }) {
           <div className="thread-comment-media">
             <div className={getImageGridClass(comment.images.length)}>
               {comment.images.map((imageUrl, index) => (
-                <img key={`${comment.id}-${index}`} src={imageUrl} alt="Reply media" />
+                <img
+                  key={`${comment.id}-${index}`}
+                  src={imageUrl}
+                  alt="Reply media"
+                  onClick={(e) => { e.stopPropagation(); openLightbox(comment.images, index); }}
+                  style={{ cursor: "pointer" }}
+                />
               ))}
             </div>
           </div>
@@ -1136,6 +1486,14 @@ export function ExplorePage({ onBack }) {
         open={isAllClubsModalOpen}
         onClose={() => setIsAllClubsModalOpen(false)}
       />
+
+      {lightbox.open && (
+        <ImageLightbox
+          images={lightbox.images}
+          initialIndex={lightbox.index}
+          onClose={() => setLightbox((prev) => ({ ...prev, open: false }))}
+        />
+      )}
     </div>
   );
 }
