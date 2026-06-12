@@ -7,6 +7,7 @@ import { getLikeCount } from "@/lib/postLikeCache";
 import { buildPollDocument, parseLegacyPollContent } from "@/lib/polls";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getHybridFeedPosts, decodeFeedCursor } from "@/lib/feedRanking";
 
 
 const DEFAULT_POST_LIMIT = 15;
@@ -203,20 +204,34 @@ export async function GET(req) {
       ? { likeCount: -1, createdAt: -1, _id: -1 }
       : { createdAt: -1, _id: -1 };
 
-    if (cursor && sort !== "top") {
-      query.$or = [
-        { createdAt: { $lt: cursor.createdAt } },
-        { createdAt: cursor.createdAt, _id: { $lt: cursor.id } },
-      ];
+    let paginatedPosts;
+    let nextCursor;
+    let hasMore;
+
+    if (sort === "top") {
+      const cursor = decodePostCursor(searchParams.get("cursor"));
+      if (cursor) {
+        query.$or = [
+          { createdAt: { $lt: cursor.createdAt } },
+          { createdAt: cursor.createdAt, _id: { $lt: cursor.id } },
+        ];
+      }
+      let postsQuery = Post.find(query).sort(sortQuery);
+      if (limit) postsQuery = postsQuery.limit(limit + 1);
+
+      const posts = await postsQuery.lean();
+      hasMore = limit ? posts.length > limit : false;
+      paginatedPosts = hasMore ? posts.slice(0, limit) : posts;
+      nextCursor = hasMore ? encodePostCursor(paginatedPosts[paginatedPosts.length - 1]) : null;
+    } else {
+      const cursor = decodeFeedCursor(searchParams.get("cursor"));
+      const resolvedLimit = limit > 0 ? limit : DEFAULT_POST_LIMIT;
+      const result = await getHybridFeedPosts(query, resolvedLimit, cursor);
+      paginatedPosts = result.posts;
+      nextCursor = result.nextCursor;
+      hasMore = result.hasMore;
     }
 
-    let postsQuery = Post.find(query).sort(sortQuery);
-    if (limit) postsQuery = postsQuery.limit(limit + 1);
-
-    const posts = await postsQuery.lean();
-    const hasMore = limit ? posts.length > limit : false;
-    const paginatedPosts = hasMore ? posts.slice(0, limit) : posts;
-    const nextCursor = hasMore ? encodePostCursor(paginatedPosts[paginatedPosts.length - 1]) : null;
     const hydratedPosts = await resolvePostAuthorImages(paginatedPosts);
 
     const session = await getServerSession(authOptions);

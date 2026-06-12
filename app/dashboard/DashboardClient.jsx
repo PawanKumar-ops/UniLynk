@@ -42,6 +42,128 @@ const dashboardPostQueryKey = (postId) => [
 ];
 
 
+// ─── Image Lightbox ───────────────────────────────────────────────────────────
+
+const ImageLightbox = ({ images, initialIndex, onClose }) => {
+  const [currentIndex, setCurrentIndex] = useState(initialIndex);
+  const [isVisible, setIsVisible] = useState(false);
+  const touchStartRef = useRef(null);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setIsVisible(true));
+    document.body.style.overflow = "hidden";
+    return () => {
+      cancelAnimationFrame(frame);
+      document.body.style.overflow = "";
+    };
+  }, []);
+
+  const handleClose = () => {
+    setIsVisible(false);
+    setTimeout(onClose, 220);
+  };
+
+  useEffect(() => {
+    const handleKey = (e) => {
+      if (e.key === "Escape") handleClose();
+      if (e.key === "ArrowLeft" && images.length > 1)
+        setCurrentIndex((i) => (i - 1 + images.length) % images.length);
+      if (e.key === "ArrowRight" && images.length > 1)
+        setCurrentIndex((i) => (i + 1) % images.length);
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [images.length]);
+
+  const goTo = (idx) => setCurrentIndex((idx + images.length) % images.length);
+
+  const handleTouchStart = (e) => {
+    touchStartRef.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = (e) => {
+    if (touchStartRef.current === null) return;
+    const diff = touchStartRef.current - e.changedTouches[0].clientX;
+    if (Math.abs(diff) > 40) goTo(diff > 0 ? currentIndex + 1 : currentIndex - 1);
+    touchStartRef.current = null;
+  };
+
+  return (
+    <div
+      className={`lightbox-overlay ${isVisible ? "lightbox-visible" : ""}`}
+      onClick={handleClose}
+    >
+      <button className="lightbox-close" onClick={handleClose} type="button" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
+
+      {images.length > 1 && (
+        <div className="lightbox-counter">{currentIndex + 1} / {images.length}</div>
+      )}
+
+      <div
+        className="lightbox-content"
+        onClick={(e) => e.stopPropagation()}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
+      >
+        <img
+          key={currentIndex}
+          className="lightbox-img"
+          src={images[currentIndex]}
+          alt=""
+          draggable={false}
+        />
+      </div>
+
+      {images.length > 1 && (
+        <>
+          <button
+            className="lightbox-nav lightbox-nav-left"
+            onClick={(e) => { e.stopPropagation(); goTo(currentIndex - 1); }}
+            type="button"
+            aria-label="Previous image"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          </button>
+          <button
+            className="lightbox-nav lightbox-nav-right"
+            onClick={(e) => { e.stopPropagation(); goTo(currentIndex + 1); }}
+            type="button"
+            aria-label="Next image"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+        </>
+      )}
+
+      {images.length > 1 && (
+        <div className="lightbox-thumbs" onClick={(e) => e.stopPropagation()}>
+          {images.map((img, i) => (
+            <button
+              key={i}
+              className={`lightbox-thumb-btn ${i === currentIndex ? "lightbox-thumb-active" : ""}`}
+              onClick={() => setCurrentIndex(i)}
+              type="button"
+              aria-label={`View image ${i + 1}`}
+            >
+              <img src={img} alt="" draggable={false} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
+
 // ─── Poll Card ────────────────────────────────────────────────────────────────
 
 const PollCard = ({ postId, poll, onPollChange }) => {
@@ -347,6 +469,11 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
   const [pendingNotifications, setPendingNotifications] = useState([]);
   const [activePastEvent, setActivePastEvent] = useState(null);
   const [imageRatios, setImageRatios] = useState({});
+  const [lightbox, setLightbox] = useState({ images: [], index: 0, open: false });
+
+  const openLightbox = (images, index) => {
+    setLightbox({ images, index, open: true });
+  };
 
   useEffect(() => {
     if (!session?.user?.email) return undefined;
@@ -718,7 +845,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
         if (Array.isArray(cachedData)) {
           return cachedData.map((post) =>
             post.id === normalizedUpdatedPost.id ? normalizedUpdatedPost : post,
-          );
+           );
         }
 
         if (!cachedData?.pages) return cachedData;
@@ -1106,39 +1233,39 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
           {post.content}
           {!!post.images?.length && (
             <div className="image-post">
-              <div
-                className={getImageGridClass(
-                  post.images.length,
-                  imageRatios[post.id] || 1
-                )}
-              >
-                {post.images.length === 1 ? (
-                  <div className="x-single-image">
-                    <img
-                      src={post.images[0]}
-                      alt=""
-                      loading="lazy"
-                      onLoad={(e) => {
-                        setImageRatios(prev => ({
-                          ...prev,
-                          [post.id]:
-                            e.target.naturalWidth /
-                            e.target.naturalHeight
-                        }));
-                      }}
-                    />
-                  </div>
-                ) : (
-                  post.images.map((imageUrl, idx) => (
+              {post.images.length === 1 ? (
+                <div
+                  className="x-single-image"
+                  onClick={(e) => { e.stopPropagation(); openLightbox(post.images, 0); }}
+                  style={{ cursor: "pointer" }}
+                >
+                  <img
+                    src={post.images[0]}
+                    alt=""
+                    loading="lazy"
+                    onLoad={(e) => {
+                      setImageRatios((prev) => ({
+                        ...prev,
+                        [post.id]:
+                          e.target.naturalWidth / e.target.naturalHeight,
+                      }));
+                    }}
+                  />
+                </div>
+              ) : (
+                <div className={getImageGridClass(post.images.length)}>
+                  {post.images.map((imageUrl, idx) => (
                     <img
                       key={`${post.id}-${idx}`}
                       src={imageUrl}
                       alt=""
                       loading="lazy"
+                      onClick={(e) => { e.stopPropagation(); openLightbox(post.images, idx); }}
+                      style={{ cursor: "pointer" }}
                     />
-                  ))
-                )}
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
           {post.poll && (
@@ -1278,6 +1405,8 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
                   key={`${comment.id}-${index}`}
                   src={imageUrl}
                   alt="Reply media"
+                  onClick={(e) => { e.stopPropagation(); openLightbox(comment.images, index); }}
+                  style={{ cursor: "pointer" }}
                 />
               ))}
             </div>
@@ -1347,7 +1476,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
                         onClick={handleBackToFeed}
                       >
                         <ArrowLeft size={18} />
-                       
+
                       </button>
                       <div>
                         <h2 className="thread-view-title">Post</h2>
@@ -1571,6 +1700,14 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
           )}
         </div>
       </div>
+
+      {lightbox.open && (
+        <ImageLightbox
+          images={lightbox.images}
+          initialIndex={lightbox.index}
+          onClose={() => setLightbox((prev) => ({ ...prev, open: false }))}
+        />
+      )}
     </div>
   );
 }

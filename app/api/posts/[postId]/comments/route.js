@@ -91,6 +91,15 @@ export async function POST(req, { params }) {
       return Response.json({ error: "Post not found" }, { status: 404 });
     }
 
+    try {
+      const { updatePostTrendingScore } = await import("@/lib/feedRanking");
+      updatePostTrendingScore(postId).catch(err =>
+        console.error(`Error updating trending score for post ${postId} on comment:`, err)
+      );
+    } catch (err) {
+      console.error("Failed to import/run trending score updates for comment:", err);
+    }
+
     return Response.json({ post: normalizePostForClient(updatedPost) }, { status: 201 });
   } catch (error) {
     console.error("CREATE COMMENT ERROR:", error);

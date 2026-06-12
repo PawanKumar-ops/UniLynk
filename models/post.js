@@ -183,13 +183,24 @@ const PostSchema = new mongoose.Schema(
       min: 0,
       index: true,
     },
+    trendingScore: {
+      type: Number,
+      default: 0,
+      index: true,
+    },
   },
   {
     timestamps: true,
   }
 );
 
-if (mongoose.models.Post && !mongoose.models.Post.schema.path("poll")) {
+PostSchema.index({ visibility: 1, trendingScore: -1, _id: -1 });
+PostSchema.index({ clubId: 1, trendingScore: -1, _id: -1 });
+PostSchema.index({ visibility: 1, createdAt: -1, _id: -1 });
+PostSchema.index({ clubId: 1, createdAt: -1, _id: -1 });
+PostSchema.index({ createdAt: -1, _id: -1 });
+
+if (mongoose.models.Post && (!mongoose.models.Post.schema.path("poll") || !mongoose.models.Post.schema.path("trendingScore"))) {
   delete mongoose.models.Post;
 }
 

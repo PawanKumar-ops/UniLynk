@@ -45,5 +45,7 @@ const UserSchema = new mongoose.Schema({
 
 });
 
+UserSchema.index({ savedPosts: 1 });
+
 export default mongoose.models.User ||
   mongoose.model("User", UserSchema);

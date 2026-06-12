@@ -97,6 +97,14 @@ export async function POST(req, context) {
     ).lean();
 
     if (updatedPost?.poll) {
+      try {
+        const { updatePostTrendingScore } = await import("@/lib/feedRanking");
+        updatePostTrendingScore(postId).catch(err =>
+          console.error(`Error updating trending score for post ${postId} on poll vote:`, err)
+        );
+      } catch (err) {
+        console.error("Failed to import/run trending score updates for poll vote:", err);
+      }
       return Response.json({ poll: normalizePoll(updatedPost.poll, user._id) }, { status: 200 });
     }
 

@@ -45,6 +45,15 @@ export async function POST(req) {
 
     await user.save();
 
+    try {
+      const { updatePostTrendingScore } = await import("@/lib/feedRanking");
+      updatePostTrendingScore(postId).catch(err =>
+        console.error(`Error updating trending score for post ${postId} on bookmark:`, err)
+      );
+    } catch (err) {
+      console.error("Failed to import/run trending score updates for bookmark:", err);
+    }
+
     return Response.json({ saved: !alreadySaved }, { status: 200 });
   } catch (error) {
     console.error('BOOKMARK ERROR:', error);
