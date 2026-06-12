@@ -20,30 +20,36 @@ export async function POST(req) {
       return Response.json({ error: 'Invalid postId' }, { status: 400 });
     }
 
-    // Find the post to ensure it exists.
-    const post = await Post.findById(postId).lean();
+    const post = await Post.findById(postId, { _id: 1, bookmarkCount: 1 }).lean();
     if (!post) {
       return Response.json({ error: 'Post not found' }, { status: 404 });
     }
 
-    // Load the user document.
-    const user = await User.findOne({ email: session.user.email });
+    const user = await User.findOne({ email: session.user.email }, { savedPosts: 1 });
     if (!user) {
       return Response.json({ error: 'User not found' }, { status: 404 });
     }
 
-    const postObjectId = post._id;
-    const alreadySaved = user.savedPosts?.some((id) => id.equals(postObjectId));
+    const alreadySaved = user.savedPosts?.some((id) => id.equals(post._id));
+    const userUpdate = alreadySaved
+      ? { $pull: { savedPosts: post._id } }
+      : { $addToSet: { savedPosts: post._id } };
+    const userResult = await User.updateOne({ _id: user._id }, userUpdate);
 
-    if (alreadySaved) {
-      // Remove from savedPosts.
-      user.savedPosts = user.savedPosts.filter((id) => !id.equals(postObjectId));
-    } else {
-      // Add to savedPosts.
-      user.savedPosts = user.savedPosts ? [...user.savedPosts, postObjectId] : [postObjectId];
+    if (userResult.modifiedCount > 0) {
+      await Post.updateOne(
+        { _id: post._id },
+        [
+          {
+            $set: {
+              bookmarkCount: {
+                $max: [0, { $add: [{ $ifNull: ['$bookmarkCount', 0] }, alreadySaved ? -1 : 1] }],
+              },
+            },
+          },
+        ]
+      );
     }
-
-    await user.save();
 
     try {
       const { updatePostTrendingScore } = await import("@/lib/feedRanking");

@@ -1,10 +1,11 @@
 import { connectDB } from "@/lib/mongodb";
 import Post from "@/models/post";
 import User from "@/models/user";
+import Comment from "@/models/comment";
 import Club from "@/models/Club";
 import PostLike from "@/models/postLike";
-import { getLikeCount } from "@/lib/postLikeCache";
-import { buildPollDocument, parseLegacyPollContent } from "@/lib/polls";
+import { getLikeCounts } from "@/lib/postLikeCache";
+import { parseLegacyPollContent } from "@/lib/polls";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getHybridFeedPosts, decodeFeedCursor } from "@/lib/feedRanking";
@@ -114,31 +115,47 @@ const resolveLikeState = async (posts, userId) => {
   if (!posts.length) return [];
 
   const postIds = posts.map((post) => post._id.toString());
-  const likedPostIds = new Set();
+  const [likes, likeCountsById] = await Promise.all([
+    userId
+      ? PostLike.find({ postId: { $in: postIds }, userId }, { postId: 1 }).lean()
+      : [],
+    getLikeCounts(posts),
+  ]);
+  const likedPostIds = new Set(likes.map((like) => like.postId.toString()));
 
-  if (userId) {
-    const likes = await PostLike.find(
-      { postId: { $in: postIds }, userId },
-      { postId: 1 }
-    ).lean();
+  return posts.map((post) => {
+    const postId = post._id.toString();
+    return {
+      ...post,
+      likeCount: likeCountsById.get(postId) ?? Number(post.likeCount || 0),
+      likedByCurrentUser: likedPostIds.has(postId),
+    };
+  });
+};
 
-    for (const like of likes) {
-      likedPostIds.add(like.postId.toString());
-    }
+const attachRecentComments = async (posts) => {
+  if (!posts.length) return [];
+
+  const postIds = posts.map((post) => post._id);
+  const comments = await Comment.find(
+    { postId: { $in: postIds } },
+    { postId: 1, content: 1, authorName: 1, authorEmail: 1, authorImage: 1, images: 1, createdAt: 1, updatedAt: 1 }
+  )
+    .sort({ createdAt: 1, _id: 1 })
+    .lean();
+
+  const commentsByPostId = new Map();
+  for (const comment of comments) {
+    const key = comment.postId.toString();
+    const current = commentsByPostId.get(key) || [];
+    current.push(comment);
+    commentsByPostId.set(key, current);
   }
 
-  return Promise.all(
-    posts.map(async (post) => {
-      const postId = post._id.toString();
-      const likeCount = await getLikeCount(postId, Number(post.likeCount || 0));
-
-      return {
-        ...post,
-        likeCount,
-        likedByCurrentUser: likedPostIds.has(postId),
-      };
-    })
-  );
+  return posts.map((post) => ({
+    ...post,
+    comments: commentsByPostId.get(post._id.toString()) || [],
+  }));
 };
 
 const normalizePollForUser = (poll, userId) => {
@@ -170,7 +187,8 @@ const normalizePosts = (posts, userId = null) =>
           id: comment.id ?? comment._id?.toString?.() ?? String(comment._id || ""),
         }))
       : [],
-    commentCount: Array.isArray(post.comments) ? post.comments.length : 0,
+    commentCount: Number(post.commentCount ?? (Array.isArray(post.comments) ? post.comments.length : 0)),
+    bookmarkCount: Number(post.bookmarkCount || 0),
     poll: normalizePollForUser(post.poll, userId),
   }));
 
@@ -240,7 +258,8 @@ export async function GET(req) {
       ? await User.findOne({ email: sessionEmail }, { _id: 1, savedPosts: 1 }).lean()
       : null;
 
-    const enrichedPosts = await resolveLikeState(hydratedPosts, user?._id?.toString());
+    const postsWithComments = await attachRecentComments(hydratedPosts);
+    const enrichedPosts = await resolveLikeState(postsWithComments, user?._id?.toString());
     const savedPostIds = new Set(user?.savedPosts?.map(id => id.toString()) || []);
     const enrichedPostsWithSave = enrichedPosts.map(post => ({
       ...post,
