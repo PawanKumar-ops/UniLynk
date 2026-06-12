@@ -815,8 +815,8 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
               ...page,
               posts: Array.isArray(page?.posts)
                 ? page.posts.map((post) =>
-                    post.id === postId ? updater(post) : post,
-                  )
+                  post.id === postId ? updater(post) : post,
+                )
                 : page?.posts,
             })),
           };
@@ -845,7 +845,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
         if (Array.isArray(cachedData)) {
           return cachedData.map((post) =>
             post.id === normalizedUpdatedPost.id ? normalizedUpdatedPost : post,
-           );
+          );
         }
 
         if (!cachedData?.pages) return cachedData;
@@ -856,8 +856,8 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
             ...page,
             posts: Array.isArray(page?.posts)
               ? page.posts.map((post) =>
-                  post.id === normalizedUpdatedPost.id ? normalizedUpdatedPost : post,
-                )
+                post.id === normalizedUpdatedPost.id ? normalizedUpdatedPost : post,
+              )
               : page?.posts,
           })),
         };
@@ -1234,20 +1234,20 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
           {!!post.images?.length && (
             <div className="image-post">
               {post.images.length === 1 ? (
-                <div
-                  className="x-single-image"
-                  onClick={(e) => { e.stopPropagation(); openLightbox(post.images, 0); }}
-                  style={{ cursor: "pointer" }}
-                >
+                <div className="x-single-image">
                   <img
                     src={post.images[0]}
                     alt=""
                     loading="lazy"
+                    style={{ cursor: "pointer" }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openLightbox(post.images, 0);
+                    }}
                     onLoad={(e) => {
                       setImageRatios((prev) => ({
                         ...prev,
-                        [post.id]:
-                          e.target.naturalWidth / e.target.naturalHeight,
+                        [post.id]: e.target.naturalWidth / e.target.naturalHeight,
                       }));
                     }}
                   />
