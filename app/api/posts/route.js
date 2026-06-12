@@ -8,6 +8,37 @@ import { buildPollDocument, parseLegacyPollContent } from "@/lib/polls";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
+
+const DEFAULT_POST_LIMIT = 15;
+const MAX_POST_LIMIT = 50;
+
+const encodePostCursor = (post) => {
+  if (!post?.createdAt || !post?._id) return null;
+
+  return Buffer.from(
+    JSON.stringify({
+      createdAt: new Date(post.createdAt).toISOString(),
+      id: post._id.toString(),
+    }),
+  ).toString("base64url");
+};
+
+const decodePostCursor = (cursor) => {
+  if (typeof cursor !== "string" || !cursor.trim()) return null;
+
+  try {
+    const parsed = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
+    const createdAt = new Date(parsed?.createdAt);
+    const id = typeof parsed?.id === "string" ? parsed.id.trim() : "";
+
+    if (Number.isNaN(createdAt.getTime()) || !/^[a-f\d]{24}$/i.test(id)) return null;
+
+    return { createdAt, id };
+  } catch {
+    return null;
+  }
+};
+
 const normalizeEmail = (email) => {
   if (typeof email !== "string") return "";
   return email.trim().toLowerCase();
@@ -150,9 +181,13 @@ export async function GET(req) {
     const audience = searchParams.get("audience");
     const clubId = searchParams.get("clubId");
     const sort = searchParams.get("sort");
-    const requestedLimit = Number(searchParams.get("limit") || 0);
-    const limit = Number.isFinite(requestedLimit) && requestedLimit > 0
-      ? Math.min(Math.floor(requestedLimit), 10)
+    const cursor = decodePostCursor(searchParams.get("cursor"));
+    const requestedLimitParam = searchParams.get("limit");
+    const requestedLimit = Number(requestedLimitParam || DEFAULT_POST_LIMIT);
+    const limit = requestedLimitParam || cursor
+      ? Number.isFinite(requestedLimit) && requestedLimit > 0
+        ? Math.min(Math.floor(requestedLimit), MAX_POST_LIMIT)
+        : DEFAULT_POST_LIMIT
       : 0;
 
     const query = {
@@ -165,14 +200,24 @@ export async function GET(req) {
     };
 
     const sortQuery = sort === "top"
-      ? { likeCount: -1, createdAt: -1 }
-      : { createdAt: -1 };
+      ? { likeCount: -1, createdAt: -1, _id: -1 }
+      : { createdAt: -1, _id: -1 };
+
+    if (cursor && sort !== "top") {
+      query.$or = [
+        { createdAt: { $lt: cursor.createdAt } },
+        { createdAt: cursor.createdAt, _id: { $lt: cursor.id } },
+      ];
+    }
 
     let postsQuery = Post.find(query).sort(sortQuery);
-    if (limit) postsQuery = postsQuery.limit(limit);
+    if (limit) postsQuery = postsQuery.limit(limit + 1);
 
     const posts = await postsQuery.lean();
-    const hydratedPosts = await resolvePostAuthorImages(posts);
+    const hasMore = limit ? posts.length > limit : false;
+    const paginatedPosts = hasMore ? posts.slice(0, limit) : posts;
+    const nextCursor = hasMore ? encodePostCursor(paginatedPosts[paginatedPosts.length - 1]) : null;
+    const hydratedPosts = await resolvePostAuthorImages(paginatedPosts);
 
     const session = await getServerSession(authOptions);
     const sessionEmail = normalizeEmail(session?.user?.email);
@@ -188,7 +233,10 @@ export async function GET(req) {
     }));
     const normalizedPosts = normalizePosts(enrichedPostsWithSave, user?._id?.toString());
 
-    return Response.json({ posts: normalizedPosts }, { status: 200 });
+    return Response.json(
+      { posts: normalizedPosts, nextCursor, hasMore },
+      { status: 200 },
+    );
   } catch (error) {
     console.error("GET POSTS ERROR:", error);
     return new Response("Internal Server Error", { status: 500 });
