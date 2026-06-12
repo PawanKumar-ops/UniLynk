@@ -189,6 +189,10 @@ const PostSchema = new mongoose.Schema(
   }
 );
 
+PostSchema.index({ visibility: 1, createdAt: -1, _id: -1 });
+PostSchema.index({ clubId: 1, createdAt: -1, _id: -1 });
+PostSchema.index({ likeCount: -1, createdAt: -1, _id: -1 });
+
 if (mongoose.models.Post && !mongoose.models.Post.schema.path("poll")) {
   delete mongoose.models.Post;
 }

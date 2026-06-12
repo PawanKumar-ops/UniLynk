@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { connectDB } from "@/lib/mongodb";
 import Post from "@/models/post";
 import User from "@/models/user";
@@ -28,6 +29,65 @@ const normalizeImage = (image) => {
   if (lowered === "null" || lowered === "undefined") return "";
 
   return cleaned;
+};
+
+
+const FEED_DEFAULT_LIMIT = 15;
+const POSTS_MAX_LIMIT = 50;
+
+const encodeCursor = (post, sort) => {
+  if (!post?.createdAt || !post?._id) return null;
+
+  const payload = {
+    id: post._id.toString(),
+    createdAt: post.createdAt instanceof Date ? post.createdAt.toISOString() : post.createdAt,
+    ...(sort === "top" ? { likeCount: Number(post.likeCount || 0) } : {}),
+  };
+
+  return Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+};
+
+const decodeCursor = (cursor) => {
+  if (typeof cursor !== "string" || !cursor.trim()) return null;
+
+  try {
+    const parsed = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
+    const createdAt = new Date(parsed.createdAt);
+    const id = typeof parsed.id === "string" ? parsed.id : "";
+
+    if (!Number.isFinite(createdAt.getTime()) || !mongoose.Types.ObjectId.isValid(id)) {
+      return null;
+    }
+
+    return {
+      id: new mongoose.Types.ObjectId(id),
+      createdAt,
+      likeCount: Number.isFinite(Number(parsed.likeCount)) ? Number(parsed.likeCount) : 0,
+    };
+  } catch {
+    return null;
+  }
+};
+
+const buildCursorFilter = (cursor, sort) => {
+  if (!cursor) return null;
+
+  if (sort === "top") {
+    return {
+      $or: [
+        { likeCount: { $lt: cursor.likeCount } },
+        { likeCount: cursor.likeCount, createdAt: { $lt: cursor.createdAt } },
+        { likeCount: cursor.likeCount, createdAt: cursor.createdAt, _id: { $lt: cursor.id } },
+      ],
+    };
+  }
+
+  return {
+    $or: [
+      { createdAt: { $lt: cursor.createdAt } },
+      { createdAt: cursor.createdAt, _id: { $lt: cursor.id } },
+    ],
+  };
 };
 
 const buildAvatarFallback = (name) => {
@@ -150,10 +210,14 @@ export async function GET(req) {
     const audience = searchParams.get("audience");
     const clubId = searchParams.get("clubId");
     const sort = searchParams.get("sort");
+    const cursorParam = searchParams.get("cursor");
+    const decodedCursor = decodeCursor(cursorParam);
     const requestedLimit = Number(searchParams.get("limit") || 0);
     const limit = Number.isFinite(requestedLimit) && requestedLimit > 0
-      ? Math.min(Math.floor(requestedLimit), 10)
-      : 0;
+      ? Math.min(Math.floor(requestedLimit), POSTS_MAX_LIMIT)
+      : cursorParam
+        ? FEED_DEFAULT_LIMIT
+        : 0;
 
     const query = {
       ...(clubId ? { clubId: clubId.trim() } : {}),
@@ -165,13 +229,17 @@ export async function GET(req) {
     };
 
     const sortQuery = sort === "top"
-      ? { likeCount: -1, createdAt: -1 }
-      : { createdAt: -1 };
+      ? { likeCount: -1, createdAt: -1, _id: -1 }
+      : { createdAt: -1, _id: -1 };
+    const cursorFilter = buildCursorFilter(decodedCursor, sort);
+    const postsFilter = cursorFilter ? { $and: [query, cursorFilter] } : query;
 
-    let postsQuery = Post.find(query).sort(sortQuery);
-    if (limit) postsQuery = postsQuery.limit(limit);
+    let postsQuery = Post.find(postsFilter).sort(sortQuery);
+    if (limit) postsQuery = postsQuery.limit(limit + 1);
 
-    const posts = await postsQuery.lean();
+    const fetchedPosts = await postsQuery.lean();
+    const hasMore = Boolean(limit && fetchedPosts.length > limit);
+    const posts = limit ? fetchedPosts.slice(0, limit) : fetchedPosts;
     const hydratedPosts = await resolvePostAuthorImages(posts);
 
     const session = await getServerSession(authOptions);
@@ -188,7 +256,14 @@ export async function GET(req) {
     }));
     const normalizedPosts = normalizePosts(enrichedPostsWithSave, user?._id?.toString());
 
-    return Response.json({ posts: normalizedPosts }, { status: 200 });
+    return Response.json(
+      {
+        posts: normalizedPosts,
+        nextCursor: hasMore ? encodeCursor(posts[posts.length - 1], sort) : null,
+        hasMore,
+      },
+      { status: 200 },
+    );
   } catch (error) {
     console.error("GET POSTS ERROR:", error);
     return new Response("Internal Server Error", { status: 500 });

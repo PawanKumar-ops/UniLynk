@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import "./dashboard.css";
 import { ArrowLeft, EllipsisVertical, ArrowRight } from "lucide-react";
 import { useSession } from "next-auth/react";
@@ -28,6 +28,7 @@ const DASHBOARD_POSTS_QUERY_ROOT = ["dashboard", "posts"];
 const DASHBOARD_FEED_STALE_TIME = 30 * 60 * 1000;
 const DASHBOARD_POST_STALE_TIME = 30 * 60 * 1000;
 const DASHBOARD_POSTS_GC_TIME = 30 * 60 * 1000;
+const DASHBOARD_FEED_PAGE_SIZE = 15;
 
 const dashboardFeedQueryKey = (audience) => [
   ...DASHBOARD_POSTS_QUERY_ROOT,
@@ -286,13 +287,81 @@ const likePost = async (postId, method) => {
   return fetch(`/api/posts/${postId}/like`, { method });
 };
 
-const fetchDashboardFeedPosts = async (audience) => {
-  const res = await fetch(`/api/posts?audience=${audience}`);
+const fetchDashboardFeedPosts = async ({ audience, cursor = null, signal } = {}) => {
+  const params = new URLSearchParams({
+    audience,
+    limit: String(DASHBOARD_FEED_PAGE_SIZE),
+  });
+
+  if (cursor) {
+    params.set("cursor", cursor);
+  }
+
+  const res = await fetch(`/api/posts?${params.toString()}`, { signal });
   const data = await res.json();
 
   if (!res.ok) throw new Error(data?.error || "Failed to fetch posts");
 
-  return (data.posts || []).map(normalizePost).filter(Boolean);
+  return {
+    posts: (data.posts || []).map(normalizePost).filter(Boolean),
+    nextCursor: data.nextCursor || null,
+    hasMore: Boolean(data.hasMore),
+  };
+};
+
+const flattenFeedPages = (pages) => {
+  const seenPostIds = new Set();
+  const flattenedPosts = [];
+
+  for (const page of Array.isArray(pages) ? pages : []) {
+    for (const post of Array.isArray(page?.posts) ? page.posts : []) {
+      if (!post?.id || seenPostIds.has(post.id)) continue;
+      seenPostIds.add(post.id);
+      flattenedPosts.push(post);
+    }
+  }
+
+  return flattenedPosts;
+};
+
+const mapFeedPages = (cachedData, mapper) => {
+  if (!cachedData?.pages || typeof mapper !== "function") return cachedData;
+
+  return {
+    ...cachedData,
+    pages: cachedData.pages.map((page) => ({
+      ...page,
+      posts: Array.isArray(page?.posts) ? page.posts.map(mapper) : [],
+    })),
+  };
+};
+
+const prependPostToFeedPages = (cachedData, post) => {
+  if (!post?.id || !cachedData?.pages?.length) return cachedData;
+
+  const alreadyExists = cachedData.pages.some((page) =>
+    (Array.isArray(page?.posts) ? page.posts : []).some(
+      (cachedPost) => cachedPost.id === post.id,
+    ),
+  );
+
+  if (alreadyExists) return cachedData;
+
+  return {
+    ...cachedData,
+    pages: [
+      {
+        ...cachedData.pages[0],
+        posts: [
+          post,
+          ...(Array.isArray(cachedData.pages[0]?.posts)
+            ? cachedData.pages[0].posts
+            : []),
+        ],
+      },
+      ...cachedData.pages.slice(1),
+    ],
+  };
 };
 
 const fetchDashboardPostById = async (postId) => {
@@ -425,6 +494,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
   const likeTimersRef = useRef({});
   const pendingLikePostIdsRef = useRef(new Set());
   const feedRef = useRef(null);
+  const loadMoreRef = useRef(null);
   const postRefs = useRef({});
   const restoreFeedScrollRef = useRef(0);
   const pendingRestorePostIdRef = useRef(null);
@@ -446,8 +516,10 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
       queryKey: [...DASHBOARD_POSTS_QUERY_ROOT, "feed"],
     });
 
-    for (const [, cachedPosts] of feedQueries) {
-      if (!Array.isArray(cachedPosts)) continue;
+    for (const [, cachedData] of feedQueries) {
+      const cachedPosts = Array.isArray(cachedData)
+        ? cachedData
+        : flattenFeedPages(cachedData?.pages);
       const matchingPost = cachedPosts.find((post) => post.id === postId);
       if (matchingPost) return matchingPost;
     }
@@ -455,9 +527,17 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
     return undefined;
   };
 
-  const feedQuery = useQuery({
+  const feedQuery = useInfiniteQuery({
     queryKey: dashboardFeedQueryKey(selectedAudience),
-    queryFn: () => fetchDashboardFeedPosts(selectedAudience),
+    queryFn: ({ pageParam, signal }) =>
+      fetchDashboardFeedPosts({
+        audience: selectedAudience,
+        cursor: pageParam,
+        signal,
+      }),
+    initialPageParam: null,
+    getNextPageParam: (lastPage) =>
+      lastPage?.hasMore ? lastPage.nextCursor || undefined : undefined,
     enabled: !isThreadRoute && dashboardView === "feed",
     staleTime: DASHBOARD_FEED_STALE_TIME,
     gcTime: DASHBOARD_POSTS_GC_TIME,
@@ -479,7 +559,9 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
       : postQuery.isPending
         ? null
         : []
-    : feedQuery.data ?? null;
+    : feedQuery.data
+      ? flattenFeedPages(feedQuery.data.pages)
+      : null;
   const loadingPosts = isThreadRoute ? postQuery.isPending : feedQuery.isPending;
 
   useEffect(
@@ -525,6 +607,53 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
   useEffect(() => {
     if (postQuery.error) console.error(postQuery.error);
   }, [postQuery.error]);
+
+  useEffect(() => {
+    if (
+      isThreadRoute ||
+      dashboardView !== "feed" ||
+      !feedRef.current ||
+      !loadMoreRef.current ||
+      !feedQuery.hasNextPage
+    ) {
+      return undefined;
+    }
+
+    let requestedNextPage = false;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+
+        if (
+          entry?.isIntersecting &&
+          feedQuery.hasNextPage &&
+          !feedQuery.isFetchingNextPage &&
+          !requestedNextPage
+        ) {
+          requestedNextPage = true;
+          feedQuery.fetchNextPage().finally(() => {
+            requestedNextPage = false;
+          });
+        }
+      },
+      {
+        root: feedRef.current,
+        rootMargin: "300px 0px",
+        threshold: 0,
+      },
+    );
+
+    observer.observe(loadMoreRef.current);
+
+    return () => observer.disconnect();
+  }, [
+    dashboardView,
+    feedQuery.fetchNextPage,
+    feedQuery.hasNextPage,
+    feedQuery.isFetchingNextPage,
+    isThreadRoute,
+    posts?.length,
+  ]);
 
   const persistFeedScroll = (scrollTop) => {
     if (typeof window === "undefined") return;
@@ -599,6 +728,12 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
           );
         }
 
+        if (cachedData?.pages) {
+          return mapFeedPages(cachedData, (post) =>
+            post.id === postId ? updater(post) : post,
+          );
+        }
+
         if (cachedData?.id === postId) {
           return updater(cachedData);
         }
@@ -618,12 +753,17 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
     );
     queryClient.setQueriesData(
       { queryKey: [...DASHBOARD_POSTS_QUERY_ROOT, "feed"] },
-      (cachedPosts) =>
-        Array.isArray(cachedPosts)
-          ? cachedPosts.map((post) =>
+      (cachedData) => {
+        if (Array.isArray(cachedData)) {
+          return cachedData.map((post) =>
             post.id === normalizedUpdatedPost.id ? normalizedUpdatedPost : post,
-          )
-          : cachedPosts,
+          );
+        }
+
+        return mapFeedPages(cachedData, (post) =>
+          post.id === normalizedUpdatedPost.id ? normalizedUpdatedPost : post,
+        );
+      },
     );
   };
 
@@ -633,7 +773,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
 
     queryClient.setQueryData(
       dashboardFeedQueryKey(selectedAudience),
-      (cachedPosts) => [normalizedPost, ...(Array.isArray(cachedPosts) ? cachedPosts : [])],
+      (cachedData) => prependPostToFeedPages(cachedData, normalizedPost),
     );
     queryClient.setQueryData(dashboardPostQueryKey(normalizedPost.id), normalizedPost);
   };
@@ -1261,6 +1401,14 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
                   Array.isArray(posts) &&
                   !selectedThreadPost &&
                   posts.map((post) => renderPostCard(post))}
+
+                {!selectedThreadPost && (
+                  <div
+                    ref={loadMoreRef}
+                    aria-hidden="true"
+                    style={{ height: 1, marginTop: -1, pointerEvents: "none" }}
+                  />
+                )}
               </div>
 
               <PostFab
