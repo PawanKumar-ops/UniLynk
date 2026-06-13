@@ -21,9 +21,11 @@ import ImageWithFallback from "../../components/ReliableImage";
 import { NewsLetterCard } from "@/components/NewsLetterCard";
 import { DashboardNotificationItem } from "@/components/DashboardNotificationItem";
 
-const DASHBOARD_SCROLL_STORAGE_KEY = "dashboard-feed-scroll-position";
-const DASHBOARD_OPEN_POST_STORAGE_KEY = "dashboard-feed-open-post-id";
-const DASHBOARD_OPENED_FROM_FEED_STORAGE_KEY = "dashboard-post-opened-from-feed";
+const DASHBOARD_FEED_MEMORY = {
+  scrollByAudience: {},
+  postByAudience: {},
+  openedThreadFromFeed: false,
+};
 
 const DASHBOARD_POSTS_QUERY_ROOT = ["dashboard", "posts"];
 const DASHBOARD_FEED_STALE_TIME = 30 * 60 * 1000;
@@ -454,10 +456,13 @@ const isElementVisibleWithinContainer = (element, container) => {
   return elementTop >= containerTop && elementBottom <= containerBottom;
 };
 
-export default function DashboardClient({ postId: routePostId = null } = {}) {
+export default function DashboardClient({
+  postId: routePostId = null,
+  initialAudience = "for-you",
+} = {}) {
   const { data: session } = useSession();
   const queryClient = useQueryClient();
-  const [isAnnual, setIsAnnual] = useState(true);
+  const [isAnnual, setIsAnnual] = useState(initialAudience !== "clubs");
   const [activePostId, setActivePostId] = useState(null);
   const [sharePost, setSharePost] = useState(null);
   const [openShare, setOpenShare] = useState(false);
@@ -567,6 +572,10 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
     setDashboardView(pathname === "/dashboard/explore" ? "explore" : "feed");
   }, [pathname]);
 
+  useEffect(() => {
+    setIsAnnual(initialAudience !== "clubs");
+  }, [initialAudience]);
+
   const likeTimersRef = useRef({});
   const pendingLikePostIdsRef = useRef(new Set());
   const feedRef = useRef(null);
@@ -580,7 +589,21 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
     () => (isAnnual ? "for-you" : "clubs"),
     [isAnnual],
   );
+  const feedPath = selectedAudience === "clubs" ? "/dashboard/clubs" : "/dashboard";
+  const postPath = (postId) => `${feedPath}/post/${postId}`;
   const isThreadRoute = Boolean(routePostId);
+
+  useEffect(() => {
+    if (!isThreadRoute || typeof window === "undefined") return;
+
+    const navigationEntry = window.performance
+      ?.getEntriesByType?.("navigation")
+      ?.[0];
+
+    if (navigationEntry?.type === "reload") {
+      router.replace(feedPath);
+    }
+  }, [feedPath, isThreadRoute, router]);
 
   const getCachedPost = (postId) => {
     if (!postId) return undefined;
@@ -617,7 +640,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
     enabled: !isThreadRoute && dashboardView === "feed",
     staleTime: DASHBOARD_FEED_STALE_TIME,
     gcTime: DASHBOARD_POSTS_GC_TIME,
-    refetchOnMount: false,
+    refetchOnMount: "always",
   });
 
   const postQuery = useQuery({
@@ -669,31 +692,18 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
   );
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-
-    const savedFeedScroll = Number(
-      window.sessionStorage.getItem(DASHBOARD_SCROLL_STORAGE_KEY) || 0,
-    );
-    const savedOpenPostId = window.sessionStorage.getItem(
-      DASHBOARD_OPEN_POST_STORAGE_KEY,
-    );
-
-    restoreFeedScrollRef.current = Number.isFinite(savedFeedScroll)
-      ? savedFeedScroll
-      : 0;
-    pendingRestorePostIdRef.current = savedOpenPostId || null;
-  }, []);
+    restoreFeedScrollRef.current =
+      DASHBOARD_FEED_MEMORY.scrollByAudience[selectedAudience] || 0;
+    pendingRestorePostIdRef.current =
+      DASHBOARD_FEED_MEMORY.postByAudience[selectedAudience] || null;
+    hasRestoredInitialFeedScrollRef.current = false;
+  }, [selectedAudience]);
 
   useEffect(() => {
     setActivePostId(null);
     setMenuPostId(null);
   }, [routePostId, selectedAudience]);
 
-  useEffect(() => {
-    if (isThreadRoute || typeof window === "undefined") return;
-
-    window.sessionStorage.removeItem(DASHBOARD_OPENED_FROM_FEED_STORAGE_KEY);
-  }, [isThreadRoute]);
 
   useEffect(() => {
     if (feedQuery.error) console.error(feedQuery.error);
@@ -704,16 +714,11 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
   }, [postQuery.error]);
 
   const persistFeedScroll = (scrollTop) => {
-    if (typeof window === "undefined") return;
-
     const safeScrollTop = Number.isFinite(scrollTop)
       ? Math.max(0, scrollTop)
       : 0;
     restoreFeedScrollRef.current = safeScrollTop;
-    window.sessionStorage.setItem(
-      DASHBOARD_SCROLL_STORAGE_KEY,
-      String(safeScrollTop),
-    );
+    DASHBOARD_FEED_MEMORY.scrollByAudience[selectedAudience] = safeScrollTop;
   };
 
   useEffect(() => {
@@ -791,9 +796,9 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
   ]);
 
   const rememberOpenPost = (postId) => {
-    if (typeof window === "undefined" || !postId) return;
+    if (!postId) return;
 
-    window.sessionStorage.setItem(DASHBOARD_OPEN_POST_STORAGE_KEY, postId);
+    DASHBOARD_FEED_MEMORY.postByAudience[selectedAudience] = postId;
     pendingRestorePostIdRef.current = postId;
   };
 
@@ -932,7 +937,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
       setDeletePost(null);
 
       if (routePostId === deletePost.id) {
-        router.push("/dashboard");
+        router.push(feedPath);
       }
     } catch (error) {
       console.error(error);
@@ -1007,12 +1012,10 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
     const currentFeedScroll = feedRef.current?.scrollTop ?? 0;
     persistFeedScroll(currentFeedScroll);
     rememberOpenPost(postId);
-    if (typeof window !== "undefined") {
-      window.sessionStorage.setItem(DASHBOARD_OPENED_FROM_FEED_STORAGE_KEY, "true");
-    }
+    DASHBOARD_FEED_MEMORY.openedThreadFromFeed = true;
 
     setMenuPostId(null);
-    router.push(`/dashboard/post/${postId}`);
+    router.push(postPath(postId));
   };
 
   const handleBackToFeed = () => {
@@ -1020,13 +1023,8 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
       rememberOpenPost(selectedThreadPost.id);
     }
 
-    const openedFromFeed =
-      typeof window !== "undefined" &&
-      window.sessionStorage.getItem(DASHBOARD_OPENED_FROM_FEED_STORAGE_KEY) === "true";
-
-    if (typeof window !== "undefined") {
-      window.sessionStorage.removeItem(DASHBOARD_OPENED_FROM_FEED_STORAGE_KEY);
-    }
+    const openedFromFeed = DASHBOARD_FEED_MEMORY.openedThreadFromFeed;
+    DASHBOARD_FEED_MEMORY.openedThreadFromFeed = false;
 
     setMenuPostId(null);
 
@@ -1035,7 +1033,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
       return;
     }
 
-    router.push("/dashboard");
+    router.push(feedPath);
   };
 
   const handleCommentSubmit = async (postId, payload) => {
@@ -1053,7 +1051,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
       setActivePostId(null);
       if (routePostId !== postId) {
         rememberOpenPost(postId);
-        router.push(`/dashboard/post/${postId}`);
+        router.push(postPath(postId));
       }
     } catch (error) {
       console.error(error);
@@ -1409,7 +1407,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
                 if (!post?.id) return;
                 rememberOpenPost(post.id);
                 if (routePostId !== post.id) {
-                  router.push(`/dashboard/post/${post.id}`);
+                  router.push(postPath(post.id));
                 }
                 setActivePostId(post.id);
               }}
@@ -1520,7 +1518,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
     <div className="homebody">
       <main className="dashmain">
         {dashboardView === "explore" ? (
-          <ExplorePage onBack={() => router.push("/dashboard")} />
+          <ExplorePage onBack={() => router.push(feedPath)} />
         ) : (
           <>
             {!selectedThreadPost && (
@@ -1530,14 +1528,20 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
                   <button
                     type="button"
                     className={`toggle-btn ${isAnnual ? "active" : ""}`}
-                    onClick={() => setIsAnnual(true)}
+                    onClick={() => {
+                      setIsAnnual(true);
+                      router.push("/dashboard");
+                    }}
                   >
                     For You
                   </button>
                   <button
                     type="button"
                     className={`toggle-btn ${!isAnnual ? "active" : ""}`}
-                    onClick={() => setIsAnnual(false)}
+                    onClick={() => {
+                      setIsAnnual(false);
+                      router.push("/dashboard/clubs");
+                    }}
                   >
                     Clubs
                   </button>

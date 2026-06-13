@@ -19,6 +19,11 @@ const Sidebar = () => {
   const pathname = usePathname();
 
   const isActive = (path) => pathname === path;
+  const isDashboardHome =
+    pathname === "/dashboard" ||
+    pathname.startsWith("/dashboard/clubs") ||
+    pathname.startsWith("/dashboard/for-you") ||
+    pathname.startsWith("/dashboard/post");
 
   useEffect(() => {
     if (status !== 'authenticated') return;
@@ -81,7 +86,7 @@ const Sidebar = () => {
                 <div className="dashboard">
 
                   <Link href='/dashboard'>
-                    <button className={`dashbutton ${isActive("/dashboard") ? "active" : ""}`} >
+                    <button className={`dashbutton ${isDashboardHome ? "active" : ""}`} >
                       <img src="/dashboard/Home.svg" alt="Home icon" />
                       Home
                     </button>
