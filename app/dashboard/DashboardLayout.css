@@ -10,6 +10,10 @@
     min-height: 100vh;
 }
 
+/* Mobile backdrop overlay (shown when drawer is open) */
+.mobile-sidebar-backdrop {
+    display: none;
+}
 
 @media (max-width: 1024px) {
     .dashboard-container {
@@ -19,5 +23,29 @@
     .dashboard-main {
         margin-left: 0;
         width: 100%;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-main {
+        margin-left: 0 !important;
+        width: 100% !important;
+    }
+
+    /* Dim backdrop when drawer is open */
+    .mobile-sidebar-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+        z-index: 999;
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
+        animation: backdropFadeIn 0.22s ease;
+    }
+
+    @keyframes backdropFadeIn {
+        from { opacity: 0; }
+        to   { opacity: 1; }
     }
 }

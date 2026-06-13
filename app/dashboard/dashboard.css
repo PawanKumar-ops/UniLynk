@@ -162,7 +162,7 @@
   font-weight: 800;
 }
 
-.post-time {
+.dd-post-time {
   list-style: none;
   color: grey;
   display: flex;
@@ -1465,4 +1465,203 @@ body {
 
 .menu-item-danger:hover {
   background: #fef2f2;
+}
+
+
+/* ====================== Mobile Header (X / Twitter style) ====================== */
+
+.mobile-header {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* ── Mobile top header bar ── */
+  .mobile-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 53px;
+    padding: 0 16px;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+    z-index: 100;
+    transition: transform 0.25s ease;
+  }
+
+  /* Hide header on scroll-down */
+  .mobile-header.mobile-header-hidden {
+    transform: translateY(-100%);
+  }
+
+  .mobile-header-avatar-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+  }
+
+  .mobile-header-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: #f4f4f5;
+  }
+
+  .mobile-header-logo {
+    height: 26px;
+    object-fit: contain;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+  }
+
+  .mobile-header-right {
+    display: flex;
+    align-items: center;
+  }
+
+  .mobile-header-notif-btn {
+    background: none;
+    border: none;
+    padding: 7px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    position: relative;
+    color: #0f1419;
+  }
+
+  .mobile-header-notif-btn:active {
+    background: rgba(0, 0, 0, 0.06);
+  }
+
+  .mobile-notif-badge {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    min-width: 16px;
+    height: 16px;
+    background: #1d9bf0;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    border-radius: 999px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 3px;
+    line-height: 1;
+  }
+
+  /* ── msgsidebar: hide on mobile, full-screen overlay when .mobile-msg-open ── */
+  .msgsidebar {
+    display: none !important;
+  }
+
+  .msgsidebar.mobile-msg-open {
+    display: flex !important;
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    z-index: 200 !important;
+    background: #fff !important;
+    flex-direction: column !important;
+    border-left: none !important;
+    overflow: hidden;
+  }
+
+  .mobile-msgsidebar-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    border-bottom: 1px solid #e4eaec;
+    min-height: 53px;
+    flex-shrink: 0;
+  }
+
+  .mobile-msgsidebar-close {
+    background: none;
+    border: none;
+    padding: 7px;
+    cursor: pointer;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #0f1419;
+    flex-shrink: 0;
+  }
+
+  .mobile-msgsidebar-close:active {
+    background: rgba(0, 0, 0, 0.06);
+  }
+
+  .mobile-msgsidebar-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0f1419;
+  }
+
+  .msgsidebar.mobile-msg-open .msgsidebarmain {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 16px !important;
+    overflow-y: auto !important;
+    flex: 1;
+    max-height: none !important;
+  }
+
+  /* Pricing toggle: shift down below mobile header */
+  .pricing-toggle {
+    top: 63px !important;
+  }
+
+  /* Feed posts: account for header (53px) + toggle (~57px) */
+  .userposts {
+    margin-top: 122px !important;
+  }
+}
+
+.post-dropdown-menu {
+  animation: menuOpen 0.2s ease forwards;
+}
+
+.post-dropdown-menu.closing {
+  animation: menuClose 0.15s ease forwards;
+}
+
+@keyframes menuOpen {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes menuClose {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
 }

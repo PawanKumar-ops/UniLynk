@@ -877,7 +877,7 @@ export function ExplorePage({ onBack }) {
               {post.authorName || "UniLynk User"}
               {post.postAs === "club" && <Icon icon="heroicons-solid:badge-check" color="#1d9bf0" width={18} />}
             </div>
-            <div className="post-time"><span className="post-dot"><svg width="8" height="8" viewBox="0 0 8 8" xmlns="http://www.w3.org/2000/svg">
+            <div className="dd-post-time"><span className="post-dot"><svg width="8" height="8" viewBox="0 0 8 8" xmlns="http://www.w3.org/2000/svg">
               <circle cx="4" cy="4" r="1.5" fill="grey" />
             </svg></span><div className="post-timeli">{formatRelativeTime(post.createdAt)}</div></div>
           </div>
@@ -903,19 +903,6 @@ export function ExplorePage({ onBack }) {
                   </svg>
                   Report Post
                 </button>
-                <button
-                  className="menu-item"
-                  type="button"
-                  onClick={() => {
-                    toggleSavePost(post.id);
-                    setMenuPostId(null);
-                  }}
-                >
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-                  </svg>
-                  Save Post
-                </button>
                 {isPostAuthor(post) && (
                   <button
                     className="menu-item menu-item-danger"
@@ -932,6 +919,20 @@ export function ExplorePage({ onBack }) {
                     Delete post
                   </button>
                 )}
+                <button
+                  className="menu-item"
+                  type="button"
+                  onClick={() => {
+                    toggleSavePost(post.id);
+                    setMenuPostId(null);
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                  </svg>
+                  Save Post
+                </button>
+
                 <button className="menu-item" onClick={() => {
                   setMenuPostId(null);
                   setSharePost(post);
@@ -1058,7 +1059,7 @@ export function ExplorePage({ onBack }) {
       <div className="thread-comment-body">
         <div className="thread-comment-meta">
           <span className="user-name">{comment.authorName || "UniLynk User"}</span>
-          <span className="post-time">
+          <span className="dd-post-time">
             <span className="post-dot"><svg width="8" height="8" viewBox="0 0 8 8" xmlns="http://www.w3.org/2000/svg"><circle cx="4" cy="4" r="1.5" fill="grey" /></svg></span>
             <span className="post-timeli">{formatRelativeTime(comment.createdAt)}</span>
           </span>
@@ -1338,10 +1339,10 @@ export function ExplorePage({ onBack }) {
           <div className="grid grid-cols-2 gap-3">
             {suggestedUsersLoading ? (
               <>
-    {Array.from({ length: 4 }).map((_, index) => (
-      <SuggestedUserSkeleton key={index} />
-    ))}
-  </>
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <SuggestedUserSkeleton key={index} />
+                ))}
+              </>
             ) : suggestedUsers.length === 0 ? (
               <div className="col-span-2 rounded-2xl border border-neutral-200 bg-white px-4 py-8 text-center text-sm text-neutral-500">
                 No suggested users found.
@@ -1362,7 +1363,7 @@ export function ExplorePage({ onBack }) {
                   <div className="min-w-0 flex-1">
                     <div className="text-sm truncate">{u.name}</div>
                     <div className="text-xs text-neutral-500 truncate">{u.role}</div>
-                  
+
                   </div>
                   <button
                     type="button"

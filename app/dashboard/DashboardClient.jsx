@@ -3,7 +3,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import "./dashboard.css";
-import { ArrowLeft, EllipsisVertical, ArrowRight } from "lucide-react";
+import { ArrowLeft, EllipsisVertical, ArrowRight, X as XIcon } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { usePathname, useRouter } from "next/navigation";
 import PostFab from "../../components/Post-Fab";
@@ -476,10 +476,35 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
   const [activePastEvent, setActivePastEvent] = useState(null);
   const [imageRatios, setImageRatios] = useState({});
   const [lightbox, setLightbox] = useState({ images: [], index: 0, open: false });
+  const [closingMenuId, setClosingMenuId] = useState(null);
+  const [mobileMsgOpen, setMobileMsgOpen] = useState(false);
+  const [headerHidden, setHeaderHidden] = useState(false);
 
   const openLightbox = (images, index) => {
     setLightbox({ images, index, open: true });
   };
+
+  
+const closeMenu = () => {
+  if (!menuPostId) return;
+
+  setClosingMenuId(menuPostId);
+
+  window.menuCloseTimeout = setTimeout(() => {
+    setMenuPostId(null);
+    setClosingMenuId(null);
+  }, 200);
+};
+
+  useEffect(() => {
+  const handleClick = () => {
+    closeMenu();
+  };
+
+  document.addEventListener("click", handleClick);
+
+  return () => document.removeEventListener("click", handleClick);
+}, [menuPostId]);
 
   useEffect(() => {
     if (!session?.user?.email) return undefined;
@@ -572,6 +597,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
   const feedRef = useRef(null);
   const feedLoadMoreRef = useRef(null);
   const postRefs = useRef({});
+  const lastScrollTopRef = useRef(0);
   const restoreFeedScrollRef = useRef(0);
   const pendingRestorePostIdRef = useRef(null);
   const hasRestoredInitialFeedScrollRef = useRef(false);
@@ -798,8 +824,20 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
   };
 
   const handleFeedScroll = () => {
-    if (selectedThreadPost || !feedRef.current) return;
-    persistFeedScroll(feedRef.current.scrollTop);
+    if (!feedRef.current) return;
+    const scrollTop = feedRef.current.scrollTop;
+
+    // Scroll-hide header on mobile: hide when scrolling down, show when scrolling up
+    if (scrollTop > lastScrollTopRef.current && scrollTop > 60) {
+      setHeaderHidden(true);
+    } else if (scrollTop < lastScrollTopRef.current) {
+      setHeaderHidden(false);
+    }
+    lastScrollTopRef.current = scrollTop;
+
+    if (!selectedThreadPost) {
+      persistFeedScroll(scrollTop);
+    }
   };
 
   const updateCachedPost = (postId, updater) => {
@@ -1204,7 +1242,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
                 />
               )}
             </div>
-            <div className="post-time">
+            <div className="dd-post-time">
               <span className="post-dot">
                 <svg
                   width="8"
@@ -1223,20 +1261,30 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
           <div className="posth-right">
             <button
               className="posth-right-btn"
-              onClick={(event) => {
-                event.stopPropagation();
-                setMenuPostId(menuPostId === post.id ? null : post.id);
-              }}
+              onClick={(e) => {
+  e.stopPropagation();
+
+  if (menuPostId === post.id) {
+    closeMenu();
+  } else {
+    clearTimeout(window.menuCloseTimeout);
+
+setClosingMenuId(null);
+setMenuPostId(post.id);
+  }
+}}
               aria-label="Post options"
               type="button"
             >
               <EllipsisVertical />
             </button>
             {menuPostId === post.id && (
-              <div
-                className="post-dropdown-menu"
-                onClick={(event) => event.stopPropagation()}
-              >
+  <div
+    className={`post-dropdown-menu ${
+      closingMenuId === post.id ? "closing" : ""
+    }`}
+    onClick={(e) => e.stopPropagation()}
+  >
                 <button
                   className="menu-item"
                   onClick={() => {
@@ -1256,26 +1304,6 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
                     <line x1="12" y1="17" x2="12.01" y2="17" />
                   </svg>
                   Report Post
-                </button>
-                <button
-                  className="menu-item"
-                  type="button"
-                  onClick={() => {
-                    toggleSavePost(post.id);
-                    setMenuPostId(null);
-                  }}
-                >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-                  </svg>
-                  Save Post
                 </button>
                 {isPostAuthor(post) && (
                   <button
@@ -1297,9 +1325,30 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
                       <path d="M14 11v6" />
                       <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                     </svg>
-                    Delete post
+                    Delete Post
                   </button>
                 )}
+                <button
+                  className="menu-item"
+                  type="button"
+                  onClick={() => {
+                    toggleSavePost(post.id);
+                    setMenuPostId(null);
+                  }}
+                >
+                  <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
+                  </svg>
+                  Save Post
+                </button>
+
                 <button
                   className="menu-item"
                   onClick={() => {
@@ -1405,12 +1454,11 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
           </div>
           <div className="post-foot-iconcont">
             <button
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation(); // prevent parent post click
+
                 if (!post?.id) return;
-                rememberOpenPost(post.id);
-                if (routePostId !== post.id) {
-                  router.push(`/dashboard/post/${post.id}`);
-                }
+
                 setActivePostId(post.id);
               }}
               type="button"
@@ -1478,7 +1526,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
           <span className="user-name">
             {comment.authorName || "UniLynk User"}
           </span>
-          <span className="post-time">
+          <span className="dd-post-time">
             <span className="post-dot">
               <svg
                 width="8"
@@ -1518,6 +1566,40 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
 
   return (
     <div className="homebody">
+      {/* ── Mobile Header (hidden on desktop via CSS) ── */}
+      <div className={`mobile-header${headerHidden ? ' mobile-header-hidden' : ''}`}>
+        <button
+          className="mobile-header-avatar-btn"
+          type="button"
+          aria-label="Open menu"
+          onClick={() => window.dispatchEvent(new CustomEvent('open-mobile-sidebar'))}
+        >
+          <img
+            className="mobile-header-avatar"
+            src={session?.user?.image || '/Profilepic.png'}
+            alt={session?.user?.name || 'Profile'}
+          />
+        </button>
+
+        <img src="/ULynk.svg" alt="ULynk" className="mobile-header-logo" />
+
+        <div className="mobile-header-right">
+          <button
+            className="mobile-header-notif-btn"
+            type="button"
+            aria-label="Notifications"
+            onClick={() => setMobileMsgOpen(true)}
+          >
+            <Bell size={22} />
+            {pendingNotifications.length > 0 && (
+              <span className="mobile-notif-badge">
+                {pendingNotifications.length > 9 ? '9+' : pendingNotifications.length}
+              </span>
+            )}
+          </button>
+        </div>
+      </div>
+
       <main className="dashmain">
         {dashboardView === "explore" ? (
           <ExplorePage onBack={() => router.push("/dashboard")} />
@@ -1689,7 +1771,21 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
           </>
         )}
       </main>
-      <div className="msgsidebar">
+      <div className={`msgsidebar${mobileMsgOpen ? ' mobile-msg-open' : ''}`}>
+        {/* Mobile close header — only rendered when overlay is open */}
+        {mobileMsgOpen && (
+          <div className="mobile-msgsidebar-header">
+            <button
+              className="mobile-msgsidebar-close"
+              type="button"
+              aria-label="Close"
+              onClick={() => setMobileMsgOpen(false)}
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <span className="mobile-msgsidebar-title">Notifications & News</span>
+          </div>
+        )}
         <div className="msgsidebarmain">
           {/* <div className="msgsearchbar">
             <Search className="searchicon" size={16} />

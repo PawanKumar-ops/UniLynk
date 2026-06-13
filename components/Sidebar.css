@@ -351,3 +351,90 @@ header {
         font-size: 20px;
     }
 }
+
+/* ================== Mobile Sidebar Drawer =================== */
+
+.menuhead-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mobile-sidebar-close-btn {
+    display: none;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 50%;
+    color: #333;
+    align-items: center;
+    justify-content: center;
+}
+
+.mobile-sidebar-close-btn:hover {
+    background: #f0f0f0;
+}
+
+@media (max-width: 768px) {
+    /* Override 1024px horizontal-bar behaviour — use fixed drawer instead */
+    .menu {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        width: 280px !important;
+        height: 100vh !important;
+        border-right: 1px solid rgb(230, 230, 230) !important;
+        border-bottom: none !important;
+        padding: 10px 30px 10px 10px !important;
+        align-items: flex-end !important;
+        overflow-y: auto;
+        transform: translateX(-100%);
+        transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+        z-index: 1000;
+    }
+
+    .menu.mobile-open {
+        transform: translateX(0);
+        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.12);
+    }
+
+    .mobile-sidebar-close-btn {
+        display: flex;
+    }
+
+    .menuhead {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .dashboard,
+    .dashboardsettings {
+        width: 100%;
+        height: auto;
+        align-items: stretch;
+    }
+
+    .dashboard {
+        margin: 12px 0 0;
+    }
+
+    .options {
+        height: auto;
+        margin: 12px 0;
+    }
+
+    .profile {
+        width: 100%;
+        max-width: none;
+        margin: 12px 0 0;
+    }
+
+    .dashbutton {
+        width: 100%;
+    }
+
+    .signoutb {
+        width: 100%;
+    }
+}
