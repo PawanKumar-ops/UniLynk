@@ -13,6 +13,7 @@ import ShareModal from "@/components/ShareModal";
 import { ReportPostModal } from "@/components/ReportPostModal";
 import { DeleteModal } from "@/components/DeleteModal";
 import PastEventNotifiModal from "@/components/PastEventNotifiModal";
+import RequestModal from "@/components/TeamRequest";
 import { ExplorePage } from "@/components/ExplorePage";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bell, BookOpen } from "lucide-react";
@@ -474,6 +475,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
   const [mode, setMode] = useState("newsletter");
   const [pendingNotifications, setPendingNotifications] = useState([]);
   const [activePastEvent, setActivePastEvent] = useState(null);
+  const [activeTeamRequest, setActiveTeamRequest] = useState(null);
   const [imageRatios, setImageRatios] = useState({});
   const [lightbox, setLightbox] = useState({ images: [], index: 0, open: false });
   const [closingMenuId, setClosingMenuId] = useState(null);
@@ -1336,17 +1338,8 @@ setMenuPostId(post.id);
                     setMenuPostId(null);
                   }}
                 >
-                  <svg
-                    width="18"
-                    height="18"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                  >
-                    <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z" />
-                  </svg>
-                  Save Post
+                  <Icon icon="mage:bookmark" width={18} strokeWidth={2} />
+                  {post.savedByCurrentUser ? "Unsave Post" : "Save Post"}
                 </button>
 
                 <button
@@ -1768,6 +1761,24 @@ setMenuPostId(post.id);
                 setActivePastEvent(null);
               }}
             />
+
+            <RequestModal
+              open={Boolean(activeTeamRequest)}
+              onClose={() => setActiveTeamRequest(null)}
+              requester={{
+                name: activeTeamRequest?.senderName || "Team Member",
+                avatar: activeTeamRequest?.senderAvatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
+                message: activeTeamRequest?.message || "I'd like to join your team.",
+              }}
+              onAccept={() => {
+                // Handle accept logic here if needed
+                setActiveTeamRequest(null);
+              }}
+              onReject={() => {
+                // Handle reject logic here if needed
+                setActiveTeamRequest(null);
+              }}
+            />
           </>
         )}
       </main>
@@ -1808,7 +1819,7 @@ setMenuPostId(post.id);
                shadow-sm transition-all duration-300
                ${dashboardView === "explore"
                 ? "bg-black text-white hover:bg-neutral-900"
-                : "bg-white/90 text-neutral-900 hover:bg-[#f5f8fa]"
+                : "bg-white/90 text-neutral-900 hover:bg-[#fbfbfb]"
               }
              `}
           >
@@ -1858,9 +1869,13 @@ setMenuPostId(post.id);
                     <div
                       key={`${notif.notificationType}-${notif._id}`}
                       onClick={() => {
-                        if (!isTeamFinder) setActivePastEvent(notif);
+                        if (isTeamFinder) {
+                          setActiveTeamRequest(notif);
+                        } else {
+                          setActivePastEvent(notif);
+                        }
                       }}
-                      className={`flex w-full min-h-[60px] items-center gap-3 p-3 rounded-2xl border border-neutral-200 hover:border-neutral-300 hover:shadow-sm transition bg-white ${isTeamFinder ? "cursor-default" : "cursor-pointer"
+                      className={`flex w-full min-h-[60px] items-center gap-3 p-3 rounded-2xl border border-neutral-200 hover:border-neutral-300 hover:shadow-sm transition bg-white ${isTeamFinder ? "cursor-pointer" : "cursor-pointer"
                         }`}
                     >
                       <div className="w-11 h-11 rounded-full overflow-hidden bg-neutral-100 shrink-0 flex items-center justify-center">
@@ -1883,11 +1898,7 @@ setMenuPostId(post.id);
                             ? notif.body
                             : "Please update Past Activities Page"}
                         </div>
-                        {isTeamFinder && notif.message && (
-                          <div className="mt-1 rounded-lg bg-neutral-50 border border-neutral-100 px-2 py-1 text-[11px] text-neutral-600 line-clamp-2">
-                            {notif.message}
-                          </div>
-                        )}
+                        
                       </div>
                     </div>
                   );

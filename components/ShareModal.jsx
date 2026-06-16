@@ -253,7 +253,7 @@ const ShareModal = ({ isOpen, onClose, post }) => {
   if (!isOpen) return null;
 
   const postContent = typeof post?.content === 'string' ? post.content : '';
-  const relativePostUrl = post?.id ? `/dashboard?post=${post.id}` : '';
+  const relativePostUrl = post?.id ? `/dashboard/post/${post.id}` : '';
   const postUrl = baseOrigin && relativePostUrl ? `${baseOrigin}${relativePostUrl}` : relativePostUrl;
   const sharePayload = post?.id
     ? {

@@ -299,7 +299,7 @@
 
 .image-grid.count-3{
     display:grid;
-    grid-template-columns:2fr 1fr;
+    grid-template-columns:1fr 1fr;
     grid-template-rows:144.35px 144.35px;
     gap:2px;
     height:290.7px;
@@ -773,14 +773,59 @@ body {
 }
 
 .notifi-box {
-  border: 1px solid #e4eaec;
-  background-color: #fafafa;
+  overflow-y: auto;
   width: 100%;
   height: 475px;
-  border-radius: 10px;
+
+  background: #fafafa;
+  border: 1px solid #eceff1;
+  border-radius: 16px;
+
   display: flex;
   flex-direction: column;
   align-items: center;
+
+  scrollbar-width: thin;
+  scrollbar-color: rgba(120,120,120,.45) transparent;
+}
+
+/* Chrome */
+
+.notifi-box::-webkit-scrollbar {
+  width: 10px;
+}
+
+.notifi-box::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.notifi-box::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,.18);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+
+  transition: all .25s ease;
+}
+
+.notifi-box:hover::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,.32);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.notifi-box::-webkit-scrollbar-thumb:hover {
+  background: rgba(0,0,0,.48);
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+.notifi-box::-webkit-scrollbar-thumb:active {
+  background: rgba(0,0,0,.62);
+}
+
+.notifi-box::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 .msgbar {
