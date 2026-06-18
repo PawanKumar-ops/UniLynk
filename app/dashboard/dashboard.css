@@ -503,7 +503,7 @@ body {
 /* ========================== Feed starts here ============================ */
 
 .dashmain {
-  width: 57%;
+  width: 56%;
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -515,6 +515,7 @@ body {
   overflow-y: auto;
   width: 100%;
   height: 100vh;
+  scrollbar-width: none;
 }
 
 /* .fhead {

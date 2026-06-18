@@ -3,45 +3,6 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import ReliableImage from "./ReliableImage";
 
-const fallbackPosts = [
-  {
-    id: "fallback-1",
-    clubName: "Mango Lovers Club",
-    clubLogo:
-      "https://images.unsplash.com/photo-1599566150163-29194dcaad36?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=200",
-    coverImage:
-      "https://marketplace.canva.com/EAFO-opW4Rw/1/0/1131w/canva-beige-and-gold-modern-feminine-business-email-newsletter-hP5DyZaOmfE.jpg",
-    price: 270,
-    description:
-      "Loved worldwide for their sweetness our Alphonso mangoes are a delicious delight wherever you are.",
-    tint: "from-neutral-900/60 via-neutral-900/15 to-transparent",
-  },
-  {
-    id: "fallback-2",
-    clubName: "Berry Garden Co.",
-    clubLogo:
-      "https://images.unsplash.com/photo-1518635017498-87f514b751ba?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=200",
-    coverImage:
-      "https://gillde.com/wp-content/uploads/2022/10/4-Email-Newsletter-Templates-Gillde.jpg",
-    price: 320,
-    description:
-      "Fresh handpicked strawberries from our farms, bursting with juicy flavor in every single bite.",
-    tint: "from-neutral-900/60 via-neutral-900/15 to-transparent",
-  },
-  {
-    id: "fallback-3",
-    clubName: "Citrus Society",
-    clubLogo:
-      "https://images.unsplash.com/photo-1557800636-894a64c1696f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=200",
-    coverImage:
-      "https://gillde.com/wp-content/uploads/2022/10/1-Email-Newsletter-Templates-Gillde.jpg",
-    price: 180,
-    description:
-      "Sun-ripened oranges packed with vitamin C, perfect for fresh juice or a healthy afternoon snack.",
-    tint: "from-neutral-900/60 via-neutral-900/15 to-transparent",
-  },
-];
-
 const ImageWithFallback = ({ src, alt, className = "" }) => (
   <ReliableImage
     src={src}
@@ -137,7 +98,25 @@ export function NewsLetterCard() {
     return () => window.clearTimeout(timeoutId);
   }, [liveNewsletters, loadNewsletters, nowMs]);
 
-  const posts = liveNewsletters.length > 0 ? liveNewsletters : fallbackPosts;
+  const posts = liveNewsletters;
+
+  if (posts.length === 0) {
+  return (
+    <div
+      className="flex flex-col items-center justify-center rounded-[20px] border border-[#e4eaec] bg-white"
+      style={{ width: 325, height: 475 }}
+    >
+      <img
+        src="/dashboard/NoNewsLetter.svg"
+        alt="No newsletters"
+        className="w-52 h-52 object-contain"
+      />
+      <p className="mt-4 text-sm text-neutral-500 font-medium">
+        No newsletters available
+      </p>
+    </div>
+  );
+}
 
   useEffect(() => {
     setIndex((currentIndex) => (currentIndex >= posts.length ? 0 : currentIndex));
