@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, Suspense } from "react";
 import "./events.css";
 import { useSearchParams } from "next/navigation";
 
@@ -134,4 +134,10 @@ const Eventspage = () => {
   );
 };
 
-export default Eventspage;
+export default function EventspageWrapper() {
+  return (
+    <Suspense fallback={null}>
+      <Eventspage />
+    </Suspense>
+  );
+}

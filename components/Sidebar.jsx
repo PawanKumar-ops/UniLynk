@@ -18,7 +18,12 @@ const Sidebar = ({ isOpen = false, onClose }) => {
   const [userProfile, setUserProfile] = useState(null);
   const pathname = usePathname();
 
-  const isActive = (path) => pathname === path;
+  const isActive = (path) => {
+    if (path === "/dashboard") {
+      return pathname === "/dashboard" || pathname === "/dashboard/clubs";
+    }
+    return pathname === path;
+  };
 
   useEffect(() => {
     if (status !== 'authenticated') return;

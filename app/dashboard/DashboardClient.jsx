@@ -458,7 +458,9 @@ const isElementVisibleWithinContainer = (element, container) => {
 export default function DashboardClient({ postId: routePostId = null } = {}) {
   const { data: session } = useSession();
   const queryClient = useQueryClient();
-  const [isAnnual, setIsAnnual] = useState(true);
+  const router = useRouter();
+  const pathname = usePathname();
+  const [isAnnual, setIsAnnual] = useState(pathname !== "/dashboard/clubs");
   const [activePostId, setActivePostId] = useState(null);
   const [sharePost, setSharePost] = useState(null);
   const [openShare, setOpenShare] = useState(false);
@@ -466,8 +468,6 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
   const [reportPostId, setReportPostId] = useState(null);
   const [deletePost, setDeletePost] = useState(null);
   const [isDeletingPost, setIsDeletingPost] = useState(false);
-  const router = useRouter();
-  const pathname = usePathname();
   const [dashboardView, setDashboardView] = useState(
     pathname === "/dashboard/explore" ? "explore" : "feed",
   );
@@ -592,6 +592,7 @@ const closeMenu = () => {
 
   useEffect(() => {
     setDashboardView(pathname === "/dashboard/explore" ? "explore" : "feed");
+    setIsAnnual(pathname !== "/dashboard/clubs");
   }, [pathname]);
 
   const likeTimersRef = useRef({});
@@ -718,9 +719,7 @@ const closeMenu = () => {
   }, [routePostId, selectedAudience]);
 
   useEffect(() => {
-    if (isThreadRoute || typeof window === "undefined") return;
-
-    window.sessionStorage.removeItem(DASHBOARD_OPENED_FROM_FEED_STORAGE_KEY);
+    // Cleanup of DASHBOARD_OPENED_FROM_FEED_STORAGE_KEY is now handled after scroll restoration.
   }, [isThreadRoute]);
 
   useEffect(() => {
@@ -753,6 +752,16 @@ const closeMenu = () => {
 
     if (!shouldRestoreInitialScroll && !shouldRestoreClickedPost) return;
 
+    const openedFromFeed =
+      typeof window !== "undefined" &&
+      window.sessionStorage.getItem(DASHBOARD_OPENED_FROM_FEED_STORAGE_KEY) === "true";
+
+    if (!openedFromFeed) {
+      hasRestoredInitialFeedScrollRef.current = true;
+      pendingRestorePostIdRef.current = null;
+      return;
+    }
+
     const restorePostId = pendingRestorePostIdRef.current;
 
     const restoreFeedPosition = () => {
@@ -773,6 +782,12 @@ const closeMenu = () => {
 
       hasRestoredInitialFeedScrollRef.current = true;
       pendingRestorePostIdRef.current = null;
+
+      if (typeof window !== "undefined") {
+        window.sessionStorage.removeItem(DASHBOARD_SCROLL_STORAGE_KEY);
+        window.sessionStorage.removeItem(DASHBOARD_OPEN_POST_STORAGE_KEY);
+        window.sessionStorage.removeItem(DASHBOARD_OPENED_FROM_FEED_STORAGE_KEY);
+      }
     };
 
     const frameId = window.requestAnimationFrame(restoreFeedPosition);
@@ -837,9 +852,9 @@ const closeMenu = () => {
     }
     lastScrollTopRef.current = scrollTop;
 
-    if (!selectedThreadPost) {
-      persistFeedScroll(scrollTop);
-    }
+
+    // Scroll saving on every scroll is removed to allow fresh page refresh.
+    // It is saved inside handleOpenThread when navigating to detail page instead.
   };
 
   const updateCachedPost = (postId, updater) => {
@@ -1064,13 +1079,17 @@ const closeMenu = () => {
       typeof window !== "undefined" &&
       window.sessionStorage.getItem(DASHBOARD_OPENED_FROM_FEED_STORAGE_KEY) === "true";
 
+    const openedFromExplore =
+      typeof window !== "undefined" &&
+      window.sessionStorage.getItem("explore-post-opened-from-feed") === "true";
+
     if (typeof window !== "undefined") {
-      window.sessionStorage.removeItem(DASHBOARD_OPENED_FROM_FEED_STORAGE_KEY);
+      // Storage cleanup is performed after scroll restoration, not here.
     }
 
     setMenuPostId(null);
 
-    if (openedFromFeed) {
+    if (openedFromFeed || openedFromExplore) {
       router.back();
       return;
     }
@@ -1605,14 +1624,14 @@ setMenuPostId(post.id);
                   <button
                     type="button"
                     className={`toggle-btn ${isAnnual ? "active" : ""}`}
-                    onClick={() => setIsAnnual(true)}
+                    onClick={() => router.push("/dashboard")}
                   >
                     For You
                   </button>
                   <button
                     type="button"
                     className={`toggle-btn ${!isAnnual ? "active" : ""}`}
-                    onClick={() => setIsAnnual(false)}
+                    onClick={() => router.push("/dashboard/clubs")}
                   >
                     Clubs
                   </button>

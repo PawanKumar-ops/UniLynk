@@ -1,12 +1,14 @@
 "use client"
 
-import React from 'react'
+import React, { Suspense } from 'react'
 import Eventsheader from '@/components/eventsheader'
 
 const DashboardLayout = ({ children }) => {
   return (
     <div className="events-container">
-      <Eventsheader/>
+      <Suspense fallback={null}>
+        <Eventsheader/>
+      </Suspense>
       <main>
         {children}
       </main>

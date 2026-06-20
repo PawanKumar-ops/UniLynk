@@ -452,6 +452,9 @@ const TrendingCard = ({ event, featured = false }) => (
 export function ExplorePage({ onBack }) {
   const { data: session } = useSession();
   const [query, setQuery] = useState("");
+  const postRefs = useRef({});
+  const scrollContainerRef = useRef(null);
+  const hasRestoredInitialScrollRef = useRef(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [results, setResults] = useState([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -699,9 +702,62 @@ export function ExplorePage({ onBack }) {
   const handleOpenThread = (postId) => {
     if (!postId) return;
 
+    const scrollContainer = scrollContainerRef.current;
+    if (scrollContainer) {
+      window.sessionStorage.setItem("explore-feed-scroll-position", String(scrollContainer.scrollTop));
+    }
+    window.sessionStorage.setItem("explore-feed-open-post-id", postId);
+    window.sessionStorage.setItem("explore-post-opened-from-feed", "true");
+
     setMenuPostId(null);
     router.push(`/dashboard/post/${postId}`);
   };
+
+  const isElementVisibleWithinContainer = (element, container) => {
+    if (!(element instanceof HTMLElement) || !(container instanceof HTMLElement))
+      return false;
+
+    const elementTop = element.offsetTop;
+    const elementBottom = elementTop + element.offsetHeight;
+    const containerTop = container.scrollTop;
+    const containerBottom = containerTop + container.clientHeight;
+
+    return elementTop >= containerTop && elementBottom <= containerBottom;
+  };
+
+  useEffect(() => {
+    if (suggestedPostsLoading || !suggestedPosts || !scrollContainerRef.current) return;
+
+    if (hasRestoredInitialScrollRef.current) return;
+
+    const savedScroll = window.sessionStorage.getItem("explore-feed-scroll-position");
+    const savedPostId = window.sessionStorage.getItem("explore-feed-open-post-id");
+    const openedFromExplore = window.sessionStorage.getItem("explore-post-opened-from-feed") === "true";
+
+    // Consume keys so refresh won't restore
+    if (typeof window !== "undefined") {
+      window.sessionStorage.removeItem("explore-feed-scroll-position");
+      window.sessionStorage.removeItem("explore-feed-open-post-id");
+      window.sessionStorage.removeItem("explore-post-opened-from-feed");
+    }
+
+    if (openedFromExplore) {
+      const scrollContainer = scrollContainerRef.current;
+      const restoreScrollTop = savedScroll ? Number(savedScroll) : 0;
+      scrollContainer.scrollTop = restoreScrollTop;
+
+      if (savedPostId) {
+        const restorePostElement = postRefs.current[savedPostId];
+        if (restorePostElement) {
+          if (!isElementVisibleWithinContainer(restorePostElement, scrollContainer)) {
+            restorePostElement.scrollIntoView({ block: "center" });
+          }
+        }
+      }
+    }
+
+    hasRestoredInitialScrollRef.current = true;
+  }, [suggestedPostsLoading, suggestedPosts]);
 
   const handleBackToSuggestedPosts = () => {
     setThreadPostId(null);
@@ -848,6 +904,17 @@ export function ExplorePage({ onBack }) {
     <div
       className={`userpost ${menuPostId === post.id ? "menu-open" : ""} ${isThread ? "thread-root-post" : ""}`}
       key={post.id}
+      ref={
+        isThread
+          ? undefined
+          : (node) => {
+              if (node) {
+                postRefs.current[post.id] = node;
+              } else {
+                delete postRefs.current[post.id];
+              }
+            }
+      }
       onClick={() => handleOpenThread(post.id)}
       role="button"
       tabIndex={0}
@@ -1165,7 +1232,7 @@ export function ExplorePage({ onBack }) {
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 py-5 space-y-8">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [&::-webkit-scrollbar-thumb]:hidden [&::-webkit-scrollbar-track]:hidden px-[14px] py-5 space-y-8">
 
 
         <section>

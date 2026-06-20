@@ -1,6 +1,6 @@
 "use client"
 
-import React from 'react'
+import React, { Suspense } from 'react'
 import "./userprofile.css"
 import Image from 'next/image'
 import { motion } from 'framer-motion'
@@ -597,8 +597,14 @@ const Userprofile = () => {
 
                 </div>
             </main >
-        </div >
+        </div>
     )
 }
 
-export default Userprofile
+export default function UserprofileWrapper() {
+    return (
+        <Suspense fallback={null}>
+            <Userprofile />
+        </Suspense>
+    );
+}

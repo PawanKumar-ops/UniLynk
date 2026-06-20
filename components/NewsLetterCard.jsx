@@ -100,6 +100,24 @@ export function NewsLetterCard() {
 
   const posts = liveNewsletters;
 
+    useEffect(() => {
+  if (posts.length === 0) return;
+
+  setIndex((currentIndex) =>
+    Math.min(currentIndex, posts.length - 1)
+  );
+}, [posts.length]);
+
+  useEffect(() => {
+    if (posts.length <= 1) return undefined;
+
+    const timeoutId = window.setTimeout(() => {
+      setIndex((i) => (i + 1) % posts.length);
+    }, 60000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [index, posts.length]);
+
   if (posts.length === 0) {
   return (
     <div
@@ -118,19 +136,6 @@ export function NewsLetterCard() {
   );
 }
 
-  useEffect(() => {
-    setIndex((currentIndex) => (currentIndex >= posts.length ? 0 : currentIndex));
-  }, [posts.length]);
-
-  useEffect(() => {
-    if (posts.length <= 1) return undefined;
-
-    const timeoutId = window.setTimeout(() => {
-      setIndex((i) => (i + 1) % posts.length);
-    }, 60000);
-
-    return () => window.clearTimeout(timeoutId);
-  }, [index, posts.length]);
 
   const post = posts[index] || posts[0];
 
