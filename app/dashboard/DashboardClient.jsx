@@ -1882,7 +1882,8 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
               onClose={() => setActiveTeamRequest(null)}
               requester={{
                 name: activeTeamRequest?.senderName || "Team Member",
-                avatar: activeTeamRequest?.senderAvatar || "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
+                avatar: activeTeamRequest?.senderAvatar,
+                email: activeTeamRequest?.senderEmail,
                 message: activeTeamRequest?.message || "I'd like to join your team.",
               }}
               onAccept={() => {
@@ -1983,9 +1984,17 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
                   return (
                     <div
                       key={`${notif.notificationType}-${notif._id}`}
-                      onClick={() => {
+                      onClick={async () => {
                         if (isTeamFinder) {
-                          setActiveTeamRequest(notif);
+                          try {
+                            const res = await fetch(`/api/users/profile?email=${encodeURIComponent(notif.senderEmail)}`);
+                            const data = await res.json();
+                            const enriched = { ...notif, senderAvatar: data.image };
+                            setActiveTeamRequest(enriched);
+                          } catch (e) {
+                            console.error('Failed to fetch avatar', e);
+                            setActiveTeamRequest(notif);
+                          }
                         } else {
                           setActivePastEvent(notif);
                         }

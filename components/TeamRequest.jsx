@@ -5,13 +5,7 @@ export default function RequestModal({
   onClose,
   onAccept,
   onReject,
-  requester = {
-    name: "Alex Morgan",
-    avatar:
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
-    message:
-      "Hi team! I'm a full-stack developer with 3 years of experience in React and Node.js. I'd love to collaborate with you on this hackathon and contribute to building something impactful. Looking forward to hearing from you!",
-  },
+  requester,
 }) {
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -100,18 +94,22 @@ export default function RequestModal({
 
           {/* Profile */}
           <div className="flex items-center gap-4 mb-5">
-            <img
-              src={requester.avatar}
-              alt={requester.name}
-              className="h-12 w-12 rounded-full object-cover ring-1 ring-black/5"
-              loading="lazy"
-            />
-            <div>
-              <p className="text-base font-semibold text-black">
-                {requester.name}
-              </p>
-              <p className="text-xs text-black/40">wants to join your team</p>
-            </div>
+              <a href={`/dashboard/Userprofile?email=${encodeURIComponent(requester.email)}`} target="_blank" rel="noopener noreferrer" className="block">
+                <img
+                  src={requester.avatar}
+                  alt={requester.name}
+                  className="h-12 w-12 rounded-full object-cover ring-1 ring-black/5 cursor-pointer"
+                  loading="lazy"
+                />
+              </a>
+              <div>
+                <p className="text-base font-semibold text-black requester-name hover:underline cursor-pointer">
+                  <a href={`/dashboard/Userprofile?email=${encodeURIComponent(requester.email)}`} target="_blank" rel="noopener noreferrer" className="text-black">
+                    {requester.name}
+                  </a>
+                </p>
+                <p className="text-xs text-black/40">wants to join your team</p>
+              </div>
           </div>
 
           {/* Message */}
