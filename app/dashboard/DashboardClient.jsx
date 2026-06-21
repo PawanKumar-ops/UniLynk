@@ -345,6 +345,8 @@ const Loading = () => (
 
 const formatRelativeTime = (dateString) => {
   const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) return "";
+
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
   if (seconds < 60) return "now";
   const mins = Math.floor(seconds / 60);
@@ -352,7 +354,20 @@ const formatRelativeTime = (dateString) => {
   const hrs = Math.floor(mins / 60);
   if (hrs < 24) return `${hrs}h`;
   const days = Math.floor(hrs / 24);
-  return `${days}d`;
+  if (days < 7) return `${days}d`;
+
+  const sameYear = date.getFullYear() === new Date().getFullYear();
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "numeric" }),
+  });
+};
+
+const formatAuthorHandle = (email) => {
+  if (typeof email !== "string") return "";
+  const localPart = email.trim().split("@")[0]?.trim();
+  return localPart ? `@${localPart}` : "";
 };
 
 const buildAvatarFallback = (name) => {
@@ -400,6 +415,7 @@ const normalizePost = (post) => {
     id: safeId,
     comments: normalizedComments,
     commentCount: Number(post.commentCount ?? normalizedComments.length ?? 0),
+    bookmarkCount: Number(post.bookmarkCount || 0),
   };
 };
 
@@ -486,27 +502,27 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
     setLightbox({ images, index, open: true });
   };
 
-  
-const closeMenu = () => {
-  if (!menuPostId) return;
 
-  setClosingMenuId(menuPostId);
+  const closeMenu = () => {
+    if (!menuPostId) return;
 
-  window.menuCloseTimeout = setTimeout(() => {
-    setMenuPostId(null);
-    setClosingMenuId(null);
-  }, 200);
-};
+    setClosingMenuId(menuPostId);
 
-  useEffect(() => {
-  const handleClick = () => {
-    closeMenu();
+    window.menuCloseTimeout = setTimeout(() => {
+      setMenuPostId(null);
+      setClosingMenuId(null);
+    }, 200);
   };
 
-  document.addEventListener("click", handleClick);
+  useEffect(() => {
+    const handleClick = () => {
+      closeMenu();
+    };
 
-  return () => document.removeEventListener("click", handleClick);
-}, [menuPostId]);
+    document.addEventListener("click", handleClick);
+
+    return () => document.removeEventListener("click", handleClick);
+  }, [menuPostId]);
 
   useEffect(() => {
     if (!session?.user?.email) return undefined;
@@ -597,6 +613,7 @@ const closeMenu = () => {
 
   const likeTimersRef = useRef({});
   const pendingLikePostIdsRef = useRef(new Set());
+  const pendingSavePostIdsRef = useRef(new Set());
   const feedRef = useRef(null);
   const feedLoadMoreRef = useRef(null);
   const postRefs = useRef({});
@@ -956,7 +973,7 @@ const closeMenu = () => {
     const sessionEmail = normalizeEmail(session?.user?.email);
     const authorEmail = normalizeEmail(post?.authorEmail);
 
-    return Boolean(sessionEmail && authorEmail && sessionEmail === authorEmail);
+    return Boolean(post?.canDeleteByCurrentUser || (sessionEmail && authorEmail && sessionEmail === authorEmail));
   };
 
   const handleDeleteClick = (post) => {
@@ -1070,6 +1087,13 @@ const closeMenu = () => {
     router.push(`/dashboard/post/${postId}`);
   };
 
+  const handleOpenAuthorProfile = (event, post) => {
+    event.stopPropagation();
+    const authorId = typeof post?.authorId === "string" ? post.authorId.trim() : "";
+    if (!authorId) return;
+    router.push(`/dashboard/Userprofile?userId=${authorId}`);
+  };
+
   const handleBackToFeed = () => {
     if (selectedThreadPost?.id) {
       rememberOpenPost(selectedThreadPost.id);
@@ -1121,6 +1145,24 @@ const closeMenu = () => {
   };
 
   const toggleSavePost = async (postId) => {
+    if (!postId || pendingSavePostIdsRef.current.has(postId)) return;
+
+    const cachedPost = getCachedPost(postId);
+    const wasSaved = Boolean(cachedPost?.savedByCurrentUser);
+    const previousBookmarkCount = Number(cachedPost?.bookmarkCount || 0);
+    const optimisticSaved = !wasSaved;
+    const optimisticBookmarkCount = Math.max(
+      0,
+      previousBookmarkCount + (optimisticSaved ? 1 : -1),
+    );
+
+    pendingSavePostIdsRef.current.add(postId);
+    updateCachedPost(postId, (post) => ({
+      ...post,
+      savedByCurrentUser: optimisticSaved,
+      bookmarkCount: optimisticBookmarkCount,
+    }));
+
     try {
       const res = await fetch("/api/posts/bookmark", {
         method: "POST",
@@ -1138,10 +1180,18 @@ const closeMenu = () => {
 
       updateCachedPost(postId, (post) => ({
         ...post,
-        savedByCurrentUser: data.saved,
+        savedByCurrentUser: Boolean(data.saved),
+        bookmarkCount: Number(data.bookmarkCount ?? optimisticBookmarkCount),
       }));
     } catch (err) {
       console.error(err);
+      updateCachedPost(postId, (post) => ({
+        ...post,
+        savedByCurrentUser: wasSaved,
+        bookmarkCount: previousBookmarkCount,
+      }));
+    } finally {
+      pendingSavePostIdsRef.current.delete(postId);
     }
   };
 
@@ -1239,7 +1289,13 @@ const closeMenu = () => {
       }}
     >
       <div className="post-left">
-        <div className="profilepic">
+        <button
+          className="profilepic profile-link"
+          type="button"
+          disabled={!post.authorId}
+          onClick={(event) => handleOpenAuthorProfile(event, post)}
+          aria-label={`Open ${post.authorName || "author"} profile`}
+        >
           <ReliableImage
             className="profileimg"
             src={post.authorImage}
@@ -1247,22 +1303,34 @@ const closeMenu = () => {
             fallbackSrc={buildAvatarFallback(post.authorName)}
             maxRetries={3}
           />
-        </div>
+        </button>
       </div>
 
       <div className="post-right">
         <div className="posth">
           <div className="posth-left">
-            <div className="user-name">
-              {post.authorName || "UniLynk User"}
-              {post.postAs === "club" && (
-                <Icon
-                  icon="heroicons-solid:badge-check"
-                  color="#1d9bf0"
-                  width={18}
-                />
+            <button
+              className="post-author-link"
+              type="button"
+              disabled={!post.authorId}
+              onClick={(event) => handleOpenAuthorProfile(event, post)}
+            >
+              <span className="user-name">
+                {post.authorName || "UniLynk User"}
+                {post.postAs === "club" && (
+                  <Icon
+                    icon="heroicons-solid:badge-check"
+                    color="#1d9bf0"
+                    width={18}
+                  />
+                )}
+              </span>
+              {post.postAs !== "club" && !!formatAuthorHandle(post.authorEmail) && (
+                <span className="post-author-email">
+                  {formatAuthorHandle(post.authorEmail)}
+                </span>
               )}
-            </div>
+            </button>
             <div className="dd-post-time">
               <span className="post-dot">
                 <svg
@@ -1283,29 +1351,28 @@ const closeMenu = () => {
             <button
               className="posth-right-btn"
               onClick={(e) => {
-  e.stopPropagation();
+                e.stopPropagation();
 
-  if (menuPostId === post.id) {
-    closeMenu();
-  } else {
-    clearTimeout(window.menuCloseTimeout);
+                if (menuPostId === post.id) {
+                  closeMenu();
+                } else {
+                  clearTimeout(window.menuCloseTimeout);
 
-setClosingMenuId(null);
-setMenuPostId(post.id);
-  }
-}}
+                  setClosingMenuId(null);
+                  setMenuPostId(post.id);
+                }
+              }}
               aria-label="Post options"
               type="button"
             >
               <EllipsisVertical />
             </button>
             {menuPostId === post.id && (
-  <div
-    className={`post-dropdown-menu ${
-      closingMenuId === post.id ? "closing" : ""
-    }`}
-    onClick={(e) => e.stopPropagation()}
-  >
+              <div
+                className={`post-dropdown-menu ${closingMenuId === post.id ? "closing" : ""
+                  }`}
+                onClick={(e) => e.stopPropagation()}
+              >
                 <button
                   className="menu-item"
                   onClick={() => {
@@ -1357,8 +1424,16 @@ setMenuPostId(post.id);
                     setMenuPostId(null);
                   }}
                 >
-                  <Icon icon="mage:bookmark" width={18} strokeWidth={2} />
-                  {post.savedByCurrentUser ? "Unsave Post" : "Save Post"}
+
+                  {post.savedByCurrentUser ?
+                    <>
+                      <Icon icon="mage:bookmark-cross" width={18} strokeWidth={2} />
+                      Unsave Post
+                    </>
+                    : <>
+                      <Icon icon="mage:bookmark" width={18} strokeWidth={2} />
+                      Save Post
+                    </>}
                 </button>
 
                 <button
@@ -1454,11 +1529,26 @@ setMenuPostId(post.id);
               className={`like-button ${post.likedByCurrentUser ? "liked" : ""}`}
               type="button"
             >
-              <img
-                className="post-foot-icon"
-                src="/Postimg/thumb.svg"
-                alt="Like"
-              />
+
+              <svg
+                className={`post-foot-icon ${post.likedByCurrentUser ? "liked-heart" : ""
+                  }`}
+                xmlns="http://www.w3.org/2000/svg"
+                viewBox="0 0 256 256"
+                width="22"
+                height="22"
+              >
+                <rect width="256" height="256" fill="none" />
+
+                <path
+                  fill={post.likedByCurrentUser ? "#EC4899" : "none"}
+                  stroke={post.likedByCurrentUser ? "#EC4899" : "#3e3e3e"}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth="16"
+                  d="M128,216S28,160,28,92A52.00881,52.00881,0,0,1,128.00008,71.965l-.00019.00008A52.00881,52.00881,0,0,1,228,92C228,160,128,216,128,216Z"
+                />
+              </svg>
             </button>
             <span className="post-like-count">
               {Number(post.likeCount || 0)}
@@ -1503,18 +1593,24 @@ setMenuPostId(post.id);
           </div>
           <div className="post-foot-iconcont">
             <button type="button" onClick={() => toggleSavePost(post.id)}>
-              <img
+              <svg
                 className="post-foot-icon"
-                src="/Postimg/bookmark.svg"
-                alt="bookmark"
-                style={{
-                  opacity: post.savedByCurrentUser ? 1 : 0.6,
-                }}
-              />
+                xmlns="http://www.w3.org/2000/svg"
+                width="128"
+                height="128"
+                viewBox="0 0 128 128"
+                fill={post.savedByCurrentUser ? "#dbdbdb" : "none"}
+              >
+                <path
+                  stroke="#3e3e3e"
+                  strokeWidth="7"
+                  d="M78.978 20.8778C89.5889 23.625 96.9999 33.1992 96.9998 44.16L96.9995 67.8624L96.9997 88.1536C96.9999 100.313 96.9999 106.392 93.1442 108.331C89.2885 110.269 84.4088 106.643 74.6493 99.3908L72.3504 97.6824C68.3276 94.693 66.3161 93.1982 64 93.1982C61.6838 93.1983 59.6724 94.693 55.6495 97.6824L53.3505 99.3909C43.5911 106.643 38.7114 110.27 34.8557 108.331C31 106.393 31 100.313 31 88.1539L31 67.8624L31 44.1599C31 33.1992 38.4111 23.625 49.022 20.8778C58.8454 18.3345 69.1546 18.3345 78.978 20.8778Z"
+                />
+              </svg>
             </button>
 
             <span className="post-bookmark-count">
-              {post.savedByCurrentUser ? 1 : 0}
+              {Number(post.bookmarkCount || 0)}
             </span>
           </div>
         </div>
@@ -1917,7 +2013,7 @@ setMenuPostId(post.id);
                             ? notif.body
                             : "Please update Past Activities Page"}
                         </div>
-                        
+
                       </div>
                     </div>
                   );

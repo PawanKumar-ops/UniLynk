@@ -32,7 +32,7 @@ export async function POST(req) {
 
     // Verify post exists
     const post = await Post.findById(postId)
-      .select("_id")
+      .select("_id bookmarkCount")
       .lean();
 
     if (!post) {
@@ -66,19 +66,22 @@ export async function POST(req) {
         : { $addToSet: { savedPosts: post._id } }
     );
 
+    let bookmarkCount = Number(post.bookmarkCount || 0);
+
     // Only update count if user's bookmarks actually changed
     if (userResult.modifiedCount > 0) {
-      await Post.updateOne(
-        { _id: post._id },
+      const updatedPost = await Post.findByIdAndUpdate(
+        post._id,
         {
           $inc: {
             bookmarkCount: alreadySaved ? -1 : 1,
           },
-        }
+        },
+        { new: true, projection: { bookmarkCount: 1 } }
       );
 
       // Prevent negative bookmark count (optional safety)
-      await Post.updateOne(
+      const clampedPost = await Post.findOneAndUpdate(
         {
           _id: post._id,
           bookmarkCount: { $lt: 0 },
@@ -87,8 +90,16 @@ export async function POST(req) {
           $set: {
             bookmarkCount: 0,
           },
-        }
+        },
+        { new: true, projection: { bookmarkCount: 1 } }
       );
+
+      bookmarkCount = Number(
+        clampedPost?.bookmarkCount ?? updatedPost?.bookmarkCount ?? 0
+      );
+    } else {
+      const currentPost = await Post.findById(post._id, { bookmarkCount: 1 }).lean();
+      bookmarkCount = Number(currentPost?.bookmarkCount || 0);
     }
 
     // Fire-and-forget trending score update
@@ -106,6 +117,7 @@ export async function POST(req) {
     return Response.json(
       {
         saved: !alreadySaved,
+        bookmarkCount,
       },
       {
         status: 200,

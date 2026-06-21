@@ -380,6 +380,7 @@ const normalizePost = (post) => {
     id: safeId,
     comments: normalizedComments,
     commentCount: Number(post.commentCount ?? normalizedComments.length ?? 0),
+    bookmarkCount: Number(post.bookmarkCount || 0),
   };
 };
 
@@ -478,6 +479,7 @@ export function ExplorePage({ onBack }) {
   const [isDeletingPost, setIsDeletingPost] = useState(false);
   const likeTimersRef = useRef({});
   const pendingLikePostIdsRef = useRef(new Set());
+  const pendingSavePostIdsRef = useRef(new Set());
   useEffect(() => {
     const fetchRandomClub = async () => {
       try {
@@ -795,6 +797,34 @@ export function ExplorePage({ onBack }) {
   };
 
   const toggleSavePost = async (postId) => {
+    if (!postId || pendingSavePostIdsRef.current.has(postId)) return;
+
+    const currentPost = Array.isArray(suggestedPosts)
+      ? suggestedPosts.find((post) => post.id === postId)
+      : null;
+    const wasSaved = Boolean(currentPost?.savedByCurrentUser);
+    const previousBookmarkCount = Number(currentPost?.bookmarkCount || 0);
+    const optimisticSaved = !wasSaved;
+    const optimisticBookmarkCount = Math.max(
+      0,
+      previousBookmarkCount + (optimisticSaved ? 1 : -1),
+    );
+
+    pendingSavePostIdsRef.current.add(postId);
+    setSuggestedPosts((prev) =>
+      Array.isArray(prev)
+        ? prev.map((post) =>
+          post.id === postId
+            ? {
+              ...post,
+              savedByCurrentUser: optimisticSaved,
+              bookmarkCount: optimisticBookmarkCount,
+            }
+            : post
+        )
+        : prev
+    );
+
     try {
       const res = await fetch("/api/posts/bookmark", {
         method: "POST",
@@ -811,12 +841,33 @@ export function ExplorePage({ onBack }) {
       setSuggestedPosts((prev) =>
         Array.isArray(prev)
           ? prev.map((post) =>
-            post.id === postId ? { ...post, savedByCurrentUser: data.saved } : post
+            post.id === postId
+              ? {
+                ...post,
+                savedByCurrentUser: Boolean(data.saved),
+                bookmarkCount: Number(data.bookmarkCount ?? optimisticBookmarkCount),
+              }
+              : post
           )
           : prev
       );
     } catch (err) {
       console.error(err);
+      setSuggestedPosts((prev) =>
+        Array.isArray(prev)
+          ? prev.map((post) =>
+            post.id === postId
+              ? {
+                ...post,
+                savedByCurrentUser: wasSaved,
+                bookmarkCount: previousBookmarkCount,
+              }
+              : post
+          )
+          : prev
+      );
+    } finally {
+      pendingSavePostIdsRef.current.delete(postId);
     }
   };
 
@@ -1105,7 +1156,7 @@ export function ExplorePage({ onBack }) {
                 style={{ opacity: post.savedByCurrentUser ? 1 : 0.6 }}
               />
             </button>
-            <span className="post-bookmark-count">{post.savedByCurrentUser ? 1 : 0}</span>
+            <span className="post-bookmark-count">{Number(post.bookmarkCount || 0)}</span>
           </div>
         </div>
       </div>

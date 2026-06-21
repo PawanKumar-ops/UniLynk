@@ -4,6 +4,7 @@ import Comment from "@/models/comment";
 import User from "@/models/user";
 import mongoose from "mongoose";
 import PostLike from "@/models/postLike";
+import Club from "@/models/Club";
 import cloudinary from "@/lib/cloudinary";
 import { getLikeCount } from "@/lib/postLikeCache";
 import { getServerSession } from "next-auth";
@@ -137,6 +138,7 @@ const resolvePostAuthorImage = async (post) => {
 
   return {
     ...post,
+    authorId: user?._id?.toString?.() || "",
     authorEmail: email,
     authorImage: liveUserImage || storedImage || buildAvatarFallback(post.authorName),
   };
@@ -174,6 +176,10 @@ export async function GET(_req, { params }) {
       Comment.find({ postId: postObjectId }).sort({ createdAt: 1, _id: 1 }).lean(),
     ]);
     const savedPostIds = new Set(user?.savedPosts?.map((id) => id.toString()) || []);
+    const isAuthor = Boolean(sessionEmail && normalizeEmail(hydratedPost.authorEmail) === sessionEmail);
+    const isClubLeader = hydratedPost.postAs === "club" && hydratedPost.clubId && sessionEmail
+      ? Boolean(await Club.exists({ _id: hydratedPost.clubId, "leaders.email": sessionEmail }))
+      : false;
 
     return Response.json(
       {
@@ -183,6 +189,7 @@ export async function GET(_req, { params }) {
             likeCount,
             likedByCurrentUser: Boolean(likedPost),
             savedByCurrentUser: savedPostIds.has(postObjectId),
+            canDeleteByCurrentUser: isAuthor || isClubLeader,
             comments,
           },
           userId,
@@ -215,13 +222,18 @@ export async function DELETE(_req, { params }) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const post = await Post.findById(postId, { authorEmail: 1, images: 1 }).lean();
+    const post = await Post.findById(postId, { authorEmail: 1, images: 1, postAs: 1, clubId: 1 }).lean();
     if (!post) {
       return Response.json({ error: "Post not found" }, { status: 404 });
     }
 
-    if (normalizeEmail(post.authorEmail) !== sessionEmail) {
-      return Response.json({ error: "Only the post author can delete this post" }, { status: 403 });
+    const isAuthor = normalizeEmail(post.authorEmail) === sessionEmail;
+    const isClubLeader = post.postAs === "club" && post.clubId
+      ? Boolean(await Club.exists({ _id: post.clubId, "leaders.email": sessionEmail }))
+      : false;
+
+    if (!isAuthor && !isClubLeader) {
+      return Response.json({ error: "You are not authorized to delete this post" }, { status: 403 });
     }
 
     const cloudinaryResult = await deletePostMediaFromCloudinary(post.images);

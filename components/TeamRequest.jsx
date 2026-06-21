@@ -59,10 +59,9 @@ export default function RequestModal({
           sm:max-w-[22rem] sm:rounded-2xl sm:m-4 sm:border sm:border-black/5
           max-sm:fixed max-sm:bottom-0 max-sm:left-0 max-sm:right-0 max-sm:rounded-t-2xl max-sm:border-t max-sm:border-black/5
           transition-transform duration-300 ease-out
-          ${
-            visible
-              ? "sm:translate-y-0 max-sm:translate-y-0"
-              : "sm:translate-y-4 sm:scale-95 max-sm:translate-y-full"
+          ${visible
+            ? "sm:translate-y-0 max-sm:translate-y-0"
+            : "sm:translate-y-4 sm:scale-95 max-sm:translate-y-full"
           }
         `}
       >

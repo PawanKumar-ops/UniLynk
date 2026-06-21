@@ -1,5 +1,6 @@
 import { AlertTriangle } from "lucide-react";
 import * as Dialog from "@radix-ui/react-dialog";
+import { Icon } from "@iconify/react";
 
 export function DeleteModal({ open, onOpenChange, onDelete, isDeleting = false }) {
     const handleDelete = async () => {
@@ -34,9 +35,13 @@ export function DeleteModal({ open, onOpenChange, onDelete, isDeleting = false }
                             type="button"
                             onClick={handleDelete}
                             disabled={isDeleting}
-                            className="w-full rounded-full border border-red-200 bg-white px-4 py-2 text-sm text-red-600 transition-colors hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="w-full rounded-full border border-red-200 bg-white px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-60 flex items-center justify-center"
                         >
-                            {isDeleting ? "Deleting..." : "Delete"}
+                            {isDeleting ? (
+                                <div className="h-5 w-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
+                            ) : (
+                                "Delete"
+                            )}
                         </button>
                         <button
                             type="button"

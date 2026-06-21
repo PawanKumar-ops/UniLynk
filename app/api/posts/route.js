@@ -84,26 +84,27 @@ const resolvePostAuthorImages = async (posts) => {
     { email: 1, name: 1, img: 1 }
   ).lean();
 
-  const userImageByEmail = new Map();
-  const userImageByName = new Map();
+  const userByEmail = new Map();
+  const userByName = new Map();
 
   for (const user of users) {
     const email = normalizeEmail(user.email);
     const name = normalizeName(user.name);
-    const image = normalizeImage(user.img);
 
-    if (email && image) userImageByEmail.set(email, image);
-    if (name && image && !userImageByName.has(name)) userImageByName.set(name, image);
+    if (email) userByEmail.set(email, user);
+    if (name && !userByName.has(name)) userByName.set(name, user);
   }
 
   return posts.map((post) => {
     const email = normalizeEmail(post.authorEmail);
     const name = normalizeName(post.authorName);
-    const liveUserImage = userImageByEmail.get(email) || userImageByName.get(name);
+    const matchedUser = userByEmail.get(email) || userByName.get(name);
+    const liveUserImage = normalizeImage(matchedUser?.img);
     const storedImage = normalizeImage(post.authorImage);
 
     return {
       ...post,
+      authorId: matchedUser?._id?.toString?.() || "",
       authorEmail: email,
       authorImage: liveUserImage || storedImage || buildAvatarFallback(post.authorName),
     };
@@ -192,6 +193,50 @@ const normalizePosts = (posts, userId = null) =>
     poll: normalizePollForUser(post.poll, userId),
   }));
 
+const markDeletePermissions = async (posts, sessionEmail) => {
+  if (!posts.length) return posts;
+
+  const normalizedSessionEmail = normalizeEmail(sessionEmail);
+  const clubIds = [
+    ...new Set(
+      posts
+        .filter((post) => post.postAs === "club" && post.clubId)
+        .map((post) => String(post.clubId))
+    ),
+  ];
+
+  const clubs = clubIds.length && normalizedSessionEmail
+    ? await Club.find(
+        { _id: { $in: clubIds } },
+        { leaders: 1 }
+      ).lean()
+    : [];
+  const leaderClubIds = new Set(
+    clubs
+      .filter((club) =>
+        (club.leaders || []).some(
+          (leader) => normalizeEmail(leader?.email) === normalizedSessionEmail
+        )
+      )
+      .map((club) => club._id.toString())
+  );
+
+  return posts.map((post) => {
+    const authorEmail = normalizeEmail(post.authorEmail);
+    const isAuthor = Boolean(normalizedSessionEmail && authorEmail === normalizedSessionEmail);
+    const isClubLeader = Boolean(
+      post.postAs === "club" &&
+      post.clubId &&
+      leaderClubIds.has(String(post.clubId))
+    );
+
+    return {
+      ...post,
+      canDeleteByCurrentUser: isAuthor || isClubLeader,
+    };
+  });
+};
+
 export async function GET(req) {
   try {
     await connectDB();
@@ -258,7 +303,8 @@ export async function GET(req) {
       ? await User.findOne({ email: sessionEmail }, { _id: 1, savedPosts: 1 }).lean()
       : null;
 
-    const postsWithComments = await attachRecentComments(hydratedPosts);
+    const postsWithPermissions = await markDeletePermissions(hydratedPosts, sessionEmail);
+    const postsWithComments = await attachRecentComments(postsWithPermissions);
     const enrichedPosts = await resolveLikeState(postsWithComments, user?._id?.toString());
     const savedPostIds = new Set(user?.savedPosts?.map(id => id.toString()) || []);
     const enrichedPostsWithSave = enrichedPosts.map(post => ({
@@ -348,8 +394,9 @@ export async function POST(req) {
 
     let safeAuthorImage = normalizeImage(authorImage) || normalizeImage(session?.user?.image);
 
+    let dbUser = null;
     if (safeAuthorEmail) {
-      const dbUser = await User.findOne({ email: safeAuthorEmail }, { img: 1, name: 1 }).lean();
+      dbUser = await User.findOne({ email: safeAuthorEmail }, { img: 1, name: 1 }).lean();
       safeAuthorImage = normalizeImage(dbUser?.img) || safeAuthorImage;
     }
 
@@ -398,8 +445,10 @@ export async function POST(req) {
     const normalizedPost = {
       ...post.toObject(),
       id: post._id.toString(),
+      authorId: dbUser?._id?.toString?.() || "",
       comments: [],
       commentCount: 0,
+      canDeleteByCurrentUser: Boolean(sessionEmail),
       poll: normalizePollForUser(post.poll, null),
     };
 
