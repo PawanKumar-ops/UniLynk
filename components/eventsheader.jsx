@@ -16,25 +16,7 @@ const Eventsheader = () => {
   const [selectedCategory, setSelectedCategory] = useState(searchParams.get("category") || "");
   const [searchText, setSearchText] = useState(searchParams.get("q") || "");
 
-  // sync button position with URL
   const isEvent = pathname === "/dashboard/events";
-
-  // const createNewForm = () => {
-  //       const newForm = {
-  //           id: Date.now().toString(),
-  //           title: "Untitled Form",
-  //           description: "",
-  //           createdAt: new Date().toISOString(),
-  //           questions: 0,
-  //       };
-
-  //       const updatedForms = [newForm, ...forms];
-  //       setForms(updatedForms);
-  //       localStorage.setItem(
-  //           "unilynk-forms",
-  //           JSON.stringify(updatedForms),
-  //       );
-  //   };
 
   const handleCreate = () => {
     const newForm = createNewForm();

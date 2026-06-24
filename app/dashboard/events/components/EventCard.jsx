@@ -5,8 +5,8 @@ import { format } from "date-fns";
 const EventCard = ({ event, isApplied }) => (
   <div className="event" key={event._id}>
     <div className="eventimginfo">
-      <div className="eventpic">
-        <img src="/dashboard/events.svg" alt="" />
+      <div>
+        <img  className="eventpic" src={event.clubId?.logo || "/Profilepic.png"} alt="Club Logo" />
       </div>
 
       <div className="eventdef">
@@ -14,7 +14,7 @@ const EventCard = ({ event, isApplied }) => (
 
         <p className="eventname">{event.title || "Untitled Event"}</p>
 
-        <p className="ee-clubname">{event.description || "No description available"}</p>
+        <p className="ee-clubname">{event.clubId?.clubName || "No club assigned"}</p>
       </div>
     </div>
 
@@ -41,9 +41,9 @@ const EventCard = ({ event, isApplied }) => (
       <button className="viewdetails">View Details</button>
 
       {isApplied ? (
-        <button className="apply applied-btn" disabled>
-          Applied
-        </button>
+        <Link href={`/FormPreview/${event._id}`}>
+          <button className="apply">Preview</button>
+        </Link>
       ) : (
         <Link href={`/FormPreview/${event._id}`}>
           <button className="apply">Apply</button>

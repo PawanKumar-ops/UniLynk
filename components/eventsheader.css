@@ -1,7 +1,7 @@
 .eventshead {
     height: 110px;
     min-width: 100%;
-    background-color: #fcfcff;
+    background-color: #ffffff;
     border-bottom: 1px solid rgb(230, 230, 230);
     display: flex;
     justify-content: space-between;
@@ -10,9 +10,6 @@
     align-items: center;
     padding-right: 150px;
 }
-
-
-
 
 .events-toggle {
   background: #f3f3f3;

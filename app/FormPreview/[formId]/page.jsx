@@ -74,7 +74,7 @@ const createDefaultTeamAnswer = (teamConfig = {}, defaultMemberDetails = null) =
   members: [createEmptyMember(teamConfig, defaultMemberDetails)],
 });
 
-function TeamRegistrationCard({ teamConfig, value, onChange, onFindTeammates, onAddToTeamFinder, defaultMemberDetails }) {
+function TeamRegistrationCard({ teamConfig, value, onChange, onFindTeammates, onAddToTeamFinder, defaultMemberDetails, readOnly }) {
   const cfg = normalizeTeamConfig(teamConfig);
   const minSize = cfg.minSize;
   const maxSize = Math.max(minSize, cfg.maxSize);
@@ -117,6 +117,7 @@ function TeamRegistrationCard({ teamConfig, value, onChange, onFindTeammates, on
           type="button"
           className={`team-q-mode-btn ${safeValue.mode === "team" ? "is-active" : ""}`}
           onClick={() => setMode("team")}
+          disabled={readOnly}
         >
           Create Team
         </button>
@@ -181,21 +182,22 @@ function TeamRegistrationCard({ teamConfig, value, onChange, onFindTeammates, on
                     {idx === 0 ? 'Team Lead' : `Member ${idx + 1}`}
                   </span>
                   {idx > 0 && (
-                    <button type="button" className="team-q-remove" onClick={() => removeMember(idx)}>
-                      Remove
-                    </button>
+                    <button type="button" className="team-q-remove" onClick={() => removeMember(idx)} disabled={readOnly}>
+                        Remove
+                      </button>
                   )}
                 </div>
                 <div className="team-q-grid">
                   {allFields.map((f) => (
                     <div key={f} className="team-q-field">
                       <label>{TEAM_FIELD_LABELS[f] || f}</label>
-                      <input
-                        type={f === 'email' ? 'email' : 'text'}
-                        value={member[f] || ''}
-                        onChange={(e) => updateMember(idx, f, e.target.value)}
-                        placeholder={TEAM_FIELD_LABELS[f] || f}
-                      />
+                        <input
+                          type={f === 'email' ? 'email' : 'text'}
+                          value={member[f] || ''}
+                          onChange={(e) => updateMember(idx, f, e.target.value)}
+                          placeholder={TEAM_FIELD_LABELS[f] || f}
+                          disabled={readOnly}
+                        />
                     </div>
                   ))}
                 </div>
@@ -205,20 +207,21 @@ function TeamRegistrationCard({ teamConfig, value, onChange, onFindTeammates, on
 
           <div className="flex items-center justify-between w-full">
             <button
-              type="button"
-              className="team-q-add flex gap-1 items-center justify-center p-2 rounded-lg"
-              onClick={addMember}
-              disabled={members.length >= maxSize}
-            >
+                type="button"
+                className="team-q-add flex gap-1 items-center justify-center p-2 rounded-lg"
+                onClick={addMember}
+                disabled={members.length >= maxSize || readOnly}
+              >
               <Plus height={15} width={15} />
               <div>Add member</div>
             </button>
 
             <button
-              type="button"
-              className="team-q-add-teamfinder flex gap-1 items-center justify-center p-2 rounded-lg bg-black text-white"
-              onClick={() => onAddToTeamFinder("team")}
-            >
+                type="button"
+                className="team-q-add-teamfinder flex gap-1 items-center justify-center p-2 rounded-lg bg-black text-white"
+                onClick={() => onAddToTeamFinder("team")}
+                disabled={readOnly}
+              >
               <div>Add team to TeamFinder</div>
             </button>
           </div>
@@ -443,6 +446,24 @@ export default function FormPreview() {
       });
   }, [safeFormId]);
 
+  // ─── Fetch saved answers when the user has already applied ────────────────────────
+  useEffect(() => {
+    if (alreadyApplied && safeFormId) {
+      fetch(`/api/forms/submission?formId=${safeFormId}`)
+        .then((res) => {
+          if (!res.ok) {
+            // If no submission found or error, just skip silently
+            return null;
+          }
+          return res.json();
+        })
+        .then((data) => {
+          if (data && data.answers) setResponses(data.answers);
+        })
+        .catch((err) => console.error('Failed to load submission', err));
+    }
+  }, [alreadyApplied, safeFormId]);
+
   const handleSubmit = async (e) => {
     if (alreadyApplied) return;
     if (!safeFormId) return;
@@ -585,14 +606,15 @@ export default function FormPreview() {
                   <p className="question-desc">Required: request to join an open team or add your team to Team Finder before submitting.</p>
                   {teamFinderComplete && <p className="team-finder-required-done">Team Finder requirement completed.</p>}
                 </div>
-                <TeamRegistrationCard
-                  teamConfig={formData.teamConfig}
-                  value={responses[TEAM_REGISTRATION_ANSWER_ID]}
-                  onChange={(value) => handleResponse(TEAM_REGISTRATION_ANSWER_ID, value)}
-                  onFindTeammates={handleFindTeammates}
-                  onAddToTeamFinder={handleAddToTeamFinder}
-                  defaultMemberDetails={currentUser}
-                />
+                 <TeamRegistrationCard
+                   teamConfig={formData.teamConfig}
+                   value={responses[TEAM_REGISTRATION_ANSWER_ID]}
+                   onChange={(value) => handleResponse(TEAM_REGISTRATION_ANSWER_ID, value)}
+                   onFindTeammates={handleFindTeammates}
+                   onAddToTeamFinder={handleAddToTeamFinder}
+                   defaultMemberDetails={currentUser}
+                   readOnly={alreadyApplied}
+                 />
               </div>
             )}
 
@@ -608,28 +630,28 @@ export default function FormPreview() {
                 </div>
 
                 {question.type === 'short' && (
-                  <input type="text" value={responses[question.id] || ''} onChange={(e) => handleResponse(question.id, e.target.value)} className="input-text" placeholder="Your answer" required={question.required} />
+                  <input type="text" value={responses[question.id] || ''} onChange={(e) => handleResponse(question.id, e.target.value)} className="input-text" placeholder="Your answer" required={question.required} disabled={alreadyApplied} />
                 )}
                 {question.type === 'long' && (
-                  <textarea value={responses[question.id] || ''} onChange={(e) => handleResponse(question.id, e.target.value)} className="input-textarea" placeholder="Your answer" rows={4} required={question.required} />
+                  <textarea value={responses[question.id] || ''} onChange={(e) => handleResponse(question.id, e.target.value)} className="input-textarea" placeholder="Your answer" rows={4} required={question.required} disabled={alreadyApplied} />
                 )}
                 {question.type === 'email' && (
-                  <input type="email" value={responses[question.id] || ''} onChange={(e) => handleResponse(question.id, e.target.value)} className="input-text" placeholder="example@email.com" required={question.required} />
+                  <input type="email" value={responses[question.id] || ''} onChange={(e) => handleResponse(question.id, e.target.value)} className="input-text" placeholder="example@email.com" required={question.required} disabled={alreadyApplied} />
                 )}
                 {question.type === 'phone' && (
-                  <input type="tel" value={responses[question.id] || ''} onChange={(e) => handleResponse(question.id, e.target.value)} className="input-text" placeholder="(123) 456-7890" required={question.required} />
+                  <input type="tel" value={responses[question.id] || ''} onChange={(e) => handleResponse(question.id, e.target.value)} className="input-text" placeholder="(123) 456-7890" required={question.required} disabled={alreadyApplied} />
                 )}
                 {question.type === 'date' && (
-                  <input type="date" value={responses[question.id] || ''} onChange={(e) => handleResponse(question.id, e.target.value)} className="input-text" required={question.required} />
+                  <input type="date" value={responses[question.id] || ''} onChange={(e) => handleResponse(question.id, e.target.value)} className="input-text" required={question.required} disabled={alreadyApplied} />
                 )}
                 {question.type === 'time' && (
-                  <input type="time" value={responses[question.id] || ''} onChange={(e) => handleResponse(question.id, e.target.value)} className="input-text" required={question.required} />
+                  <input type="time" value={responses[question.id] || ''} onChange={(e) => handleResponse(question.id, e.target.value)} className="input-text" required={question.required} disabled={alreadyApplied} />
                 )}
                 {question.type === 'multiple' && (
                   <div className="radio-options">
                     {question.options?.map((option, index) => (
                       <label key={index} className="radio-option">
-                        <input type="radio" name={question.id} value={option} checked={responses[question.id] === option} onChange={(e) => handleResponse(question.id, e.target.value)} required={question.required} />
+                        <input type="radio" name={question.id} value={option} checked={responses[question.id] === option} onChange={(e) => handleResponse(question.id, e.target.value)} required={question.required} disabled={alreadyApplied} />
                         <span>{option}</span>
                       </label>
                     ))}
@@ -639,7 +661,7 @@ export default function FormPreview() {
                   <div className="checkbox-options">
                     {question.options?.map((option, index) => (
                       <label key={index} className="checkbox-option">
-                        <input type="checkbox" checked={(responses[question.id] || []).includes(option)} onChange={(e) => handleCheckboxChange(question.id, option, e.target.checked)} />
+                        <input type="checkbox" checked={(responses[question.id] || []).includes(option)} onChange={(e) => handleCheckboxChange(question.id, option, e.target.checked)} disabled={alreadyApplied} />
                         <span>{option}</span>
                       </label>
                     ))}

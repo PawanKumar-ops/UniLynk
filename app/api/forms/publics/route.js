@@ -19,7 +19,7 @@ export async function GET(req) {
     if (clubId) {
       publicFilter.clubId = clubId;
     }
-    const publicForms = await Form.find(publicFilter).lean();
+    const publicForms = await Form.find(publicFilter).populate("clubId", "clubName logo").lean();
 
     const attachResponseCounts = async (formsList) => {
       return Promise.all(
@@ -58,7 +58,7 @@ export async function GET(req) {
       clubId: { $in: clubIds },
     };
 
-    const membersOnlyForms = await Form.find(membersOnlyFilter).lean();
+    const membersOnlyForms = await Form.find(membersOnlyFilter).populate("clubId", "clubName logo").lean();
 
     const allForms = [...publicForms, ...membersOnlyForms];
     const results = await attachResponseCounts(allForms);

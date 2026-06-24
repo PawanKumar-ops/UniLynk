@@ -11,9 +11,6 @@
     padding-right: 150px;
 }
 
-
-
-
 .events-toggle {
   background: #f3f3f3;
   padding: 4px;
@@ -284,15 +281,6 @@
   justify-content: center; /* center the grid block */
 }
 
-
-/* .forms-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 24px;
-} */
-
-
-
 .forms-grid {
   max-width: 1070px;
   width: 100%;
@@ -301,7 +289,7 @@
   grid-template-columns: repeat(auto-fill, 460px);
   justify-content: center; 
   gap: 25px 25px;
-  background-color: #fafafa;
+  background-color: #ffffff;
 }
 
 
