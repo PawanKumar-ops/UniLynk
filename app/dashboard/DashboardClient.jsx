@@ -569,7 +569,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
         teamFinderResult.status === "fulfilled"
           ? teamFinderResult.value.map((notif) => ({
             ...notif,
-            notificationType: "team-finder-request",
+            notificationType: notif.type || "team-finder-request",
           }))
           : [];
 
@@ -605,6 +605,35 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
       window.clearInterval(intervalId);
     };
   }, [session?.user?.email]);
+
+  const handleTeamRequestDecision = async (action) => {
+    if (!activeTeamRequest?._id) return;
+
+    try {
+      const response = await fetch(`/api/team-finder/requests/${activeTeamRequest._id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || "Could not update team request");
+      }
+
+      setPendingNotifications((prev) =>
+        prev.filter(
+          (notification) =>
+            notification.notificationType !== "team-finder-request" ||
+            notification._id !== activeTeamRequest._id,
+        ),
+      );
+      setActiveTeamRequest(null);
+    } catch (error) {
+      console.error("Failed to update team request", error);
+      alert(error.message || "Could not update team request");
+    }
+  };
 
   useEffect(() => {
     setDashboardView(pathname === "/dashboard/explore" ? "explore" : "feed");
@@ -1926,15 +1955,8 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
                 email: activeTeamRequest?.senderEmail,
                 message: activeTeamRequest?.message || "I'd like to join your team.",
               }}
-              formTitle={activeTeamRequest?.formTitle}
-              onAccept={() => {
-                // Handle accept logic here if needed
-                setActiveTeamRequest(null);
-              }}
-              onReject={() => {
-                // Handle reject logic here if needed
-                setActiveTeamRequest(null);
-              }}
+              onAccept={() => handleTeamRequestDecision("accept")}
+              onReject={() => handleTeamRequestDecision("decline")}
             />
           </>
         )}
@@ -2022,6 +2044,9 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
                 pendingNotifications.map((notif) => {
                   const isTeamFinder =
                     notif.notificationType === "team-finder-request";
+                  const isTeamFinderUpdate =
+                    notif.notificationType === "team-finder-accepted" ||
+                    notif.notificationType === "team-finder-declined";
                   return (
                     <div
                       key={`${notif.notificationType}-${notif._id}`}
@@ -2036,7 +2061,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
                             console.error('Failed to fetch avatar', e);
                             setActiveTeamRequest(notif);
                           }
-                        } else {
+                        } else if (!isTeamFinderUpdate) {
                           setActivePastEvent(notif);
                         }
                       }}
@@ -2044,7 +2069,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
                         }`}
                     >
                       <div className="w-11 h-11 rounded-full overflow-hidden bg-neutral-100 shrink-0 flex items-center justify-center">
-                        {isTeamFinder ? (
+                        {isTeamFinder || isTeamFinderUpdate ? (
                           <Bell className="h-5 w-5 text-neutral-700" />
                         ) : (
                           <ImageWithFallback
@@ -2059,7 +2084,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
                           {notif.title}
                         </div>
                         <div className="text-xs text-neutral-500 truncate">
-                          {isTeamFinder
+                          {isTeamFinder || isTeamFinderUpdate
                             ? notif.body
                             : "Please update Past Activities Page"}
                         </div>

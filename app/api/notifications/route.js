@@ -16,6 +16,7 @@ const serializeNotification = (notification) => ({
   formTitle: notification.formTitle,
   targetKind: notification.targetKind,
   teamName: notification.teamName,
+  targetResponseId: notification.targetResponseId?.toString?.() || null,
   createdAt: notification.createdAt,
 });
 
