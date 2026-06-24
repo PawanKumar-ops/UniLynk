@@ -14,7 +14,7 @@ const EventCard = ({ event, isApplied }) => (
 
         <p className="eventname">{event.title || "Untitled Event"}</p>
 
-        <p className="clubname">{event.description || "No description available"}</p>
+        <p className="ee-clubname">{event.description || "No description available"}</p>
       </div>
     </div>
 

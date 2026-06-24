@@ -1163,6 +1163,33 @@ export function ExplorePage({ onBack }) {
     </div>
   );
 
+  const handleOpenCommentAuthorProfile = async (event, comment) => {
+    event.stopPropagation();
+    
+    let authorId =
+      typeof comment?.authorId === "string"
+        ? comment.authorId.trim()
+        : typeof comment?.author?.id === "string"
+        ? comment.author.id.trim()
+        : "";
+    
+    // If no authorId, try to fetch by email (for old comments)
+    if (!authorId && typeof comment?.authorEmail === "string" && comment.authorEmail.trim()) {
+      try {
+        const res = await fetch(`/api/user/lookup?email=${encodeURIComponent(comment.authorEmail)}`);
+        if (res.ok) {
+          const data = await res.json();
+          authorId = data.userId || "";
+        }
+      } catch (err) {
+        console.error("Failed to lookup user by email:", err);
+      }
+    }
+    
+    if (!authorId) return;
+    router.push(`/dashboard/Userprofile?userId=${authorId}`);
+  };
+
   const renderComment = (comment) => (
     <div className="thread-comment" key={comment.id}>
       <div className="thread-comment-avatar">
@@ -1176,7 +1203,14 @@ export function ExplorePage({ onBack }) {
       </div>
       <div className="thread-comment-body">
         <div className="thread-comment-meta">
-          <span className="user-name">{comment.authorName || "UniLynk User"}</span>
+          <button
+            className="post-author-link"
+            type="button"
+            disabled={!comment.authorId && !comment.authorEmail}
+            onClick={(event) => handleOpenCommentAuthorProfile(event, comment)}
+          >
+            <span className="user-name">{comment.authorName || "UniLynk User"}</span>
+          </button>
           <span className="dd-post-time">
             <span className="post-dot"><svg width="8" height="8" viewBox="0 0 8 8" xmlns="http://www.w3.org/2000/svg"><circle cx="4" cy="4" r="1.5" fill="grey" /></svg></span>
             <span className="post-timeli">{formatRelativeTime(comment.createdAt)}</span>

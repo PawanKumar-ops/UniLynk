@@ -30,6 +30,7 @@ const buildAvatarFallback = (name) => {
 const normalizeCommentForClient = (comment) => ({
   ...comment,
   id: comment.id ?? comment._id?.toString?.() ?? String(comment._id || ""),
+  authorId: comment.authorId?.toString?.() ?? comment.authorId ?? null,
 });
 
 const normalizePostForClient = (post, comments = []) => ({
@@ -68,9 +69,10 @@ export async function POST(req, { params }) {
       return Response.json({ error: "Comment content or image is required" }, { status: 400 });
     }
 
-    const dbUser = await User.findOne({ email: sessionEmail }, { img: 1, name: 1 }).lean();
+    const dbUser = await User.findOne({ email: sessionEmail }, { _id: 1, img: 1, name: 1 }).lean();
     const safeAuthorName = dbUser?.name?.trim() || session?.user?.name?.trim() || "UniLynk User";
     const safeAuthorImage = normalizeImage(dbUser?.img) || normalizeImage(session?.user?.image) || buildAvatarFallback(safeAuthorName);
+    const authorId = dbUser?._id || null;
 
     const existingPost = await Post.findById(postId, { _id: 1 }).lean();
     if (!existingPost) {
@@ -81,6 +83,7 @@ export async function POST(req, { params }) {
       postId,
       content: safeContent,
       images: safeImages,
+      authorId,
       authorName: safeAuthorName,
       authorEmail: sessionEmail,
       authorImage: safeAuthorImage,

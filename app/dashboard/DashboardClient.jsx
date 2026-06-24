@@ -1087,9 +1087,29 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
     router.push(`/dashboard/post/${postId}`);
   };
 
-  const handleOpenAuthorProfile = (event, post) => {
+  const handleOpenAuthorProfile = async (event, item) => {
     event.stopPropagation();
-    const authorId = typeof post?.authorId === "string" ? post.authorId.trim() : "";
+    // Support both posts and comments which may store author ID differently
+    let authorId =
+      typeof item?.authorId === "string"
+        ? item.authorId.trim()
+        : typeof item?.author?.id === "string"
+        ? item.author.id.trim()
+        : "";
+    
+    // If no authorId, try to fetch by email (for old comments)
+    if (!authorId && typeof item?.authorEmail === "string" && item.authorEmail.trim()) {
+      try {
+        const res = await fetch(`/api/user/lookup?email=${encodeURIComponent(item.authorEmail)}`);
+        if (res.ok) {
+          const data = await res.json();
+          authorId = data.userId || "";
+        }
+      } catch (err) {
+        console.error("Failed to lookup user by email:", err);
+      }
+    }
+    
     if (!authorId) return;
     router.push(`/dashboard/Userprofile?userId=${authorId}`);
   };
@@ -1631,9 +1651,28 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
       </div>
       <div className="thread-comment-body">
         <div className="thread-comment-meta">
-          <span className="user-name">
-            {comment.authorName || "UniLynk User"}
-          </span>
+          <button
+              className="post-author-link"
+              type="button"
+              disabled={!comment.authorId && !comment.authorEmail}
+              onClick={(event) => handleOpenAuthorProfile(event, comment)}
+            >
+              <span className="user-name">
+                {comment.authorName || "UniLynk User"}
+                {comment.postAs === "club" && (
+                  <Icon
+                    icon="heroicons-solid:badge-check"
+                    color="#1d9bf0"
+                    width={18}
+                  />
+                )}
+              </span>
+              {comment.postAs !== "club" && !!formatAuthorHandle(comment.authorEmail) && (
+                <span className="post-author-email">
+                  {formatAuthorHandle(comment.authorEmail)}
+                </span>
+              )}
+            </button>
           <span className="dd-post-time">
             <span className="post-dot">
               <svg
@@ -1881,6 +1920,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
               open={Boolean(activeTeamRequest)}
               onClose={() => setActiveTeamRequest(null)}
               requester={{
+                id: activeTeamRequest?.senderId,
                 name: activeTeamRequest?.senderName || "Team Member",
                 avatar: activeTeamRequest?.senderAvatar,
                 email: activeTeamRequest?.senderEmail,

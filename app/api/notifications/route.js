@@ -11,6 +11,7 @@ const serializeNotification = (notification) => ({
   message: notification.message,
   senderName: notification.senderName,
   senderEmail: notification.senderEmail,
+  senderId: notification.senderId?.toString?.() || null,
   formId: notification.formId?.toString?.() || null,
   formTitle: notification.formTitle,
   targetKind: notification.targetKind,

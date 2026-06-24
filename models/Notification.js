@@ -15,6 +15,10 @@ const NotificationSchema = new mongoose.Schema(
       trim: true,
     },
     senderName: String,
+    senderId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
     type: {
       type: String,
       enum: ["team-finder-request"],

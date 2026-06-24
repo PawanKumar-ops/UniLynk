@@ -106,7 +106,7 @@ const resolvePostAuthorImages = async (posts) => {
       ...post,
       authorId: matchedUser?._id?.toString?.() || "",
       authorEmail: email,
-      authorImage: liveUserImage || storedImage || buildAvatarFallback(post.authorName),
+      authorImage: post.postAs === "club" ? storedImage || buildAvatarFallback(post.authorName) : liveUserImage || storedImage || buildAvatarFallback(post.authorName),
     };
   });
 };
@@ -140,7 +140,7 @@ const attachRecentComments = async (posts) => {
   const postIds = posts.map((post) => post._id);
   const comments = await Comment.find(
     { postId: { $in: postIds } },
-    { postId: 1, content: 1, authorName: 1, authorEmail: 1, authorImage: 1, images: 1, createdAt: 1, updatedAt: 1 }
+    { postId: 1, _id: 1, content: 1, authorId: 1, authorName: 1, authorEmail: 1, authorImage: 1, images: 1, createdAt: 1, updatedAt: 1 }
   )
     .sort({ createdAt: 1, _id: 1 })
     .lean();
@@ -186,6 +186,7 @@ const normalizePosts = (posts, userId = null) =>
       ? post.comments.map((comment) => ({
           ...comment,
           id: comment.id ?? comment._id?.toString?.() ?? String(comment._id || ""),
+          authorId: comment.authorId?.toString?.() ?? comment.authorId ?? null,
         }))
       : [],
     commentCount: Number(post.commentCount ?? (Array.isArray(post.comments) ? post.comments.length : 0)),

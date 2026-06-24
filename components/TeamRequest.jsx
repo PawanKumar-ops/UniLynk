@@ -94,22 +94,22 @@ export default function RequestModal({
 
           {/* Profile */}
           <div className="flex items-center gap-4 mb-5">
-              <a href={`/dashboard/Userprofile?email=${encodeURIComponent(requester.email)}`} target="_blank" rel="noopener noreferrer" className="block">
-                <img
-                  src={requester.avatar}
-                  alt={requester.name}
-                  className="h-12 w-12 rounded-full object-cover ring-1 ring-black/5 cursor-pointer"
-                  loading="lazy"
-                />
-              </a>
-              <div>
-                <p className="text-base font-semibold text-black requester-name hover:underline cursor-pointer">
-                  <a href={`/dashboard/Userprofile?email=${encodeURIComponent(requester.email)}`} target="_blank" rel="noopener noreferrer" className="text-black">
-                    {requester.name}
-                  </a>
-                </p>
-                <p className="text-xs text-black/40">wants to join your team</p>
-              </div>
+            <a href={`/dashboard/Userprofile?userId=${encodeURIComponent(requester.id)}`} target="_blank" rel="noopener noreferrer" className="block">
+              <img
+                src={requester.avatar}
+                alt={requester.name}
+                className="h-12 w-12 rounded-full object-cover ring-1 ring-black/5 cursor-pointer"
+                loading="lazy"
+              />
+            </a>
+            <div>
+              <p className="text-base font-semibold text-black requester-name hover:underline cursor-pointer">
+                <a href={`/dashboard/Userprofile?userId=${encodeURIComponent(requester.id)}`} target="_blank" rel="noopener noreferrer" className="text-black">
+                  {requester.name}
+                </a>
+              </p>
+              <p className="text-xs text-black/40">wants to join your team</p>
+            </div>
           </div>
 
           {/* Message */}

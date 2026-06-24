@@ -18,6 +18,11 @@ const CommentSchema = new mongoose.Schema(
       trim: true,
       default: "UniLynk User",
     },
+    authorId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
     authorEmail: {
       type: String,
       trim: true,

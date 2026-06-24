@@ -18,6 +18,7 @@ import { Icon } from "@iconify/react";
 import ChatGiphyPicker from "@/components/shared/ChatGiphyPicker";
 import PostplusFab from "./PostplusFab";
 import "./PostplusFab.css";
+import "./Post.css"
 
 const PlusIcon = Plus;
 const MAX_MEDIA = 4;
@@ -655,35 +656,88 @@ export function PostFab({ audience = "for-you", onPosted }) {
               </div>
 
               {showPostAsDrawer && (
-                <div className="absolute inset-0 z-20 flex items-end justify-center bg-black/30" onClick={() => setShowPostAsDrawer(false)}>
-                  <div className="w-full rounded-t-3xl bg-white p-5 shadow-[0_-20px_50px_rgba(0,0,0,0.18)]" onClick={(event) => event.stopPropagation()}>
-                    <h3 className="mb-3 text-sm font-bold uppercase tracking-[0.18em] text-black/40">Post as</h3>
-                    <button
-                      type="button"
-                      className="mb-2 flex w-full rounded-2xl border border-black/10 px-4 py-3 text-left transition hover:bg-black/5"
-                      onClick={() => submitPost({ postAs: "user" })}
-                    >
-                      <div>
-                        <strong>{session?.user?.name || "User"}</strong>
-                        <p className="text-sm text-black/50">Post as your personal profile</p>
-                      </div>
-                    </button>
-                    {leadershipClubs.map((club) => (
-                      <button
-                        key={club._id}
-                        type="button"
-                        className="mb-2 flex w-full rounded-2xl border border-black/10 px-4 py-3 text-left transition hover:bg-black/5"
-                        onClick={() => submitPost({ postAs: "club", clubId: club._id })}
-                      >
-                        <div>
-                          <strong>{club.clubName || "Club"}</strong>
-                          <p className="text-sm text-black/50">Post as club</p>
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
+  <>
+    {/* click-away */}
+    <div
+      className="absolute inset-0 z-20"
+      onClick={() => setShowPostAsDrawer(false)}
+    />
+
+    <div
+      role="menu"
+      aria-label="Post as"
+      className="post-as-popover"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="post-as-header">
+        <span className="post-as-title">Post as</span>
+        <button
+          type="button"
+          className="post-as-close"
+          aria-label="Close"
+          onClick={() => setShowPostAsDrawer(false)}
+        >
+          <X size={14} />
+        </button>
+      </div>
+
+      <div className="post-as-list">
+        <button
+          type="button"
+          role="menuitemradio"
+          aria-checked="true"
+          className="post-as-item is-active"
+          onClick={() => submitPost({ postAs: "user" })}
+        >
+          <span className="post-as-avatar">
+            {session?.user?.image ? (
+              <img src={session.user.image} alt="" />
+            ) : (
+              (session?.user?.name || "U").charAt(0).toUpperCase()
+            )}
+          </span>
+          <span className="post-as-meta">
+            <span className="post-as-name">
+              {session?.user?.name || "You"}
+            </span>
+            <span className="post-as-sub">Personal profile</span>
+          </span>
+          <span className="post-as-check" aria-hidden>✓</span>
+        </button>
+
+        {leadershipClubs.length > 0 && (
+          <div className="post-as-divider">
+            <span>Your clubs</span>
+          </div>
+        )}
+
+        {leadershipClubs.map((club) => (
+          <button
+            key={club._id}
+            type="button"
+            role="menuitemradio"
+            aria-checked="false"
+            className="post-as-item"
+            onClick={() => submitPost({ postAs: "club", clubId: club._id })}
+          >
+            <span className="post-as-avatar post-as-avatar--club">
+              {club.clubLogo ? (
+                <img src={club.clubLogo} alt="" />
+              ) : (
+                (club.clubName || "C").charAt(0).toUpperCase()
               )}
+            </span>
+            <span className="post-as-meta">
+              <span className="post-as-name">{club.clubName || "Club"}</span>
+              <span className="post-as-sub">Club account · Leader</span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  </>
+)}
+
             </div>
           </div>
         </>

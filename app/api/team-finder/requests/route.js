@@ -297,11 +297,14 @@ export async function POST(req) {
         ? `${senderName} wants to join your team for ${formTitle}.`
         : `${senderName} wants to team up for ${formTitle}.`;
 
+    const senderId = sender?._id;
+
     const createdNotifications = await Notification.insertMany(
       recipients.map((recipient) => ({
         recipientEmail: recipient.email,
         senderEmail,
         senderName,
+        senderId,
         type: "team-finder-request",
         title,
         body,

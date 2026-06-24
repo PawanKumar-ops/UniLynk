@@ -106,6 +106,7 @@ const normalizePollForUser = (poll, userId) => {
 const normalizeCommentForClient = (comment) => ({
   ...comment,
   id: comment.id ?? comment._id?.toString?.() ?? String(comment._id || ""),
+  authorId: comment.authorId?.toString?.() ?? comment.authorId ?? null,
 });
 
 const normalizePostForClient = (post, userId = null) => ({
