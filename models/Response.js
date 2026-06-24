@@ -55,7 +55,12 @@ const ResponseSchema = new mongoose.Schema({
       enum: ["team"]
     },
     targetId: String,
-    sentAt: Date
+    sentAt: Date,
+    status: {
+      type: String,
+      enum: ["pending", "accepted", "declined"]
+    },
+    decidedAt: Date
   },
 
   submittedAt: {

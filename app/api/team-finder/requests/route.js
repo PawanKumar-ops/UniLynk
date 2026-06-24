@@ -313,6 +313,7 @@ export async function POST(req) {
         formTitle,
         targetKind,
         teamName,
+        targetResponseId: targetKind === "team" ? target.teamId : null,
       })),
     );
 
@@ -361,6 +362,7 @@ export async function POST(req) {
               kind: "team",
               targetId: target.teamId,
               sentAt: new Date(),
+              status: "pending",
             },
           },
           $setOnInsert: { answers: {}, isSubmitted: false, submittedAt: null },

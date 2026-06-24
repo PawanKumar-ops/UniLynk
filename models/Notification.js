@@ -21,7 +21,7 @@ const NotificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["team-finder-request"],
+      enum: ["team-finder-request", "team-finder-accepted", "team-finder-declined"],
       required: true,
       index: true,
     },
@@ -42,6 +42,11 @@ const NotificationSchema = new mongoose.Schema(
       enum: ["users", "team"],
     },
     teamName: String,
+    targetResponseId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Response",
+      default: null,
+    },
     readAt: {
       type: Date,
       default: null,
