@@ -1926,6 +1926,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
                 email: activeTeamRequest?.senderEmail,
                 message: activeTeamRequest?.message || "I'd like to join your team.",
               }}
+              formTitle={activeTeamRequest?.formTitle}
               onAccept={() => {
                 // Handle accept logic here if needed
                 setActiveTeamRequest(null);

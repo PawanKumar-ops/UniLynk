@@ -6,6 +6,7 @@ export default function RequestModal({
   onAccept,
   onReject,
   requester,
+  formTitle,
 }) {
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -108,7 +109,7 @@ export default function RequestModal({
                   {requester.name}
                 </a>
               </p>
-              <p className="text-xs text-black/40">wants to join your team</p>
+              <p className="text-xs text-black/40">wants to join your team{formTitle ? ` for ${formTitle}` : ""}</p>
             </div>
           </div>
 
