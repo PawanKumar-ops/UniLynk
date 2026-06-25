@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import Sidebar from '@/components/Sidebar'
+import BottomTabBar from '@/components/BottomTabBar'
 import './DashboardLayout.css'
 
 const DashboardLayout = ({ children }) => {
@@ -29,6 +30,9 @@ const DashboardLayout = ({ children }) => {
       <main className="dashboard-main">
         {children}
       </main>
+
+      {/* Mobile-only bottom navigation (X / Twitter style) */}
+      <BottomTabBar />
     </div>
   )
 }

@@ -1,0 +1,83 @@
+/* ============================================================
+   Bottom Tab Bar — X / Twitter style (mobile only)
+   ============================================================ */
+
+.bottom-tabbar {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .bottom-tabbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 54px;
+    padding: 0 4px;
+    padding-bottom: env(safe-area-inset-bottom, 0);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+    z-index: 100;
+    transform: translateY(0);
+    transition: transform 0.25s ease;
+    will-change: transform;
+  }
+
+  .bottom-tabbar.bottom-tabbar-hidden {
+    transform: translateY(120%);
+  }
+
+  .bottom-tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-decoration: none;
+    color: #0f1419;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .bottom-tab-inner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    transition: background-color 0.15s ease, transform 0.15s ease;
+  }
+
+  .bottom-tab:active .bottom-tab-inner {
+    background-color: rgba(0, 0, 0, 0.06);
+    transform: scale(0.94);
+  }
+
+  .bottom-tab-icon {
+    color: #536471;
+    transition: color 0.15s ease, transform 0.15s ease;
+  }
+
+  .bottom-tab-inner.active .bottom-tab-icon {
+    color: #0f1419;
+  }
+
+  .bottom-tab-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    object-fit: cover;
+    background: #f4f4f5;
+    box-shadow: 0 0 0 2px transparent;
+    transition: box-shadow 0.15s ease;
+  }
+
+  .bottom-tab-avatar.active {
+    box-shadow: 0 0 0 2px #0f1419;
+  }
+}

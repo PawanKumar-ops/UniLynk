@@ -498,6 +498,14 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
   const [mobileMsgOpen, setMobileMsgOpen] = useState(false);
   const [headerHidden, setHeaderHidden] = useState(false);
 
+   // Broadcast scroll-direction so the mobile BottomTabBar can hide/show in sync
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.dispatchEvent(
+      new CustomEvent("dashboard-feed-scroll", { detail: { hidden: headerHidden } })
+    );
+  }, [headerHidden]);
+
   const openLightbox = (images, index) => {
     setLightbox({ images, index, open: true });
   };

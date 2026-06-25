@@ -1744,20 +1744,27 @@ body {
     max-height: none !important;
   }
 
-  /* Pricing toggle: shift down below mobile header */
-
+    /* Pricing toggle: sticks under the mobile header and slides up with it */
   .feed-toggle-wrap {
-    top: 60px; /* just below your mobile header */
-    transition: top .25s ease;
+    top: 53px;                                   /* sits right under fixed header */
+    transform: translateY(0);
+    transition: transform .28s cubic-bezier(.22,.61,.36,1);
+    will-change: transform;
   }
 
+  /* When header hides, the toggle slides up to the very top in lock-step */
   .feed-toggle-wrap-up {
-    top: 8px;
+    transform: translateY(-53px);
   }
 
-  /* Feed posts: account for header (53px) + toggle (~57px) */
+  .pricing-toggle {
+    box-shadow: 0 6px 18px rgba(15, 20, 25, .06);
+  }
+
+  /* Feed posts: header (53px) + toggle (~50px), plus room for the bottom tab bar */
   .userposts {
-    margin-top: 122px !important;
+    margin-top: 110px !important;
+    padding-bottom: 84px !important;
   }
 }
 
@@ -1788,5 +1795,14 @@ body {
   to {
     opacity: 0;
     transform: translateY(-8px) scale(0.95);
+  }
+}
+
+@media (max-width: 768px) {
+  /* lift Post FAB above the bottom tab bar */
+  .post-fab,
+  .postfab,
+  [class*="post-fab"] {
+    bottom: calc(70px + env(safe-area-inset-bottom, 0)) !important;
   }
 }
