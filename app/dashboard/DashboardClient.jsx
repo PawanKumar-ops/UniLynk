@@ -1782,6 +1782,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
         ) : (
           <>
             {!selectedThreadPost && (
+              <div className={`feed-toggle-wrap ${headerHidden ? "feed-toggle-wrap-up" : ""}`}>
               <div className="pricing-toggle">
                 <div className={`toggle-track ${!isAnnual ? "right" : ""}`}>
                   <div className="toggle-bg"></div>
@@ -1800,6 +1801,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
                     Clubs
                   </button>
                 </div>
+              </div>
               </div>
             )}
 

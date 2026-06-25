@@ -220,7 +220,7 @@
   line-height: 1.45;
   white-space: pre-wrap;
   word-wrap: break-word;
-  overflow-wrap: break-word;
+  overflow-wrap: anywhere;
   letter-spacing: 0.01em;
   margin-top: 2px;
 }
@@ -586,15 +586,37 @@ body {
 
 /* ====================== Top For you/Club button =========================== */
 
-.pricing-toggle {
-  position: fixed;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #f3f3f3;
-  padding: 4px;
-  border-radius: 999px;
+.feed-toggle-wrap {
+  position: sticky;
+
+  display: flex;
+  justify-content: center;
+
   z-index: 20;
+
+  height: 0;
+  margin: 0;
+  padding: 0;
+
+  pointer-events: none;
+}
+
+.feed-toggle-wrap .pricing-toggle {
+  pointer-events: auto;
+}
+
+.pricing-toggle {
+  position: sticky;
+
+  width: fit-content;
+  margin: 10px auto 0;
+
+  z-index: 20;
+
+  background: #f3f3f3;
+  border-radius: 999px;
+  padding: 4px;
+  height: fit-content;
 }
 
 .toggle-track {
@@ -1019,10 +1041,6 @@ body {
 @media (max-width: 1200px) {
   .dashmain {
     width: 100%;
-  }
-
-  .pricing-toggle {
-    position: static;
   }
 }
 
@@ -1727,8 +1745,14 @@ body {
   }
 
   /* Pricing toggle: shift down below mobile header */
-  .pricing-toggle {
-    top: 63px !important;
+
+  .feed-toggle-wrap {
+    top: 60px; /* just below your mobile header */
+    transition: top .25s ease;
+  }
+
+  .feed-toggle-wrap-up {
+    top: 8px;
   }
 
   /* Feed posts: account for header (53px) + toggle (~57px) */

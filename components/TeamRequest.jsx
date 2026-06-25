@@ -10,6 +10,25 @@ export default function RequestModal({
 }) {
   const [mounted, setMounted] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [actionLoading, setActionLoading] = useState(null); // "accept" | "reject" | null
+
+  const handleAccept = async () => {
+    try {
+      setActionLoading("accept");
+      await onAccept?.();
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleReject = async () => {
+    try {
+      setActionLoading("reject");
+      await onReject?.();
+    } finally {
+      setActionLoading(null);
+    }
+  };
 
   useEffect(() => {
     if (open) {
@@ -123,16 +142,71 @@ export default function RequestModal({
           {/* Actions */}
           <div className="flex gap-3">
             <button
-              onClick={onReject}
-              className="flex-1 rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-medium text-black/70 transition-all hover:bg-black/[0.03] active:scale-[0.98]"
+              onClick={handleReject}
+              disabled={actionLoading !== null}
+              className="flex-1 rounded-xl border border-black/10 bg-white px-4 py-2.5 text-sm font-medium text-black/70 transition-all hover:bg-black/[0.03] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Decline
+              {actionLoading === "reject" ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg
+                    className="h-4 w-4 animate-spin"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      opacity="0.25"
+                    />
+                    <path
+                      d="M22 12a10 10 0 0 0-10-10"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  Declining...
+                </span>
+              ) : (
+                "Decline"
+              )}
             </button>
+
             <button
-              onClick={onAccept}
-              className="flex-1 rounded-xl bg-black px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-black/85 active:scale-[0.98]"
+              onClick={handleAccept}
+              disabled={actionLoading !== null}
+              className="flex-1 rounded-xl bg-black px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-black/85 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Accept
+              {actionLoading === "accept" ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg
+                    className="h-4 w-4 animate-spin"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                  >
+                    <circle
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      opacity="0.25"
+                    />
+                    <path
+                      d="M22 12a10 10 0 0 0-10-10"
+                      stroke="currentColor"
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  Accepting...
+                </span>
+              ) : (
+                "Accept"
+              )}
             </button>
           </div>
         </div>
