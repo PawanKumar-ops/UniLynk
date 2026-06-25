@@ -220,9 +220,20 @@
 @media (max-width: 768px) {
   .fab {
     right: 16px;
-    bottom: 16px;
+    bottom: calc(70px + env(safe-area-inset-bottom, 0px));
     width: 52px;
     height: 52px;
+    transition:
+      transform 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+      opacity 0.2s ease,
+      width 0.3s ease;
+    will-change: transform, opacity;
+  }
+
+  .fab.fab-mobile-hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(calc(86px + env(safe-area-inset-bottom, 0px))) scale(0.88);
   }
 }
 .post-fab-panel-shell {
