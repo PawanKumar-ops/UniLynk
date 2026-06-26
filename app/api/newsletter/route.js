@@ -6,6 +6,7 @@ import { connectDB } from "@/lib/mongodb";
 import { cleanupExpiredNewsletters, NEWSLETTER_TTL_MS } from "@/lib/newsletterCleanup";
 import Club from "@/models/Club";
 import Newsletter from "@/models/Newsletter";
+import User from "@/models/user";
 
 const MAX_DESCRIPTION_LENGTH = 120;
 
@@ -21,7 +22,7 @@ const normalizeImage = (image) => {
   return cleaned;
 };
 
-const serializeNewsletter = (newsletter) => ({
+const serializeNewsletter = (newsletter, leaderUserByClubId = new Map()) => ({
   id: newsletter._id?.toString?.() || String(newsletter._id || ""),
   clubId: newsletter.clubId?.toString?.() || String(newsletter.clubId || ""),
   clubName: newsletter.clubName,
@@ -29,6 +30,7 @@ const serializeNewsletter = (newsletter) => ({
   price: Number(newsletter.price || 0),
   description: newsletter.description,
   coverImage: newsletter.coverImage,
+  leaderUserId: leaderUserByClubId.get(String(newsletter.clubId || "")) || "",
   createdAt: newsletter.createdAt,
   expiresAt: newsletter.expiresAt,
 });
@@ -45,7 +47,34 @@ export async function GET() {
       .limit(20)
       .lean();
 
-    return NextResponse.json({ newsletters: newsletters.map(serializeNewsletter) });
+    const clubIds = [...new Set(newsletters.map((newsletter) => String(newsletter.clubId || "")).filter(Boolean))];
+    const clubs = clubIds.length
+      ? await Club.find({ _id: { $in: clubIds } }, { leaders: 1 }).lean()
+      : [];
+    const leaderEmailByClubId = new Map(
+      clubs
+        .map((club) => [
+          String(club._id),
+          normalizeEmail((Array.isArray(club.leaders) ? club.leaders : []).find((leader) => leader?.email)?.email),
+        ])
+        .filter(([, email]) => Boolean(email))
+    );
+    const users = leaderEmailByClubId.size
+      ? await User.find(
+          { email: { $in: [...leaderEmailByClubId.values()] } },
+          { _id: 1, email: 1 }
+        ).lean()
+      : [];
+    const userIdByEmail = new Map(users.map((user) => [normalizeEmail(user.email), String(user._id)]));
+    const leaderUserByClubId = new Map(
+      [...leaderEmailByClubId.entries()]
+        .map(([clubId, email]) => [clubId, userIdByEmail.get(email) || ""])
+        .filter(([, userId]) => Boolean(userId))
+    );
+
+    return NextResponse.json({
+      newsletters: newsletters.map((newsletter) => serializeNewsletter(newsletter, leaderUserByClubId)),
+    });
   } catch (error) {
     console.error("GET NEWSLETTER ERROR:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
