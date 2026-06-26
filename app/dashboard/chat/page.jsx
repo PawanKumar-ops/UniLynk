@@ -67,6 +67,7 @@ export default function ChatPage() {
   const [blockedUsers, setBlockedUsers] = useState([]);
   const [blockedBy, setBlockedBy] = useState([]);
   const [showBlockedModal, setShowBlockedModal] = useState(false);
+  const [composerDraft, setComposerDraft] = useState({ key: "", text: "", media: [] });
 
   // ---------- Community state ----------
   const [communities, setCommunities] = useState([]);
@@ -209,6 +210,34 @@ export default function ChatPage() {
   useEffect(() => {
     loadUsers();
     loadCommunities();
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const targetUserId = params.get("userId") || "";
+    const draftText = params.get("text") || "";
+    const mediaUrl = params.get("mediaUrl") || "";
+
+    if (!targetUserId) return;
+
+    setActiveCommunityId("");
+    setActiveUserId(targetUserId);
+
+    if (draftText || mediaUrl) {
+      setComposerDraft({
+        key: `${targetUserId}-${draftText}-${mediaUrl}`,
+        text: draftText,
+        media: mediaUrl
+          ? [
+              {
+                url: mediaUrl,
+                fileName: params.get("mediaName") || "Newsletter image",
+                mimeType: params.get("mediaType") || "image/*",
+              },
+            ]
+          : [],
+      });
+    }
   }, []);
 
   useEffect(() => {
@@ -1032,6 +1061,9 @@ export default function ChatPage() {
               }
               onSend={sendSocketMessage}
               onError={setError}
+              initialText={composerDraft.text}
+              initialMedia={composerDraft.media}
+              draftKey={composerDraft.key}
             />
 
             {error && <p className="chat-error">{error}</p>}

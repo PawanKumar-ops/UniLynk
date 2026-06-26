@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import ReliableImage from "./ReliableImage";
@@ -26,6 +27,7 @@ const normalizeNewsletter = (newsletter, index) => {
     clubName: newsletter.clubName || newsletter.club || "Club",
     clubLogo: newsletter.clubLogo || newsletter.avatar || "/Defaultclublogo.svg",
     coverImage,
+    leaderUserId: newsletter.leaderUserId || newsletter.leaderId || "",
     price: Number(newsletter.price || 0),
     description: newsletter.description || "",
     tint: newsletter.tint || "from-neutral-900/60 via-neutral-900/15 to-transparent",
@@ -39,6 +41,7 @@ const formatPrice = (price) => {
 };
 
 export function NewsLetterCard() {
+  const router = useRouter();
   const [index, setIndex] = useState(0);
   const [newsletters, setNewsletters] = useState([]);
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -142,6 +145,20 @@ export function NewsLetterCard() {
   const go = (dir) =>
     setIndex((i) => (i + dir + posts.length) % posts.length);
 
+  const handleOrder = () => {
+    if (!post?.leaderUserId) return;
+
+    const params = new URLSearchParams({
+      userId: post.leaderUserId,
+      text: "I want to buy this NewsLetter",
+      mediaUrl: post.coverImage,
+      mediaName: `${post.clubName || "Club"} newsletter`,
+      mediaType: "image/*",
+    });
+
+    router.push(`/dashboard/chat?${params.toString()}`);
+  };
+
   return (
     <div
       className="relative overflow-hidden rounded-[20px] border border-[#e4eaec] text-white"
@@ -232,7 +249,12 @@ export function NewsLetterCard() {
           </motion.div>
         </AnimatePresence>
 
-        <button className="mt-2 w-full bg-white text-neutral-900 rounded-full py-3.5 shadow-lg hover:bg-neutral-50 transition-colors">
+        <button
+          type="button"
+          onClick={handleOrder}
+          disabled={!post.leaderUserId}
+          className="mt-2 w-full bg-white text-neutral-900 rounded-full py-3.5 shadow-lg hover:bg-neutral-50 transition-colors disabled:cursor-not-allowed disabled:opacity-70"
+        >
           <span style={{ fontSize: 15, fontWeight: 600 }}>Order</span>
         </button>
       </div>
