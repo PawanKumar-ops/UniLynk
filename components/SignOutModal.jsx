@@ -1,65 +1,50 @@
 "use client";
 
-import React from "react";
-import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { AlertTriangle } from "lucide-react";
+import { Icon } from "@iconify/react";
+import { LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
-import Image from "next/image";
-import "./SignOutModal.css";
+import * as Dialog from "@radix-ui/react-dialog";
 
-const SignOutModal = ({ onClose }) => {
-  if (typeof window === "undefined") return null;
+export function SignOutModal({ open, onOpenChange = true }) {
 
-  return createPortal(
-    <AnimatePresence>
-      <motion.div
-        key="signout-modal"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-        className="fixed inset-0 z-50 bg-black/30 backdrop-blur-sm flex items-center justify-center"
-        onClick={onClose}
-      >
-        <div
-          className="Signoutmodal-content"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 30 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 30 }}
-              transition={{ 
-                duration: 0.4, 
-                ease: [0.16, 1, 0.3, 1],
-                opacity: { duration: 0.3 }
-              }}
-            >
-
-
-              
-          <div className="signoutmodalcard">
-            <button className="Close-modal" aria-label="Close modal" onClick={onClose}><Image src="/Postimg/cross.svg" alt="Cross" width={18} height={18}></Image></button>
-            <div className="logoutlogo"><Image src="/Logout/logout.svg" alt="logout logo" height={30} width={30}></Image></div>
-            <div className="unilynk">UNILYNK</div>
-            <hr className="dash"/>
-            <div className="Signouttxt">Sign Out?</div>
-            <p className="signoutpara">Your session will end and you'll need to sign back in to access your Unilynk account.</p>
-            <div className="signoutbtns">
-              <button className="signoutbtn signoutclick" onClick={() => signOut({callbackUrl: "/"})} >Yes, Sign me Out</button>
-              <button className="signoutbtn cancel" onClick={onClose}>Cancel</button>
+  return (
+    <Dialog.Root open={open} onOpenChange={onOpenChange}>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 transition-opacity duration-200 data-[state=open]:opacity-100 data-[state=closed]:opacity-0" />
+        <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] rounded-3xl border border-black/5 bg-white p-5 shadow-2xl focus:outline-none z-50 transition-opacity transition-transform duration-200 data-[state=open]:opacity-100 data-[state=closed]:opacity-0 data-[state=open]:scale-100 data-[state=closed]:scale-95">
+          <div className="flex flex-col items-center text-center">
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-neutral-100">
+              <LogOut className="h-4 w-4 text-black" strokeWidth={2} />
             </div>
+
+            <Dialog.Title className="mt-3 text-black font-semibold text-base">
+              Sign out?
+            </Dialog.Title>
+
+            <Dialog.Description className="mt-1 text-neutral-500 text-sm">
+              Are you sure you want to sign out of your account?
+            </Dialog.Description>
           </div>
 
-
-
-
-          </motion.div>
-        </div>
-      </motion.div>
-    </AnimatePresence>,
-    document.body
+          <div className="mt-5 flex flex-col gap-1.5">
+            <button
+              type="button"
+              onClick={() => signOut({ callbackUrl: "/" })}
+              className="w-full rounded-full border border-red-200 bg-white px-4 py-2 text-sm text-red-600 hover:bg-red-50 disabled:opacity-60 flex items-center justify-center"
+            >
+              Log out
+            </button>
+            <button
+              type="button"
+              onClick={() => onOpenChange(false)}
+              className="w-full rounded-full bg-neutral-100 px-4 py-2 text-sm text-black hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Cancel
+            </button>
+          </div>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
-};
-
-export default SignOutModal;
+}

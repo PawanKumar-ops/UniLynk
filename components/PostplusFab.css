@@ -26,7 +26,8 @@
 .plus {
   background-color: #eee3d3;
   font-size: 26px;
-  border: 1px solid rgb(230, 230, 230);;
+  border: 1px solid rgb(230, 230, 230);
+  ;
 
   width: 39px;
   height: 39px;
@@ -40,7 +41,7 @@
 }
 
 .text {
-    color: rgb(88, 88, 88);
+  color: rgb(88, 88, 88);
   white-space: nowrap;
 
   opacity: 0;
@@ -50,11 +51,11 @@
   pointer-events: none;
 }
 
-.fabtextcont{
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    padding-right: 30px;
+.fabtextcont {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-right: 30px;
 }
 
 
@@ -79,8 +80,15 @@
 }
 
 @keyframes postAsIn {
-  from { opacity: 0; transform: translateY(6px) scale(0.97); }
-  to   { opacity: 1; transform: translateY(0)   scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.97);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .post-as-header {
@@ -109,7 +117,11 @@
   border: none;
   cursor: pointer;
 }
-.post-as-close:hover { background: rgba(0, 0, 0, 0.06); color: #000; }
+
+.post-as-close:hover {
+  background: rgba(0, 0, 0, 0.06);
+  color: #000;
+}
 
 .post-as-list {
   display: flex;
@@ -133,8 +145,14 @@
   cursor: pointer;
   transition: background 0.15s ease;
 }
-.post-as-item:hover { background: rgba(0, 0, 0, 0.05); }
-.post-as-item.is-active { background: rgba(0, 0, 0, 0.04); }
+
+.post-as-item:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.post-as-item.is-active {
+  background: rgba(0, 0, 0, 0.04);
+}
 
 .post-as-avatar {
   width: 36px;
@@ -149,8 +167,17 @@
   place-items: center;
   overflow: hidden;
 }
-.post-as-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.post-as-avatar--club { border-radius: 9px; background: #e6efff; }
+
+.post-as-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.post-as-avatar--club {
+  border-radius: 9px;
+  background: #e6efff;
+}
 
 .post-as-meta {
   display: flex;
@@ -158,6 +185,7 @@
   min-width: 0;
   flex: 1;
 }
+
 .post-as-name {
   font-size: 14px;
   font-weight: 600;
@@ -167,6 +195,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
 .post-as-sub {
   font-size: 12px;
   color: rgba(0, 0, 0, 0.5);
@@ -236,6 +265,7 @@
     transform: translateY(calc(86px + env(safe-area-inset-bottom, 0px))) scale(0.88);
   }
 }
+
 .post-fab-panel-shell {
   position: fixed;
   right: calc(31.24% + 24px);

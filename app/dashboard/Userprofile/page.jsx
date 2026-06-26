@@ -296,15 +296,15 @@ const Userprofile = () => {
     }
 
     return (
-        <div className="app-container">
+        <div className="up-app-container">
 
             {/* Main Content Area */}
-            <main className="main-area">
+            <main className="up-main-area">
                 {/* Top Bar */}
-                <header className="userprofile-top-bar top-back-btn">
+                <header className="up-userprofile-top-bar up-top-back-btn">
                     {!isOwnProfile && (
                         <button
-                            className="icon-btn top-nav-btn back-btn-left"
+                            className="icon-btn up-top-nav-btn back-btn-left"
                             type="button"
                             onClick={() => router.back()}
                             aria-label="Go back"
@@ -314,7 +314,7 @@ const Userprofile = () => {
                     )}
 
                     {isOwnProfile && (
-                        <div className="top-profile-actions">
+                        <div className="up-top-profile-actions">
                             <button
                                 className="icon-btn top-nav-btn"
                                 type="button"
@@ -349,7 +349,7 @@ const Userprofile = () => {
 
 
                 {/* Profile Content */}
-                <div className="profile-content">
+                <div className="up-profile-content">
                     {/* Hero Section */}
                     <section className="hero-section">
                         <div className="hero-grid">

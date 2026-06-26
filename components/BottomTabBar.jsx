@@ -4,7 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Home, Compass, Calendar, MessageCircle, User } from "lucide-react";
+import { Icon } from "@iconify/react";
 import "./BottomTabBar.css";
 
 /**
@@ -26,20 +26,28 @@ const BottomTabBar = () => {
         setHidden(e.detail.hidden);
       }
     };
+
     window.addEventListener("dashboard-feed-scroll", onFeedScroll);
-    return () => window.removeEventListener("dashboard-feed-scroll", onFeedScroll);
+
+    return () =>
+      window.removeEventListener("dashboard-feed-scroll", onFeedScroll);
   }, []);
 
-  // 2) Fallback: window scroll (for pages without an internal scrollable feed)
+  // 2) Fallback: window scroll
   useEffect(() => {
     let lastY = window.scrollY || 0;
+
     const onScroll = () => {
       const y = window.scrollY || 0;
+
       if (y > lastY && y > 60) setHidden(true);
       else if (y < lastY) setHidden(false);
+
       lastY = y;
     };
+
     window.addEventListener("scroll", onScroll, { passive: true });
+
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
@@ -47,18 +55,44 @@ const BottomTabBar = () => {
     if (path === "/dashboard") {
       return pathname === "/dashboard" || pathname === "/dashboard/clubs";
     }
+
     if (path === "/dashboard/Userprofile") {
       return pathname?.startsWith("/dashboard/Userprofile");
     }
+
     return pathname === path;
   };
 
   const tabs = [
-    { href: "/dashboard",            label: "Home",    Icon: Home },
-    { href: "/dashboard/explore",    label: "Explore", Icon: Compass },
-    { href: "/dashboard/events",     label: "Events",  Icon: Calendar },
-    { href: "/dashboard/chat",       label: "Chat",    Icon: MessageCircle },
-    { href: "/dashboard/Userprofile",label: "Profile", Icon: User, isProfile: true },
+    {
+      href: "/dashboard",
+      label: "Home",
+      icon: "solar:home-smile-angle-linear",
+      activeIcon: "solar:home-smile-angle-bold",
+    },
+    {
+      href: "/dashboard/explore",
+      label: "Explore",
+      icon: "solar:magnifer-linear",
+      activeIcon: "solar:magnifer-linear", // bold stroke when active
+    },
+    {
+      href: "/dashboard/events",
+      label: "Events",
+      icon: "solar:calendar-line-duotone",
+      activeIcon: "solar:calendar-bold",
+    },
+    {
+      href: "/dashboard/chat",
+      label: "Chat",
+      icon: "solar:letter-linear",
+      activeIcon: "solar:letter-bold",
+    },
+    {
+      href: "/dashboard/Userprofile",
+      label: "Profile",
+      isProfile: true,
+    },
   ];
 
   const avatar = session?.user?.image || "/Profilepic.png";
@@ -68,8 +102,9 @@ const BottomTabBar = () => {
       className={`bottom-tabbar${hidden ? " bottom-tabbar-hidden" : ""}`}
       aria-label="Primary"
     >
-      {tabs.map(({ href, label, Icon, isProfile }) => {
+      {tabs.map(({ href, label, icon, activeIcon, isProfile }) => {
         const active = isActive(href);
+
         return (
           <Link key={href} href={href} className="bottom-tab" aria-label={label}>
             <span className={`bottom-tab-inner${active ? " active" : ""}`}>
@@ -81,8 +116,9 @@ const BottomTabBar = () => {
                 />
               ) : (
                 <Icon
-                  size={26}
-                  strokeWidth={active ? 2.4 : 2}
+                  icon={active ? activeIcon : icon}
+                  width={26}
+                  height={26}
                   className="bottom-tab-icon"
                 />
               )}

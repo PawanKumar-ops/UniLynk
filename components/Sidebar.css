@@ -115,7 +115,7 @@ header {
     justify-content: center;
 }
 
-.userprofilelink{
+.userprofilelink {
     width: 90%;
 }
 
@@ -172,23 +172,19 @@ header {
     text-align: left;
 }
 
-.dashbutton.active{
-    background-color: #e5e9ec;
-}
-.dashbutton.active:hover{
+.dashbutton.active {
     background-color: #e5e9ec;
 }
 
-.dashbutton img {
-    width: 20px;
-    height: 20px;
+.dashbutton.active:hover {
+    background-color: #e5e9ec;
+}
+
+.dashbutton svg {
+    width: 22px;
+    height: 22px;
     object-fit: contain;
-}
-
-.dashbutton svg{
-    width: 20px;
-    height: 20px;
-    color: grey;
+  
 }
 
 .dashbutton:hover {
@@ -200,22 +196,25 @@ header {
     background-color: #fff2f2;
 }
 
-.gethelp.active{
+.gethelp.active {
     background-color: #ffd9d9;
 }
-.gethelp.active:hover{
+
+.gethelp.active:hover {
     background-color: #ffd9d9;
 }
 
 .gethelp:hover {
     background-color: #fee7e7;
 }
-.signout{
-   display: flex;
+
+.signout {
+    display: flex;
     align-items: center;
     justify-content: center;
 
 }
+
 .signoutb {
     color: red;
     width: 270px;
@@ -232,18 +231,20 @@ header {
     font-size: 16px;
     text-align: center;
 }
+
 .signoutb:hover {
-     color: red;
+    color: red;
     background-color: #ffdada;
 }
 
-.options{
+.options {
     display: flex;
     flex-direction: column;
     gap: 7px;
-    height:498px;
+    height: 498px;
     margin: 20px 0;
 }
+
 .dashboardsettings {
     display: flex;
     flex-direction: column;
@@ -251,6 +252,7 @@ header {
     height: 616px;
     width: 270px;
 }
+
 .settings2 {
     width: 30px;
     height: 30px;
@@ -264,7 +266,7 @@ header {
 .settings2 img {
     min-width: 30px;
     height: 30px;
- 
+
 }
 
 .settings2 img:hover {
@@ -377,6 +379,7 @@ header {
 }
 
 @media (max-width: 768px) {
+
     /* Override 1024px horizontal-bar behaviour — use fixed drawer instead */
     .menu {
         position: fixed !important;

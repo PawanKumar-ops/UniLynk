@@ -47,7 +47,7 @@ export function DeleteModal({ open, onOpenChange, onDelete, isDeleting = false }
                             type="button"
                             onClick={() => onOpenChange(false)}
                             disabled={isDeleting}
-                            className="w-full rounded-full bg-neutral-100 px-4 py-2 text-sm text-black transition-colors hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-60"
+                            className="w-full rounded-full bg-neutral-100 px-4 py-2 text-sm text-black hover:bg-neutral-200 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             Cancel
                         </button>

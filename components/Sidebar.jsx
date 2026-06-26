@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { useState, useMemo, useEffect } from "react";
 import { usePathname } from 'next/navigation';
-import SignOutModal from './SignOutModal';
+import { SignOutModal } from "./SignOutModal";
 import { Mail, X } from 'lucide-react'
 import ReliableImage from './ReliableImage';
 import { Icon } from "@iconify/react";
@@ -56,6 +56,33 @@ const Sidebar = ({ isOpen = false, onClose }) => {
     image: userProfile?.img || session?.user?.image || '/Profilepic.png',
   }), [userProfile, session]);
 
+  const menuItems = [
+    {
+      href: "/dashboard",
+      label: "Home",
+      icon: "solar:home-smile-angle-linear",
+      activeIcon: "solar:home-smile-angle-bold",
+    },
+    {
+      href: "/dashboard/my-clubs",
+      label: "My Clubs",
+      icon: "solar:user-linear",
+      activeIcon: "solar:user-bold",
+    },
+    {
+      href: "/dashboard/events",
+      label: "Events",
+      icon: "solar:calendar-line-duotone",
+      activeIcon: "solar:calendar-bold",
+    },
+    {
+      href: "/dashboard/chat",
+      label: "Chat",
+      icon: "solar:letter-linear",
+      activeIcon: "solar:letter-bold",
+    },
+  ];
+
   return (
     <div>
       {settings ? (
@@ -83,30 +110,28 @@ const Sidebar = ({ isOpen = false, onClose }) => {
                 </div>
 
                 <div className="dashboard">
-                  <Link href='/dashboard'>
-                    <button className={`dashbutton ${isActive("/dashboard") ? "active" : ""}`} onClick={onClose}>
-                      <img src="/dashboard/Home.svg" alt="Home icon" />
-                      Home
-                    </button>
-                  </Link>
-                  <Link href='/dashboard/my-clubs'>
-                    <button className={`dashbutton ${isActive("/dashboard/my-clubs") ? "active" : ""}`} onClick={onClose}>
-                      <img src="/dashboard/MyClubs.svg" alt="My Clubs icon" />
-                      My Clubs
-                    </button>
-                  </Link>
-                  <Link className='eventlink' href='/dashboard/events'>
-                    <button className={`dashbutton ${isActive("/dashboard/events") ? "active" : ""}`} onClick={onClose}>
-                      <img src="/dashboard/Events.svg" alt="Events icon" />
-                      Events
-                    </button>
-                  </Link>
-                  <Link className='eventlink' href='/dashboard/chat'>
-                    <button className={`dashbutton ${isActive("/dashboard/chat") ? "active" : ""}`} onClick={onClose}>
-                      <Mail />
-                      Chat
-                    </button>
-                  </Link>
+                  {menuItems.map(({ href, label, icon, activeIcon }) => {
+                    const active = isActive(href);
+
+                    return (
+                      <Link key={href} href={href}>
+                        <button
+                          className={`dashbutton ${active ? "active" : ""}`}
+                          onClick={onClose}
+                        >
+                          <Icon
+                            icon={active ? activeIcon : icon}
+                            width={22}
+                            height={22}
+                            style={{
+                              color: active ? "#000" : "#707070",
+                            }}
+                          />
+                          {label}
+                        </button>
+                      </Link>
+                    );
+                  })}
 
                   <div className="profile">
                     <div className="profback">
@@ -171,7 +196,10 @@ const Sidebar = ({ isOpen = false, onClose }) => {
                         <path fillRule="evenodd" d="M7.953.998a3.024 3.024 0 0 0-3.006 3.004V20a3.024 3.024 0 0 0 3.006 3.004h3.994A3.022 3.022 0 0 0 14.951 20v-4.002c0-1.334-2-1.334-2 0V20a.983.983 0 0 1-1.004 1.004H7.953A.983.983 0 0 1 6.95 20V4.002a.983.983 0 0 1 1.004-1.004h3.994a.983.983 0 0 1 1.004 1.004v4.002c0 1.334 2 1.334 2 0V4.002A3.022 3.022 0 0 0 11.947.998H7.953zM1.957 4.984a1 1 0 0 0-1.01 1.02v11.992a1 1 0 0 0 2 0V6.004a1 1 0 0 0-.982-1.02zm16.037 2.004a1 1 0 0 0-.096.004 1 1 0 0 0-.6 1.713L19.595 11h-9.588c-1.333.07-1.23 2.071.104 2.002h9.582l-2.29 2.287a1 1 0 1 0 1.411 1.418l4.002-4.002a1 1 0 0 0 0-1.41l-4.002-4a1 1 0 0 0-.715-.307z" transform="scale(.26458)" />
                       </svg>
                     </button>
-                    {showSignOutModal && <SignOutModal onClose={() => setSignoutModal(false)} />}
+                    <SignOutModal
+                      open={showSignOutModal}
+                      onOpenChange={setSignoutModal}
+                    />
                   </div>
                 </div>
               </div>
@@ -179,7 +207,7 @@ const Sidebar = ({ isOpen = false, onClose }) => {
           </div>
         </>
       )}
-    </div>
+    </div >
   )
 }
 

@@ -640,7 +640,7 @@ export function PostFab({ audience = "for-you", onPosted }) {
                         )}
                       </div>
                       <div className="h-6 w-px bg-black/10" />
-                      
+
                     </div>
                   )}
 
@@ -656,87 +656,87 @@ export function PostFab({ audience = "for-you", onPosted }) {
               </div>
 
               {showPostAsDrawer && (
-  <>
-    {/* click-away */}
-    <div
-      className="absolute inset-0 z-20"
-      onClick={() => setShowPostAsDrawer(false)}
-    />
+                <>
+                  {/* click-away */}
+                  <div
+                    className="absolute inset-0 z-20"
+                    onClick={() => setShowPostAsDrawer(false)}
+                  />
 
-    <div
-      role="menu"
-      aria-label="Post as"
-      className="post-as-popover"
-      onClick={(e) => e.stopPropagation()}
-    >
-      <div className="post-as-header">
-        <span className="post-as-title">Post as</span>
-        <button
-          type="button"
-          className="post-as-close"
-          aria-label="Close"
-          onClick={() => setShowPostAsDrawer(false)}
-        >
-          <X size={14} />
-        </button>
-      </div>
+                  <div
+                    role="menu"
+                    aria-label="Post as"
+                    className="post-as-popover"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <div className="post-as-header">
+                      <span className="post-as-title">Post as</span>
+                      <button
+                        type="button"
+                        className="post-as-close"
+                        aria-label="Close"
+                        onClick={() => setShowPostAsDrawer(false)}
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
 
-      <div className="post-as-list">
-        <button
-          type="button"
-          role="menuitemradio"
-          aria-checked="true"
-          className="post-as-item is-active"
-          onClick={() => submitPost({ postAs: "user" })}
-        >
-          <span className="post-as-avatar">
-            {session?.user?.image ? (
-              <img src={session.user.image} alt="" />
-            ) : (
-              (session?.user?.name || "U").charAt(0).toUpperCase()
-            )}
-          </span>
-          <span className="post-as-meta">
-            <span className="post-as-name">
-              {session?.user?.name || "You"}
-            </span>
-            <span className="post-as-sub">Personal profile</span>
-          </span>
-          <span className="post-as-check" aria-hidden>✓</span>
-        </button>
+                    <div className="post-as-list">
+                      <button
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked="true"
+                        className="post-as-item is-active"
+                        onClick={() => submitPost({ postAs: "user" })}
+                      >
+                        <span className="post-as-avatar">
+                          {session?.user?.image ? (
+                            <img src={session.user.image} alt="" />
+                          ) : (
+                            (session?.user?.name || "U").charAt(0).toUpperCase()
+                          )}
+                        </span>
+                        <span className="post-as-meta">
+                          <span className="post-as-name">
+                            {session?.user?.name || "You"}
+                          </span>
+                          <span className="post-as-sub">Personal profile</span>
+                        </span>
+                        <span className="post-as-check" aria-hidden>✓</span>
+                      </button>
 
-        {leadershipClubs.length > 0 && (
-          <div className="post-as-divider">
-            <span>Your clubs</span>
-          </div>
-        )}
+                      {leadershipClubs.length > 0 && (
+                        <div className="post-as-divider">
+                          <span>Your clubs</span>
+                        </div>
+                      )}
 
-        {leadershipClubs.map((club) => (
-          <button
-            key={club._id}
-            type="button"
-            role="menuitemradio"
-            aria-checked="false"
-            className="post-as-item"
-            onClick={() => submitPost({ postAs: "club", clubId: club._id })}
-          >
-            <span className="post-as-avatar post-as-avatar--club">
-              {club.clubLogo ? (
-                <img src={club.clubLogo} alt="" />
-              ) : (
-                (club.clubName || "C").charAt(0).toUpperCase()
+                      {leadershipClubs.map((club) => (
+                        <button
+                          key={club._id}
+                          type="button"
+                          role="menuitemradio"
+                          aria-checked="false"
+                          className="post-as-item"
+                          onClick={() => submitPost({ postAs: "club", clubId: club._id })}
+                        >
+                          <span className="post-as-avatar post-as-avatar--club">
+                            {club.clubLogo ? (
+                              <img src={club.clubLogo} alt="" />
+                            ) : (
+                              (club.clubName || "C").charAt(0).toUpperCase()
+                            )}
+                          </span>
+                          <span className="post-as-meta">
+                            <span className="post-as-name">{club.clubName || "Club"}</span>
+                            <span className="post-as-sub">Club account · Leader</span>
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </>
               )}
-            </span>
-            <span className="post-as-meta">
-              <span className="post-as-name">{club.clubName || "Club"}</span>
-              <span className="post-as-sub">Club account · Leader</span>
-            </span>
-          </button>
-        ))}
-      </div>
-    </div>
-  </>
-)}
 
             </div>
           </div>

@@ -1774,7 +1774,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
             aria-label="Notifications"
             onClick={() => setMobileMsgOpen(true)}
           >
-            <Bell size={22} />
+            <Icon icon={"solar:bell-line-duotone"} width={22} height={22} />
             {pendingNotifications.length > 0 && (
               <span className="mobile-notif-badge">
                 {pendingNotifications.length > 9 ? '9+' : pendingNotifications.length}
