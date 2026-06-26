@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FileText, Film, Image as ImageIcon, Paperclip, Smile, X } from "lucide-react";
 import EmojiPicker from "emoji-picker-react";
 import ChatGiphyPicker from "@/components/shared/ChatGiphyPicker";
@@ -19,6 +19,9 @@ export default function ChatComposer({
   disabledPlaceholder = "Select a chat to send messages",
   onSend,
   onError,
+  initialText = "",
+  initialMedia = [],
+  draftKey = "",
 }) {
   const [messageText, setMessageText] = useState("");
   const [showAttachmentFab, setShowAttachmentFab] = useState(false);
@@ -33,6 +36,14 @@ export default function ChatComposer({
 
   const isBusy = uploadingDocument || uploadingMedia;
   const isDisabled = disabled || isBusy;
+
+  useEffect(() => {
+    if (!draftKey) return;
+    setMessageText(initialText || "");
+    setPendingMedia(Array.isArray(initialMedia) ? initialMedia.filter((media) => media?.url) : []);
+    setPendingDocument(null);
+    closePickers();
+  }, [draftKey, initialText, initialMedia]);
 
   function closePickers() {
     setShowAttachmentFab(false);
