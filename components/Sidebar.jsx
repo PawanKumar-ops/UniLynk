@@ -78,7 +78,7 @@ const Sidebar = ({ isOpen = false, onClose }) => {
       activeIcon: "solar:calendar-bold",
     },
     {
-      href: "/dashboard/chat",
+      href: "/dashboard/chat2",
       label: "Chat",
       icon: "solar:letter-linear",
       activeIcon: "solar:letter-bold",
