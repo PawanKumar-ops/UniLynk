@@ -1987,14 +1987,6 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
           </div>
         )}
         <div className="msgsidebarmain">
-          {/* <div className="msgsearchbar">
-            <Search className="searchicon" size={16} />
-            <input
-              className="searchinput"
-              placeholder="Search"
-              type="text"
-            />
-          </div> */}
           <button
             type="button"
             onClick={() => router.push("/dashboard/explore")}
@@ -2038,7 +2030,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
                   setMode(id);
                   setError(null);
                 }}
-                className={`relative z-10 flex flex-1 items-center justify-center gap-1.5 rounded-md py-1.5 text-xs transition ${mode === id ? "text-black" : "text-black/50"
+                className={`relative z-10 flex flex-1 items-center cursor-pointer justify-center gap-1.5 rounded-md py-1.5 text-xs transition ${mode === id ? "text-black" : "text-black/50"
                   }`}
               >
                 <Icon className="h-3.5 w-3.5" />

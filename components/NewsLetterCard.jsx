@@ -187,14 +187,14 @@ export function NewsLetterCard() {
       <button
         onClick={() => go(-1)}
         aria-label="Previous"
-        className="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/30 backdrop-blur-md flex items-center justify-center hover:bg-black/50 transition-colors"
+        className="absolute cursor-pointer left-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/30 backdrop-blur-md flex items-center justify-center hover:bg-black/50 transition-colors"
       >
         <ChevronLeft size={20} />
       </button>
       <button
         onClick={() => go(1)}
         aria-label="Next"
-        className="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/30 backdrop-blur-md flex items-center justify-center hover:bg-black/50 transition-colors"
+        className="absolute cursor-pointer right-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/30 backdrop-blur-md flex items-center justify-center hover:bg-black/50 transition-colors"
       >
         <ChevronRight size={20} />
       </button>
@@ -253,7 +253,7 @@ export function NewsLetterCard() {
           type="button"
           onClick={handleOrder}
           disabled={!post.leaderUserId}
-          className="mt-2 w-full bg-white text-neutral-900 rounded-full py-3.5 shadow-lg hover:bg-neutral-50 transition-colors disabled:cursor-not-allowed disabled:opacity-70"
+          className="mt-2 w-full bg-white text-neutral-900 rounded-full py-3.5 cursor-pointer shadow-lg hover:bg-neutral-50 transition-colors disabled:cursor-not-allowed disabled:opacity-70"
         >
           <span style={{ fontSize: 15, fontWeight: 600 }}>Order</span>
         </button>

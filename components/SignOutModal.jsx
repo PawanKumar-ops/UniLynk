@@ -1,7 +1,5 @@
 "use client";
 
-import { AlertTriangle } from "lucide-react";
-import { Icon } from "@iconify/react";
 import { LogOut } from "lucide-react";
 import { signOut } from "next-auth/react";
 import * as Dialog from "@radix-ui/react-dialog";
