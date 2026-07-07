@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { X, Search, Smile, Image as ImageIcon, Video, FileIcon, Mic } from "lucide-react";
+import { X, Search, Smile, Image as ImageIcon, Video, FileIcon, Mic, Users, Megaphone, Check } from "lucide-react";
 import { gifs, emojis, stickers, allUsers } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
+import { Camera, Trash2, Sparkles } from "lucide-react";
 
 export function PickerPopover({
   type,
@@ -15,16 +16,16 @@ export function PickerPopover({
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
-      <div className="absolute bottom-20 left-4 z-50 w-[340px] rounded-2xl border bg-popover shadow-2xl animate-scale-in origin-bottom-left">
+      <div className="absolute bottom-20 left-4 z-50 w-[340px] rounded-2xl border bg-[#fff] shadow-2xl animate-scale-in origin-bottom-left">
         <div className="flex items-center gap-2 border-b p-3">
-          <Search className="h-4 w-4 text-muted-foreground" />
+          <Search className="h-4 w-4 text-[#62748e]" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder={`Search ${type === "gif" ? "GIFs" : type === "sticker" ? "stickers" : "emojis"}`}
             className="flex-1 bg-transparent text-sm outline-none"
           />
-          <button onClick={onClose} className="rounded-full p-1 hover:bg-muted">
+          <button onClick={onClose} className="rounded-full p-1 hover:bg-[#f2f6fa]">
             <X className="h-4 w-4" />
           </button>
         </div>
@@ -54,7 +55,7 @@ export function PickerPopover({
                     onPick(e);
                     onClose();
                   }}
-                  className="rounded-md p-2 text-2xl transition hover:bg-muted"
+                  className="rounded-md p-2 text-2xl transition hover:bg-[#f2f6fa]"
                 >
                   {e}
                 </button>
@@ -70,7 +71,7 @@ export function PickerPopover({
                     onPick(s);
                     onClose();
                   }}
-                  className="rounded-lg p-2 transition hover:bg-muted"
+                  className="rounded-lg p-2 transition hover:bg-[#f2f6fa]"
                 >
                   <img src={s} alt="sticker" className="h-20 w-full" />
                 </button>
@@ -98,12 +99,12 @@ export function PlusDropdown({
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
-      <div className="absolute bottom-14 left-0 z-50 w-48 overflow-hidden rounded-2xl border bg-popover shadow-2xl animate-scale-in origin-bottom-left">
+      <div className="absolute bottom-14 left-0 z-50 w-48 overflow-hidden rounded-2xl border bg-[#fff] shadow-2xl animate-scale-in origin-bottom-left">
         {items.map((it) => (
           <button
             key={it.label}
             onClick={() => it.ref.current?.click()}
-            className="flex w-full items-center gap-3 px-4 py-3 text-sm hover:bg-muted"
+            className="flex w-full items-center gap-3 px-4 py-3 text-sm hover:bg-[#f2f6fa]"
           >
             <it.icon className="h-5 w-5 text-[#1d9bf0]" />
             {it.label}
@@ -138,7 +139,7 @@ export function ReactionPicker({
       <div className="fixed inset-0 z-40" onClick={onClose} />
       <div
         className={cn(
-          "absolute -top-12 z-50 flex gap-1 rounded-full border bg-popover px-2 py-1.5 shadow-xl animate-scale-in",
+          "absolute -top-12 z-50 flex gap-1 rounded-full border bg-[#fff] px-2 py-1.5 shadow-xl animate-scale-in",
           align === "right" ? "right-0 origin-bottom-right" : "left-0 origin-bottom-left",
         )}
       >
@@ -174,20 +175,20 @@ export function Modal({
   if (!open) return null;
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 animate-fade-in">
+      <button
+        className="absolute inset-0 cursor-default"
+        onClick={onClose}
+        aria-label="close"
+      />
       <div
         className={cn(
-          "relative max-h-[90vh] w-full max-w-md overflow-hidden rounded-2xl bg-background shadow-2xl animate-scale-in",
+          "relative z-10 max-h-[90vh] w-full max-w-md overflow-hidden rounded-2xl bg-[#fff] shadow-2xl animate-scale-in",
           className,
         )}
         onClick={(e) => e.stopPropagation()}
       >
         {children}
       </div>
-      <button
-        className="absolute inset-0 -z-0"
-        onClick={onClose}
-        aria-label="close"
-      />
     </div>
   );
 }
@@ -206,16 +207,16 @@ export function NewMessageModal({
   return (
     <Modal open={open} onClose={onClose}>
       <div className="flex items-center gap-4 border-b px-4 py-3">
-        <button onClick={onClose} className="rounded-full p-2 hover:bg-muted">
+        <button onClick={onClose} className="rounded-full p-2 hover:bg-[#f2f6fa]">
           <X className="h-5 w-5" />
         </button>
         <h2 className="text-lg font-bold">New message</h2>
-        <button className="ml-auto rounded-full bg-foreground px-4 py-1.5 text-sm font-bold text-background opacity-50">
+        <button className="ml-auto rounded-full bg-[#000] px-4 py-1.5 text-sm font-bold text-[#fff] opacity-50">
           Next
         </button>
       </div>
       <div className="flex items-center gap-2 border-b px-4 py-2">
-        <Search className="h-4 w-4 text-muted-foreground" />
+        <Search className="h-4 w-4 text-[#62748e]" />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -232,12 +233,12 @@ export function NewMessageModal({
               onPick(u);
               onClose();
             }}
-            className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted"
+            className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-[#f2f6fa]"
           >
-            <img src={u.avatar} alt={u.name} className="h-10 w-10 rounded-full bg-muted" />
+            <img src={u.avatar} alt={u.name} className="h-10 w-10 rounded-full bg-[#f2f6fa]" />
             <div className="min-w-0 flex-1">
               <div className="truncate font-bold">{u.name}</div>
-              <div className="truncate text-sm text-muted-foreground">@{u.handle}</div>
+              <div className="truncate text-sm text-[#62748e]">@{u.handle}</div>
             </div>
           </button>
         ))}
@@ -253,7 +254,7 @@ export function MediaPreviewBar({
   const isImg = file.type.startsWith("image");
   const isVid = file.type.startsWith("video");
   return (
-    <div className="border-t bg-background p-3">
+    <div className="border-t bg-[#fff] p-3">
       <div className="relative inline-block">
         {isImg && (
           <img src={file.url} alt={file.name} className="max-h-48 rounded-2xl object-cover" />
@@ -262,14 +263,14 @@ export function MediaPreviewBar({
           <video src={file.url} controls className="max-h-48 rounded-2xl" />
         )}
         {!isImg && !isVid && (
-          <div className="flex items-center gap-2 rounded-2xl border bg-muted px-4 py-3 text-sm">
+          <div className="flex items-center gap-2 rounded-2xl border bg-[#f2f6fa] px-4 py-3 text-sm">
             <FileIcon className="h-5 w-5" />
             {file.name}
           </div>
         )}
         <button
           onClick={onRemove}
-          className="absolute -right-2 -top-2 rounded-full bg-foreground p-1 text-background shadow"
+          className="absolute -right-2 -top-2 rounded-full bg-[#000] p-1 text-[#fff] shadow"
         >
           <X className="h-4 w-4" />
         </button>
@@ -285,19 +286,19 @@ export function VoiceRecorder({ onClose }) {
     return () => clearInterval(i);
   }, []);
   return (
-    <div className="flex items-center gap-3 border-t bg-background px-4 py-3 animate-fade-in">
+    <div className="flex items-center gap-3 border-t bg-[#fff] px-4 py-3 animate-fade-in">
       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/10">
         <Mic className="h-5 w-5 text-red-500 animate-pulse" />
       </div>
       <div className="flex-1">
         <div className="text-sm font-semibold">Recording…</div>
-        <div className="text-xs text-muted-foreground">
+        <div className="text-xs text-[#62748e]">
           {Math.floor(s / 60)}:{(s % 60).toString().padStart(2, "0")}
         </div>
       </div>
       <button
         onClick={onClose}
-        className="rounded-full bg-muted px-4 py-2 text-sm font-semibold hover:bg-muted/70"
+        className="rounded-full bg-[#f2f6fa] px-4 py-2 text-sm font-semibold hover:bg-muted/70"
       >
         Cancel
       </button>
@@ -319,15 +320,15 @@ export function CallModal({
 }) {
   return (
     <Modal open={open} onClose={onClose}>
-      <div className="flex flex-col items-center gap-4 bg-gradient-to-br from-[#1d9bf0]/20 to-background p-10">
-        <img src={user.avatar} alt={user.name} className="h-28 w-28 rounded-full ring-4 ring-background" />
+      <div className="flex flex-col items-center gap-4 bg-gradient-to-br from-[#1d9bf0]/20 to-[#fff] p-10">
+        <img src={user.avatar} alt={user.name} className="h-28 w-28 rounded-full ring-4 ring-[#fff]" />
         <div className="text-center">
           <div className="text-2xl font-bold">{user.name}</div>
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-[#62748e]">
             {video ? "Video calling…" : "Calling…"}
           </div>
         </div>
-        <div className="mt-4 flex h-2 w-32 overflow-hidden rounded-full bg-muted">
+        <div className="mt-4 flex h-2 w-32 overflow-hidden rounded-full bg-[#f2f6fa]">
           <div className="h-full w-1/3 animate-pulse bg-[#1d9bf0]" />
         </div>
         <div className="mt-6 flex gap-4">
@@ -350,7 +351,7 @@ export function DotsMenu({
   return (
     <>
       <div className="fixed inset-0 z-40" onClick={onClose} />
-      <div className="absolute right-0 top-12 z-50 w-56 overflow-hidden rounded-2xl border bg-popover shadow-2xl animate-scale-in origin-top-right">
+      <div className="absolute right-0 top-12 z-50 w-56 overflow-hidden rounded-2xl border bg-[#fff] shadow-2xl animate-scale-in origin-top-right">
         {items.map((it) => (
           <button
             key={it.label}
@@ -359,7 +360,7 @@ export function DotsMenu({
               onClose();
             }}
             className={cn(
-              "block w-full px-4 py-3 text-left text-sm font-semibold hover:bg-muted",
+              "block w-full px-4 py-3 text-left text-sm font-semibold hover:bg-[#f2f6fa]",
               it.danger && "text-red-500",
             )}
           >
@@ -372,3 +373,222 @@ export function DotsMenu({
 }
 
 export { Smile };
+
+
+const GROUP_GRADIENTS = [
+  { id: "indigo", from: "#6366f1", to: "#8b5cf6" },
+  { id: "rose", from: "#f43f5e", to: "#ec4899" },
+  { id: "amber", from: "#f59e0b", to: "#f97316" },
+  { id: "emerald", from: "#10b981", to: "#22c55e" },
+  { id: "sky", from: "#0ea5e9", to: "#22d3ee" },
+  { id: "violet", from: "#7c3aed", to: "#a855f7" },
+  { id: "slate", from: "#334155", to: "#64748b" },
+  { id: "sunset", from: "#ef4444", to: "#f59e0b" },
+];
+
+export function NewGroupModal({ open, onClose, onCreate, communityName }) {
+  const [name, setName] = useState("");
+  const [image, setImage] = useState(null);
+  const [gradient, setGradient] = useState(GROUP_GRADIENTS[0]);
+  const fileRef = useRef(null);
+
+  useEffect(() => {
+    if (open) {
+      setName("");
+      setImage(null);
+      setGradient(GROUP_GRADIENTS[0]);
+    }
+  }, [open]);
+
+  if (!open) return null;
+
+  const canCreate = name.trim().length > 0;
+  const initial = (name.trim()[0] || "#").toUpperCase();
+  const bg = image
+    ? undefined
+    : `linear-gradient(135deg, ${gradient.from}, ${gradient.to})`;
+
+  const handleFile = (file) => {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => setImage(e.target.result);
+    reader.readAsDataURL(file);
+  };
+
+  const submit = () => {
+    if (!canCreate) return;
+    const slug =
+      name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") ||
+      "group";
+    onCreate({
+      id: `${slug}-${Date.now()}`,
+      name: name.trim(),
+      image: image || null,
+      color: image ? null : gradient.from,
+      gradient: image ? null : gradient,
+      cover: image || `https://api.dicebear.com/9.x/shapes/svg?seed=${encodeURIComponent(name.trim())}`,
+      preview: "Group created · say hi 👋",
+      time: "now",
+      members: 1,
+      messages: [],
+    });
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-stretch justify-center md:items-center md:p-6">
+      <div
+        onClick={onClose}
+        className="hidden md:block absolute inset-0 bg-slate-900/40 backdrop-blur-sm animate-in fade-in"
+      />
+      <div
+        className={cn(
+          "relative z-10 flex w-full flex-col bg-white text-slate-900",
+          "md:w-[440px] md:rounded-3xl md:shadow-[0_30px_80px_-20px_rgba(15,23,42,0.35)]",
+          "md:border md:border-slate-200/70",
+          "animate-in md:zoom-in-95 slide-in-from-bottom md:slide-in-from-bottom-0"
+        )}
+      >
+        <div className="flex items-center justify-between px-5 pt-5 pb-3">
+          <button
+            onClick={onClose}
+            className="rounded-full p-2 -ml-2 text-slate-500 hover:bg-slate-100 transition"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5" />
+          </button>
+          <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+            <Sparkles className="h-3.5 w-3.5" />
+            New group
+          </div>
+          <button
+            onClick={submit}
+            disabled={!canCreate}
+            className={cn(
+              "rounded-full px-4 py-1.5 text-sm font-semibold text-white transition",
+              canCreate
+                ? "bg-slate-900 hover:bg-slate-800 shadow-sm"
+                : "bg-slate-300 cursor-not-allowed"
+            )}
+          >
+            Create
+          </button>
+        </div>
+
+        <div className="flex flex-1 flex-col items-center px-6 pb-8 pt-4 md:pb-8">
+          <div className="relative">
+            <div
+              className="flex h-28 w-28 items-center justify-center rounded-full text-white shadow-lg ring-8 ring-white overflow-hidden"
+              style={{ background: bg }}
+            >
+              {image ? (
+                <img src={image} alt="Group" className="h-full w-full object-cover" />
+              ) : (
+                <span className="text-4xl font-black tracking-tight drop-shadow-sm">
+                  {initial}
+                </span>
+              )}
+            </div>
+
+            <button
+              onClick={() => fileRef.current?.click()}
+              className="absolute -bottom-1 -right-1 flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-white shadow-md ring-4 ring-white hover:bg-slate-800 transition"
+              aria-label="Upload photo"
+            >
+              <Camera className="h-4 w-4" />
+            </button>
+
+            {image && (
+              <button
+                onClick={() => setImage(null)}
+                className="absolute -bottom-1 -left-1 flex h-10 w-10 items-center justify-center rounded-full bg-white text-slate-600 shadow-md ring-4 ring-white hover:bg-slate-50 transition"
+                aria-label="Remove photo"
+              >
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
+
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => handleFile(e.target.files?.[0])}
+            />
+          </div>
+
+          <p className="mt-3 text-xs text-slate-400">
+            {image ? "Looking sharp." : "Upload a photo or pick a color"}
+          </p>
+
+          <div
+            className={cn(
+              "mt-5 flex flex-wrap items-center justify-center gap-2.5 transition-opacity",
+              image && "opacity-40 pointer-events-none"
+            )}
+          >
+            {GROUP_GRADIENTS.map((g) => {
+              const selected = gradient.id === g.id;
+              return (
+                <button
+                  key={g.id}
+                  onClick={() => setGradient(g)}
+                  className={cn(
+                    "relative h-9 w-9 rounded-full transition-transform",
+                    selected ? "scale-110" : "hover:scale-105"
+                  )}
+                  style={{ background: `linear-gradient(135deg, ${g.from}, ${g.to})` }}
+                  aria-label={`Color ${g.id}`}
+                >
+                  {selected && (
+                    <span className="absolute inset-0 flex items-center justify-center text-white">
+                      <Check className="h-4 w-4 drop-shadow" strokeWidth={3} />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mt-8 w-full">
+            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">
+              Group name
+            </label>
+            <div className="group relative">
+              <input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && submit()}
+                placeholder="e.g. Design crew"
+                autoFocus
+                maxLength={40}
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3.5 text-base font-medium text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-slate-900 focus:bg-white focus:ring-4 focus:ring-slate-900/5"
+              />
+              <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs tabular-nums text-slate-300">
+                {name.length}/40
+              </span>
+            </div>
+            {communityName && (
+              <p className="mt-2 text-xs text-slate-400">
+                in <span className="font-medium text-slate-500">{communityName}</span>
+              </p>
+            )}
+          </div>
+
+          <div className="flex-1 md:hidden" />
+
+          <button
+            onClick={submit}
+            disabled={!canCreate}
+            className={cn(
+              "mt-8 flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-4 text-sm font-semibold text-white transition md:hidden",
+              canCreate ? "bg-slate-900 active:bg-slate-800" : "bg-slate-300"
+            )}
+          >
+            <Check className="h-4 w-4" /> Create group
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}

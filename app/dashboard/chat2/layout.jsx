@@ -3,9 +3,20 @@
 import Link from "next/link";
 import { useParams, useRouter, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { Search, Settings, Mail, Users, ChevronDown, MoreHorizontal, MailPlus } from "lucide-react";
-import { conversations, communities, messageRequests } from "@/lib/mock-data";
-import { NewMessageModal, DotsMenu } from "@/components/chat/chat-ui";
+import {
+    Search,
+    Mail,
+    Users,
+    ChevronDown,
+    MoreHorizontal,
+    MailPlus,
+    ArrowLeft,
+    Plus,
+    Megaphone,
+} from "lucide-react";
+import { Icon } from "@iconify/react";
+import { conversations, communities, messageRequests, communityGroups, makeAnnouncementGroup } from "@/lib/mock-data";
+import { NewMessageModal, DotsMenu, NewGroupModal } from "@/components/chat/chat-ui";
 import { cn } from "@/lib/utils";
 
 const lightTheme = {
@@ -248,8 +259,13 @@ export default function MessagesLayout({ children }) {
     const [filter, setFilter] = useState("all");
     const [showFilter, setShowFilter] = useState(false);
     const [newMsg, setNewMsg] = useState(false);
-    const [settings, setSettings] = useState(false);
     const [q, setQ] = useState("");
+
+    // ---- Community / groups state (WhatsApp-style) ----
+    const [openCommunity, setOpenCommunity] = useState(null); // the community object whose groups are shown
+    const [groupsByCommunity, setGroupsByCommunity] = useState(communityGroups);
+    const [newGroup, setNewGroup] = useState(false);
+
     const router = useRouter();
     const params = useParams();
     const pathname = usePathname();
@@ -268,9 +284,30 @@ export default function MessagesLayout({ children }) {
         );
     });
 
+    // Return the groups for a community, always including a default Announcement group.
+    const getGroups = (community) => {
+        const existing = groupsByCommunity[community.id];
+        if (existing && existing.length) return existing;
+        return [makeAnnouncementGroup(community.id, community.name)];
+    };
+
+    const handleCreateGroup = (group) => {
+        if (!openCommunity) return;
+        setGroupsByCommunity((prev) => {
+            const current = prev[openCommunity.id] || getGroups(openCommunity);
+            return { ...prev, [openCommunity.id]: [...current, group] };
+        });
+    };
+
+    const groups = openCommunity
+        ? getGroups(openCommunity).filter(
+            (g) => !q || g.name.toLowerCase().includes(q.toLowerCase()),
+        )
+        : [];
+
     return (
         <div
-            className="chat2-theme flex h-screen overflow-hidden bg-background text-foreground"
+            className="chat2-theme flex h-screen overflow-hidden bg-[#fff] text-[#000]"
             style={isDark ? darkTheme : lightTheme}
         >
             <style>{`
@@ -296,217 +333,340 @@ export default function MessagesLayout({ children }) {
                     showSidebar ? "flex" : "hidden",
                 )}
             >
+                {/* ---------- GROUPS VIEW (a community is opened) ---------- */}
+                {tab === "communities" && openCommunity ? (
+                    <>
+                        {/* Group header with community identity + back */}
+                        <header className="flex items-center gap-3 px-3 py-3"
+                            style={{
+                                display: "flex",
+                                flexDirection: "row",
+                            }}>
+                            <button
+                                onClick={() => {
+                                    setOpenCommunity(null);
+                                    setQ("");
+                                }}
+                                className="rounded-full p-2 hover:bg-[#f2f6fa]"
+                                title="Back to communities"
+                            >
+                                <ArrowLeft className="h-5 w-5" />
+                            </button>
+                            <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#f2f6fa]">
+                                <img
+                                    src={openCommunity.cover}
+                                    alt={openCommunity.name}
+                                    className="h-full w-full object-cover object-center"
+                                />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                                <h1 className="truncate text-base font-extrabold tracking-tight">
+                                    {openCommunity.name}
+                                </h1>
+                                <p className="truncate text-xs text-[#62748e]">
+                                    {openCommunity.members.toLocaleString()} members
+                                </p>
+                            </div>
+                        </header>
 
-                <header className="flex flex-row items-center justify-between px-4 py-3" style={{
-                    display: "flex",
-                    flexDirection: "row",
-                }}>
-                    <h1 className="text-xl font-extrabold tracking-tight">
-                        {tab === "chat" ? "Chat" : "Communities"}
-                    </h1>
-                    <div className="flex items-center gap-1">
-                        {tab === "chat" && (
-                            <>
-                                <div className="relative">
-                                    <button
-                                        onClick={() => setShowFilter((v) => !v)}
-                                        className="flex items-center gap-1 rounded-full border px-3 py-1 text-sm font-semibold hover:bg-[#f2f6fa]"
-                                    >
-                                        {filter === "all" ? "All" : "Unread"}
-                                        <ChevronDown className="h-4 w-4" />
-                                    </button>
-                                    {showFilter && (
-                                        <DotsMenu
-                                            onClose={() => setShowFilter(false)}
-                                            items={[
-                                                { label: "All messages", onClick: () => setFilter("all") },
-                                                { label: "Unread", onClick: () => setFilter("unread") },
-                                            ]}
-                                        />
+                        {/* Search groups */}
+                        <div className="px-3 pb-2">
+                            <div className="flex items-center gap-2 rounded-full bg-[#f2f6fa] px-4 py-2">
+                                <Search className="h-4 w-4 text-[#62748e]" />
+                                <input
+                                    value={q}
+                                    onChange={(e) => setQ(e.target.value)}
+                                    placeholder="Search groups"
+                                    className="flex-1 bg-transparent text-sm outline-none"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Add Group button */}
+                        <div className="px-3 pb-1">
+                            <button
+                                onClick={() => setNewGroup(true)}
+                                className="flex w-full items-center gap-3 rounded-2xl border border-dashed px-4 py-3 text-left transition hover:bg-[#f7f9fc]"
+                            >
+                                <span className="flex h-11 w-11 items-center justify-center rounded-full bg-[#1d9bf0]/10 text-[#1d9bf0]">
+                                    <Plus className="h-5 w-5" />
+                                </span>
+                                <span className="font-bold text-[#1d9bf0]">Add Group</span>
+                            </button>
+                        </div>
+
+                        {/* Groups list (WhatsApp-style, chat-row UI) */}
+                        <div className="flex-1 overflow-y-auto">
+                            {groups.map((g) => (
+                                <button
+                                    key={g.id}
+                                    onClick={() => router.push(`/dashboard/chat2/${g.id}`)}
+                                    className={cn(
+                                        "flex w-full items-center gap-3 border-l-2 px-4 py-3 text-left transition hover:bg-[#f7f9fc]",
+                                        params.id === g.id
+                                            ? "active-border border-[#1d9bf0] bg-[#f5f8fa]"
+                                            : "border-transparent",
                                     )}
-                                </div>
-                                <Link
-                                    href="/dashboard/chat2/requests"
-                                    className="rounded-full p-2 hover:bg-[#f2f6fa]"
-                                    title="Message requests"
                                 >
-                                    <Mail className="h-5 w-5" />
-                                </Link>
-                                <div className="relative">
-                                    <button
-                                        onClick={() => setSettings((v) => !v)}
-                                        className="rounded-full p-2 hover:bg-[#f2f6fa]"
-                                        title="Settings"
-                                    >
-                                        <Settings className="h-5 w-5" />
-                                    </button>
-                                    {settings && (
-                                        <DotsMenu
-                                            onClose={() => setSettings(false)}
-                                            items={[
-                                                { label: "Allow message requests from everyone" },
-                                                { label: "Filter low-quality messages" },
-                                                { label: "Show read receipts" },
-                                                { label: "Manage blocked accounts" },
-                                            ]}
-                                        />
-                                    )}
-                                </div>
-                            </>
-                        )}
-                        <button
-                            onClick={() => setNewMsg(true)}
-                            className="rounded-full bg-[#000] p-2 text-[#ffff] hover:bg-[#1a1d2e]"
-                            title="New message"
-                        >
-                            <MailPlus className="h-5 w-5" />
-                        </button>
-                    </div>
-                </header>
 
-                {/* Tabs */}
-                <div className="flex border-b">
-                    {[
-                        { k: "chat", l: "Chat" },
-                        { k: "communities", l: "Communities" },
-                    ].map((t) => (
-                        <button
-                            key={t.k}
-                            onClick={() => setTab(t.k)}
-                            className={cn(
-                                "relative flex-1 py-3 text-sm font-bold transition hover:bg-[#f7f9fc]",
-                                tab === t.k ? "text-foreground" : "text-muted-foreground",
-                            )}
-                        >
-                            {t.l}
-                            {tab === t.k && (
-                                <span className="absolute bottom-0 left-1/2 h-1 w-12 -translate-x-1/2 rounded-full bg-[#1d9bf0]" />
-                            )}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Search */}
-                <div className="p-3">
-                    <div className="flex items-center gap-2 rounded-full bg-[#f2f6fa] px-4 py-2">
-                        <Search className="h-4 w-4 text-[#62748e]" />
-                        <input
-                            value={q}
-                            onChange={(e) => setQ(e.target.value)}
-                            placeholder={tab === "chat" ? "Search Direct Messages" : "Search Communities"}
-                            className="flex-1 bg-transparent text-sm outline-none"
-                        />
-                    </div>
-                </div>
-
-                {/* Lists */}
-                <div className="flex-1 overflow-y-auto">
-                    {tab === "chat" ? (
-                        <>
-                            {messageRequests.length > 0 && (
-                                <Link
-                                    href="/dashboard/chat2/requests"
-                                    className="flex items-center gap-3 px-4 py-3 hover:bg-[#f7f9fc]"
-                                >
-                                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f2f6fa]">
-                                        <Mail className="h-5 w-5" />
-                                    </div>
-                                    <div className="flex-1">
-                                        <div className="font-bold">Message requests</div>
-                                        <div className="text-sm text-[#1d9bf0]">{messageRequests.length} new request</div>
-                                    </div>
-                                </Link>
-                            )}
-                            {filtered.map((c) => {
-                                const active = params.id === c.id;
-                                return (
-                                    <Link
-                                        key={c.id}
-                                        href={`/dashboard/chat2/${c.id}`}
-                                        className={cn(
-                                            "flex items-center gap-3 border-l-2 px-4 py-3 transition hover:bg-[#f7f9fc]",
-                                            active
-                                                ? "active-border border-[#1d9bf0] bg-[#f5f8fa]"
-                                                : "border-transparent"
-                                        )}
-                                    >
+                                    {g.isAnnouncement ? (
+                                        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#1d9bf0]/10 text-[#1d9bf0]">
+                                            <Megaphone className="h-5 w-5" />
+                                        </span>
+                                    ) : g.image ? (
+                                        // NEW: uploaded profile picture
                                         <img
-                                            src={c.user.avatar}
-                                            alt={c.user.name}
-                                            className="h-12 w-12 rounded-full bg-[#f2f6fa] object-cover"
+                                            src={g.image}
+                                            alt={g.name}
+                                            className="h-12 w-12 shrink-0 rounded-full object-cover ring-1 ring-slate-200"
                                         />
-                                        <div className="min-w-0 flex-1">
-                                            <div className="flex items-center justify-between gap-2">
-                                                <div className="flex items-center gap-1 truncate">
-                                                    <span className="truncate font-bold">{c.user.name}</span>
-                                                    {c.user.verified && <span className="text-[#1d9bf0]">✓</span>}
-                                                    <span className="truncate text-sm text-[#62748e]">
-                                                        @{c.user.handle}
-                                                    </span>
-                                                </div>
-                                                <span className="shrink-0 text-xs text-[#62748e]">· {c.time}</span>
-                                            </div>
-                                            <div className="flex items-center justify-between gap-2">
-                                                <p className="truncate text-sm text-[#62748e]">{c.preview}</p>
-                                                {c.unread ? (
-                                                    <span className="ml-2 rounded-full bg-[#1d9bf0] px-2 text-xs font-bold text-white">
-                                                        {c.unread}
-                                                    </span>
-                                                ) : null}
-                                            </div>
+                                    ) : g.gradient ? (
+                                        // NEW: gradient fallback from picker
+                                        <span
+                                            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white"
+                                            style={{ background: `linear-gradient(135deg, ${g.gradient.from}, ${g.gradient.to})` }}
+                                        >
+                                            <span className="text-lg font-black">{g.name[0]?.toUpperCase()}</span>
+                                        </span>
+                                    ) : g.color ? (
+                                        <span
+                                            className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-[#fff]"
+                                            style={{ backgroundColor: g.color }}
+                                        >
+                                            <span className="text-lg font-black">{g.name[0]?.toUpperCase()}</span>
+                                        </span>
+                                    ) : (
+                                        <img
+                                            src={g.cover}
+                                            alt={g.name}
+                                            className="h-12 w-12 shrink-0 rounded-full bg-[#f2f6fa] object-cover"
+                                        />
+                                    )}
+
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <span className="truncate font-bold">{g.name}</span>
+                                            {g.time ? (
+                                                <span className="shrink-0 text-xs text-[#62748e]">
+                                                    {g.time}
+                                                </span>
+                                            ) : null}
                                         </div>
-                                    </Link>
-                                );
-                            })}
-                            {filtered.length === 0 && (
-                                <div className="p-10 text-center text-sm text-muted-foreground">
-                                    No conversations
+                                        <div className="flex items-center justify-between gap-2">
+                                            <p className="truncate text-sm text-[#62748e]">
+                                                {g.preview}
+                                            </p>
+                                            {g.unread ? (
+                                                <span className="ml-2 rounded-full bg-[#1d9bf0] px-2 text-xs font-bold text-white">
+                                                    {g.unread}
+                                                </span>
+                                            ) : null}
+                                        </div>
+                                    </div>
+                                </button>
+                            ))}
+                            {groups.length === 0 && (
+                                <div className="p-10 text-center text-sm text-[#62748e]">
+                                    No groups found
                                 </div>
                             )}
-                        </>
-                    ) : (
-                        <>
-                            {communities
-                                .filter((c) => !q || c.name.toLowerCase().includes(q.toLowerCase()))
-                                .map((c) => (
-                                    <button
-                                        key={c.id}
-                                        onClick={() => router.push(`/dashboard/chat2/community/${c.id}`)}
-                                        className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-[#f7f9fc]"
-                                    >
-                                        <div className="h-12 w-12 min-h-12 min-w-12 shrink-0 rounded-full object-cover overflow-hidden bg-[#f2f6fa]">
-                                            <img
-                                                src={c.cover}
-                                                alt={c.name}
+                        </div>
+                    </>
+                ) : (
+                    /* ---------- DEFAULT VIEW (chat list / community list) ---------- */
+                    <>
+                        <header className="flex flex-row items-center justify-between px-4 py-3" style={{
+                            display: "flex",
+                            flexDirection: "row",
+                        }}>
+                            <h1 className="text-xl font-extrabold tracking-tight">
+                                {tab === "chat" ? "Chat" : "Communities"}
+                            </h1>
+                            <div className="flex items-center gap-1">
+                                {tab === "chat" && (
+                                    <>
+                                        <div className="relative">
+                                            <button
+                                                onClick={() => setShowFilter((v) => !v)}
+                                                className="flex items-center gap-1 rounded-full border px-3 py-1 text-sm font-semibold hover:bg-[#f2f6fa]"
+                                            >
+                                                {filter === "all" ? "All" : "Unread"}
+                                                <ChevronDown className="h-4 w-4" />
+                                            </button>
+                                            {showFilter && (
+                                                <DotsMenu
+                                                    onClose={() => setShowFilter(false)}
+                                                    items={[
+                                                        { label: "All messages", onClick: () => setFilter("all") },
+                                                        { label: "Unread", onClick: () => setFilter("unread") },
+                                                    ]}
+                                                />
+                                            )}
+                                        </div>
+                                        <Link
+                                            href="/dashboard/chat2/requests"
+                                            className="rounded-full border p-2 hover:bg-[#f2f6fa]"
+                                            title="Message requests"
+                                        >
+                                            <Icon icon="solar:inbox-linear" className="h-5 w-5" />
+                                        </Link>
 
-                                            />
+                                    </>
+                                )}
+                                <button
+                                    onClick={() => setNewMsg(true)}
+                                    className="rounded-full border p-2 hover:bg-[#f2f6fa]"
+                                    title="New message"
+                                >
+                                    <Icon icon="mynaui:chat-plus" className="h-5 w-5" />
+                                </button>
+                            </div>
+                        </header>
+
+                        {/* Tabs */}
+                        <div className="flex border-b">
+                            {[
+                                { k: "chat", l: "Chat" },
+                                { k: "communities", l: "Communities" },
+                            ].map((t) => (
+                                <button
+                                    key={t.k}
+                                    onClick={() => {
+                                        setTab(t.k);
+                                        setQ("");
+                                    }}
+                                    className={cn(
+                                        "relative flex-1 py-3 text-sm font-bold transition hover:bg-[#f7f9fc]",
+                                        tab === t.k ? "text-[#000]" : "text-[#62748e]",
+                                    )}
+                                >
+                                    {t.l}
+                                    {tab === t.k && (
+                                        <span className="absolute bottom-0 left-1/2 h-1 w-12 -translate-x-1/2 rounded-full bg-[#1d9bf0]" />
+                                    )}
+                                </button>
+                            ))}
+                        </div>
+
+                        {/* Search */}
+                        <div className="p-3">
+                            <div className="flex items-center gap-2 rounded-full bg-[#f2f6fa] px-4 py-2">
+                                <Search className="h-4 w-4 text-[#62748e]" />
+                                <input
+                                    value={q}
+                                    onChange={(e) => setQ(e.target.value)}
+                                    placeholder={tab === "chat" ? "Search Direct Messages" : "Search Communities"}
+                                    className="flex-1 bg-transparent text-sm outline-none"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Lists */}
+                        <div className="flex-1 overflow-y-auto">
+                            {tab === "chat" ? (
+                                <>
+                                    {filtered.map((c) => {
+                                        const active = params.id === c.id;
+                                        return (
+                                            <Link
+                                                key={c.id}
+                                                href={`/dashboard/chat2/${c.id}`}
+                                                className={cn(
+                                                    "flex items-center gap-3 border-l-2 px-4 py-3 transition hover:bg-[#f7f9fc]",
+                                                    active
+                                                        ? "active-border border-[#1d9bf0] bg-[#f5f8fa]"
+                                                        : "border-transparent"
+                                                )}
+                                            >
+                                                <img
+                                                    src={c.user.avatar}
+                                                    alt={c.user.name}
+                                                    className="h-12 w-12 rounded-full bg-[#f2f6fa] object-cover"
+                                                />
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <div className="flex items-center gap-1 truncate">
+                                                            <span className="truncate font-bold">{c.user.name}</span>
+                                                            {c.user.verified && <span className="text-[#1d9bf0]">✓</span>}
+                                                            <span className="truncate text-sm text-[#62748e]">
+                                                                @{c.user.handle}
+                                                            </span>
+                                                        </div>
+                                                        <span className="shrink-0 text-xs text-[#62748e]">· {c.time}</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <p className="truncate text-sm text-[#62748e]">{c.preview}</p>
+                                                        {c.unread ? (
+                                                            <span className="ml-2 rounded-full bg-[#1d9bf0] px-2 text-xs font-bold text-white">
+                                                                {c.unread}
+                                                            </span>
+                                                        ) : null}
+                                                    </div>
+                                                </div>
+                                            </Link>
+                                        );
+                                    })}
+                                    {filtered.length === 0 && (
+                                        <div className="p-10 text-center text-sm text-[#62748e]">
+                                            No conversations
                                         </div>
-                                        <div className="min-w-0 flex-1">
-                                            <div className="flex items-center justify-between gap-2">
-                                                <span className="truncate font-bold">{c.name}</span>
-                                                {c.unread ? (
-                                                    <span className="rounded-full bg-[#1d9bf0] px-2 text-xs font-bold text-white">
-                                                        {c.unread}
-                                                    </span>
-                                                ) : null}
-                                            </div>
-                                            <div className="flex items-center gap-1 text-sm text-[#62748e]">
-                                                <Users className="h-3 w-3" />
-                                                {c.members.toLocaleString()} members
-                                            </div>
-                                        </div>
-                                        <MoreHorizontal className="h-4 w-4 text-[#62748e]" />
-                                    </button>
-                                ))}
-                        </>
-                    )}
-                </div>
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    {communities
+                                        .filter((c) => !q || c.name.toLowerCase().includes(q.toLowerCase()))
+                                        .map((c) => (
+                                            <button
+                                                key={c.id}
+                                                onClick={() => {
+                                                    setOpenCommunity(c);
+                                                    setQ("");
+                                                }}
+                                                className="flex w-full items-center gap-3 border-l-2 border-transparent px-4 py-3 text-left transition hover:bg-[#f7f9fc]"
+                                            >
+                                                <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full bg-[#f2f6fa]">
+                                                    <img
+                                                        src={c.cover}
+                                                        alt={c.name}
+                                                        className="h-full w-full object-cover object-center"
+                                                    />
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center justify-between gap-2">
+                                                        <span className="truncate font-bold">{c.name}</span>
+                                                        {c.unread ? (
+                                                            <span className="rounded-full bg-[#1d9bf0] px-2 text-xs font-bold text-white">
+                                                                {c.unread}
+                                                            </span>
+                                                        ) : null}
+                                                    </div>
+                                                    <div className="flex items-center gap-1 text-sm text-[#62748e]">
+                                                        <Users className="h-3 w-3" />
+                                                        {c.members.toLocaleString()} members
+                                                    </div>
+                                                </div>
+                                                <ChevronDown className="h-4 w-4 -rotate-90 text-[#62748e]" />
+                                            </button>
+                                        ))}
+                                </>
+                            )}
+                        </div>
+                    </>
+                )}
             </aside>
 
             <NewMessageModal
                 open={newMsg}
                 onClose={() => setNewMsg(false)}
                 onPick={(u) => router.push(`/dashboard/chat2/${u.id}`)}
+            />
+
+            <NewGroupModal
+                open={newGroup}
+                onClose={() => setNewGroup(false)}
+                communityName={openCommunity?.name}
+                onCreate={handleCreateGroup}
             />
         </div>
     );

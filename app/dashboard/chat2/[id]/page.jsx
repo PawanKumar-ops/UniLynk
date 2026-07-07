@@ -17,6 +17,8 @@ import {
     CheckCircle2,
 } from "lucide-react";
 
+import { Icon } from "@iconify/react";
+
 import { conversations } from "@/lib/mock-data";
 import {
     PickerPopover,
@@ -117,7 +119,7 @@ export default function ChatRoute() {
         <>
             {/* Header */}
             <header className="flex items-center justify-between border-b px-4 py-2.5"
-            style={{
+                style={{
                     display: "flex",
                     flexDirection: "row",
                 }}>
@@ -140,28 +142,16 @@ export default function ChatRoute() {
                     </div>
                 </div>
 
-                <div className="flex items-center gap-1">
-                    <button
-                        onClick={() => setCall("voice")}
-                        className="rounded-full bg-[#f2f6fa] p-2.5 hover:opacity-80"
-                        title="Voice call"
-                    >
-                        <Phone className="h-4 w-4" />
-                    </button>
-                    <button
-                        onClick={() => setCall("video")}
-                        className="rounded-full bg-[#f2f6fa] p-2.5 hover:opacity-80"
-                        title="Video call"
-                    >
-                        <VideoIcon className="h-4 w-4" />
-                    </button>
+                <div className="flex items-center gap-2">
                     <div className="relative">
                         <button
                             onClick={() => setDots((v) => !v)}
-                            className="rounded-full bg-[#f2f6fa] p-2.5 hover:opacity-80"
+                            className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#536471] transition-all duration-200 hover:border-[#1d9bf0] hover:bg-[#e8f5fe] hover:text-[#1d9bf0] active:scale-95"
+                            title="More"
                         >
                             <MoreHorizontal className="h-4 w-4" />
                         </button>
+
                         {dots && (
                             <DotsMenu
                                 onClose={() => setDots(false)}
@@ -180,7 +170,7 @@ export default function ChatRoute() {
             </header>
             <div ref={scrollRef} className="flex-1 overflow-y-auto">
                 {/* Profile card */}
-                <div className="flex flex-col items-center gap-2 border-b px-6 py-8">
+                <div className="flex flex-col items-center gap-2 px-6 py-8">
                     <img
                         src={user.avatar}
                         alt={user.name}
@@ -306,129 +296,123 @@ export default function ChatRoute() {
                     )}
                 </div>
 
-                </div>
+            </div>
 
-                {/* Scroll-to-bottom */}
-                <button
-                    onClick={() =>
-                        scrollRef.current?.scrollTo({
-                            top: scrollRef.current.scrollHeight,
-                            behavior: "smooth",
-                        })
-                    }
-                    className="absolute bottom-28 right-[400px] hidden rounded-full border bg-[#fff] p-2 shadow-md hover:bg-[#f2f6fa] md:block"
-                    title="Scroll to bottom"
-                >
-                    <ArrowDown className="h-4 w-4" />
-                </button>
+            {/* Scroll-to-bottom */}
+            <button
+                onClick={() =>
+                    scrollRef.current?.scrollTo({
+                        top: scrollRef.current.scrollHeight,
+                        behavior: "smooth",
+                    })
+                }
+                className="absolute bottom-28 right-[400px] hidden rounded-full border bg-[#fff] p-2 shadow-md hover:bg-[#f2f6fa] md:block"
+                title="Scroll to bottom"
+            >
+                <ArrowDown className="h-4 w-4" />
+            </button>
 
-                {/* Pending media preview */}
-                {pendingFile && (
-                    <MediaPreviewBar
-                        file={pendingFile}
-                        onRemove={() => setPendingFile(null)}
-                    />
-                )}
+            {/* Pending media preview */}
+            {pendingFile && (
+                <MediaPreviewBar
+                    file={pendingFile}
+                    onRemove={() => setPendingFile(null)}
+                />
+            )}
 
-                {/* Composer */}
-                {recording ? (
-                    <VoiceRecorder onClose={() => setRecording(false)} />
-                ) : (
-                    <div className="border-t bg-[#fff] p-3">
-                        <div className="flex items-end gap-2 rounded-3xl bg-[#f2f6fa] px-3 py-2">
-                            <div className="relative">
-                                <button
-                                    onClick={() => setPlusOpen((v) => !v)}
-                                    className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"
-                                >
-                                    <Plus className="h-5 w-5" />
-                                </button>
-                                {plusOpen && (
-                                    <PlusDropdown
-                                        onClose={() => setPlusOpen(false)}
-                                        onPickFile={(f) =>
-                                            setPendingFile({
-                                                url: URL.createObjectURL(f),
-                                                type: f.type,
-                                                name: f.name,
-                                            })
-                                        }
-                                    />
-                                )}
-                            </div>
+            {/* Composer */}
+            {recording ? (
+                <VoiceRecorder onClose={() => setRecording(false)} />
+            ) : (
+                <div className="border-t bg-[#fff] p-3">
+                    <div className="flex items-end gap-2 rounded-3xl bg-[#f2f6fa] px-3 py-2">
+                        <div className="relative">
                             <button
-                                onClick={() => setPicker(picker === "gif" ? null : "gif")}
-                                className="flex h-9 items-center justify-center rounded-md border border-[#1d9bf0]/50 px-1.5 text-[11px] font-extrabold text-[#1d9bf0] hover:bg-[#1d9bf0]/10"
-                                title="GIF"
-                            >
-                                GIF
-                            </button>
-                            <button
-                                onClick={() => setPicker(picker === "sticker" ? null : "sticker")}
+                                onClick={() => setPlusOpen((v) => !v)}
                                 className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"
-                                title="Sticker"
                             >
-                                <Smile className="h-5 w-5" />
+                                <Plus className="h-5 w-5" />
                             </button>
-                            <textarea
-                                value={text}
-                                rows={1}
-                                onChange={(e) => setText(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter" && !e.shiftKey) {
-                                        e.preventDefault();
-                                        if (pendingFile) sendFile();
-                                        else send();
+                            {plusOpen && (
+                                <PlusDropdown
+                                    onClose={() => setPlusOpen(false)}
+                                    onPickFile={(f) =>
+                                        setPendingFile({
+                                            url: URL.createObjectURL(f),
+                                            type: f.type,
+                                            name: f.name,
+                                        })
                                     }
-                                }}
-                                placeholder="Start a new message"
-                                className="max-h-32 flex-1 resize-none bg-transparent py-2 text-[15px] outline-none"
-                            />
-                            <button
-                                onClick={() => setPicker(picker === "emoji" ? null : "emoji")}
-                                className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"
-                                title="Emoji"
-                            >
-                                <Smile className="h-5 w-5" />
-                            </button>
-                            {text || pendingFile ? (
-                                <button
-                                    onClick={() => (pendingFile ? sendFile() : send())}
-                                    className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"
-                                    title="Send"
-                                >
-                                    <Send className="h-5 w-5" />
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={() => setRecording(true)}
-                                    className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"
-                                    title="Voice message"
-                                >
-                                    <Mic className="h-5 w-5" />
-                                </button>
+                                />
                             )}
-                            <PickerPopover
-                                type={picker}
-                                onClose={() => setPicker(null)}
-                                onPick={(val) => {
-                                    if (picker === "emoji") setText((t) => t + val);
-                                    else if (picker === "gif") send({ media: { type: "gif", url: val } });
-                                    else if (picker === "sticker") send({ media: { type: "image", url: val } });
-                                }}
-                            />
                         </div>
-                    </div>
-                )}
+                        <button
+                            onClick={() => setPicker(picker === "gif" ? null : "gif")}
+                            className="flex h-9 items-center justify-center rounded-md border border-[#1d9bf0]/50 px-1.5 text-[11px] font-extrabold text-[#1d9bf0] hover:bg-[#1d9bf0]/10"
+                            title="GIF"
+                        >
+                            GIF
+                        </button>
+                        <button
+                            onClick={() => setPicker(picker === "emoji" ? null : "emoji")}
+                            className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"
+                            title="Emoji"
+                        >
+                            <Smile className="h-5 w-5" />
+                        </button>
 
-                {call && (
-                    <CallModal
-                        open
-                        onClose={() => setCall(null)}
-                        user={user}
-                        video={call === "video"}
-                    />
-                )}
-            </>
-            );
+                        <textarea
+                            value={text}
+                            rows={1}
+                            onChange={(e) => setText(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === "Enter" && !e.shiftKey) {
+                                    e.preventDefault();
+                                    if (pendingFile) sendFile();
+                                    else send();
+                                }
+                            }}
+                            placeholder="Start a new message"
+                            className="max-h-32 flex-1 resize-none bg-transparent py-2 text-[15px] outline-none"
+                        />
+
+                        {text || pendingFile ? (
+                            <button
+                                onClick={() => (pendingFile ? sendFile() : send())}
+                                className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"
+                                title="Send"
+                            >
+                                <Icon icon="ri:send-ins-line" className="h-5 w-5" />
+                            </button>
+                        ) : (
+                            <button
+                                onClick={() => setRecording(true)}
+                                className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"
+                                title="Voice message"
+                            >
+                                <Mic className="h-5 w-5" />
+                            </button>
+                        )}
+                        <PickerPopover
+                            type={picker}
+                            onClose={() => setPicker(null)}
+                            onPick={(val) => {
+                                if (picker === "emoji") setText((t) => t + val);
+                                else if (picker === "gif") send({ media: { type: "gif", url: val } });
+                            }}
+                        />
+                    </div>
+                </div>
+            )}
+
+            {call && (
+                <CallModal
+                    open
+                    onClose={() => setCall(null)}
+                    user={user}
+                    video={call === "video"}
+                />
+            )}
+        </>
+    );
 }
