@@ -4,6 +4,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/user";
 import ChatMessage from "@/models/chatMessage";
+import { triggerPusher, userChannel } from "@/lib/pusher";
 
 const ALLOWED_MESSAGE_TYPES = ["text", "emoji", "gif", "document", "media", "shared_post"];
 
@@ -180,31 +181,86 @@ export async function POST(req) {
       reactions: [],
     });
 
-    return Response.json(
-      {
-        message: {
-          id: message._id.toString(),
-          text: message.text || "",
-          messageType: message.messageType || "text",
-          attachment: message.attachment || null,
-          attachments: message.attachments || [],
-          sharedPost: message.sharedPost || null,
-          sender: message.sender.toString(),
-          receiver: message.receiver.toString(),
-          createdAt: message.createdAt,
-          deliveredAt: message.deliveredAt || null,
-          readAt: message.readAt || null,
-          deletedForEveryone: Boolean(message.deletedForEveryone),
-          reactions: (message.reactions || []).map((reaction) => ({
-            userId: reaction.userId?.toString?.() || reaction.userId,
-            emoji: reaction.emoji || "",
-          })),
-        },
-      },
-      { status: 201 }
-    );
+    const formattedMessage = {
+      id: message._id.toString(),
+      text: message.text || "",
+      messageType: message.messageType || "text",
+      attachment: message.attachment || null,
+      attachments: message.attachments || [],
+      sharedPost: message.sharedPost || null,
+      sender: message.sender.toString(),
+      receiver: message.receiver.toString(),
+      createdAt: message.createdAt,
+      deliveredAt: message.deliveredAt || null,
+      readAt: message.readAt || null,
+      deletedForEveryone: Boolean(message.deletedForEveryone),
+      reactions: (message.reactions || []).map((reaction) => ({
+        userId: reaction.userId?.toString?.() || reaction.userId,
+        emoji: reaction.emoji || "",
+      })),
+    };
+
+    await triggerPusher([userChannel(currentUser._id), userChannel(receiverId)], "new-message", formattedMessage);
+
+    return Response.json({ message: formattedMessage }, { status: 201 });
   } catch (error) {
     console.error("CHAT MESSAGES POST ERROR:", error);
     return Response.json({ error: "Failed to send message" }, { status: 500 });
+  }
+}
+
+
+export async function PATCH(req) {
+  try {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    const { action, messageId, emoji, otherUserId } = await req.json();
+
+    if (action === "mark-read") {
+      if (!otherUserId || !mongoose.Types.ObjectId.isValid(otherUserId)) {
+        return Response.json({ error: "Valid otherUserId is required" }, { status: 400 });
+      }
+      const readAt = new Date();
+      await ChatMessage.updateMany(
+        { sender: otherUserId, receiver: currentUser._id, readAt: null },
+        { $set: { readAt, deliveredAt: readAt } }
+      );
+      await triggerPusher([userChannel(currentUser._id), userChannel(otherUserId)], "messages-read", {
+        byUserId: currentUser._id.toString(),
+        peerUserId: otherUserId,
+        readAt,
+      });
+      return Response.json({ ok: true, readAt });
+    }
+
+    if (action !== "toggle-reaction" || !messageId || !mongoose.Types.ObjectId.isValid(messageId) || !emoji) {
+      return Response.json({ error: "Invalid reaction request" }, { status: 400 });
+    }
+
+    const message = await ChatMessage.findOne({
+      _id: messageId,
+      $or: [{ sender: currentUser._id }, { receiver: currentUser._id }],
+    });
+    if (!message) return Response.json({ error: "Message not found" }, { status: 404 });
+
+    const currentUserId = currentUser._id.toString();
+    const existingIndex = (message.reactions || []).findIndex((r) => r.userId?.toString() === currentUserId);
+    if (existingIndex >= 0 && message.reactions[existingIndex].emoji === emoji) {
+      message.reactions.splice(existingIndex, 1);
+    } else if (existingIndex >= 0) {
+      message.reactions[existingIndex].emoji = emoji;
+    } else {
+      message.reactions.push({ userId: currentUser._id, emoji });
+    }
+    await message.save();
+    const reactions = (message.reactions || []).map((reaction) => ({
+      userId: reaction.userId?.toString?.() || reaction.userId,
+      emoji: reaction.emoji || "",
+    }));
+    await triggerPusher([userChannel(message.sender), userChannel(message.receiver)], "message-reactions-updated", { messageId, reactions });
+    return Response.json({ ok: true, reactions });
+  } catch (error) {
+    console.error("CHAT MESSAGES PATCH ERROR:", error);
+    return Response.json({ error: "Failed to update message" }, { status: 500 });
   }
 }

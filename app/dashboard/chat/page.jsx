@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { io } from "socket.io-client";
 import {
   Check,
   CheckCheck,
@@ -60,7 +59,6 @@ export default function ChatPage() {
   const [activeFilter, setActiveFilter] = useState("all");
   const [activeReactionPickerFor, setActiveReactionPickerFor] = useState("");
   const [forwardTargetMessage, setForwardTargetMessage] = useState(null);
-  const [chatSocket, setChatSocket] = useState(null);
   const [deleteTargetMessage, setDeleteTargetMessage] = useState(null);
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -74,7 +72,6 @@ export default function ChatPage() {
   const [loadingCommunities, setLoadingCommunities] = useState(true);
   const [activeCommunityId, setActiveCommunityId] = useState("");
 
-  const socketRef = useRef(null);
   const messageScrollRef = useRef(null);
   const activeUserIdRef = useRef("");
   const currentUserIdRef = useRef("");
@@ -121,37 +118,30 @@ export default function ChatPage() {
   }, [activeReactionPickerFor]);
 
 
-  function sendSocketMessage(payload) {
-    return new Promise((resolve, reject) => {
-      if (!activeUserId || !currentUserId || !socketRef.current) {
-        const message = "Select a user and wait for chat connection";
-        setError(message);
-        reject(new Error(message));
-        return;
-      }
-      socketRef.current.emit(
-        "send-message",
-        { senderId: currentUserId, receiverId: activeUserId, ...payload },
-        (response) => {
-          if (!response?.ok) {
-            const message = response?.error || "Failed to send message";
-            setError(message);
-            reject(new Error(message));
-            return;
-          }
-          if (response?.message) {
-            setMessages((prev) => {
-              const exists = prev.some((msg) => msg.id === response.message.id);
-              if (exists) return prev;
-              return [...prev, response.message];
-            });
-          }
-          setError("");
-          resolve(response?.message);
-        }
-      );
+  async function sendSocketMessage(payload) {
+    if (!activeUserId || !currentUserId) {
+      const message = "Select a user before sending";
+      setError(message);
+      throw new Error(message);
+    }
+    const response = await fetch("/api/chat/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ receiverId: activeUserId, ...payload }),
     });
+    const data = await response.json();
+    if (!response.ok) {
+      const message = data.error || "Failed to send message";
+      setError(message);
+      throw new Error(message);
+    }
+    if (data.message) {
+      setMessages((prev) => (prev.some((msg) => msg.id === data.message.id) ? prev : [...prev, data.message]));
+    }
+    setError("");
+    return data.message;
   }
+
 
 
   async function loadUsers() {
@@ -271,110 +261,9 @@ export default function ChatPage() {
   }, []);
 
   useEffect(() => {
-    if (!currentUserId) return;
-    let isMounted = true;
-
-    async function initSocket() {
-      try {
-        await fetch("/api/socket", { method: "GET" });
-        if (!isMounted) return;
-        const socket = io({ path: "/api/socket_io" });
-        socketRef.current = socket;
-        setChatSocket(socket);
-
-        socket.on("connect", () => socket.emit("register-user", currentUserId));
-
-        socket.on("user-blocked-state-changed", ({ blockerId, blockedId, action }) => {
-          const signedInUserId = currentUserIdRef.current;
-          if (blockerId === signedInUserId) {
-            setBlockedUsers((prev) => {
-              if (action === "block") {
-                return prev.includes(blockedId) ? prev : [...prev, blockedId];
-              } else {
-                return prev.filter((id) => id !== blockedId);
-              }
-            });
-          }
-          if (blockedId === signedInUserId) {
-            setBlockedBy((prev) => {
-              if (action === "block") {
-                return prev.includes(blockerId) ? prev : [...prev, blockerId];
-              } else {
-                return prev.filter((id) => id !== blockerId);
-              }
-            });
-          }
-        });
-
-        socket.on("new-message", (incomingMessage) => {
-          const openUserId = activeUserIdRef.current;
-          const signedInUserId = currentUserIdRef.current;
-          const isInOpenThread =
-            (incomingMessage.sender === openUserId && incomingMessage.receiver === signedInUserId) ||
-            (incomingMessage.sender === signedInUserId && incomingMessage.receiver === openUserId);
-          if (!isInOpenThread) return;
-          setMessages((prev) => {
-            const exists = prev.some((msg) => msg.id === incomingMessage.id);
-            if (exists) return prev;
-            return [...prev, incomingMessage];
-          });
-        });
-
-        socket.on("messages-read", ({ byUserId, peerUserId, readAt }) => {
-          const openUserId = activeUserIdRef.current;
-          const signedInUserId = currentUserIdRef.current;
-          if (!readAt || !signedInUserId || !openUserId) return;
-          const affectsOpenThread =
-            (byUserId === signedInUserId && peerUserId === openUserId) ||
-            (byUserId === openUserId && peerUserId === signedInUserId);
-          if (!affectsOpenThread) return;
-          setMessages((prev) =>
-            prev.map((msg) => {
-              const isIncoming = msg.sender === peerUserId && msg.receiver === byUserId;
-              if (!isIncoming || msg.readAt) return msg;
-              return { ...msg, deliveredAt: readAt, readAt };
-            })
-          );
-        });
-
-        socket.on("message-reactions-updated", ({ messageId, reactions }) => {
-          if (!messageId) return;
-          setMessages((prev) =>
-            prev.map((msg) => (msg.id === messageId ? { ...msg, reactions: reactions || [] } : msg))
-          );
-        });
-
-        socket.on("message-deleted", ({ messageId, mode, userId, deletedForEveryone }) => {
-          if (!messageId) return;
-          setMessages((prev) => {
-            // Delete-for-me events are emitted only to the affected user and should remove
-            // the message from that user's open window. Delete-for-everyone keeps the row
-            // and swaps the content for the shared placeholder.
-            if (mode === "for-me" && userId === currentUserIdRef.current) return prev.filter((msg) => msg.id !== messageId);
-            if (mode === "for-everyone" || deletedForEveryone) {
-              return prev.map((msg) =>
-                msg.id === messageId ? { ...msg, deletedForEveryone: true, text: "" } : msg
-              );
-            }
-            return prev;
-          });
-          if ((mode === "for-me" || deletedForEveryone) && forwardTargetMessage?.id === messageId) closeForwardModal();
-          if (activeReactionPickerFor === messageId) setActiveReactionPickerFor("");
-        });
-      } catch (err) {
-        setError(err.message || "Failed to connect socket");
-      }
-    }
-
-    initSocket();
-    return () => {
-      isMounted = false;
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-        socketRef.current = null;
-      }
-    };
+    // Chat2 now owns realtime messaging through Pusher; keep legacy chat mounted without Socket.IO.
   }, [currentUserId]);
+
 
   const conversations = useMemo(
     () =>
@@ -422,8 +311,8 @@ export default function ChatPage() {
   ];
 
   function markActiveThreadAsRead() {
-    if (!socketRef.current || !currentUserId || !activeUserId) return;
-    socketRef.current.emit("mark-messages-read", { currentUserId, otherUserId: activeUserId });
+    if (!currentUserId || !activeUserId) return;
+    fetch("/api/chat/messages", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "mark-read", otherUserId: activeUserId }) });
   }
 
   function getMessageStatus(message) {
@@ -435,21 +324,19 @@ export default function ChatPage() {
   const quickReactions = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
   function handleToggleReaction(messageId, emoji) {
-    if (!socketRef.current || !currentUserId || !messageId || !emoji) return;
-    socketRef.current.emit(
-      "toggle-reaction",
-      { messageId, userId: currentUserId, emoji },
-      (response) => {
-        if (!response?.ok) {
-          setError(response?.error || "Failed to react to message");
-          return;
-        }
-        setMessages((prev) =>
-          prev.map((msg) => (msg.id === messageId ? { ...msg, reactions: response.reactions || [] } : msg))
-        );
+    if (!currentUserId || !messageId || !emoji) return;
+    fetch("/api/chat/messages", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "toggle-reaction", messageId, emoji }),
+    })
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (!ok || !data?.ok) throw new Error(data?.error || "Failed to react to message");
+        setMessages((prev) => prev.map((msg) => (msg.id === messageId ? { ...msg, reactions: data.reactions || [] } : msg)));
         setActiveReactionPickerFor("");
-      }
-    );
+      })
+      .catch((err) => setError(err.message));
   }
 
   function openForwardModal(message) {
@@ -482,21 +369,6 @@ export default function ChatPage() {
       if (activeReactionPickerFor === messageId) setActiveReactionPickerFor("");
     };
 
-    if (socketRef.current?.connected) {
-      socketRef.current.emit(
-        "delete-message",
-        { messageId, userId: currentUserId, mode },
-        (response) => {
-          if (!response?.ok) {
-            setError(response?.error || "Failed to delete message");
-            return;
-          }
-          applyDeleteResult();
-        }
-      );
-      return;
-    }
-
     try {
       const endpoint = mode === "for-everyone" ? "delete-for-everyone" : "delete-for-me";
       const response = await fetch(`/api/chat/messages/${messageId}/${endpoint}`, { method: "POST" });
@@ -512,19 +384,24 @@ export default function ChatPage() {
     setForwardTargetMessage(null);
   }
 
-  function emitForwardMessage(payload, targetId) {
-    return new Promise((resolve) => {
-      if (targetId?.startsWith("community:")) {
-        socketRef.current.emit("send-community-message", payload, (response) => resolve(response));
-        return;
-      }
-      socketRef.current.emit("send-message", payload, (response) => resolve(response));
+  async function emitForwardMessage(payload, targetId) {
+    const url = targetId?.startsWith("community:")
+      ? `/api/communities/${payload.communityId}/groups/${payload.groupId}/messages`
+      : "/api/chat/messages";
+    const body = targetId?.startsWith("community:") ? payload : { ...payload, receiverId: targetId };
+    const response = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
     });
+    const data = await response.json();
+    return response.ok ? { ok: true, ...data } : { ok: false, error: data.error || "Failed to forward message" };
   }
 
+
   async function handleForwardMessage(selectedTargetIds = []) {
-    if (!socketRef.current || !currentUserId || !forwardTargetMessage?.id) {
-      const message = "Wait for chat connection before forwarding this message";
+    if (!currentUserId || !forwardTargetMessage?.id) {
+      const message = "Select a message before forwarding";
       setError(message);
       throw new Error(message);
     }
@@ -553,7 +430,7 @@ export default function ChatPage() {
           const [, communityId, groupId] = targetId.split(":");
           return emitForwardMessage({ ...payload, communityId, groupId }, targetId);
         }
-        return emitForwardMessage({ ...payload, receiverId: targetId }, targetId);
+        return emitForwardMessage(payload, targetId);
       })
     );
     const failedResponses = responses.filter((r) => !r?.ok);
@@ -680,21 +557,6 @@ export default function ChatPage() {
       setError("");
     };
 
-    if (socketRef.current?.connected) {
-      socketRef.current.emit(
-        "block-user",
-        { targetUserId, action },
-        (response) => {
-          if (!response?.ok) {
-            setError(response?.error || "Failed to toggle block status");
-            return;
-          }
-          applyBlockResult(response.blockedUsers || []);
-        }
-      );
-      return;
-    }
-
     try {
       const response = await fetch("/api/chat/block", {
         method: "POST",
@@ -715,7 +577,6 @@ export default function ChatPage() {
         <CommunityPanel
           community={activeCommunity}
           currentUserId={currentUserId}
-          socket={chatSocket}
           onBack={handleBackFromCommunity}
           onGroupCreated={handleGroupCreatedInCommunity}
           onForwardMessage={openForwardModal}

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { getPusherClient } from "@/lib/usePusher";
 import {
     ArrowLeft,
     Bell,
@@ -46,7 +47,7 @@ function mergeMessages(existingMessages = [], incomingMessages = []) {
     });
 }
 
-export default function CommunityPanel({ community, currentUserId, socket, onBack, onGroupCreated, onForwardMessage }) {
+export default function CommunityPanel({ community, currentUserId, onBack, onGroupCreated, onForwardMessage }) {
     const router = useRouter();
     const groups = useMemo(() => (Array.isArray(community?.groups) ? community.groups : []), [community?.groups]);
     const members = useMemo(() => (Array.isArray(community?.members) ? community.members : []), [community?.members]);
@@ -120,19 +121,16 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
     }, [activeGroupId, activeMessages.length]);
 
     useEffect(() => {
-        if (!socket || !community?.id || !currentUserId) return;
+        if (!community?.id || !currentUserId) return;
+        let channel;
+        let mounted = true;
 
-        socket.emit("join-community", { communityId: community.id, userId: currentUserId }, (response) => {
-            if (!response?.ok) {
-                setError(response?.error || "Failed to join community chat");
-            }
-        });
-
-        function handleIncomingCommunityMessage({ communityId, groupId, message }) {
-            if (communityId !== community.id || !groupId || !message?.id) return;
+        function handleIncomingCommunityMessage({ communityId, groupId, ...message }) {
+            const incomingMessage = message.message || message;
+            if (communityId !== community.id || !groupId || !incomingMessage?.id) return;
             setMessagesByGroup((prev) => ({
                 ...prev,
-                [groupId]: mergeMessages(prev[groupId] || [], [message]),
+                [groupId]: mergeMessages(prev[groupId] || [], [incomingMessage]),
             }));
         }
 
@@ -162,16 +160,22 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
             }));
         }
 
-        socket.on("new-community-message", handleIncomingCommunityMessage);
-        socket.on("community-message-deleted", handleCommunityDeletion);
-        socket.on("community-message-reactions-updated", handleCommunityReactions);
+        getPusherClient().then((pusher) => {
+            if (!pusher || !mounted) return;
+            channel = pusher.subscribe(`private-community-${community.id}`);
+            channel.bind("new-message", handleIncomingCommunityMessage);
+            channel.bind("message-deleted", handleCommunityDeletion);
+            channel.bind("message-reactions-updated", handleCommunityReactions);
+        });
 
         return () => {
-            socket.off("new-community-message", handleIncomingCommunityMessage);
-            socket.off("community-message-deleted", handleCommunityDeletion);
-            socket.off("community-message-reactions-updated", handleCommunityReactions);
+            mounted = false;
+            if (channel) {
+                channel.unbind_all();
+                channel.unsubscribe();
+            }
         };
-    }, [socket, community?.id, currentUserId, activeReactionPickerFor]);
+    }, [community?.id, currentUserId, activeReactionPickerFor]);
 
     useEffect(() => {
         if (!community?.id || !activeGroupId) return;
@@ -221,32 +225,16 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
 
         try {
             setError("");
-            let data;
-            if (socket?.connected) {
-                data = await new Promise((resolve) => {
-                    socket.emit(
-                        "send-community-message",
-                        {
-                            communityId: community.id,
-                            groupId: activeGroupId,
-                            senderId: currentUserId,
-                            ...normalizedPayload,
-                        },
-                        resolve
-                    );
-                });
-            } else {
-                const response = await fetch(
-                    `/api/communities/${community.id}/groups/${activeGroupId}/messages`,
-                    {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify(normalizedPayload),
-                    }
-                );
-                data = await response.json();
-                if (!response.ok) throw new Error(data.error || "Failed to send message");
-            }
+            const response = await fetch(
+                `/api/communities/${community.id}/groups/${activeGroupId}/messages`,
+                {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(normalizedPayload),
+                }
+            );
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || "Failed to send message");
             if (!data?.ok) throw new Error(data?.error || "Failed to send message");
 
             setMessagesByGroup((prev) => ({
@@ -291,24 +279,13 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
         if (!community?.id || !activeGroupId || !messageId || !emoji) return;
         try {
             setError("");
-            let data;
-            if (socket?.connected) {
-                data = await new Promise((resolve) => {
-                    socket.emit(
-                        "toggle-community-reaction",
-                        { communityId: community.id, groupId: activeGroupId, messageId, userId: currentUserId, emoji },
-                        resolve
-                    );
-                });
-            } else {
-                const response = await fetch(`/api/communities/${community.id}/groups/${activeGroupId}/messages`, {
-                    method: "PATCH",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ action: "toggle-reaction", messageId, emoji }),
-                });
-                data = await response.json();
-                if (!response.ok) throw new Error(data.error || "Failed to react to message");
-            }
+            const response = await fetch(`/api/communities/${community.id}/groups/${activeGroupId}/messages`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "toggle-reaction", messageId, emoji }),
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || "Failed to react to message");
             if (!data?.ok) throw new Error(data?.error || "Failed to react to message");
             updateMessage(messageId, (message) => ({ ...message, reactions: data.reactions || [] }), data.groupId || activeGroupId);
             setActiveReactionPickerFor("");
@@ -330,24 +307,13 @@ export default function CommunityPanel({ community, currentUserId, socket, onBac
         if (!community?.id || !activeGroupId || !messageId) return;
         try {
             setError("");
-            let data;
-            if (socket?.connected) {
-                data = await new Promise((resolve) => {
-                    socket.emit(
-                        "delete-community-message",
-                        { communityId: community.id, groupId: activeGroupId, messageId, userId: currentUserId, mode },
-                        resolve
-                    );
-                });
-            } else {
-                const response = await fetch(`/api/communities/${community.id}/groups/${activeGroupId}/messages`, {
-                    method: "DELETE",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ messageId, mode }),
-                });
-                data = await response.json();
-                if (!response.ok) throw new Error(data.error || "Failed to delete message");
-            }
+            const response = await fetch(`/api/communities/${community.id}/groups/${activeGroupId}/messages`, {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ messageId, mode }),
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || "Failed to delete message");
             if (!data?.ok) throw new Error(data?.error || "Failed to delete message");
             setMessagesByGroup((prev) => ({
                 ...prev,
