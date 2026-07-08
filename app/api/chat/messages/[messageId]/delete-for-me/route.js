@@ -5,6 +5,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/mongodb";
 import ChatMessage from "@/models/chatMessage";
 import User from "@/models/user";
+import { triggerPusher, userChannel } from "@/lib/pusher";
 
 async function getCurrentUser() {
   const session = await getServerSession(authOptions);
@@ -35,12 +36,14 @@ export async function POST(_req, context) {
 
     if (!message) return NextResponse.json({ error: "Message not found" }, { status: 404 });
 
-    return NextResponse.json({
+    const payload = {
       ok: true,
       messageId: String(message._id),
       mode: "for-me",
       userId: String(currentUser._id),
-    });
+    };
+    await triggerPusher(userChannel(currentUser._id), "message-deleted", payload);
+    return NextResponse.json(payload);
   } catch (error) {
     console.error("CHAT DELETE FOR ME ERROR:", error);
     return NextResponse.json({ error: "Failed to delete message for you" }, { status: 500 });

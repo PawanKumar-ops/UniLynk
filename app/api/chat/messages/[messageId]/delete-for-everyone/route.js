@@ -5,6 +5,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/mongodb";
 import ChatMessage from "@/models/chatMessage";
 import User from "@/models/user";
+import { triggerPusher, userChannel } from "@/lib/pusher";
 
 async function getCurrentUser() {
   const session = await getServerSession(authOptions);
@@ -35,13 +36,15 @@ export async function POST(_req, context) {
       return NextResponse.json({ error: "Only the sender can delete this message for everyone" }, { status: 403 });
     }
 
-    return NextResponse.json({
+    const payload = {
       ok: true,
       messageId: String(message._id),
       mode: "for-everyone",
       userId: String(currentUser._id),
       deletedForEveryone: true,
-    });
+    };
+    await triggerPusher([userChannel(message.sender), userChannel(message.receiver)], "message-deleted", payload);
+    return NextResponse.json(payload);
   } catch (error) {
     console.error("CHAT DELETE FOR EVERYONE ERROR:", error);
     return NextResponse.json({ error: "Failed to delete message for everyone" }, { status: 500 });

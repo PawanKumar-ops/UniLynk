@@ -200,18 +200,24 @@ export function NewMessageModal({
 }) {
   const [q, setQ] = useState("");
   const [users, setUsers] = useState([]);
+
   useEffect(() => {
     if (!open) return;
-    fetch("/api/chat/users")
-      .then((res) => res.json())
-      .then((data) => setUsers((data.users || []).map((user) => ({
-        id: user.id,
-        name: user.name || user.email || "UniLynk User",
-        handle: (user.email || "user").split("@")[0],
-        avatar: user.image || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(user.name || user.email || "User")}`,
-      }))))
-      .catch(() => setUsers([]));
+    fetch("/api/chat/users", { cache: "no-store" })
+      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+      .then(({ ok, data }) => {
+        if (ok) {
+          setUsers((data.users || []).map((user) => ({
+            id: user.id,
+            name: user.name || user.email || "UniLynk User",
+            handle: user.email?.split("@")[0] || "user",
+            avatar: user.image || "/Profilepic.png",
+          })));
+        }
+      })
+      .catch(console.error);
   }, [open]);
+
   const filtered = users.filter(
     (u) =>
       u.name.toLowerCase().includes(q.toLowerCase()) ||

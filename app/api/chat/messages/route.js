@@ -4,7 +4,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/user";
 import ChatMessage from "@/models/chatMessage";
-import { directChatChannel, getPusherServer } from "@/lib/pusher";
+import { triggerPusher, userChannel } from "@/lib/pusher";
 
 const ALLOWED_MESSAGE_TYPES = ["text", "emoji", "gif", "document", "media", "shared_post"];
 
@@ -200,7 +200,7 @@ export async function POST(req) {
       })),
     };
 
-    await getPusherServer()?.trigger(directChatChannel(currentUser._id, receiverId), "new-message", formattedMessage);
+    await triggerPusher([userChannel(currentUser._id), userChannel(receiverId)], "new-message", formattedMessage);
 
     return Response.json({ message: formattedMessage }, { status: 201 });
   } catch (error) {
@@ -213,73 +213,51 @@ export async function PATCH(req) {
   try {
     const currentUser = await getCurrentUser();
     if (!currentUser) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    const { action, messageId, emoji, otherUserId } = await req.json();
 
-    const { messageId, action, emoji, mode, targetUserIds = [] } = await req.json();
-    if (!messageId || !mongoose.Types.ObjectId.isValid(messageId)) {
-      return Response.json({ error: "Valid messageId is required" }, { status: 400 });
-    }
-
-    const message = await ChatMessage.findById(messageId);
-    if (!message) return Response.json({ error: "Message not found" }, { status: 404 });
-    const isParticipant = [message.sender, message.receiver].some((id) => String(id) === String(currentUser._id));
-    if (!isParticipant) return Response.json({ error: "Forbidden" }, { status: 403 });
-
-    if (action === "toggle-reaction") {
-      const trimmedEmoji = String(emoji || "").trim();
-      if (!trimmedEmoji) return Response.json({ error: "Reaction emoji is required" }, { status: 400 });
-      const existing = (message.reactions || []).findIndex(
-        (reaction) => String(reaction.userId) === String(currentUser._id) && reaction.emoji === trimmedEmoji
+    if (action === "mark-read") {
+      if (!otherUserId || !mongoose.Types.ObjectId.isValid(otherUserId)) {
+        return Response.json({ error: "Valid otherUserId is required" }, { status: 400 });
+      }
+      const readAt = new Date();
+      await ChatMessage.updateMany(
+        { sender: otherUserId, receiver: currentUser._id, readAt: null },
+        { $set: { readAt, deliveredAt: readAt } }
       );
-      if (existing >= 0) message.reactions.splice(existing, 1);
-      else {
-        message.reactions = (message.reactions || []).filter((reaction) => String(reaction.userId) !== String(currentUser._id));
-        message.reactions.push({ userId: currentUser._id, emoji: trimmedEmoji });
-      }
-      await message.save();
-      const reactions = (message.reactions || []).map((reaction) => ({ userId: String(reaction.userId), emoji: reaction.emoji }));
-      await getPusherServer()?.trigger(directChatChannel(message.sender, message.receiver), "message-reactions-updated", { messageId, reactions });
-      return Response.json({ reactions });
-    }
-
-    if (action === "delete") {
-      if (mode === "everyone" && String(message.sender) === String(currentUser._id)) {
-        message.deletedForEveryone = true;
-      } else if (!(message.deletedFor || []).some((id) => String(id) === String(currentUser._id))) {
-        message.deletedFor.push(currentUser._id);
-      }
-      await message.save();
-      await getPusherServer()?.trigger(directChatChannel(message.sender, message.receiver), "message-deleted", {
-        messageId,
-        mode: mode === "everyone" ? "everyone" : "me",
-        userId: String(currentUser._id),
-        deletedForEveryone: Boolean(message.deletedForEveryone),
+      await triggerPusher([userChannel(currentUser._id), userChannel(otherUserId)], "messages-read", {
+        byUserId: currentUser._id.toString(),
+        peerUserId: otherUserId,
+        readAt,
       });
-      return Response.json({ ok: true, deletedForEveryone: Boolean(message.deletedForEveryone) });
+      return Response.json({ ok: true, readAt });
     }
 
-    if (action === "forward") {
-      const ids = Array.isArray(targetUserIds) ? targetUserIds.filter((id) => mongoose.Types.ObjectId.isValid(id)) : [];
-      const created = [];
-      for (const receiverId of ids) {
-        const forwarded = await ChatMessage.create({
-          sender: currentUser._id,
-          receiver: receiverId,
-          text: message.text || "",
-          messageType: message.messageType || "text",
-          attachment: message.attachment || undefined,
-          attachments: message.attachments || undefined,
-          sharedPost: message.sharedPost || undefined,
-          deliveredAt: new Date(),
-          reactions: [],
-        });
-        const formatted = { id: String(forwarded._id), text: forwarded.text || "", messageType: forwarded.messageType || "text", attachment: forwarded.attachment || null, attachments: forwarded.attachments || [], sharedPost: forwarded.sharedPost || null, sender: String(forwarded.sender), receiver: String(forwarded.receiver), createdAt: forwarded.createdAt, deliveredAt: forwarded.deliveredAt || null, readAt: null, deletedForEveryone: false, reactions: [] };
-        created.push(formatted);
-        await getPusherServer()?.trigger(directChatChannel(currentUser._id, receiverId), "new-message", formatted);
-      }
-      return Response.json({ messages: created });
+    if (action !== "toggle-reaction" || !messageId || !mongoose.Types.ObjectId.isValid(messageId) || !emoji) {
+      return Response.json({ error: "Invalid reaction request" }, { status: 400 });
     }
 
-    return Response.json({ error: "Unsupported action" }, { status: 400 });
+    const message = await ChatMessage.findOne({
+      _id: messageId,
+      $or: [{ sender: currentUser._id }, { receiver: currentUser._id }],
+    });
+    if (!message) return Response.json({ error: "Message not found" }, { status: 404 });
+
+    const currentUserId = currentUser._id.toString();
+    const existingIndex = (message.reactions || []).findIndex((r) => r.userId?.toString() === currentUserId);
+    if (existingIndex >= 0 && message.reactions[existingIndex].emoji === emoji) {
+      message.reactions.splice(existingIndex, 1);
+    } else if (existingIndex >= 0) {
+      message.reactions[existingIndex].emoji = emoji;
+    } else {
+      message.reactions.push({ userId: currentUser._id, emoji });
+    }
+    await message.save();
+    const reactions = (message.reactions || []).map((reaction) => ({
+      userId: reaction.userId?.toString?.() || reaction.userId,
+      emoji: reaction.emoji || "",
+    }));
+    await triggerPusher([userChannel(message.sender), userChannel(message.receiver)], "message-reactions-updated", { messageId, reactions });
+    return Response.json({ ok: true, reactions });
   } catch (error) {
     console.error("CHAT MESSAGES PATCH ERROR:", error);
     return Response.json({ error: "Failed to update message" }, { status: 500 });

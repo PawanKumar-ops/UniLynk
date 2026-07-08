@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter, usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
     Search,
     Mail,
@@ -262,8 +262,8 @@ export default function MessagesLayout({ children }) {
     const [q, setQ] = useState("");
 
     // ---- Community / groups state (WhatsApp-style) ----
-    const [openCommunity, setOpenCommunity] = useState(null);
-    const [conversations, setConversations] = useState([]);
+    const [openCommunity, setOpenCommunity] = useState(null); // the community object whose groups are shown
+    const [users, setUsers] = useState([]);
     const [communities, setCommunities] = useState([]);
     const [newGroup, setNewGroup] = useState(false);
 
@@ -277,35 +277,26 @@ export default function MessagesLayout({ children }) {
     const isDark = useDarkMode();
 
     useEffect(() => {
-        fetch("/api/chat/users")
-            .then((res) => res.json())
-            .then((data) => setConversations((data.users || []).map((user) => ({
-                id: user.id,
-                user: {
-                    id: user.id,
-                    name: user.name || user.email || "UniLynk User",
-                    handle: (user.email || "user").split("@")[0],
-                    avatar: user.image || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(user.name || user.email || "User")}`,
-                    verified: false,
-                },
-                preview: user.email || "Start a conversation",
-                time: "",
-                unread: 0,
-            }))))
-            .catch(() => setConversations([]));
-
-        fetch("/api/communities")
-            .then((res) => res.json())
-            .then((data) => setCommunities((data.communities || []).map((community) => ({
-                id: community.id,
-                name: community.name,
-                cover: community.image || `https://api.dicebear.com/9.x/shapes/svg?seed=${encodeURIComponent(community.name)}`,
-                members: community.memberCount || 0,
-                unread: 0,
-                groups: community.groups || [],
-            }))))
-            .catch(() => setCommunities([]));
+        async function loadSidebarData() {
+            const [usersRes, communitiesRes] = await Promise.all([
+                fetch("/api/chat/users", { cache: "no-store" }),
+                fetch("/api/communities", { cache: "no-store" }),
+            ]);
+            const usersData = await usersRes.json();
+            const communitiesData = await communitiesRes.json();
+            if (usersRes.ok) setUsers(usersData.users || []);
+            if (communitiesRes.ok) setCommunities(communitiesData.communities || []);
+        }
+        loadSidebarData().catch(console.error);
     }, []);
+
+    const conversations = useMemo(() => users.map((user) => ({
+        id: user.id,
+        user: { id: user.id, name: user.name || user.email || "UniLynk User", handle: user.email?.split("@")[0] || "user", avatar: user.image || "/Profilepic.png", verified: false },
+        preview: user.lastMessage || user.email || "Start a conversation",
+        time: "",
+        unread: user.unreadCount || 0,
+    })), [users]);
 
     const filtered = conversations.filter((c) => {
         if (filter === "unread" && !c.unread) return false;
@@ -313,18 +304,14 @@ export default function MessagesLayout({ children }) {
         return c.user.name.toLowerCase().includes(q.toLowerCase()) || c.user.handle.toLowerCase().includes(q.toLowerCase());
     });
 
-    const handleCreateGroup = async (group) => {
+    // Return the groups for a community, always including a default Announcement group.
+    const getGroups = (community) => {
+        return community.groups || [];
+    };
+
+    const handleCreateGroup = (group) => {
         if (!openCommunity) return;
-        const res = await fetch(`/api/communities/${openCommunity.id}/groups`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name: group.name, description: "" }),
-        });
-        const data = await res.json();
-        if (res.ok) {
-            setOpenCommunity((current) => ({ ...current, groups: [...(current.groups || []), data.group] }));
-            setCommunities((prev) => prev.map((community) => community.id === openCommunity.id ? { ...community, groups: [...(community.groups || []), data.group] } : community));
-        }
+        setCommunities((prev) => prev.map((community) => community.id === openCommunity.id ? { ...community, groups: [...(community.groups || []), group] } : community));
     };
 
     const groups = openCommunity ? (openCommunity.groups || []).filter((g) => !q || g.name.toLowerCase().includes(q.toLowerCase())) : [];
@@ -378,7 +365,7 @@ export default function MessagesLayout({ children }) {
                             </button>
                             <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#f2f6fa]">
                                 <img
-                                    src={openCommunity.cover}
+                                    src={openCommunity.image || "/Profilepic.png"}
                                     alt={openCommunity.name}
                                     className="h-full w-full object-cover object-center"
                                 />
@@ -388,7 +375,7 @@ export default function MessagesLayout({ children }) {
                                     {openCommunity.name}
                                 </h1>
                                 <p className="truncate text-xs text-[#62748e]">
-                                    {openCommunity.members.toLocaleString()} members
+                                    {(openCommunity.memberCount || openCommunity.members?.length || 0).toLocaleString()} members
                                 </p>
                             </div>
                         </header>
@@ -424,7 +411,7 @@ export default function MessagesLayout({ children }) {
                             {groups.map((g) => (
                                 <button
                                     key={g.id}
-                                    onClick={() => router.push(`/dashboard/chat2/community-${openCommunity.id}-${g.id}`)}
+                                    onClick={() => router.push(`/dashboard/chat2/community:${openCommunity.id}:${g.id}`)}
                                     className={cn(
                                         "flex w-full items-center gap-3 border-l-2 px-4 py-3 text-left transition hover:bg-[#f7f9fc]",
                                         params.id === g.id
@@ -461,7 +448,7 @@ export default function MessagesLayout({ children }) {
                                         </span>
                                     ) : (
                                         <img
-                                            src={g.image || g.cover}
+                                            src={g.image || openCommunity.image || "/Profilepic.png"}
                                             alt={g.name}
                                             className="h-12 w-12 shrink-0 rounded-full bg-[#f2f6fa] object-cover"
                                         />
@@ -651,7 +638,7 @@ export default function MessagesLayout({ children }) {
                                             >
                                                 <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full bg-[#f2f6fa]">
                                                     <img
-                                                        src={c.cover}
+                                                        src={c.image || "/Profilepic.png"}
                                                         alt={c.name}
                                                         className="h-full w-full object-cover object-center"
                                                     />
@@ -667,7 +654,7 @@ export default function MessagesLayout({ children }) {
                                                     </div>
                                                     <div className="flex items-center gap-1 text-sm text-[#62748e]">
                                                         <Users className="h-3 w-3" />
-                                                        {c.members.toLocaleString()} members
+                                                        {(c.memberCount || c.members?.length || 0).toLocaleString()} members
                                                     </div>
                                                 </div>
                                                 <ChevronDown className="h-4 w-4 -rotate-90 text-[#62748e]" />
