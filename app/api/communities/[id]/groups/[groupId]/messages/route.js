@@ -5,6 +5,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/mongodb";
 import Community from "@/models/Community";
 import User from "@/models/user";
+import { communityChannel, triggerPusher } from "@/lib/pusher";
 
 async function getCurrentUser() {
   const session = await getServerSession(authOptions);
@@ -214,10 +215,9 @@ export async function POST(req, context) {
     await community.save();
 
     const savedMessage = group.messages[group.messages.length - 1];
-    return NextResponse.json({
-      ok: true,
-      message: formatMessage(savedMessage, new Map([[currentUserId, currentUser]]), currentUserId),
-    });
+    const formattedMessage = formatMessage(savedMessage, new Map([[currentUserId, currentUser]]), currentUserId);
+    await triggerPusher(communityChannel(id), "new-message", { communityId: id, groupId, ...formattedMessage });
+    return NextResponse.json({ ok: true, message: formattedMessage });
   } catch (error) {
     console.error("COMMUNITY MESSAGES POST ERROR:", error);
     return NextResponse.json({ error: "Failed to send group message" }, { status: 500 });
@@ -267,7 +267,9 @@ export async function PATCH(req, context) {
       }
       community.updatedAt = new Date();
       await community.save();
-      return NextResponse.json({ ok: true, reactions: formatReactions(message.reactions) });
+      const reactions = formatReactions(message.reactions);
+      await triggerPusher(communityChannel(id), "message-reactions-updated", { communityId: id, groupId, messageId, reactions });
+      return NextResponse.json({ ok: true, reactions });
     }
 
     if (action === "mark-seen") {
@@ -328,7 +330,7 @@ export async function DELETE(req, context) {
 
     community.updatedAt = new Date();
     await community.save();
-    return NextResponse.json({
+    const payload = {
       ok: true,
       communityId: id,
       groupId,
@@ -336,7 +338,9 @@ export async function DELETE(req, context) {
       mode,
       userId: currentUserId,
       deletedForEveryone: mode === "for-everyone",
-    });
+    };
+    await triggerPusher(communityChannel(id), "message-deleted", payload);
+    return NextResponse.json(payload);
   } catch (error) {
     console.error("COMMUNITY MESSAGES DELETE ERROR:", error);
     return NextResponse.json({ error: "Failed to delete group message" }, { status: 500 });
