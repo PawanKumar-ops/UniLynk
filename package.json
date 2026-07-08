@@ -33,8 +33,6 @@
     "react-dom": "19.2.3",
     "react-image-crop": "^11.0.10",
     "recharts": "^3.7.0",
-    "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
