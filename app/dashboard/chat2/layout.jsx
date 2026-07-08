@@ -15,7 +15,7 @@ import {
     Megaphone,
 } from "lucide-react";
 import { Icon } from "@iconify/react";
-import { conversations, communities, messageRequests, communityGroups, makeAnnouncementGroup } from "@/lib/mock-data";
+
 import { NewMessageModal, DotsMenu, NewGroupModal } from "@/components/chat/chat-ui";
 import { cn } from "@/lib/utils";
 
@@ -262,8 +262,9 @@ export default function MessagesLayout({ children }) {
     const [q, setQ] = useState("");
 
     // ---- Community / groups state (WhatsApp-style) ----
-    const [openCommunity, setOpenCommunity] = useState(null); // the community object whose groups are shown
-    const [groupsByCommunity, setGroupsByCommunity] = useState(communityGroups);
+    const [openCommunity, setOpenCommunity] = useState(null);
+    const [conversations, setConversations] = useState([]);
+    const [communities, setCommunities] = useState([]);
     const [newGroup, setNewGroup] = useState(false);
 
     const router = useRouter();
@@ -275,35 +276,58 @@ export default function MessagesLayout({ children }) {
     const showMainContent = isRequestsRoute || !isChatRoot;
     const isDark = useDarkMode();
 
+    useEffect(() => {
+        fetch("/api/chat/users")
+            .then((res) => res.json())
+            .then((data) => setConversations((data.users || []).map((user) => ({
+                id: user.id,
+                user: {
+                    id: user.id,
+                    name: user.name || user.email || "UniLynk User",
+                    handle: (user.email || "user").split("@")[0],
+                    avatar: user.image || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(user.name || user.email || "User")}`,
+                    verified: false,
+                },
+                preview: user.email || "Start a conversation",
+                time: "",
+                unread: 0,
+            }))))
+            .catch(() => setConversations([]));
+
+        fetch("/api/communities")
+            .then((res) => res.json())
+            .then((data) => setCommunities((data.communities || []).map((community) => ({
+                id: community.id,
+                name: community.name,
+                cover: community.image || `https://api.dicebear.com/9.x/shapes/svg?seed=${encodeURIComponent(community.name)}`,
+                members: community.memberCount || 0,
+                unread: 0,
+                groups: community.groups || [],
+            }))))
+            .catch(() => setCommunities([]));
+    }, []);
+
     const filtered = conversations.filter((c) => {
         if (filter === "unread" && !c.unread) return false;
         if (!q) return true;
-        return (
-            c.user.name.toLowerCase().includes(q.toLowerCase()) ||
-            c.user.handle.toLowerCase().includes(q.toLowerCase())
-        );
+        return c.user.name.toLowerCase().includes(q.toLowerCase()) || c.user.handle.toLowerCase().includes(q.toLowerCase());
     });
 
-    // Return the groups for a community, always including a default Announcement group.
-    const getGroups = (community) => {
-        const existing = groupsByCommunity[community.id];
-        if (existing && existing.length) return existing;
-        return [makeAnnouncementGroup(community.id, community.name)];
-    };
-
-    const handleCreateGroup = (group) => {
+    const handleCreateGroup = async (group) => {
         if (!openCommunity) return;
-        setGroupsByCommunity((prev) => {
-            const current = prev[openCommunity.id] || getGroups(openCommunity);
-            return { ...prev, [openCommunity.id]: [...current, group] };
+        const res = await fetch(`/api/communities/${openCommunity.id}/groups`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: group.name, description: "" }),
         });
+        const data = await res.json();
+        if (res.ok) {
+            setOpenCommunity((current) => ({ ...current, groups: [...(current.groups || []), data.group] }));
+            setCommunities((prev) => prev.map((community) => community.id === openCommunity.id ? { ...community, groups: [...(community.groups || []), data.group] } : community));
+        }
     };
 
-    const groups = openCommunity
-        ? getGroups(openCommunity).filter(
-            (g) => !q || g.name.toLowerCase().includes(q.toLowerCase()),
-        )
-        : [];
+    const groups = openCommunity ? (openCommunity.groups || []).filter((g) => !q || g.name.toLowerCase().includes(q.toLowerCase())) : [];
 
     return (
         <div
@@ -400,7 +424,7 @@ export default function MessagesLayout({ children }) {
                             {groups.map((g) => (
                                 <button
                                     key={g.id}
-                                    onClick={() => router.push(`/dashboard/chat2/${g.id}`)}
+                                    onClick={() => router.push(`/dashboard/chat2/community-${openCommunity.id}-${g.id}`)}
                                     className={cn(
                                         "flex w-full items-center gap-3 border-l-2 px-4 py-3 text-left transition hover:bg-[#f7f9fc]",
                                         params.id === g.id
@@ -437,7 +461,7 @@ export default function MessagesLayout({ children }) {
                                         </span>
                                     ) : (
                                         <img
-                                            src={g.cover}
+                                            src={g.image || g.cover}
                                             alt={g.name}
                                             className="h-12 w-12 shrink-0 rounded-full bg-[#f2f6fa] object-cover"
                                         />
@@ -454,7 +478,7 @@ export default function MessagesLayout({ children }) {
                                         </div>
                                         <div className="flex items-center justify-between gap-2">
                                             <p className="truncate text-sm text-[#62748e]">
-                                                {g.preview}
+                                                {g.lastMessage || g.description || "No messages yet"}
                                             </p>
                                             {g.unread ? (
                                                 <span className="ml-2 rounded-full bg-[#1d9bf0] px-2 text-xs font-bold text-white">

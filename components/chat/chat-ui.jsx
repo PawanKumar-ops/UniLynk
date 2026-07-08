@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { X, Search, Smile, Image as ImageIcon, Video, FileIcon, Mic, Users, Megaphone, Check } from "lucide-react";
-import { gifs, emojis, stickers, allUsers } from "@/lib/mock-data";
+import { gifs, emojis, stickers } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { Camera, Trash2, Sparkles } from "lucide-react";
 
@@ -199,7 +199,20 @@ export function NewMessageModal({
   onPick,
 }) {
   const [q, setQ] = useState("");
-  const filtered = allUsers.filter(
+  const [users, setUsers] = useState([]);
+  useEffect(() => {
+    if (!open) return;
+    fetch("/api/chat/users")
+      .then((res) => res.json())
+      .then((data) => setUsers((data.users || []).map((user) => ({
+        id: user.id,
+        name: user.name || user.email || "UniLynk User",
+        handle: (user.email || "user").split("@")[0],
+        avatar: user.image || `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(user.name || user.email || "User")}`,
+      }))))
+      .catch(() => setUsers([]));
+  }, [open]);
+  const filtered = users.filter(
     (u) =>
       u.name.toLowerCase().includes(q.toLowerCase()) ||
       u.handle.toLowerCase().includes(q.toLowerCase()),
