@@ -367,7 +367,7 @@ export default function MessagesLayout({ children }) {
                                 <img
                                     src={openCommunity.image || "/Profilepic.png"}
                                     alt={openCommunity.name}
-                                    className="h-full w-full object-cover object-center"
+                                    className="h-full w-full object-cover border object-center"
                                 />
                             </div>
                             <div className="min-w-0 flex-1">
@@ -429,7 +429,7 @@ export default function MessagesLayout({ children }) {
                                         <img
                                             src={g.image}
                                             alt={g.name}
-                                            className="h-12 w-12 shrink-0 rounded-full object-cover ring-1 ring-slate-200"
+                                            className="h-12 w-12 shrink-0 rounded-full border object-cover ring-1 ring-slate-200"
                                         />
                                     ) : g.gradient ? (
                                         // NEW: gradient fallback from picker
@@ -450,7 +450,7 @@ export default function MessagesLayout({ children }) {
                                         <img
                                             src={g.image || openCommunity.image || "/Profilepic.png"}
                                             alt={g.name}
-                                            className="h-12 w-12 shrink-0 rounded-full bg-[#f2f6fa] object-cover"
+                                            className="h-12 w-12 shrink-0 border rounded-full bg-[#f2f6fa] object-cover"
                                         />
                                     )}
 
@@ -592,7 +592,7 @@ export default function MessagesLayout({ children }) {
                                                 <img
                                                     src={c.user.avatar}
                                                     alt={c.user.name}
-                                                    className="h-12 w-12 rounded-full bg-[#f2f6fa] object-cover"
+                                                    className="h-12 w-12 rounded-full border bg-[#f2f6fa] object-cover"
                                                 />
                                                 <div className="min-w-0 flex-1">
                                                     <div className="flex items-center justify-between gap-2">
@@ -640,7 +640,7 @@ export default function MessagesLayout({ children }) {
                                                     <img
                                                         src={c.image || "/Profilepic.png"}
                                                         alt={c.name}
-                                                        className="h-full w-full object-cover object-center"
+                                                        className="h-full w-full border object-cover object-center"
                                                     />
                                                 </div>
                                                 <div className="min-w-0 flex-1">
