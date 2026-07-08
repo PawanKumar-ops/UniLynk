@@ -209,7 +209,6 @@ export async function POST(req) {
   }
 }
 
-
 export async function PATCH(req) {
   try {
     const currentUser = await getCurrentUser();

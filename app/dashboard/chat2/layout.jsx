@@ -314,11 +314,7 @@ export default function MessagesLayout({ children }) {
         setCommunities((prev) => prev.map((community) => community.id === openCommunity.id ? { ...community, groups: [...(community.groups || []), group] } : community));
     };
 
-    const groups = openCommunity
-        ? getGroups(openCommunity).filter(
-            (g) => !q || g.name.toLowerCase().includes(q.toLowerCase()),
-        )
-        : [];
+    const groups = openCommunity ? (openCommunity.groups || []).filter((g) => !q || g.name.toLowerCase().includes(q.toLowerCase())) : [];
 
     return (
         <div
@@ -415,7 +411,7 @@ export default function MessagesLayout({ children }) {
                             {groups.map((g) => (
                                 <button
                                     key={g.id}
-                                    onClick={() => router.push(`/dashboard/chat2/${encodeURIComponent(`community:${openCommunity.id}:${g.id}`)}`)}
+                                    onClick={() => router.push(`/dashboard/chat2/community:${openCommunity.id}:${g.id}`)}
                                     className={cn(
                                         "flex w-full items-center gap-3 border-l-2 px-4 py-3 text-left transition hover:bg-[#f7f9fc]",
                                         decodeURIComponent(params.id || "") === `community:${openCommunity.id}:${g.id}`
@@ -469,7 +465,7 @@ export default function MessagesLayout({ children }) {
                                         </div>
                                         <div className="flex items-center justify-between gap-2">
                                             <p className="truncate text-sm text-[#62748e]">
-                                                {g.preview}
+                                                {g.lastMessage || g.description || "No messages yet"}
                                             </p>
                                             {g.unread ? (
                                                 <span className="ml-2 rounded-full bg-[#1d9bf0] px-2 text-xs font-bold text-white">
