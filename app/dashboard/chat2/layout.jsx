@@ -414,7 +414,7 @@ export default function MessagesLayout({ children }) {
                                     onClick={() => router.push(`/dashboard/chat2/community:${openCommunity.id}:${g.id}`)}
                                     className={cn(
                                         "flex w-full items-center gap-3 border-l-2 px-4 py-3 text-left transition hover:bg-[#f7f9fc]",
-                                        params.id === g.id
+                                        decodeURIComponent(params.id || "") === `community:${openCommunity.id}:${g.id}`
                                             ? "active-border border-[#1d9bf0] bg-[#f5f8fa]"
                                             : "border-transparent",
                                     )}
