@@ -405,7 +405,7 @@ const GROUP_GRADIENTS = [
 ];
 
 
-export function BlockUserModal({ open, onOpenChange, userName }) {
+export function BlockUserModal({ open, onOpenChange, onConfirm, userName }) {
   if (!open) return null;
   return (
     <div
@@ -445,7 +445,7 @@ export function BlockUserModal({ open, onOpenChange, userName }) {
         {/* Buttons */}
         <div className="flex flex-col gap-2.5 w-full mt-1">
           <button
-            onClick={() => onOpenChange?.(false)}
+            onClick={() => onConfirm?.()}
             className="w-full rounded-full py-2.5 text-[14px] transition-colors cursor-pointer"
             style={{ border: "1.5px solid #e0e0e6", background: "#fff", color: "#0a0a14", fontWeight: 500 }}
             onMouseEnter={(e) => (e.currentTarget.style.background = "#f8f8fb")}

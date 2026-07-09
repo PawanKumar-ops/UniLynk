@@ -5,7 +5,8 @@ import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { MoreHorizontal, Plus, Smile, Mic, ArrowDown, ArrowLeft, CheckCircle2, Trash2, Undo2 } from "lucide-react";
 import { Icon } from "@iconify/react";
-import { PickerPopover, PlusDropdown, ReactionPicker, MediaPreviewBar, VoiceRecorder, CallModal, DotsMenu } from "@/components/chat/chat-ui";
+import { PickerPopover, PlusDropdown, ReactionPicker, MediaPreviewBar, VoiceRecorder, CallModal, DotsMenu, BlockUserModal } from "@/components/chat/chat-ui";
+import { BlockedModal } from "@/components/BlockedModal";
 import { DeleteMessageModal } from "@/components/DeleteMessageModal";
 import { ForwardMessageModal } from "@/components/ForwardMessageModal";
 import { cn } from "@/lib/utils";
@@ -38,6 +39,11 @@ export default function ChatRoute() {
     const [pendingFile, setPendingFile] = useState(null);
     const [recording, setRecording] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [blockedUsers, setBlockedUsers] = useState([]);
+    const [blockedBy, setBlockedBy] = useState([]);
+    const [showBlockUserModal, setShowBlockUserModal] = useState(false);
+    const [showBlockedModal, setShowBlockedModal] = useState(false);
+    const [blockLoading, setBlockLoading] = useState(false);
     const [error, setError] = useState("");
     const [deleteTargetMessage, setDeleteTargetMessage] = useState(null);
     const [forwardTargetMessage, setForwardTargetMessage] = useState(null);
@@ -52,7 +58,12 @@ export default function ChatRoute() {
             const [userRes, communityRes] = await Promise.all([fetch("/api/chat/users", { cache: "no-store" }), fetch("/api/communities", { cache: "no-store" })]);
             const userData = await userRes.json();
             const communityData = await communityRes.json();
-            if (userRes.ok) { setUsers(userData.users || []); setCurrentUserId(userData.currentUserId || ""); }
+            if (userRes.ok) {
+                setUsers(userData.users || []);
+                setCurrentUserId(userData.currentUserId || "");
+                setBlockedUsers(userData.blockedUsers || []);
+                setBlockedBy(userData.blockedBy || []);
+            }
             if (communityRes.ok) setCommunities(communityData.communities || []);
         }
         bootstrap().catch((err) => setError(err.message));
@@ -78,6 +89,14 @@ export default function ChatRoute() {
     useEffect(() => { scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" }); }, [messages, loading]);
 
     useEffect(() => {
+        if (!activeUser?.id) {
+            setShowBlockedModal(false);
+            return;
+        }
+        setShowBlockedModal(blockedBy.includes(activeUser.id));
+    }, [activeUser, blockedBy]);
+
+    useEffect(() => {
         if (!currentUserId) return;
         let channel;
         let mounted = true;
@@ -99,8 +118,11 @@ export default function ChatRoute() {
     const community = communities.find((c) => c.id === communityId);
     const group = community?.groups?.find((g) => g.id === groupId);
     const header = isCommunityRoute ? { name: group?.name || community?.name || "Community", handle: community?.name || "community", avatar: community?.image || "/Profilepic.png" } : user;
+    const isConversationBlocked = !isCommunityRoute && id && (blockedUsers.includes(id) || blockedBy.includes(id));
+    const blockedLabel = blockedUsers.includes(id) ? "You have blocked this user. Unblock to message." : "You are blocked by this user. Unblock cannot send messages.";
 
     async function send(extra = {}) {
+        if (isConversationBlocked) return;
         const body = extra.body || (extra.media?.type === "gif" ? { text: extra.media.url, messageType: "gif" } : { text, messageType: "text" });
         // Avoid infinite recursion: only call sendFile when there is no explicit body provided
         if (pendingFile && !extra.media && !extra.body) return sendFile();
@@ -135,6 +157,29 @@ export default function ChatRoute() {
         if (res.ok) setMessages((prev) => prev.map((m) => m.id === msgId ? { ...m, reactions: data.reactions || [] } : m));
     }
 
+    async function handleToggleBlock(action) {
+        if (!id || isCommunityRoute) return;
+        setBlockLoading(true);
+        try {
+            const response = await fetch("/api/chat/block", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ targetUserId: id, action }),
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || "Failed to toggle block status");
+            setBlockedUsers(data.blockedUsers || []);
+            setError("");
+            if (action === "block") {
+                setShowBlockUserModal(false);
+            }
+        } catch (err) {
+            setError(err.message || "Failed to toggle block status");
+        } finally {
+            setBlockLoading(false);
+        }
+    }
+
     async function handleDelete(scope) {
         const m = deleteTargetMessage; if (!m) return;
         const mode = scope === "everyone" ? "delete-for-everyone" : "delete-for-me";
@@ -155,7 +200,7 @@ export default function ChatRoute() {
     return <>
         <header className="flex items-center justify-between border-b px-4 py-2.5" style={{ display: "flex", flexDirection: "row" }}>
             <div className="flex min-w-0 items-center gap-2"><Link href="/dashboard/chat2" className="rounded-full p-2 hover:bg-[#f2f6fa] md:hidden"><ArrowLeft className="h-5 w-5" /></Link><img src={header.avatar} alt={header.name} className="h-9 w-9 shrink-0 border rounded-full bg-[#f2f6fa] object-cover" /><div className="flex min-w-0 items-center gap-1"><span className="truncate font-bold">{header.name}</span>{header.verified && <span className="shrink-0 text-[#1d9bf0]">✓</span>}</div></div>
-            <div className="relative"><button onClick={() => setDots((v) => !v)} className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#536471] transition-all duration-200 hover:border-[#1d9bf0] hover:bg-[#e8f5fe] hover:text-[#1d9bf0] active:scale-95"><MoreHorizontal className="h-4 w-4" /></button>{dots && <DotsMenu onClose={() => setDots(false)} items={[{ label: "View profile", onClick: () => !isCommunityRoute && router.push(`/dashboard/Userprofile?userId=${id}`) }, { label: "Block user" }, { label: "Report conversation", danger: true }]} />}</div>
+            <div className="relative"><button onClick={() => setDots((v) => !v)} className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#536471] transition-all duration-200 hover:border-[#1d9bf0] hover:bg-[#e8f5fe] hover:text-[#1d9bf0] active:scale-95"><MoreHorizontal className="h-4 w-4" /></button>{dots && <DotsMenu onClose={() => setDots(false)} items={[{ label: "View profile", onClick: () => !isCommunityRoute && router.push(`/dashboard/Userprofile?userId=${id}`) }, { label: blockedUsers.includes(id) ? "Unblock user" : "Block user", onClick: () => { if (blockedUsers.includes(id)) { handleToggleBlock("unblock"); } else { setShowBlockUserModal(true); } } }, { label: "Report conversation", danger: true }]} />}</div>
         </header>
         <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto"><div className="flex flex-col items-center gap-2 px-6 py-8"><img src={header.avatar} alt={header.name} className="h-20 w-20 rounded-full bg-[#f2f6fa] border object-cover" /><div className="text-center"><div className="text-lg font-extrabold">{header.name}</div><div className="text-sm text-[#62748e]">@{header.handle}</div></div><button className="mt-2 rounded-full bg-[#000] px-5 py-1.5 text-sm font-bold text-[#fff] hover:opacity-90">View Profile</button></div>
             <div className="flex-1 min-h-0 overflow-y-auto px-4 py-6">{loading ? <div className="space-y-4">{[1, 2, 3].map((i) => <div key={i} className={cn("flex", i % 2 ? "justify-end" : "justify-start")}><div className="h-10 w-40 animate-pulse rounded-2xl bg-[#f2f6fa]" /></div>)}</div> : <div className="space-y-4"><div className="text-center flex justify-center text-xs text-[#62748e]"><div className="bg-gray-100 w-fit rounded-full px-3 py-0.5">Today</div></div>{messages.map((m) => {
@@ -200,9 +245,11 @@ export default function ChatRoute() {
         </div>
         <button onClick={() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })} className="absolute bottom-28 right-[400px] hidden rounded-full border bg-[#fff] p-2 shadow-md hover:bg-[#f2f6fa] md:block"><ArrowDown className="h-4 w-4" /></button>
         {pendingFile && <MediaPreviewBar file={pendingFile} onRemove={() => setPendingFile(null)} />}
-        {recording ? <VoiceRecorder onClose={() => setRecording(false)} /> : <div className="border-t bg-[#fff] p-3"><div className="flex items-end gap-2 rounded-3xl bg-[#f2f6fa] px-3 py-2"><div className="relative"><button onClick={() => setPlusOpen((v) => !v)} className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"><Plus className="h-5 w-5" /></button>{plusOpen && <PlusDropdown onClose={() => setPlusOpen(false)} onPickFile={(f) => uploadAndPreview(f).catch((e) => setError(e.message))} />}</div><button onClick={() => setPicker(picker === "gif" ? null : "gif")} className="flex h-9 items-center justify-center rounded-md border border-[#1d9bf0]/50 px-1.5 text-[11px] font-extrabold text-[#1d9bf0] hover:bg-[#1d9bf0]/10">GIF</button><button onClick={() => setPicker(picker === "emoji" ? null : "emoji")} className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"><Smile className="h-5 w-5" /></button><textarea value={text} rows={1} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send().catch((err) => setError(err.message)); } }} placeholder="Start a new message" className="max-h-32 flex-1 resize-none bg-transparent py-2 text-[15px] outline-none" />{text || pendingFile ? <button onClick={() => send().catch((err) => setError(err.message))} className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"><Icon icon="ri:send-ins-line" className="h-5 w-5" /></button> : <button onClick={() => setRecording(true)} className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"><Mic className="h-5 w-5" /></button>}<PickerPopover type={picker} onClose={() => setPicker(null)} onPick={(val) => { if (picker === "emoji") setText((t) => t + val); else if (picker === "gif") send({ media: { type: "gif", url: val } }).catch((err) => setError(err.message)); }} /></div>{error && <p className="px-3 pt-2 text-sm text-red-500">{error}</p>}</div>}
+        {recording ? <VoiceRecorder onClose={() => setRecording(false)} /> : <div className="border-t bg-[#fff] p-3"><div className="flex items-end gap-2 rounded-3xl bg-[#f2f6fa] px-3 py-2"><div className="relative"><button disabled={isConversationBlocked} onClick={() => setPlusOpen((v) => !v)} className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"><Plus className="h-5 w-5" /></button>{plusOpen && !isConversationBlocked && <PlusDropdown onClose={() => setPlusOpen(false)} onPickFile={(f) => uploadAndPreview(f).catch((e) => setError(e.message))} />}</div><button disabled={isConversationBlocked} onClick={() => setPicker(picker === "gif" ? null : "gif")} className="flex h-9 items-center justify-center rounded-md border border-[#1d9bf0]/50 px-1.5 text-[11px] font-extrabold text-[#1d9bf0] hover:bg-[#1d9bf0]/10">GIF</button><button disabled={isConversationBlocked} onClick={() => setPicker(picker === "emoji" ? null : "emoji")} className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"><Smile className="h-5 w-5" /></button><textarea value={text} rows={1} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (!isConversationBlocked) send().catch((err) => setError(err.message)); } }} placeholder={isConversationBlocked ? blockedLabel : "Start a new message"} disabled={isConversationBlocked} className="max-h-32 flex-1 resize-none bg-transparent py-2 text-[15px] outline-none" />{text || pendingFile ? <button disabled={isConversationBlocked} onClick={() => !isConversationBlocked && send().catch((err) => setError(err.message))} className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"><Icon icon="ri:send-ins-line" className="h-5 w-5" /></button> : <button disabled={isConversationBlocked} onClick={() => setRecording(true)} className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"><Mic className="h-5 w-5" /></button>}<PickerPopover type={picker} onClose={() => setPicker(null)} onPick={(val) => { if (picker === "emoji") setText((t) => t + val); else if (picker === "gif") !isConversationBlocked && send({ media: { type: "gif", url: val } }).catch((err) => setError(err.message)); }} /></div>{error && <p className="px-3 pt-2 text-sm text-red-500">{error}</p>}</div>}
         {call && <CallModal open onClose={() => setCall(null)} user={header} video={call === "video"} />}
         <DeleteMessageModal open={!!deleteTargetMessage} onOpenChange={(open) => !open && setDeleteTargetMessage(null)} onConfirm={handleDelete} canDeleteForEveryone={(deleteTargetMessage?.sender === currentUserId) || (deleteTargetMessage?.senderId === currentUserId)} />
         <ForwardMessageModal open={!!forwardTargetMessage} onOpenChange={(open) => !open && setForwardTargetMessage(null)} message={forwardTargetMessage} recipients={recipients} onForward={handleForward} />
+        <BlockUserModal open={showBlockUserModal} onOpenChange={setShowBlockUserModal} onConfirm={() => handleToggleBlock("block")} userName={activeUser?.name} />
+        <BlockedModal open={showBlockedModal} onOpenChange={setShowBlockedModal} userName={activeUser?.name} />
     </>;
 }

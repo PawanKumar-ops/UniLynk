@@ -80,8 +80,8 @@ const Sidebar = ({ isOpen = false, onClose }) => {
     {
       href: "/dashboard/chat2",
       label: "Chat",
-      icon: "solar:letter-linear",
-      activeIcon: "solar:letter-bold",
+      icon: "solar:chat-line-linear",
+      activeIcon: "solar:chat-line-bold",
     },
   ];
 
