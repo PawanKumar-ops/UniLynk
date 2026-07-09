@@ -16,7 +16,8 @@ import {
 } from "lucide-react";
 import { Icon } from "@iconify/react";
 
-import { NewMessageModal, DotsMenu, NewGroupModal } from "@/components/chat/chat-ui";
+import { NewMessageModal, DotsMenu } from "@/components/chat/chat-ui";
+import { CreateGroupModal } from "@/components/CreateGroupModal";
 import { cn } from "@/lib/utils";
 
 const lightTheme = {
@@ -311,14 +312,29 @@ export default function MessagesLayout({ children }) {
 
     const handleCreateGroup = (group) => {
         if (!openCommunity) return;
-        setCommunities((prev) => prev.map((community) => community.id === openCommunity.id ? { ...community, groups: [...(community.groups || []), group] } : community));
+
+        const normalizedGroup = {
+            id: `${(group?.name || "group").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "group"}-${Date.now()}`,
+            name: group?.name || "New group",
+            image: group?.image || null,
+            color: group?.image ? null : "#1d9bf0",
+            gradient: null,
+            cover: group?.image || null,
+            preview: "Group created · say hi 👋",
+            time: "now",
+            members: 1,
+            messages: [],
+            description: group?.name || "New group",
+        };
+
+        setCommunities((prev) => prev.map((community) => community.id === openCommunity.id ? { ...community, groups: [...(community.groups || []), normalizedGroup] } : community));
     };
 
     const groups = openCommunity ? (openCommunity.groups || []).filter((g) => !q || g.name.toLowerCase().includes(q.toLowerCase())) : [];
 
     return (
         <div
-            className="chat2-theme flex h-screen overflow-hidden bg-[#fff] text-[#000]"
+            className="chat2-theme flex h-screen min-h-0 overflow-hidden bg-white text-black"
             style={isDark ? darkTheme : lightTheme}
         >
             <style>{`
@@ -330,7 +346,7 @@ export default function MessagesLayout({ children }) {
             {/* Main chat area on LEFT (desktop) / full screen when inChat (mobile) */}
             <main
                 className={cn(
-                    "flex flex-1 flex-col border-r min-w-0",
+                    "flex min-h-0 flex-1 flex-col border-r min-w-0",
                     showMainContent ? "flex" : "hidden md:flex",
                 )}
             >
@@ -338,10 +354,18 @@ export default function MessagesLayout({ children }) {
             </main>
 
             {/* Sidebar on RIGHT (desktop) / full screen when not inChat (mobile) */}
+            {/* Sidebar on RIGHT (desktop) / full screen when not inChat (mobile) */}
             <aside
                 className={cn(
-                    "flex flex-col border-l bg-[#ffff] w-full md:w-[380px]",
-                    showSidebar ? "flex" : "hidden",
+                    "flex min-h-0 flex-col border-l bg-white w-full md:w-[380px]",
+                    showSidebar
+                        ? showMainContent
+                            // Chat is open — hide sidebar on mobile, show on desktop
+                            ? "hidden md:flex"
+                            // At root — show sidebar full screen on mobile
+                            : "flex"
+                        // Requests page — always hide
+                        : "hidden",
                 )}
             >
                 {/* ---------- GROUPS VIEW (a community is opened) ---------- */}
@@ -407,7 +431,7 @@ export default function MessagesLayout({ children }) {
                         </div>
 
                         {/* Groups list (WhatsApp-style, chat-row UI) */}
-                        <div className="flex-1 overflow-y-auto">
+                        <div className="flex-1 min-h-0 overflow-y-auto pb-4 md:pb-0">
                             {groups.map((g) => (
                                 <button
                                     key={g.id}
@@ -573,7 +597,7 @@ export default function MessagesLayout({ children }) {
                         </div>
 
                         {/* Lists */}
-                        <div className="flex-1 overflow-y-auto">
+                        <div className="flex-1 min-h-0 overflow-y-auto pb-4 md:pb-0">
                             {tab === "chat" ? (
                                 <>
                                     {filtered.map((c) => {
@@ -673,10 +697,9 @@ export default function MessagesLayout({ children }) {
                 onPick={(u) => router.push(`/dashboard/chat2/${u.id}`)}
             />
 
-            <NewGroupModal
+            <CreateGroupModal
                 open={newGroup}
-                onClose={() => setNewGroup(false)}
-                communityName={openCommunity?.name}
+                onOpenChange={() => setNewGroup(false)}
                 onCreate={handleCreateGroup}
             />
         </div>

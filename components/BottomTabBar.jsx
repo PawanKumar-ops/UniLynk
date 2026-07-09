@@ -18,6 +18,7 @@ const BottomTabBar = () => {
   const pathname = usePathname();
   const { data: session } = useSession();
   const [hidden, setHidden] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   // 1) Sync with the dashboard feed scroll direction
   useEffect(() => {
@@ -49,6 +50,15 @@ const BottomTabBar = () => {
     window.addEventListener("scroll", onScroll, { passive: true });
 
     return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  useEffect(() => {
+    const updateViewport = () => setIsMobile(window.innerWidth < 768);
+
+    updateViewport();
+    window.addEventListener("resize", updateViewport);
+
+    return () => window.removeEventListener("resize", updateViewport);
   }, []);
 
   const isActive = (path) => {
@@ -96,10 +106,14 @@ const BottomTabBar = () => {
   ];
 
   const avatar = session?.user?.image || "/Profilepic.png";
+  const isChatRoot = pathname === "/dashboard/chat2" || pathname === "/dashboard/chat2/";
+  const isRequestsRoute = pathname === "/dashboard/chat2/requests" || pathname.startsWith("/dashboard/chat2/requests/");
+  const shouldHideOnChatRoute = isMobile && pathname?.startsWith("/dashboard/chat2") && !isChatRoot && !isRequestsRoute;
+  const shouldHide = hidden || shouldHideOnChatRoute;
 
   return (
     <nav
-      className={`bottom-tabbar${hidden ? " bottom-tabbar-hidden" : ""}`}
+      className={`bottom-tabbar${shouldHide ? " bottom-tabbar-hidden" : ""}`}
       aria-label="Primary"
     >
       {tabs.map(({ href, label, icon, activeIcon, isProfile }) => {

@@ -16,13 +16,18 @@ export default function RequestsRoute() {
   const [accept, setAccept] = useState(false);
   const [dots, setDots] = useState(false);
   const [loadedAttach, setLoadedAttach] = useState(false);
+  const [q, setQ] = useState("");
+  const [mobileShowPreview, setMobileShowPreview] = useState(false);
   const router = useRouter();
   const current = messageRequests.find((m) => m.id === active) ?? null;
 
   return (
-    <div className="flex h-full flex-1 flex-col md:flex-row-reverse">
+    <div className="flex h-full min-h-0 flex-1 flex-col overflow-hidden md:flex-row-reverse">
       {/* Requests right-side list */}
-      <div className="flex w-full flex-col border-t bg-[#ffff] md:w-[380px] md:border-t-0 md:border-l">
+      <div className={cn(
+    "flex min-h-0 w-full flex-col border-t bg-white md:w-[380px] md:border-t-0 md:border-l",
+    mobileShowPreview ? "hidden md:flex" : "flex"
+)}>
         <header className="flex items-center gap-3 px-4 py-3"
           style={{
             display: "flex",
@@ -61,7 +66,7 @@ export default function RequestsRoute() {
             />
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto pb-4 md:pb-0">
           {tab === "priority" ? (
             messageRequests.length === 0 ? (
               <EmptyRequests />
@@ -69,7 +74,7 @@ export default function RequestsRoute() {
               messageRequests.map((c) => (
                 <button
                   key={c.id}
-                  onClick={() => setActive(c.id)}
+                  onClick={() => { setActive(c.id); setMobileShowPreview(true); }}
                   className={cn(
                     "flex items-center gap-3 w-full border-l-2 px-4 py-3 transition hover:bg-[#f7f9fc]",
                     active === c.id ? "active-border border-[#1d9bf0] bg-[#f5f8fa]" : "border-transparent",
@@ -101,14 +106,23 @@ export default function RequestsRoute() {
 
       {/* Request preview */}
       {current ? (
-        <div className="relative flex min-w-0 flex-1 flex-col border-b md:border-b-0 md:border-r">
+        <div className={cn(
+    "relative flex min-h-0 min-w-0 flex-1 flex-col border-b md:border-b-0 md:border-r",
+    mobileShowPreview ? "flex" : "hidden md:flex"
+)}>
           <header className="flex items-center justify-between border-b px-4 py-2.5"
-            style={{
-              display: "flex",
-              flexDirection: "row",
-            }}>
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f2f6fa]">
+    style={{
+      display: "flex",
+      flexDirection: "row",
+    }}>
+  <div className="flex items-center gap-3">
+    <button
+      onClick={() => setMobileShowPreview(false)}
+      className="md:hidden rounded-full p-2 hover:bg-[#f2f6fa]"
+    >
+      <ArrowLeft className="h-5 w-5" />
+    </button>
+    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[#f2f6fa]">
                 {current.user.name[0]}
               </div>
               <span className="font-bold">{current.user.name}</span>
@@ -131,7 +145,7 @@ export default function RequestsRoute() {
               )}
             </div>
           </header>
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 min-h-0 overflow-y-auto">
             <div className="flex flex-col items-center gap-2 border-b px-6 py-8">
               <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#f2f6fa] text-2xl">
                 {current.user.name[0]}
@@ -173,8 +187,8 @@ export default function RequestsRoute() {
           </div>
 
           {/* Accept popover */}
-          <div className="absolute bottom-0 left-0 right-0 z-20 p-4 pointer-events-none">
-            <div className="pointer-events-auto mx-auto max-w-md rounded-2xl border bg-background/90 backdrop-blur-md p-4 shadow-xl">
+          <div className="sticky bottom-0 z-20 shrink-0 border-t bg-white/95 p-4 backdrop-blur-md">
+            <div className="mx-auto max-w-md rounded-2xl border bg-background/90 p-4 shadow-xl">
               <div className="mx-auto max-w-md rounded-2xl border p-4 text-center">
                 <p className="text-sm font-semibold">
                   Accept message request from @{current.user.handle}?
@@ -212,8 +226,10 @@ export default function RequestsRoute() {
             </div>
           </Modal>
         </div>
-      ) : (
-        <EmptyRequests />
+            ) : (
+        <div className={cn("relative flex min-w-0 flex-1 flex-col", mobileShowPreview ? "flex" : "hidden md:flex")}>
+          <EmptyRequests />
+        </div>
       )}
     </div>
   );
