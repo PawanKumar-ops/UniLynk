@@ -1,19 +1,7 @@
-"use client"
+"use client";
 
-import React, { Suspense } from 'react'
-import Eventsheader from '@/components/eventsheader'
+import React from "react";
 
-const DashboardLayout = ({ children }) => {
-  return (
-    <div className="events-container">
-      <Suspense fallback={null}>
-        <Eventsheader/>
-      </Suspense>
-      <main>
-        {children}
-      </main>
-    </div>
-  )
-}
+const DashboardLayout = ({ children }) => <>{children}</>;
 
-export default DashboardLayout
+export default DashboardLayout;

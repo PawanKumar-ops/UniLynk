@@ -29,6 +29,7 @@ const FormSchema = new mongoose.Schema(
     date: String,
     time: String,
     location: String,
+    image: String,
     questions: [QuestionSchema],
     isTeamEvent: {
       type: Boolean,

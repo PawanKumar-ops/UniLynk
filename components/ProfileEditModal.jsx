@@ -30,22 +30,7 @@ const ProfileEditModal = ({ onClose, user, onSave }) => {
     const [newSkill, setNewSkill] = useState("");
 
     /* ================= ACHIEVEMENTS ================= */
-    const [achievements, setAchievements] = useState([
-        {
-            id: "1",
-            title: "Tech Innovation Hackathon Winner",
-            description:
-                "Led a team of 4 to develop an AI-powered study assistant. Won first place among 50+ teams.",
-            date: "January 2026",
-        },
-        {
-            id: "2",
-            title: "Dean's List - Academic Excellence",
-            description:
-                "Achieved GPA of 3.9/4.0 for exceptional academic performance.",
-            date: "Fall 2024",
-        },
-    ]);
+    const [achievements, setAchievements] = useState([]);
     const [newAchievement, setNewAchievement] = useState({
         title: "",
         description: "",
@@ -94,6 +79,12 @@ const ProfileEditModal = ({ onClose, user, onSave }) => {
                     url: social.url,
                 })),
         );
+        setAchievements((user.achievements || []).map((achievement, index) => ({
+            id: achievement._id || `${achievement.title || "achievement"}-${index}`,
+            title: achievement.title || "",
+            description: achievement.description || "",
+            date: achievement.date || "",
+        })));
     }, [user]);
 
 
@@ -216,6 +207,7 @@ const ProfileEditModal = ({ onClose, user, onSave }) => {
                             platform: social.platform,
                             url: social.url,
                         })),
+                    achievements: achievements.map(({ title, description, date }) => ({ title, description, date })),
                     img: imageUrl,
                 }),
             });

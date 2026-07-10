@@ -22,6 +22,7 @@ import {
   ChevronDown as ChevronDownIcon,
   Tag,
   Users,
+  Image as ImageIcon,
 } from 'lucide-react';
 import './FormBuilder.css';
 import { PublishCard } from '@/components/PublishCard';
@@ -63,6 +64,7 @@ export default function FormBuilder() {
     date: "",
     time: "",
     location: "",
+    image: "",
     seats: "",
     questions: [],
     isTeamEvent: false,
@@ -78,6 +80,7 @@ export default function FormBuilder() {
   const [isPublishCardOpen, setIsPublishCardOpen] = useState(false);
   const [userClubs, setUserClubs] = useState([]);
   const [publishing, setPublishing] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -100,6 +103,7 @@ export default function FormBuilder() {
             _id: params.formId,
             title: "Untitled Form",
             description: "",
+            image: "",
             questions: [],
             seats: "",
             isTeamEvent: false,
@@ -124,6 +128,7 @@ export default function FormBuilder() {
           _id: `draft_${Date.now()}`,
           title: "Untitled Form",
           description: "",
+          image: "",
           questions: [],
           seats: "",
           isTeamEvent: false,
@@ -362,6 +367,33 @@ export default function FormBuilder() {
     });
   };
 
+  const handleImageUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const payload = new FormData();
+    payload.append("file", file);
+
+    try {
+      setImageUploading(true);
+      const res = await fetch("/api/forms/upload-image", {
+        method: "POST",
+        body: payload,
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data?.error || "Image upload failed");
+
+      updateForm({ image: data.url });
+    } catch (error) {
+      console.error(error);
+      alert(error.message || "Image upload failed");
+    } finally {
+      setImageUploading(false);
+      event.target.value = "";
+    }
+  };
+
   const toggleMemberField = (fieldKey) => {
     const currentFields = formData.teamConfig?.memberFields || ['name', 'email'];
     const isSelected = currentFields.includes(fieldKey);
@@ -493,6 +525,34 @@ export default function FormBuilder() {
             placeholder="Form description"
             rows={2}
           />
+
+          <div className="event-details-section">
+            <h3 className="event-details-title">Event Cover Image</h3>
+            <div className="event-image-upload-row">
+              <div className="form-genre-label-wrapper">
+                <ImageIcon />
+                <label className="form-genre-label" htmlFor="event-cover-image">
+                  Upload image
+                </label>
+              </div>
+              <input
+                id="event-cover-image"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                onChange={handleImageUpload}
+                className="event-image-upload-input"
+                disabled={imageUploading}
+              />
+            </div>
+            {imageUploading && (
+              <p className="text-sm text-gray-500 mt-2">Uploading image...</p>
+            )}
+            {formData.image && (
+              <div className="event-upload-preview">
+                <img src={formData.image} alt="Event cover preview" />
+              </div>
+            )}
+          </div>
 
           {/* Genre/Category + Seats */}
           <div className="form-genre-grid">

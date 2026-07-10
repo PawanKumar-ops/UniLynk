@@ -29,6 +29,10 @@ const UserSchema = new mongoose.Schema({
     ],
     default: [],
   },
+  achievements: {
+    type: [{ title: String, description: String, date: String }],
+    default: [],
+  },
   savedPosts: {
     type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Post' }],
     default: [],
