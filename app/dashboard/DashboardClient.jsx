@@ -21,6 +21,7 @@ import { Icon } from "@iconify/react";
 import ImageWithFallback from "../../components/ReliableImage";
 import { NewsLetterCard } from "@/components/NewsLetterCard";
 import { DashboardNotificationItem } from "@/components/DashboardNotificationItem";
+import { PostCard } from "@/components/PostCard";
 
 const DASHBOARD_SCROLL_STORAGE_KEY = "dashboard-feed-scroll-position";
 const DASHBOARD_OPEN_POST_STORAGE_KEY = "dashboard-feed-open-post-id";
@@ -1318,7 +1319,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
     }, 220);
   };
 
-  const renderPostCard = (post, { isThread = false } = {}) => (
+  const legacyRenderPostCard = (post, { isThread = false } = {}) => (
     <div
       className={`userpost ${menuPostId === post.id ? "menu-open" : ""} ${isThread ? "thread-root-post" : ""}`}
       key={post.id}
@@ -1673,6 +1674,38 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
         </div>
       </div>
     </div>
+  );
+
+  // The dashboard retains ownership of its React Query cache and mutations while
+  // the shared component renders the card and dispatches interactions.
+  const renderPostCard = (post, { isThread = false } = {}) => (
+    <PostCard
+      key={post.id}
+      post={post}
+      variant="dashboard"
+      isThread={isThread}
+      menuOpen={menuPostId === post.id}
+      menuClosing={closingMenuId === post.id}
+      postRef={isThread ? undefined : (node) => { if (node) postRefs.current[post.id] = node; else delete postRefs.current[post.id]; }}
+      formatTime={formatRelativeTime}
+      formatHandle={formatAuthorHandle}
+      imageGridClass={getImageGridClass}
+      avatarFallback={buildAvatarFallback}
+      onOpenPost={handleOpenThread}
+      onOpenAuthor={handleOpenAuthorProfile}
+      onToggleMenu={() => {
+        if (menuPostId === post.id) closeMenu();
+        else { clearTimeout(window.menuCloseTimeout); setClosingMenuId(null); setMenuPostId(post.id); }
+      }}
+      onReport={handleReportClick}
+      onDelete={handleDeleteClick}
+      canDelete={isPostAuthor(post)}
+      onLike={(id) => queueLikeToggle(id, Boolean(post.likedByCurrentUser))}
+      onComment={(id) => setActivePostId(id)}
+      onShare={(nextPost) => { setSharePost(nextPost); setOpenShare(true); }}
+      onSave={toggleSavePost}
+      pollContent={post.poll && <PollCard postId={post.id} poll={post.poll} onPollChange={(nextPoll) => handlePollChange(post.id, nextPoll)} />}
+    />
   );
 
   const renderComment = (comment) => (

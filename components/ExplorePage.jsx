@@ -14,6 +14,7 @@ import ShareModal from "./ShareModal";
 import { ReportPostModal } from "./ReportPostModal";
 import { DeleteModal } from "./DeleteModal";
 import { AllClubsModal } from "./AllClubsModal";
+import { PostCard } from "./PostCard";
 
 // Random club will be fetched from the API
 
@@ -951,7 +952,7 @@ export function ExplorePage({ onBack }) {
     }, 220);
   };
 
-  const renderPostCard = (post, { isThread = false } = {}) => (
+  const legacyRenderPostCard = (post, { isThread = false } = {}) => (
     <div
       className={`userpost ${menuPostId === post.id ? "menu-open" : ""} ${isThread ? "thread-root-post" : ""}`}
       key={post.id}
@@ -1162,6 +1163,31 @@ export function ExplorePage({ onBack }) {
       </div>
     </div>
   );
+
+  // Keep feed state and API mutations here; the shared card owns the presentation.
+  const sharedPostCard = (post, { isThread = false } = {}) => (
+    <PostCard
+      key={post.id}
+      post={post}
+      isThread={isThread}
+      menuOpen={menuPostId === post.id}
+      postRef={isThread ? undefined : (node) => { if (node) postRefs.current[post.id] = node; else delete postRefs.current[post.id]; }}
+      formatTime={formatRelativeTime}
+      imageGridClass={getImageGridClass}
+      avatarFallback={buildAvatarFallback}
+      onOpenPost={(id) => handleOpenThread(id)}
+      onToggleMenu={() => setMenuPostId(menuPostId === post.id ? null : post.id)}
+      onReport={handleReportClick}
+      onDelete={handleDeleteClick}
+      canDelete={isPostAuthor(post)}
+      onLike={(id) => queueLikeToggle(id, Boolean(post.likedByCurrentUser))}
+      onComment={(id) => router.push(`/dashboard/post/${id}`)}
+      onShare={(nextPost) => { setSharePost(nextPost); setOpenShare(true); }}
+      onSave={toggleSavePost}
+      pollContent={post.poll && <PollCard postId={post.id} poll={post.poll} onPollChange={(nextPoll) => handlePollChange(post.id, nextPoll)} />}
+    />
+  );
+  const renderPostCard = sharedPostCard;
 
   const handleOpenCommentAuthorProfile = async (event, comment) => {
     event.stopPropagation();

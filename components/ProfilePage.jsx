@@ -1,407 +1,68 @@
-import { useState } from "react";
-import {
-  ChevronDown,
-  ArrowLeft,
-  Pencil,
-  Bookmark,
-  MessageSquare,
-  Github,
-  Linkedin,
-  Twitter,
-  Instagram,
-  Globe,
-  GraduationCap,
-  CalendarDays,
-  Layers,
-  BookOpen,
-  Trophy,
-  Heart,
-  MessageCircle,
-  Share2,
-  MoreHorizontal,
-  Award,
-  Medal,
-  Star,
-} from "lucide-react";
+"use client";
 
-/* ---------- Inline UI primitives (no external ui/figma imports) ---------- */
+import { useEffect, useMemo, useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
+import { Icon } from "@iconify/react";
+import {
+  ChevronDown, ArrowLeft, Pencil, Bookmark, MessageSquare, Github, Linkedin,
+  Twitter, Instagram, Globe, GraduationCap, CalendarDays, Layers, BookOpen,
+  Trophy, Award, Medal, Star,
+} from "lucide-react";
+import { getSkillIcon } from "@/lib/skillIcons";
+import ReliableImage from "@/components/ReliableImage";
+import ProfileEditModal from "@/components/ProfileEditModal";
+import { DashboardEventsShell } from "@/components/DashboardEventsShell";
+import { PostCard } from "@/components/PostCard";
 
 function Button({ variant = "default", className = "", children, ...props }) {
-  const base =
-    "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 py-2 text-sm transition-colors disabled:pointer-events-none disabled:opacity-50";
-  const variants = {
-    default: "bg-primary text-primary-foreground hover:opacity-90",
-    secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-    outline: "border border-border bg-background text-foreground hover:bg-accent",
-  };
-  return (
-    <button className={`${base} ${variants[variant] || variants.default} ${className}`} {...props}>
-      {children}
-    </button>
-  );
+  const base = "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 py-2 text-sm transition-colors disabled:pointer-events-none disabled:opacity-50";
+  const variants = { default: "bg-[#030213] text-white hover:opacity-90", secondary: "bg-[#f0f0f3] text-[#030213] hover:bg-[#f0f0f3]/80", outline: "border border-[#0000001A] bg-[#fff] text-[#0a0a0a] hover:bg-[#e9ebef]" };
+  return <button className={`${base} ${variants[variant] || variants.default} ${className}`} {...props}>{children}</button>;
 }
 
 function ImageWithFallback({ src, alt = "", className = "", ...props }) {
-  const [errored, setErrored] = useState(false);
-  const fallback =
-    "data:image/svg+xml;utf8," +
-    encodeURIComponent(
-      `<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100'><rect width='100' height='100' fill='%23ececf0'/></svg>`,
-    );
-  return (
-    <img
-      src={errored ? fallback : src}
-      alt={alt}
-      className={className}
-      onError={() => setErrored(true)}
-      {...props}
-    />
-  );
+  return <ReliableImage src={src} fallbackSrc="/Profilepic.png" alt={alt} className={className} {...props} />;
 }
 
-/* ---------- Data ---------- */
-
-const socials = [
-  { icon: Github, label: "GitHub" },
-  { icon: Linkedin, label: "LinkedIn" },
-  { icon: Twitter, label: "Twitter" },
-  { icon: Instagram, label: "Instagram" },
-  { icon: Globe, label: "Website" },
-];
-
-const academic = [
-  { icon: GraduationCap, label: "Branch", value: "Computer Science" },
-  { icon: CalendarDays, label: "Year", value: "First Year" },
-  { icon: Layers, label: "Batch", value: "2025 – 2029" },
-  { icon: BookOpen, label: "Semester", value: "Semester 2" },
-];
-
-const skills = [
-  { name: "Python", color: "#3776AB", initial: "Py" },
-  { name: "C", color: "#5C6BC0", initial: "C" },
-  { name: "C++", color: "#00599C", initial: "C++" },
-  { name: "React", color: "#61DAFB", initial: "Re" },
-  { name: "JavaScript", color: "#F7DF1E", initial: "JS" },
-  { name: "TypeScript", color: "#3178C6", initial: "TS" },
-  { name: "Node.js", color: "#539E43", initial: "No" },
-  { name: "Figma", color: "#A259FF", initial: "Fi" },
-];
-
-const clubs = [
-  {
-    id: "c1",
-    name: "Innovation Cell",
-    role: "Core Member",
-    img: "https://images.unsplash.com/photo-1518314916381-77a37c2a49ae?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=300",
-  },
-  {
-    id: "c2",
-    name: "Coding Club",
-    role: "Contributor",
-    img: "https://images.unsplash.com/photo-1558137623-ce933996c730?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=300",
-  },
-  {
-    id: "c3",
-    name: "Robotics Society",
-    role: "Volunteer",
-    img: "https://images.unsplash.com/photo-1527612820672-5b56351f7346?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=300",
-  },
-];
-
-const achievements = [
-  {
-    id: "a1",
-    icon: Trophy,
-    tint: "bg-amber-100 text-amber-600",
-    title: "Winner — SmartCampus Hackathon 2026",
-    desc: "Built an AI attendance system in 24 hours.",
-    date: "Mar 2026",
-  },
-  {
-    id: "a2",
-    icon: Medal,
-    tint: "bg-slate-100 text-slate-600",
-    title: "2nd Place — National Robotics Sprint",
-    desc: "Autonomous line-following bot.",
-    date: "Feb 2026",
-  },
-  {
-    id: "a3",
-    icon: Star,
-    tint: "bg-indigo-100 text-indigo-600",
-    title: "Dean's List — Semester 1",
-    desc: "Top 5% of the batch by GPA.",
-    date: "Jan 2026",
-  },
-  {
-    id: "a4",
-    icon: Trophy,
-    tint: "bg-emerald-100 text-emerald-600",
-    title: "Finalist — Smart India Hackathon",
-    desc: "Reached the national finals with team Bytecraft.",
-    date: "Dec 2025",
-  },
-  {
-    id: "a5",
-    icon: Medal,
-    tint: "bg-rose-100 text-rose-600",
-    title: "Best Poster — Tech Symposium",
-    desc: "Research on edge AI for campus IoT.",
-    date: "Nov 2025",
-  },
-];
-
-const posts = [
-  {
-    id: "p1",
-    caption: "Late night debugging at the Innovation Cell 🚀 Shipping the new attendance model tonight!",
-    img: "https://images.unsplash.com/photo-1561144257-e32e8efc6c4f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
-    date: "Jul 8",
-    likes: 128,
-    comments: 24,
-    shares: 9,
-  },
-  {
-    id: "p2",
-    caption: "Our bot finally completed the track! Months of work paid off 🤖",
-    img: "https://images.unsplash.com/photo-1558137623-ce933996c730?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=800",
-    date: "Jun 29",
-    likes: 96,
-    comments: 12,
-    shares: 4,
-  },
-];
-
-/* ---------- Sub components ---------- */
-
-function SectionCard({ title, icon: Icon, children }) {
-  return (
-    <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-      <div className="mb-4 flex items-center gap-2">
-        <div className="flex size-8 items-center justify-center rounded-lg bg-accent">
-          <Icon className="size-4 text-foreground" />
-        </div>
-        <h3>{title}</h3>
-      </div>
-      {children}
-    </section>
-  );
+function SectionCard({ title, icon: IconComponent, children }) {
+  return <section className="rounded-2xl border border-[#0000001A] bg-[#fff] p-5 shadow-sm"><div className="mb-4 flex items-center gap-2"><div className="flex size-8 items-center justify-center rounded-lg bg-[#e9ebef]"><IconComponent className="size-4 text-[#0a0a0a]" /></div><h3>{title}</h3></div>{children}</section>;
 }
 
-function PostCard({ post }) {
-  return (
-    <div className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-      <div className="flex items-center gap-3 p-4">
-        <div className="size-10 shrink-0 overflow-hidden rounded-full">
-          <ImageWithFallback
-            src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=200"
-            alt="Aarav Sharma"
-            className="size-full object-cover"
-          />
-        </div>
-        <div className="flex-1">
-          <div className="text-foreground">Aarav Sharma</div>
-          <div className="text-sm text-muted-foreground">{post.date}</div>
-        </div>
-        <button className="text-muted-foreground transition-colors hover:text-foreground">
-          <MoreHorizontal className="size-5" />
-        </button>
-      </div>
+const achievementIcons = [Trophy, Medal, Star];
+const achievementTints = ["bg-amber-100 text-amber-600", "bg-slate-100 text-slate-600", "bg-indigo-100 text-indigo-600", "bg-emerald-100 text-emerald-600", "bg-rose-100 text-rose-600"];
+const socialIconByPlatform = { GitHub: Github, LinkedIn: Linkedin, Twitter, Instagram, Website: Globe };
+const normalizeEmail = (email) => typeof email === "string" ? email.trim().toLowerCase() : "";
+const socialUrl = (url) => /^https?:\/\//i.test(url || "") ? url : `https://${url}`;
+const formatPostTime = (date) => date ? new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(Math.round((new Date(date) - Date.now()) / 86_400_000), "day") : "";
+const getImageGridClass = (count) => count === 1 ? "x-single-image" : count === 2 ? "image-grid count-2" : count === 3 ? "image-grid count-3" : "image-grid count-4";
 
-      <p className="px-4 pb-3 text-sm text-foreground">{post.caption}</p>
-
-      <div className="aspect-[4/3] w-full overflow-hidden bg-muted">
-        <ImageWithFallback src={post.img} alt={post.caption} className="size-full object-cover" />
-      </div>
-
-      <div className="flex items-center gap-6 px-4 py-3 text-sm text-muted-foreground">
-        <button className="flex items-center gap-1.5 transition-colors hover:text-rose-500">
-          <Heart className="size-4" /> {post.likes}
-        </button>
-        <button className="flex items-center gap-1.5 transition-colors hover:text-foreground">
-          <MessageCircle className="size-4" /> {post.comments}
-        </button>
-        <button className="flex items-center gap-1.5 transition-colors hover:text-foreground">
-          <Share2 className="size-4" /> {post.shares}
-        </button>
-        <button className="ml-auto transition-colors hover:text-foreground">
-          <Bookmark className="size-4" />
-        </button>
-      </div>
-    </div>
-  );
+export function ProfilePostCard(props) {
+  return <PostCard {...props} variant="dashboard" formatTime={formatPostTime} imageGridClass={getImageGridClass} avatarFallback={() => "/Profilepic.png"} onComment={props.onOpenPost} />;
 }
 
-/* ---------- Main page ---------- */
+export function ProfilePage() {
+  const router = useRouter(); const pathname = usePathname(); const searchParams = useSearchParams(); const { status } = useSession();
+  const routeUserId = useMemo(() => searchParams.get("userId") || pathname?.match(/\/dashboard\/search\/id=(.+)$/)?.[1], [pathname, searchParams]);
+  const [me, setMe] = useState(null); const [profile, setProfile] = useState(null); const [clubs, setClubs] = useState([]); const [posts, setPosts] = useState([]); const [loading, setLoading] = useState(true); const [error, setError] = useState(""); const [editing, setEditing] = useState(false); const [showAllAchievements, setShowAllAchievements] = useState(false);
+  const isOwnProfile = !!me && !!profile && String(me._id) === String(profile._id);
 
-export function ProfilePage({ onBack, isOwnProfile = true }) {
-  const [showAllAchievements, setShowAllAchievements] = useState(false);
-  const visibleAchievements = showAllAchievements ? achievements : achievements.slice(0, 2);
-
-  return (
-    <div className="flex-1 overflow-y-auto">
-      {/* Top bar */}
-      <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-border bg-background/80 px-4 py-3 backdrop-blur sm:px-6 sm:py-4">
-        <button
-          onClick={onBack}
-          className="flex shrink-0 items-center gap-2 text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" />
-          <span className="hidden sm:inline">Back to Explore</span>
-        </button>
-        <div className="flex gap-2">
-          {isOwnProfile ? (
-            <>
-              <Button variant="secondary" className="rounded-full px-3 sm:px-4">
-                <Bookmark className="size-4" />
-                <span className="hidden sm:inline">Saved Posts</span>
-              </Button>
-              <Button className="rounded-full px-3 sm:px-4">
-                <Pencil className="size-4" />
-                <span className="hidden sm:inline">Edit Profile</span>
-              </Button>
-            </>
-          ) : (
-            <Button className="rounded-full px-3 sm:px-4">
-              <MessageSquare className="size-4" />
-              <span className="hidden sm:inline">Message</span>
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <div className="mx-auto flex max-w-3xl flex-col gap-4 p-4 sm:gap-6 sm:p-6">
-        {/* Profile header */}
-        <div className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-card p-6 text-center shadow-sm sm:flex-row sm:items-start sm:text-left">
-          <div className="size-24 shrink-0 overflow-hidden rounded-full ring-2 ring-accent">
-            <ImageWithFallback
-              src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400"
-              alt="Aarav Sharma"
-              className="size-full object-cover"
-            />
-          </div>
-          <div className="flex flex-1 flex-col items-center gap-1 sm:items-start">
-            <h1>Aarav Sharma</h1>
-            <div className="text-muted-foreground">Computer Science · First Year</div>
-            <p className="mt-1 max-w-md text-sm text-muted-foreground">
-              Builder, hackathon enthusiast, and part-time robotics tinkerer. Turning caffeine into code.
-            </p>
-            <div className="mt-3 flex gap-2">
-              {socials.map(({ icon: Icon, label }) => (
-                <button
-                  key={label}
-                  aria-label={label}
-                  className="flex size-9 items-center justify-center rounded-full border border-border bg-background text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                >
-                  <Icon className="size-4" />
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Academic Information */}
-        <SectionCard title="Academic Information" icon={GraduationCap}>
-          <div className="grid grid-cols-2 gap-3">
-            {academic.map(({ icon: Icon, label, value }) => (
-              <div key={label} className="rounded-xl border border-border bg-background p-3">
-                <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <Icon className="size-3.5" /> {label}
-                </div>
-                <div className="mt-1 text-foreground">{value}</div>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-
-        {/* Skills */}
-        <SectionCard title="Skills" icon={Layers}>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {skills.map((s) => (
-              <div
-                key={s.name}
-                className="flex flex-col items-center gap-2.5 rounded-xl border border-border bg-background p-4 transition-shadow hover:shadow-md"
-              >
-                <span
-                  className="flex size-12 items-center justify-center rounded-xl text-white"
-                  style={{ backgroundColor: s.color }}
-                >
-                  {s.initial}
-                </span>
-                <span className="text-sm text-foreground">{s.name}</span>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-
-        {/* Clubs */}
-        <SectionCard title="Clubs" icon={BookOpen}>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {clubs.map((c) => (
-              <div
-                key={c.id}
-                className="flex items-center gap-3 rounded-2xl border border-border bg-background p-3 transition-shadow hover:shadow-md"
-              >
-                <div className="size-12 shrink-0 overflow-hidden rounded-xl">
-                  <ImageWithFallback src={c.img} alt={c.name} className="size-full object-cover" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-foreground">{c.name}</div>
-                  <div className="truncate text-sm text-muted-foreground">{c.role}</div>
-                </div>
-                <Button variant="secondary" className="shrink-0 rounded-full">
-                  Visit
-                </Button>
-              </div>
-            ))}
-          </div>
-        </SectionCard>
-
-        {/* Achievements */}
-        <SectionCard title="Achievements" icon={Award}>
-          <div className="flex flex-col gap-3">
-            {visibleAchievements.map((a) => {
-              const Icon = a.icon;
-              return (
-                <div
-                  key={a.id}
-                  className="flex items-start gap-3 rounded-xl border border-border bg-background p-3 transition-shadow hover:shadow-md sm:items-center sm:gap-4 sm:p-4"
-                >
-                  <div className={`flex size-10 shrink-0 items-center justify-center rounded-xl sm:size-11 ${a.tint}`}>
-                    <Icon className="size-5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-foreground">{a.title}</div>
-                    <div className="text-sm text-muted-foreground">{a.desc}</div>
-                    <div className="mt-1 text-xs text-muted-foreground sm:hidden">{a.date}</div>
-                  </div>
-                  <div className="hidden shrink-0 text-sm text-muted-foreground sm:block">{a.date}</div>
-                </div>
-              );
-            })}
-          </div>
-          {achievements.length > 2 && (
-            <button
-              onClick={() => setShowAllAchievements((v) => !v)}
-              className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-border bg-background py-2.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            >
-              {showAllAchievements ? "See less" : `See more (${achievements.length - 2})`}
-              <ChevronDown
-                className={`size-4 transition-transform ${showAllAchievements ? "rotate-180" : ""}`}
-              />
-            </button>
-          )}
-        </SectionCard>
-
-        {/* Posts */}
-        <SectionCard title="Posts" icon={Layers}>
-          <div className="flex flex-col gap-4">
-            {posts.map((p) => (
-              <PostCard key={p.id} post={p} />
-            ))}
-          </div>
-        </SectionCard>
-      </div>
-    </div>
-  );
+  useEffect(() => { if (status !== "authenticated") return; let cancelled = false; (async () => { try { setLoading(true); const meRes = await fetch("/api/user/me", { cache: "no-store" }); const meData = await meRes.json(); if (!meRes.ok) throw new Error(meData.error || "Could not load profile"); const targetRes = routeUserId ? await fetch(`/api/users/${encodeURIComponent(routeUserId)}`, { cache: "no-store" }) : null; const targetData = targetRes ? await targetRes.json() : null; if (targetRes && !targetRes.ok) throw new Error(targetData.error || "Could not load profile"); const active = targetData?.user || meData.user; const postsRes = await fetch("/api/posts?audience=for-you&limit=50", { cache: "no-store" }); const postsData = await postsRes.json(); const clubsRes = active?._id ? await fetch(`/api/users/${active._id}/clubs`, { cache: "no-store" }) : null; const clubsData = clubsRes?.ok ? await clubsRes.json() : { clubs: [] }; if (!cancelled) { setMe(meData.user); setProfile(active); setPosts((postsData.posts || []).filter((post) => normalizeEmail(post.authorEmail) === normalizeEmail(active.email))); setClubs(clubsData.clubs || []); } } catch (e) { if (!cancelled) setError(e.message || "Could not load profile"); } finally { if (!cancelled) setLoading(false); } })(); return () => { cancelled = true; }; }, [routeUserId, status]);
+  const academic = [{ icon: GraduationCap, label: "Branch", value: profile?.branch || "Not available" }, { icon: CalendarDays, label: "Year", value: profile?.year || "Not available" }, { icon: Layers, label: "Batch", value: profile?.year ? "Current batch" : "Not available" }, { icon: BookOpen, label: "Semester", value: profile?.year || "Not available" }];
+  const achievements = profile?.achievements || []; const visibleAchievements = showAllAchievements ? achievements : achievements.slice(0, 2);
+  const updatePost = (next) => setPosts((current) => current.map((post) => post.id === next.id ? next : post));
+  const updatedProfile = (user) => { setMe(user); setProfile((current) => String(current?._id) === String(user._id) ? user : current); };
+  if (status === "loading" || loading) return <DashboardEventsShell><div className="p-6 text-sm text-[#717182]">Loading profile...</div></DashboardEventsShell>;
+  if (status !== "authenticated" || error || !profile) return <DashboardEventsShell><div className="p-6 text-sm text-[#717182]">{error || "Please log in to view this profile."}</div></DashboardEventsShell>;
+  return <DashboardEventsShell><div className="flex-1 overflow-y-auto">
+    <div className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-[#0000001A] bg-white/80 px-4 py-3 backdrop-blur sm:px-6 sm:py-4"><button onClick={() => router.back()} className="flex shrink-0 items-center gap-2 text-[#717182] transition-colors hover:text-[#0a0a0a]"><ArrowLeft className="size-4" /><span className="hidden sm:inline">Back to Explore</span></button><div className="flex gap-2">{isOwnProfile ? <><Button variant="secondary" onClick={() => router.push("/dashboard/Userprofile/saved")} className="rounded-full px-3 sm:px-4"><Bookmark className="size-4" /><span className="hidden sm:inline">Saved Posts</span></Button><Button onClick={() => setEditing(true)} className="rounded-full px-3 sm:px-4"><Pencil className="size-4" /><span className="hidden sm:inline">Edit Profile</span></Button></> : <Button onClick={() => router.push(`/dashboard/chat2/${profile._id}`)} className="rounded-full px-3 sm:px-4"><MessageSquare className="size-4" /><span className="hidden sm:inline">Message</span></Button>}</div></div>
+    <div className="mx-auto flex max-w-3xl flex-col gap-4 p-4 sm:gap-6 sm:p-6">
+      <div className="flex flex-col items-center gap-4 rounded-2xl border border-[#0000001A] bg-[#fff] p-6 text-center shadow-sm sm:flex-row sm:items-start sm:text-left"><div className="size-24 shrink-0 overflow-hidden rounded-full ring-2 ring-[#e9ebef]"><ImageWithFallback src={profile.img} alt={profile.name} className="size-full object-cover" /></div><div className="flex flex-1 flex-col items-center gap-1 sm:items-start"><h1>{profile.name || "UniLynk User"}</h1><div className="text-[#717182]">{profile.branch || "Not available"} · {profile.year || "Not available"}</div><div className="mt-3 flex gap-2">{(profile.socials || []).map((social) => { const SocialIcon = socialIconByPlatform[social.platform] || Globe; return <a key={`${social.platform}-${social.url}`} href={socialUrl(social.url)} target="_blank" rel="noreferrer" aria-label={social.platform} className="flex size-9 items-center justify-center rounded-full border border-[#0000001A] bg-[#fff] text-[#717182] transition-colors hover:bg-[#e9ebef] hover:text-[#0a0a0a]"><SocialIcon className="size-4" /></a>; })}</div></div></div>
+      <SectionCard title="Academic Information" icon={GraduationCap}><div className="grid grid-cols-2 gap-3">{academic.map(({ icon: AcademicIcon, label, value }) => <div key={label} className="rounded-xl border border-[#0000001A] bg-[#fff] p-3"><div className="flex items-center gap-1.5 text-sm text-[#717182]"><AcademicIcon className="size-3.5" /> {label}</div><div className="mt-1 text-[#0a0a0a]">{value}</div></div>)}</div></SectionCard>
+      <SectionCard title="Skills" icon={Layers}><div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{(profile.skills || []).map((skill) => <div key={skill} className="flex flex-col items-center gap-2.5 rounded-xl border border-[#0000001A] bg-[#fff] p-4 transition-shadow hover:shadow-md"><span className="flex size-12 items-center justify-center rounded-xl"><Icon icon={getSkillIcon(skill)} className="size-9" /></span><span className="text-sm text-[#0a0a0a]">{skill}</span></div>)}</div></SectionCard>
+      <SectionCard title="Clubs" icon={BookOpen}><div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{clubs.map((club) => <div key={club._id} className="flex items-center gap-3 rounded-2xl border border-[#0000001A] bg-[#fff] p-3 transition-shadow hover:shadow-md"><div className="size-12 shrink-0 overflow-hidden rounded-xl"><ImageWithFallback src={club.logo} alt={club.clubName} className="size-full object-cover" /></div><div className="min-w-0 flex-1"><div className="truncate text-[#0a0a0a]">{club.clubName}</div><div className="truncate text-sm text-[#717182]">{club.position || "Member"}</div></div><Button variant="secondary" onClick={() => router.push(`/Club?clubId=${club._id}`)} className="shrink-0 rounded-full">Visit</Button></div>)}</div></SectionCard>
+      <SectionCard title="Achievements" icon={Award}><div className="flex flex-col gap-3">{visibleAchievements.map((achievement, index) => { const AchievementIcon = achievementIcons[index % achievementIcons.length]; return <div key={achievement._id || `${achievement.title}-${index}`} className="flex items-start gap-3 rounded-xl border border-[#0000001A] bg-[#fff] p-3 transition-shadow hover:shadow-md sm:items-center sm:gap-4 sm:p-4"><div className={`flex size-10 shrink-0 items-center justify-center rounded-xl sm:size-11 ${achievementTints[index % achievementTints.length]}`}><AchievementIcon className="size-5" /></div><div className="min-w-0 flex-1"><div className="text-[#0a0a0a]">{achievement.title}</div><div className="text-sm text-[#717182]">{achievement.description}</div><div className="mt-1 text-xs text-[#717182] sm:hidden">{achievement.date}</div></div><div className="hidden shrink-0 text-sm text-[#717182] sm:block">{achievement.date}</div></div>; })}</div>{achievements.length > 2 && <button onClick={() => setShowAllAchievements((value) => !value)} className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-xl border border-[#0000001A] bg-[#fff] py-2.5 text-sm text-[#717182] transition-colors hover:bg-[#e9ebef] hover:text-[#0a0a0a]">{showAllAchievements ? "See less" : `See more (${achievements.length - 2})`}<ChevronDown className={`size-4 transition-transform ${showAllAchievements ? "rotate-180" : ""}`} /></button>}</SectionCard>
+      <SectionCard title="Posts" icon={Layers}><div className="flex flex-col gap-4">{posts.map((post) => <ProfilePostCard key={post.id} post={post} onPostChange={updatePost} onOpenPost={(id) => router.push(`/dashboard/post/${id}`)} />)}{posts.length === 0 && <p className="text-sm text-[#717182]">No posts yet.</p>}</div></SectionCard>
+    </div>{editing && <ProfileEditModal user={me} onSave={updatedProfile} onClose={() => setEditing(false)} />}
+  </div></DashboardEventsShell>;
 }
