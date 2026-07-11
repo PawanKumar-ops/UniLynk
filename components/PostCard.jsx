@@ -96,10 +96,42 @@ export function PostCard({
           <div className="posth-right">
             <button className="posth-right-btn" onClick={(event) => { stop(event); onToggleMenu ? onToggleMenu(post) : setLocalMenuOpen((open) => !open); }} aria-label="Post options" type="button"><EllipsisVertical /></button>
             {isMenuOpen && <div className={`post-dropdown-menu ${menuClosing ? "closing" : ""}`} onClick={stop}>
-              <button className="menu-item" onClick={() => onReport?.(post.id)}>Report Post</button>
+              <button className="menu-item" onClick={() => onReport?.(post.id)}><svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>Report Post</button>
               {canDelete && <button className="menu-item menu-item-danger" type="button" onClick={() => onDelete?.(post)}>Delete post</button>}
-              <button className="menu-item" type="button" onClick={toggleSave}>{post.savedByCurrentUser ? "Unsave Post" : "Save Post"}</button>
-              <button className="menu-item" onClick={() => onShare ? onShare(post) : navigator.share?.({ title: post.authorName, text: post.content, url: window.location.href })}>Share</button>
+              <button className="menu-item" type="button" onClick={toggleSave}>{post.savedByCurrentUser ?
+                    <>
+                      <Icon icon="mage:bookmark-cross" width={18} strokeWidth={2} />
+                      Unsave Post
+                    </>
+                    : <>
+                      <Icon icon="mage:bookmark" width={18} strokeWidth={2} />
+                      Save Post
+                    </>}</button>
+              <button className="menu-item" onClick={() => onShare ? onShare(post) : navigator.share?.({ title: post.authorName, text: post.content, url: window.location.href })}><svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <circle cx="18" cy="5" r="3" />
+                    <circle cx="6" cy="12" r="3" />
+                    <circle cx="18" cy="19" r="3" />
+                    <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+                    <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+                  </svg>Share</button>
             </div>}
           </div>
         </div>
