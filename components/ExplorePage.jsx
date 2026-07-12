@@ -1428,7 +1428,6 @@ export function ExplorePage({ onBack }) {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
 
                   <div className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 backdrop-blur-sm">
-                    <span className="h-1.5 w-1.5 rounded-full bg-black" />
                     <span
                       className="text-black uppercase"
                       style={{ fontSize: 10, letterSpacing: "0.08em" }}
@@ -1436,25 +1435,6 @@ export function ExplorePage({ onBack }) {
                       {randomClub?.category || ''}
                     </span>
                   </div>
-
-                  <button
-                    aria-label="View club"
-                    className="absolute right-3 top-3 inline-flex h-8 w-8 items-center justify-center rounded-full bg-white text-black transition hover:bg-black hover:text-white"
-                  >
-                    <svg
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M7 17L17 7" />
-                      <path d="M7 7h10v10" />
-                    </svg>
-                  </button>
                 </div>
 
                 <div className="flex items-center gap-3 px-3 pb-3 pt-4">
