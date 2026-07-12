@@ -93,7 +93,7 @@ const BottomTabBar = () => {
       activeIcon: "solar:calendar-bold",
     },
     {
-      href: "/dashboard/chat",
+      href: "/dashboard/chat2",
       label: "Chat",
       icon: "solar:chat-line-linear",
       activeIcon: "solar:chat-line-bold",
