@@ -155,6 +155,11 @@ svg,
 video,
 canvas {
   max-width: 100%;
+}
+
+svg,
+video,
+canvas {
   height: auto;
 }
 

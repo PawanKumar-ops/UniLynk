@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Users, Search, ArrowUpRight, Sparkles, Star, Layers } from "lucide-react";
+import Link from "next/link";
 
 /* ---------- Inline UI primitives (no external ui/figma imports) ---------- */
 
@@ -159,9 +160,9 @@ export function MyClubsPage() {
         </div>
       </div>
 
-      <div className="mx-auto flex max-w-3xl flex-col gap-4 px-[14px] py-5 sm:gap-6">
+      <div className="mx-auto flex max-w-3xl flex-col gap-4 py-5 sm:gap-6">
         {/* Summary strip */}
-        <div className="flex items-center justify-between gap-3 rounded-2xl border border-[rgba(0,0,0,0.1)] bg-white p-4 shadow-sm sm:gap-4 sm:p-5">
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-[rgba(0,0,0,0.1)] bg-white p-4 sm:gap-4 sm:p-5">
           <div className="flex items-center gap-3 sm:gap-4">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[#e9ebef] text-[#030213] sm:size-12">
               <Layers className="size-5" />
@@ -182,56 +183,83 @@ export function MyClubsPage() {
 
         {/* My Clubs */}
         <section className="flex flex-col gap-3">
-          <h3>Clubs you're part of</h3>
+          <h3 className="text-lg font-bold">Clubs you're part of</h3>
           {loading ? (
             <div className="rounded-2xl border border-[rgba(0,0,0,0.1)] bg-white p-6 text-sm text-[#717182] shadow-sm">
               Loading clubs...
             </div>
           ) : (
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 sm:gap-4">
+            <div className="grid grid-cols-1 gap-3 sm:gap-4">
               {clubCards.map((club) => (
                 <button
                   key={club.id}
-                  onClick={() => router.push(`/Club?clubId=${club.id}`)}
-                  className="group relative flex flex-col overflow-hidden rounded-2xl border border-[rgba(0,0,0,0.1)] bg-white text-left shadow-sm transition-all duration-300 hover:shadow-md sm:hover:-translate-y-1 sm:hover:shadow-lg"
+                  onClick={() => router.push(`Club?clubId=${club.id}`)}
+                  className="relative w-full overflow-hidden rounded-3xl border border-neutral-200 bg-white p-2 text-left transition hover:border-neutral-300 hover:shadow-sm cursor-pointer"
                 >
-                  {/* Banner */}
-                  <div className="relative h-24 overflow-hidden">
-                    <ImageWithFallback
-                      src={club.img}
-                      alt={club.name}
-                      className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-linear-to-t from-black/45 via-black/0 to-black/0" />
-                    <span className="absolute right-2.5 top-2.5 rounded-full bg-white/90 px-2 py-0.5 text-xs text-[#030213] backdrop-blur">
-                      {club.category}
-                    </span>
-                  </div>
+                    <div className="relative h-36 w-full overflow-hidden rounded-2xl bg-neutral-100">
+                      {club?.img ? (
+                        <img
+                          src={club.img}
+                          alt={`${club.name || ''} cover`}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50">
+                          <span className="text-4xl font-bold text-neutral-300">
+                            {initials(club.name)}
+                          </span>
+                        </div>
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
 
-                  {/* Body */}
-                  <div className="flex flex-1 flex-col p-3 pt-0">
-                    <div className="flex items-start gap-3">
-                      <div className="-mt-7 size-12 shrink-0 overflow-hidden rounded-xl border-2 border-white bg-white shadow-md">
-                        <ImageWithFallback src={club.logo} alt={club.name} className="size-full object-cover" />
-                      </div>
-                      <div className="min-w-0 flex-1 pt-2">
-                        <div className="wrap-break-word text-[#0a0a0a]">{club.name}</div>
-                        <span className="mt-1 inline-flex items-center rounded-full bg-[#e9ebef] px-2 py-0.5 text-xs text-[#030213]">
-                          {club.role}
+                      <div className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 backdrop-blur-sm">
+                        <span
+                          className="text-black uppercase"
+                          style={{ fontSize: 10, letterSpacing: "0.08em" }}
+                        >
+                          {club.category || ''}
                         </span>
                       </div>
                     </div>
 
-                    <div className="mt-3 flex items-center justify-between border-t border-[rgba(0,0,0,0.06)] pt-3">
-                      <span className="flex items-center gap-1.5 text-sm text-[#717182]">
-                        <Users className="size-4" /> {club.members.toLocaleString()} members
-                      </span>
-                      <span className="flex items-center gap-1 text-sm text-[#030213] transition-colors group-hover:text-[#5b5bd6]">
+                    <div className="flex items-center gap-3 px-3 pb-3 pt-4">
+                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full ring-2 ring-white shadow-[0_4px_12px_-4px_rgba(0,0,0,0.25)]">
+                        {club?.logo ? (
+                          <img
+                            src={club.logo}
+                            alt={`${club.name} logo`}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : null}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <h3 className="truncate text-black leading-tight">{club.name || ''}</h3>
+                        <div className="mt-0.5 flex items-center gap-1.5 text-neutral-500">
+                          <svg
+                            width="14"
+                            height="14"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          >
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                            <circle cx="9" cy="7" r="4" />
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                          </svg>
+                          <span>{club.members.toLocaleString()} members</span>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0 rounded-full bg-black px-4 py-2 text-white transition hover:bg-neutral-800 active:scale-95">
                         Visit
-                        <ArrowUpRight className="size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                      </span>
+                      </div>
                     </div>
-                  </div>
+       
                 </button>
               ))}
             </div>
@@ -241,16 +269,15 @@ export function MyClubsPage() {
         {/* Suggested Clubs */}
         <section className="flex flex-col gap-3">
           <div className="flex items-center gap-2">
-            <Sparkles className="size-4 text-[#717182]" />
-            <h3>Suggested for you</h3>
+            <h3 className="text-lg font-bold">Suggested for you</h3>
           </div>
           <div className="flex flex-col gap-3">
             {suggestedCards.map((club) => (
               <div
                 key={club.id}
-                className="flex items-center gap-3 rounded-2xl border border-[rgba(0,0,0,0.1)] bg-white p-3 shadow-sm transition-shadow hover:shadow-md sm:gap-4"
+                className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white p-3 transition hover:border-neutral-300 hover:shadow-sm sm:gap-4"
               >
-                <div className="size-14 shrink-0 overflow-hidden rounded-xl sm:size-16">
+                <div className="size-14 shrink-0 overflow-hidden rounded-full sm:size-16">
                   <ImageWithFallback src={club.img} alt={club.name} className="size-full object-cover" />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -266,7 +293,6 @@ export function MyClubsPage() {
                   onClick={() => router.push(`/Club?clubId=${club.id}`)}
                 >
                   <span className="hidden sm:inline">Visit</span>
-                  <ArrowUpRight className="size-4" />
                 </Button>
               </div>
             ))}

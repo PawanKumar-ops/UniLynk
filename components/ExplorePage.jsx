@@ -960,12 +960,12 @@ export function ExplorePage({ onBack }) {
         isThread
           ? undefined
           : (node) => {
-              if (node) {
-                postRefs.current[post.id] = node;
-              } else {
-                delete postRefs.current[post.id];
-              }
+            if (node) {
+              postRefs.current[post.id] = node;
+            } else {
+              delete postRefs.current[post.id];
             }
+          }
       }
       onClick={() => handleOpenThread(post.id)}
       role="button"
@@ -1191,14 +1191,14 @@ export function ExplorePage({ onBack }) {
 
   const handleOpenCommentAuthorProfile = async (event, comment) => {
     event.stopPropagation();
-    
+
     let authorId =
       typeof comment?.authorId === "string"
         ? comment.authorId.trim()
         : typeof comment?.author?.id === "string"
-        ? comment.author.id.trim()
-        : "";
-    
+          ? comment.author.id.trim()
+          : "";
+
     // If no authorId, try to fetch by email (for old comments)
     if (!authorId && typeof comment?.authorEmail === "string" && comment.authorEmail.trim()) {
       try {
@@ -1211,7 +1211,7 @@ export function ExplorePage({ onBack }) {
         console.error("Failed to lookup user by email:", err);
       }
     }
-    
+
     if (!authorId) return;
     router.push(`/dashboard/Userprofile?userId=${authorId}`);
   };
