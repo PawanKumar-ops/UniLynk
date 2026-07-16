@@ -65,6 +65,7 @@ export default function FormBuilder() {
     time: "",
     location: "",
     image: "",
+    moreInformation: [],
     seats: "",
     questions: [],
     isTeamEvent: false,
@@ -419,6 +420,20 @@ export default function FormBuilder() {
     updateTeamConfig({ customFields: existing.filter((_, i) => i !== index) });
   };
 
+  const addMoreInformation = () => {
+    updateForm({ moreInformation: [...(formData.moreInformation || []), ""] });
+  };
+
+  const updateMoreInformation = (index, value) => {
+    const items = [...(formData.moreInformation || [])];
+    items[index] = value;
+    updateForm({ moreInformation: items });
+  };
+
+  const removeMoreInformation = (index) => {
+    updateForm({ moreInformation: (formData.moreInformation || []).filter((_, itemIndex) => itemIndex !== index) });
+  };
+
   if (!mounted) {
     return (
       <div className="form-builder-container">
@@ -644,6 +659,27 @@ export default function FormBuilder() {
                 </div>
               </div>
             </div>
+          </div>
+
+          <div className="event-details-section">
+            <h3 className="event-details-title">More Information</h3>
+            {(formData.moreInformation || []).map((item, index) => (
+              <div key={index} className="event-field" style={{ display: "flex", gap: "8px", marginBottom: "10px" }}>
+                <input
+                  type="text"
+                  value={item}
+                  onChange={(event) => updateMoreInformation(index, event.target.value)}
+                  className="location-input"
+                  placeholder="Add a point"
+                />
+                <button type="button" onClick={() => removeMoreInformation(index)} className="btn-move" aria-label="Remove information point">
+                  <Trash2 />
+                </button>
+              </div>
+            ))}
+            <button type="button" onClick={addMoreInformation} className="btn-add-question">
+              <Plus /> Add information point
+            </button>
           </div>
 
           {/* Team Event Toggle */}

@@ -30,6 +30,7 @@ const FormSchema = new mongoose.Schema(
     time: String,
     location: String,
     image: String,
+    moreInformation: { type: [String], default: [] },
     questions: [QuestionSchema],
     isTeamEvent: {
       type: Boolean,
@@ -81,6 +82,7 @@ if (
   (
     !cachedFormModel.schema.path("isTeamEvent") ||
     !cachedFormModel.schema.path("teamConfig") ||
+    !cachedFormModel.schema.path("moreInformation") ||
     !cachedFormModel.schema.path("questions.teamConfig")
   )
 ) {

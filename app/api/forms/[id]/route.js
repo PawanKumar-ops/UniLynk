@@ -8,7 +8,7 @@ export async function GET(req, context) {
     const session = await getServerSession(authOptions);
 
     const { id } = await context.params;
-    const form = await Form.findById(id);
+    const form = await Form.findById(id).populate("clubId", "clubName logo");
 
     if (!form) {
       return Response.json({ error: "Form not found" }, { status: 404 });

@@ -12,6 +12,7 @@ export function EventCard({
     venue,
     bookingDay,
     bookingMonth,
+    onClick,
 }) {
     const [lightboxOpen, setLightboxOpen] = useState(false);
 
@@ -31,7 +32,15 @@ export function EventCard({
 
     return (
         <div className="w-full">
-            <div className="relative ml-[40px] bg-white h-[7em] rounded-2xl border border-[#dfe3e8] transition-all duration-[250ms] ease-in">
+            <div
+                className="relative ml-[40px] bg-white h-[7em] rounded-2xl border border-[#dfe3e8] transition-all duration-[250ms] ease-in"
+                onClick={onClick}
+                onKeyDown={(event) => {
+                    if (onClick && (event.key === "Enter" || event.key === " ")) onClick();
+                }}
+                role={onClick ? "button" : undefined}
+                tabIndex={onClick ? 0 : undefined}
+            >
 
                 {/* user profile */}
                 <div className="absolute left-[-2.5em] top-1/2 -translate-y-1/2 w-[82px] h-[82px] rounded-full overflow-hidden p-1 bg-white border-2 border-[#e5e7eb] flex items-center justify-center z-[2]">
@@ -94,7 +103,10 @@ export function EventCard({
                 {/* event poster */}
                 <button
                     type="button"
-                    onClick={() => setLightboxOpen(true)}
+                    onClick={(event) => {
+                        event.stopPropagation();
+                        setLightboxOpen(true);
+                    }}
                     aria-label="Open event poster"
                     className="group absolute right-[0.9em] top-[0.9em] bottom-[0.9em] w-[4.6em] rounded-lg overflow-hidden border border-[#e5e7eb] bg-white cursor-zoom-in transition-transform focus:outline-none focus:ring-2 focus:ring-[#808080]"
                 >
