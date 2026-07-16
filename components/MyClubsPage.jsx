@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { Users, Search, ArrowUpRight, Sparkles, Star, Layers } from "lucide-react";
+import { Users, Search, ArrowLeft, Sparkles, Star, Layers } from "lucide-react";
 import Link from "next/link";
 
 /* ---------- Inline UI primitives (no external ui/figma imports) ---------- */
@@ -137,28 +137,30 @@ export function MyClubsPage() {
   );
 
   return (
-    <div className="flex-1 overflow-y-auto">
-      {/* Top bar */}
-      <div className="sticky top-0 z-10 border-b border-[rgba(0,0,0,0.1)] bg-white/80 px-4 py-3 backdrop-blur sm:px-6 sm:py-4">
-        <div className="mx-auto flex max-w-3xl items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 sm:gap-3">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-[#030213] text-white sm:size-10">
-              <Users className="size-4 sm:size-5" />
-            </div>
-            <div className="min-w-0">
-              <h2>My Clubs</h2>
-              <div className="truncate text-sm text-[#717182]">Communities you follow and love</div>
-            </div>
-          </div>
-          <div className="hidden items-center gap-2 rounded-full border border-[rgba(0,0,0,0.1)] bg-[#f3f3f5] px-3 py-1.5 sm:flex">
-            <Search className="size-4 text-[#717182]" />
-            <input
-              className="w-40 bg-transparent text-sm outline-none placeholder:text-[#717182]"
-              placeholder="Search clubs..."
-            />
+    <div className="relative flex-1">
+      <header
+        className="sticky top-0 z-50 -mx-4 mb-5 flex h-[54px] items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl"
+        style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
+      >
+        <div
+          className="flex items-center"
+          style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
+        >
+          <button
+            onClick={() => router.back()}
+            className="mr-6 flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-black/5"
+          >
+            <ArrowLeft size={20} strokeWidth={2.2} />
+          </button>
+
+          <div>
+            <h1 className="truncate text-[20px] font-bold leading-5 text-black">Clubs</h1>
+            <p className="mt-0.5 text-[13px] leading-4 text-[#536471]">
+              Communities you follow and love
+            </p>
           </div>
         </div>
-      </div>
+      </header>
 
       <div className="mx-auto flex max-w-3xl flex-col gap-4 py-5 sm:gap-6">
         {/* Summary strip */}

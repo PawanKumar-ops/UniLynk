@@ -499,7 +499,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
   const [mobileMsgOpen, setMobileMsgOpen] = useState(false);
   const [headerHidden, setHeaderHidden] = useState(false);
 
-   // Broadcast scroll-direction so the mobile BottomTabBar can hide/show in sync
+  // Broadcast scroll-direction so the mobile BottomTabBar can hide/show in sync
   useEffect(() => {
     if (typeof window === "undefined") return;
     window.dispatchEvent(
@@ -1132,9 +1132,9 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
       typeof item?.authorId === "string"
         ? item.authorId.trim()
         : typeof item?.author?.id === "string"
-        ? item.author.id.trim()
-        : "";
-    
+          ? item.author.id.trim()
+          : "";
+
     // If no authorId, try to fetch by email (for old comments)
     if (!authorId && typeof item?.authorEmail === "string" && item.authorEmail.trim()) {
       try {
@@ -1147,7 +1147,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
         console.error("Failed to lookup user by email:", err);
       }
     }
-    
+
     if (!authorId) return;
     router.push(`/dashboard/Userprofile?userId=${authorId}`);
   };
@@ -1722,27 +1722,27 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
       <div className="thread-comment-body">
         <div className="thread-comment-meta">
           <button
-              className="post-author-link"
-              type="button"
-              disabled={!comment.authorId && !comment.authorEmail}
-              onClick={(event) => handleOpenAuthorProfile(event, comment)}
-            >
-              <span className="user-name">
-                {comment.authorName || "UniLynk User"}
-                {comment.postAs === "club" && (
-                  <Icon
-                    icon="heroicons-solid:badge-check"
-                    color="#1d9bf0"
-                    width={18}
-                  />
-                )}
-              </span>
-              {comment.postAs !== "club" && !!formatAuthorHandle(comment.authorEmail) && (
-                <span className="post-author-email">
-                  {formatAuthorHandle(comment.authorEmail)}
-                </span>
+            className="post-author-link"
+            type="button"
+            disabled={!comment.authorId && !comment.authorEmail}
+            onClick={(event) => handleOpenAuthorProfile(event, comment)}
+          >
+            <span className="user-name">
+              {comment.authorName || "UniLynk User"}
+              {comment.postAs === "club" && (
+                <Icon
+                  icon="heroicons-solid:badge-check"
+                  color="#1d9bf0"
+                  width={18}
+                />
               )}
-            </button>
+            </span>
+            {comment.postAs !== "club" && !!formatAuthorHandle(comment.authorEmail) && (
+              <span className="post-author-email">
+                {formatAuthorHandle(comment.authorEmail)}
+              </span>
+            )}
+          </button>
           <span className="dd-post-time">
             <span className="post-dot">
               <svg
@@ -1824,25 +1824,25 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
           <>
             {!selectedThreadPost && (
               <div className={`feed-toggle-wrap ${headerHidden ? "feed-toggle-wrap-up" : ""}`}>
-              <div className="pricing-toggle">
-                <div className={`toggle-track ${!isAnnual ? "right" : ""}`}>
-                  <div className="toggle-bg"></div>
-                  <button
-                    type="button"
-                    className={`toggle-btn ${isAnnual ? "active" : ""}`}
-                    onClick={() => router.push("/dashboard")}
-                  >
-                    For You
-                  </button>
-                  <button
-                    type="button"
-                    className={`toggle-btn ${!isAnnual ? "active" : ""}`}
-                    onClick={() => router.push("/dashboard/clubs")}
-                  >
-                    Clubs
-                  </button>
+                <div className="pricing-toggle">
+                  <div className={`toggle-track ${!isAnnual ? "right" : ""}`}>
+                    <div className="toggle-bg"></div>
+                    <button
+                      type="button"
+                      className={`toggle-btn ${isAnnual ? "active" : ""}`}
+                      onClick={() => router.push("/dashboard")}
+                    >
+                      For You
+                    </button>
+                    <button
+                      type="button"
+                      className={`toggle-btn ${!isAnnual ? "active" : ""}`}
+                      onClick={() => router.push("/dashboard/clubs")}
+                    >
+                      Clubs
+                    </button>
+                  </div>
                 </div>
-              </div>
               </div>
             )}
 

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import ReliableImage from "@/components/ReliableImage";
 import { DashboardEventsShell } from "@/components/DashboardEventsShell";
+import EventCard from "@/components/EventCard";
 import { TopBar } from "./TopBarEvents";
 import { Icon } from "@iconify/react";
 
@@ -41,16 +42,24 @@ function formatTime(value) {
   });
 }
 
+function getDateParts(value) {
+  if (!value) return { day: "TBA", month: "" };
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return { day: "TBA", month: "" };
+
+  return {
+    day: date.toLocaleDateString("en-US", { day: "numeric" }),
+    month: date.toLocaleDateString("en-US", { month: "short" }),
+  };
+}
+
 function getEventId(event) {
   return event?._id?.toString?.() || event?.id?.toString?.() || "";
 }
 
 function getEventImage(event) {
   return event?.image || event?.clubId?.logo || DEFAULT_EVENT_IMAGE;
-}
-
-function getCapacity(event) {
-  return Math.max(Number(event?.seats) || 0, Number(event?.registered) || 0, 1);
 }
 
 function Modal({ open, onClose, children, className = "" }) {
@@ -266,20 +275,21 @@ export function EventsPage() {
   };
 
   if (loading) {
-  return (
-    <DashboardEventsShell>
-      <div className="flex flex-col gap-6 sm:gap-8">
-        <TopBar />
-      <EventsPageSkeleton />
-      </div>
-    </DashboardEventsShell>
-  );
-}
+    return (
+      <DashboardEventsShell>
+        <div className="flex flex-col gap-6 sm:gap-8">
+          <TopBar />
+          <EventsPageSkeleton />
+        </div>
+      </DashboardEventsShell>
+    );
+  }
 
   return (
     <DashboardEventsShell>
+      <TopBar />
       <div className="flex flex-col gap-6 sm:gap-8">
-        <TopBar />
+        
 
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -354,8 +364,8 @@ export function EventsPage() {
                 key={filter}
                 onClick={() => setActive(filter)}
                 className={`rounded-full border px-4 py-1.5 text-sm transition-colors ${active === filter
-                    ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]"
-                    : "border-[var(--border)] text-foreground/70 hover:bg-[var(--accent)]"
+                  ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]"
+                  : "border-[var(--border)] text-foreground/70 hover:bg-[var(--accent)]"
                   }`}
                 type="button"
               >
@@ -375,68 +385,24 @@ export function EventsPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3">
           {list.map((event) => {
             const id = getEventId(event);
-            const capacity = getCapacity(event);
-            const registered = Number(event.registered || 0);
-            const isApplied = Boolean(appliedEvents[id]);
+            const eventDate = getDateParts(event.date);
 
             return (
-              <article
+              <EventCard
                 key={id}
-                className="group flex flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] hover:border-neutral-300 hover:shadow-sm transition"
-              >
-                <div className="relative h-44 overflow-hidden">
-                  <ReliableImage
-                    src={getEventImage(event)}
-                    fallbackSrc={DEFAULT_EVENT_IMAGE}
-                    alt={event.title || "Event"}
-                    className="h-full w-full object-cover"
-                  />
-                  <span className="absolute left-3 top-3 rounded-full bg-black/60 px-2.5 py-1 text-xs text-white backdrop-blur">
-                    {event.genre || "Event"}
-                  </span>
-                  <span className="absolute right-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-xs text-black">
-                    Free
-                  </span>
-                </div>
-                <div className="flex flex-1 flex-col gap-3 p-4">
-                  <div>
-                    <p>{event.title || "Untitled Event"}</p>
-                    <p className="text-sm text-[var(--muted-foreground)]">
-                      by {event.clubId?.clubName || event.createdBy || "UniLynk"}
-                    </p>
-                  </div>
-                  <div className="flex flex-col gap-1.5 text-sm text-[var(--muted-foreground)]">
-                    <span className="flex items-center gap-2">
-                      <Icon icon="solar:calendar-outline" className="size-4" />
-                      {formatDate(event.date)} - {formatTime(event.time)}
-                    </span>
-                    <span className="flex items-center gap-2">
-                      <Icon icon="solar:map-point-linear" className="size-4" />
-                      {event.location || "Venue TBA"}
-                    </span>
-                  </div>
-
-                  <div className="flex gap-2 pt-1">
-                    <button
-                      className="flex-1 rounded-full border border-[var(--border)] px-4 py-2 text-sm transition-colors hover:bg-[var(--accent)]"
-                      onClick={() => setDetails(event)}
-                      type="button"
-                    >
-                      See Details
-                    </button>
-                    <button
-                      className="flex-1 rounded-full bg-[var(--primary)] px-4 py-2 text-sm text-[var(--primary-foreground)] transition-opacity hover:opacity-90"
-                      onClick={() => openApply(event)}
-                      type="button"
-                    >
-                      {isApplied ? "View" : "Apply"}
-                    </button>
-                  </div>
-                </div>
-              </article>
+                userAvatarUrl={event.clubId?.logo || DEFAULT_EVENT_IMAGE}
+                userAvatarAlt={`${event.clubId?.clubName || "Club"} logo`}
+                posterUrl={getEventImage(event)}
+                posterAlt={event.title || "Event"}
+                eventName={event.title || "Untitled Event"}
+                clubName={event.clubId?.clubName || event.createdBy || "UniLynk"}
+                venue={event.location || "Venue TBA"}
+                bookingDay={eventDate.day}
+                bookingMonth={eventDate.month}
+              />
             );
           })}
         </div>

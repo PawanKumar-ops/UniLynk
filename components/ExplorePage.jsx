@@ -1407,7 +1407,7 @@ export function ExplorePage({ onBack }) {
                 className="relative w-full overflow-hidden rounded-3xl border p-2 border-neutral-200 hover:border-neutral-300 hover:shadow-sm transition bg-white cursor-pointer"
                 onClick={() => {
                   if (randomClub?._id) {
-                    router.push(`/Club?clubId=${randomClub._id}`);
+                    router.push(`/dashboard/Club?clubId=${randomClub._id}`);
                   }
                 }}
               >

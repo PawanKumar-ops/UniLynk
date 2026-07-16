@@ -491,8 +491,8 @@ export function ClubPage() {
                             {pastActivities.map((a) => (
                                 <SectionCard key={a.id} title={a.title} icon={Rocket}>
                                     <div className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-[#717182]">
-                                        <span className="flex items-center gap-1.5"><Users className="size-4" /> {a.participants} participants</span>
-                                        <span className="flex items-center gap-1.5"><MapPin className="size-4" /> {a.location}</span>
+                                        <span className="flex items-center gap-1.5"><Icon icon="solar:user-linear" className="size-4" /> {a.participants} participants</span>
+                                        <span className="flex items-center gap-1.5"><Icon icon="solar:map-point-linear" className="size-4" /> {a.location}</span>
                                     </div>
                                     <p className="mb-3 text-sm text-[#717182]">{a.desc}</p>
                                     <div className="grid grid-cols-4 gap-2">
@@ -529,9 +529,9 @@ export function ClubPage() {
                                     <div className="flex min-w-0 flex-1 flex-col">
                                         <div className="truncate text-[#0a0a0a]">{e.title}</div>
                                         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-[#717182]">
-                                            <span className="flex items-center gap-1"><Calendar className="size-3.5" /> {e.date}</span>
-                                            <span className="flex items-center gap-1"><Clock className="size-3.5" /> {e.time}</span>
-                                            <span className="flex items-center gap-1"><MapPin className="size-3.5" /> {e.place}</span>
+                                            <span className="flex items-center gap-1"><Icon icon="solar:calendar-linear" className="size-3.5" /> {e.date}</span>
+                                            <span className="flex items-center gap-1"><Icon icon="solar:clock-circle-linear" className="size-3.5" /> {e.time}</span>
+                                            <span className="flex items-center gap-1"><Icon icon="solar:map-point-linear" className="size-3.5" /> {e.place}</span>
                                         </div>
                                         <p className="mt-1 line-clamp-2 text-sm text-[#717182]">{e.desc}</p>
                                         <div className="mt-auto flex gap-2 pt-2">

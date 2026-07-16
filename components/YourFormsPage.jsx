@@ -240,25 +240,25 @@ export function YourFormsPage() {
   const drafts = useMemo(() => forms.filter((form) => !form.isPublished || isDraftForm(form)), [forms]);
 
   const stats = [
-  {
-    label: "Total Forms",
-    value: forms.length,
-    icon: "solar:document-bold",
-  },
-  {
-    label: "Published",
-    value: published.length,
-    icon: "solar:verified-check-bold",
-  },
-  {
-    label: "Total Responses",
-    value: forms.reduce(
-      (sum, form) => sum + Number(form.responses || form.registered || 0),
-      0
-    ),
-    icon: "solar:chat-round-dots-bold",
-  },
-];
+    {
+      label: "Total Forms",
+      value: forms.length,
+      icon: "solar:document-bold",
+    },
+    {
+      label: "Published",
+      value: published.length,
+      icon: "solar:verified-check-bold",
+    },
+    {
+      label: "Total Responses",
+      value: forms.reduce(
+        (sum, form) => sum + Number(form.responses || form.registered || 0),
+        0
+      ),
+      icon: "solar:chat-round-dots-bold",
+    },
+  ];
 
   const tabs = [
     { id: "all", label: `All (${forms.length})`, items: forms },
@@ -270,8 +270,8 @@ export function YourFormsPage() {
 
   return (
     <DashboardEventsShell>
-      <div className="flex flex-col gap-6 sm:gap-8">
-        <TopBar showBack />
+      <TopBar showBack />
+      <div className="flex flex-col gap-6 sm:gap-8">    
 
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -313,11 +313,10 @@ export function YourFormsPage() {
               <button
                 key={item.id}
                 onClick={() => setTab(item.id)}
-                className={`rounded-full px-3 py-1.5 text-xs transition-colors sm:text-sm ${
-                  tab === item.id
+                className={`rounded-full px-3 py-1.5 text-xs transition-colors sm:text-sm ${tab === item.id
                     ? "bg-[var(--background)] shadow-sm"
                     : "text-[var(--muted-foreground)] hover:text-foreground"
-                }`}
+                  }`}
                 type="button"
               >
                 {item.label}

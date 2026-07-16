@@ -1757,10 +1757,6 @@ body {
     transform: translateY(-53px);
   }
 
-  .pricing-toggle {
-    box-shadow: 0 6px 18px rgba(15, 20, 25, .06);
-  }
-
   /* Feed posts: header (53px) + toggle (~50px), plus room for the bottom tab bar */
   .userposts {
     margin-top: 110px !important;

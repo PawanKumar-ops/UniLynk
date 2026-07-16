@@ -1,32 +1,35 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Search, ChevronLeft } from "lucide-react";
+import { Search, ArrowLeft } from "lucide-react";
 
 export function TopBar({ showBack = false }) {
   const router = useRouter();
 
   return (
-    <div className="flex items-center gap-3">
-      {showBack && (
-        <button
-          onClick={() => router.push("./")}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[#0000001A] text-[#717182] transition-colors hover:bg-neutral-100"
-        >
-          <ChevronLeft className="h-[18px] w-[18px]" />
-        </button>
-      )}
+    <header
+                    className="sticky top-0 z-50 -mx-4 mb-5 flex h-[54px] items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl"
+                    style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
+                >
+                    {/* Left */}
+                    <div
+                        className="flex items-center"
+                        style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
+                    >
+                        <button
+                            onClick={() => router.back()}
+                            className="mr-6 flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-black/5"
+                        >
+                            <ArrowLeft size={20} strokeWidth={2.2} />
+                        </button>
 
-      <div className="relative flex-1">
-        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
+                        <div>
+                            <h1 className="truncate text-[20px] font-bold leading-5 text-black">
+                                {showBack?"Forms":"Events"}
+                            </h1>
+                        </div>
+                    </div>
 
-        <input
-          type="text"
-          placeholder="Search students, clubs, events..."
-          data-slot="input"
-          className="w-full pl-11 pr-4 py-3 rounded-full bg-neutral-100 border border-transparent focus:bg-white focus:border-neutral-300 outline-none text-sm transition"
-        />
-      </div>
-    </div>
+                </header>
   );
 }

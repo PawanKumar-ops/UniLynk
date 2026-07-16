@@ -324,8 +324,8 @@ export default function GetHelpPage() {
               <div
                 key={f.q}
                 className={`overflow-hidden rounded-2xl border transition-all ${isOpen
-                    ? "border-black/20 bg-white"
-                    : "border-black/10 bg-white hover:bg-[#fafafa]"
+                  ? "border-black/20 bg-white"
+                  : "border-black/10 bg-white hover:bg-[#fafafa]"
                   }`}
               >
                 <button
