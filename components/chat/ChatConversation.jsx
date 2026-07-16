@@ -3,19 +3,27 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
+import EmojiPicker from "emoji-picker-react";
 import { MoreHorizontal, Plus, Smile, Mic, ArrowDown, ArrowLeft, CheckCircle2, Trash2, Undo2 } from "lucide-react";
 import { Icon } from "@iconify/react";
-import { PickerPopover, PlusDropdown, ReactionPicker, MediaPreviewBar, VoiceRecorder, CallModal, DotsMenu, BlockUserModal } from "@/components/chat/chat-ui";
+import { PlusDropdown, ReactionPicker, MediaPreviewBar, VoiceRecorder, CallModal, DotsMenu, BlockUserModal } from "@/components/chat/chat-ui";
 import { BlockedModal } from "@/components/BlockedModal";
 import { DeleteMessageModal } from "@/components/DeleteMessageModal";
 import { ForwardMessageModal } from "@/components/ForwardMessageModal";
 import { cn } from "@/lib/utils";
 import { getPusherClient } from "@/lib/usePusher";
+import ChatGiphyPicker from "@/components/shared/ChatGiphyPicker";
 
 function toChatMessage(msg, currentUserId) {
-    const mine = msg.sender === currentUserId;
-    const media = msg.messageType === "gif" ? { type: "gif", url: msg.text } : msg.messageType === "media" ? { type: msg.attachments?.[0]?.mimeType?.startsWith("video/") ? "video" : "image", url: msg.attachments?.[0]?.url } : null;
-    return { ...msg, from: mine ? "me" : msg.sender, time: new Date(msg.createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }), media };
+    const senderId = String(msg.senderId || msg.sender || "");
+    const mine = senderId === String(currentUserId);
+    const firstAttachment = msg.attachments?.[0] || msg.attachment;
+    const media = msg.messageType === "gif"
+        ? { type: "gif", url: msg.text }
+        : msg.messageType === "media" && firstAttachment?.url
+            ? { type: firstAttachment.mimeType?.startsWith("video/") ? "video" : "image", url: firstAttachment.url }
+            : null;
+    return { ...msg, senderId, from: mine ? "me" : senderId, time: new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }), media };
 }
 
 const fallbackAvatar = (seed) => `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(seed || "User")}`;
@@ -68,7 +76,8 @@ export default function ChatConversation({ id, communityId, groupId }) {
     }, []);
 
     useEffect(() => {
-        if (!id || !currentUserId) return;
+        const hasConversation = isCommunityRoute ? communityId && groupId : id;
+        if (!hasConversation || !currentUserId) return;
         let cancelled = false;
         async function load() {
             setLoading(true);
@@ -102,7 +111,9 @@ export default function ChatConversation({ id, communityId, groupId }) {
             if (!pusher || !mounted) return;
             channel = pusher.subscribe(isCommunityRoute ? `private-community-${communityId}` : `private-user-${currentUserId}`);
             channel.bind("new-message", (incoming) => {
-                const inThread = isCommunityRoute ? incoming.communityId === communityId && incoming.groupId === groupId : ((incoming.sender === id && incoming.receiver === currentUserId) || (incoming.sender === currentUserId && incoming.receiver === id));
+                const incomingSender = String(incoming.senderId || incoming.sender || "");
+                const incomingReceiver = String(incoming.receiverId || incoming.receiver || "");
+                const inThread = isCommunityRoute ? incoming.communityId === communityId && incoming.groupId === groupId : ((incomingSender === id && incomingReceiver === currentUserId) || (incomingSender === currentUserId && incomingReceiver === id));
                 if (!inThread) return;
                 setMessages((prev) => prev.some((m) => m.id === incoming.id) ? prev : [...prev, toChatMessage(incoming, currentUserId)]);
             });
@@ -250,7 +261,7 @@ export default function ChatConversation({ id, communityId, groupId }) {
         </div>
         <button onClick={() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })} className="absolute bottom-28 right-[400px] hidden rounded-full border bg-[#fff] p-2 shadow-md hover:bg-[#f2f6fa] md:block"><ArrowDown className="h-4 w-4" /></button>
         {pendingFile && <MediaPreviewBar file={pendingFile} onRemove={() => setPendingFile(null)} />}
-        {recording ? <VoiceRecorder onClose={() => setRecording(false)} /> : <div className="border-t bg-[#fff] p-3"><div className="flex items-end gap-2 rounded-3xl bg-[#f2f6fa] px-3 py-2"><div className="relative"><button disabled={isConversationBlocked} onClick={() => setPlusOpen((v) => !v)} className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"><Plus className="h-5 w-5" /></button>{plusOpen && !isConversationBlocked && <PlusDropdown onClose={() => setPlusOpen(false)} onPickFile={(f) => uploadAndPreview(f).catch((e) => setError(e.message))} />}</div><button disabled={isConversationBlocked} onClick={() => setPicker(picker === "gif" ? null : "gif")} className="flex h-9 items-center justify-center rounded-md border border-[#1d9bf0]/50 px-1.5 text-[11px] font-extrabold text-[#1d9bf0] hover:bg-[#1d9bf0]/10">GIF</button><button disabled={isConversationBlocked} onClick={() => setPicker(picker === "emoji" ? null : "emoji")} className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"><Smile className="h-5 w-5" /></button><textarea value={text} rows={1} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (!isConversationBlocked) send().catch((err) => setError(err.message)); } }} placeholder={isConversationBlocked ? blockedLabel : "Start a new message"} disabled={isConversationBlocked} className="max-h-32 flex-1 resize-none bg-transparent py-2 text-[15px] outline-none" />{text || pendingFile ? <button disabled={isConversationBlocked} onClick={() => !isConversationBlocked && send().catch((err) => setError(err.message))} className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"><Icon icon="ri:send-ins-line" className="h-5 w-5" /></button> : <button disabled={isConversationBlocked} onClick={() => setRecording(true)} className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"><Mic className="h-5 w-5" /></button>}<PickerPopover type={picker} onClose={() => setPicker(null)} onPick={(val) => { if (picker === "emoji") setText((t) => t + val); else if (picker === "gif") !isConversationBlocked && send({ media: { type: "gif", url: val } }).catch((err) => setError(err.message)); }} /></div>{error && <p className="px-3 pt-2 text-sm text-red-500">{error}</p>}</div>}
+        {recording ? <VoiceRecorder onClose={() => setRecording(false)} /> : <div className="border-t bg-[#fff] p-3"><div className="flex items-end gap-2 rounded-3xl bg-[#f2f6fa] px-3 py-2"><div className="relative"><button disabled={isConversationBlocked} onClick={() => setPlusOpen((v) => !v)} className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"><Plus className="h-5 w-5" /></button>{plusOpen && !isConversationBlocked && <PlusDropdown onClose={() => setPlusOpen(false)} onPickFile={(f) => uploadAndPreview(f).catch((e) => setError(e.message))} />}</div><button disabled={isConversationBlocked} onClick={() => setPicker(picker === "gif" ? null : "gif")} className="flex h-9 items-center justify-center rounded-md border border-[#1d9bf0]/50 px-1.5 text-[11px] font-extrabold text-[#1d9bf0] hover:bg-[#1d9bf0]/10">GIF</button><button disabled={isConversationBlocked} onClick={() => setPicker(picker === "emoji" ? null : "emoji")} className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"><Smile className="h-5 w-5" /></button><textarea value={text} rows={1} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (!isConversationBlocked) send().catch((err) => setError(err.message)); } }} placeholder={isConversationBlocked ? blockedLabel : "Start a new message"} disabled={isConversationBlocked} className="max-h-32 flex-1 resize-none bg-transparent py-2 text-[15px] outline-none" />{text || pendingFile ? <button disabled={isConversationBlocked} onClick={() => !isConversationBlocked && send().catch((err) => setError(err.message))} className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"><Icon icon="ri:send-ins-line" className="h-5 w-5" /></button> : <button disabled={isConversationBlocked} onClick={() => setRecording(true)} className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"><Mic className="h-5 w-5" /></button>}{picker === "emoji" && <div className="absolute bottom-20 left-14 z-50 rounded-2xl border bg-white shadow-2xl"><EmojiPicker onEmojiClick={(emojiData) => { if (emojiData?.emoji) setText((t) => `${t}${emojiData.emoji}`); setPicker(null); }} width={340} height={380} lazyLoadEmojis /></div>}{picker === "gif" && <div className="absolute bottom-20 left-14 z-50 h-[420px] w-[360px] overflow-hidden rounded-2xl border bg-white shadow-2xl"><ChatGiphyPicker width={340} columns={2} onSelect={(val) => { setPicker(null); if (!isConversationBlocked) send({ media: { type: "gif", url: val } }).catch((err) => setError(err.message)); }} /></div>}{picker && <button type="button" aria-label="Close picker" className="fixed inset-0 z-40 cursor-default" onClick={() => setPicker(null)} />}</div>{error && <p className="px-3 pt-2 text-sm text-red-500">{error}</p>}</div>}
         {call && <CallModal open onClose={() => setCall(null)} user={header} video={call === "video"} />}
         <DeleteMessageModal open={!!deleteTargetMessage} onOpenChange={(open) => !open && setDeleteTargetMessage(null)} onConfirm={handleDelete} canDeleteForEveryone={(deleteTargetMessage?.sender === currentUserId) || (deleteTargetMessage?.senderId === currentUserId)} />
         <ForwardMessageModal open={!!forwardTargetMessage} onOpenChange={(open) => !open && setForwardTargetMessage(null)} message={forwardTargetMessage} recipients={recipients} onForward={handleForward} />
