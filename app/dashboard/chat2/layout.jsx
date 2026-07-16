@@ -435,10 +435,10 @@ export default function MessagesLayout({ children }) {
                             {groups.map((g) => (
                                 <button
                                     key={g.id}
-                                    onClick={() => router.push(`/dashboard/chat2/community:${openCommunity.id}:${g.id}`)}
+                                    onClick={() => router.push(`/dashboard/chat2/group/${openCommunity.id}/${g.id}`)}
                                     className={cn(
                                         "flex w-full items-center gap-3 border-l-2 px-4 py-3 text-left transition hover:bg-[#f7f9fc]",
-                                        decodeURIComponent(params.id || "") === `community:${openCommunity.id}:${g.id}`
+                                        params.communityId === openCommunity.id && params.groupId === g.id
                                             ? "active-border border-[#1d9bf0] bg-[#f5f8fa]"
                                             : "border-transparent",
                                     )}
