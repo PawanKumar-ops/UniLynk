@@ -8,7 +8,7 @@ export function TopBar({ showBack = false }) {
 
   return (
     <header
-                    className="sticky top-0 z-50 -mx-4 mb-5 flex h-[54px] items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl"
+                    className="sticky top-0 z-50 mb-5 flex h-[54px] items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl"
                     style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
                 >
                     {/* Left */}

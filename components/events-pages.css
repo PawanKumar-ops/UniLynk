@@ -25,7 +25,7 @@
 .events-design-content {
   width: min(820px, 100%);
   margin: 0 auto;
-  padding: 0 14px 20px;
+  padding: 0 0px 20px;
 }
 
 .events-empty-state {

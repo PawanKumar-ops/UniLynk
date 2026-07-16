@@ -71,7 +71,7 @@ export default function EventDetails({ eventId }) {
                         </div>
                     </header>
 
-                    <div>
+                    <div className="px-[14px]">
                         <div style={{ backgroundColor: "#f7f7f9", borderRadius: "28px", overflow: "visible", position: "relative" }}>
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px 10px" }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: "8px", backgroundColor: "#ebebed", borderRadius: "999px", padding: "6px 13px 6px 7px" }}>
@@ -92,7 +92,7 @@ export default function EventDetails({ eventId }) {
                         </div>
                     </div>
 
-                    <div style={{ padding: "30px 0px 16px" }}>
+                    <div style={{ padding: "30px 14px 16px" }}>
                         <h1 style={{ fontSize: "28px", fontWeight: 700, color: "#1c1c1e", lineHeight: 1.2, margin: 0 }}>{title}</h1>
                         <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "8px" }}>
                             <span style={{ fontSize: "13px", color: "#888", fontWeight: 400 }}>By</span>
@@ -106,9 +106,6 @@ export default function EventDetails({ eventId }) {
                             <h4 style={{ fontSize: "15px", fontWeight: 600, color: "#1c1c1e", margin: 0 }}>More Information</h4>
                         </div>
                         <div style={{ display: "flex", flexDirection: "column", gap: "8px", paddingBottom: "120px" }}>
-                            {event.date && <div style={{ backgroundColor: "#f2f2f4", borderRadius: "999px", padding: "12px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" }}><span style={{ fontSize: "13px", fontWeight: 500, color: "#1c1c1e" }}>Date: {formatDate(event.date)}</span></div>}
-                            {event.time && <div style={{ backgroundColor: "#f2f2f4", borderRadius: "999px", padding: "12px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" }}><span style={{ fontSize: "13px", fontWeight: 500, color: "#1c1c1e" }}>Time: {event.time}</span></div>}
-                            {event.location && <div style={{ backgroundColor: "#f2f2f4", borderRadius: "999px", padding: "12px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" }}><span style={{ fontSize: "13px", fontWeight: 500, color: "#1c1c1e" }}>Location: {event.location}</span></div>}
                             {information.map((point, index) => <div key={index} style={{ backgroundColor: "#f2f2f4", borderRadius: "999px", padding: "12px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" }}><span style={{ fontSize: "13px", fontWeight: 500, color: "#1c1c1e" }}>{point}</span></div>)}
                         </div>
                     </div>

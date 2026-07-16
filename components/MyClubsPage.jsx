@@ -139,7 +139,7 @@ export function MyClubsPage() {
   return (
     <div className="relative flex-1">
       <header
-        className="sticky top-0 z-50 -mx-4 mb-5 flex h-[54px] items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl"
+        className="sticky top-0 z-50 mb-5 flex h-[54px] items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl"
         style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
       >
         <div
@@ -162,7 +162,7 @@ export function MyClubsPage() {
         </div>
       </header>
 
-      <div className="mx-auto flex max-w-3xl flex-col gap-4 py-5 sm:gap-6">
+      <div className="mx-auto px-3.5 flex max-w-3xl flex-col gap-4 pb-5 sm:gap-6">
         {/* Summary strip */}
         <div className="flex items-center justify-between gap-3 rounded-2xl border border-[rgba(0,0,0,0.1)] bg-white p-4 sm:gap-4 sm:p-5">
           <div className="flex items-center gap-3 sm:gap-4">

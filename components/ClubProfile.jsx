@@ -229,7 +229,7 @@ export function ClubPage() {
         <DashboardEventsShell>
             <div className="relative flex-1">
                 <header
-                    className="sticky top-0 z-50 -mx-4 mb-5 flex h-[54px] items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl"
+                    className="sticky top-0 z-50 mb-5 flex h-[54px] items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl"
                     style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
                 >
                     {/* Left */}
@@ -294,11 +294,10 @@ export function ClubPage() {
                         </div>
                     </div>
                 </header>
-                <div className="mx-auto flex max-w-3xl flex-col gap-4 sm:gap-6">
 
+
+                <div className="mx-auto px-3.5 flex max-w-3xl flex-col gap-4 sm:gap-6">
                     {/* Banner + identity */}
-
-
                     <article
                         style={{ maxWidth: "579.5px", boxShadow: "var(--shadow-card)" }}
                         className="relative w-full overflow-hidden rounded-[24px] bg-white ring-1 ring-[#0000000D] border border-[#0000001A] bg-white shadow-sm"

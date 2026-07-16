@@ -282,8 +282,8 @@ export function EventsPage() {
   if (loading) {
     return (
       <DashboardEventsShell>
-        <div className="flex flex-col gap-6 sm:gap-8">
-          <TopBar />
+        <TopBar />
+        <div className="flex flex-col px-3.5 gap-6 sm:gap-8">       
           <EventsPageSkeleton />
         </div>
       </DashboardEventsShell>
@@ -293,7 +293,7 @@ export function EventsPage() {
   return (
     <DashboardEventsShell>
       <TopBar />
-      <div className="flex flex-col gap-6 sm:gap-8">
+      <div className="flex flex-col gap-6 px-3.5 sm:gap-8">
         
 
         <div className="flex flex-wrap items-end justify-between gap-4">
