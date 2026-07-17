@@ -14,6 +14,36 @@ import { cn } from "@/lib/utils";
 import { getPusherClient } from "@/lib/usePusher";
 import ChatGiphyPicker from "@/components/shared/ChatGiphyPicker";
 
+const dateFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" });
+const weekdayFormatter = new Intl.DateTimeFormat(undefined, { weekday: "long" });
+
+function getDateKey(date) {
+    const value = date instanceof Date ? date : new Date(date || Date.now());
+    if (Number.isNaN(value.getTime())) return getDateKey(new Date());
+    const year = value.getFullYear();
+    const month = String(value.getMonth() + 1).padStart(2, "0");
+    const day = String(value.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
+function formatDateCapsule(date) {
+    const value = date instanceof Date ? date : new Date(date || Date.now());
+    const safeDate = Number.isNaN(value.getTime()) ? new Date() : value;
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+
+    if (getDateKey(safeDate) === getDateKey(today)) return "Today";
+    if (getDateKey(safeDate) === getDateKey(yesterday)) return "Yesterday";
+
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(today.getDate() - 6);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+
+    if (safeDate >= sevenDaysAgo) return weekdayFormatter.format(safeDate);
+    return dateFormatter.format(safeDate);
+}
+
 function toChatMessage(msg, currentUserId) {
     const senderId = String(msg.senderId || msg.sender || "");
     const mine = senderId === String(currentUserId);
@@ -23,7 +53,8 @@ function toChatMessage(msg, currentUserId) {
         : msg.messageType === "media" && firstAttachment?.url
             ? { type: firstAttachment.mimeType?.startsWith("video/") ? "video" : "image", url: firstAttachment.url }
             : null;
-    return { ...msg, senderId, from: mine ? "me" : senderId, time: new Date(msg.createdAt || Date.now()).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }), media };
+    const createdAt = msg.createdAt || Date.now();
+    return { ...msg, senderId, from: mine ? "me" : senderId, createdAt, dateKey: getDateKey(createdAt), time: new Date(createdAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }), media };
 }
 
 const fallbackAvatar = (seed) => `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(seed || "User")}`;
@@ -219,19 +250,19 @@ export default function ChatConversation({ id, communityId, groupId }) {
             <div className="relative"><button onClick={() => setDots((v) => !v)} className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#536471] transition-all duration-200 hover:border-[#1d9bf0] hover:bg-[#e8f5fe] hover:text-[#1d9bf0] active:scale-95"><MoreHorizontal className="h-4 w-4" /></button>{dots && <DotsMenu onClose={() => setDots(false)} items={[{ label: "View profile", onClick: () => !isCommunityRoute && router.push(`/dashboard/Userprofile?userId=${id}`) }, { label: blockedUsers.includes(id) ? "Unblock user" : "Block user", onClick: () => { if (blockedUsers.includes(id)) { handleToggleBlock("unblock"); } else { setShowBlockUserModal(true); } } }, { label: "Report conversation", danger: true }]} />}</div>
         </header>
         <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto"><div className="flex flex-col items-center gap-2 px-6 py-8"><img src={header.avatar} alt={header.name} className="h-20 w-20 rounded-full bg-[#f2f6fa] border object-cover" /><div className="text-center"><div className="text-lg font-extrabold">{header.name}</div><div className="text-sm text-[#62748e]">@{header.handle}</div></div><button className="mt-2 rounded-full bg-[#000] px-5 py-1.5 text-sm font-bold text-[#fff] hover:opacity-90">View Profile</button></div>
-            <div className="flex-1 min-h-0 overflow-y-auto px-4 py-6">{loading ? <div className="space-y-4">{[1, 2, 3].map((i) => <div key={i} className={cn("flex", i % 2 ? "justify-end" : "justify-start")}><div className="h-10 w-40 animate-pulse rounded-2xl bg-[#f2f6fa]" /></div>)}</div> : <div className="space-y-4"><div className="text-center flex justify-center text-xs text-[#62748e]"><div className="bg-gray-100 w-fit rounded-full px-3 py-0.5">Today</div></div>{messages.map((m) => {
-                const mine = m.from === "me" || m.senderId === currentUserId; const showReact = reactingOn === m.id; return <div
+            <div className="flex-1 min-h-0 overflow-y-auto px-4 py-6">{loading ? <div className="space-y-4">{[1, 2, 3].map((i) => <div key={i} className={cn("flex", i % 2 ? "justify-end" : "justify-start")}><div className="h-10 w-40 animate-pulse rounded-2xl bg-[#f2f6fa]" /></div>)}</div> : <div className="space-y-4">{messages.map((m, index) => {
+                const mine = m.from === "me" || m.senderId === currentUserId; const showReact = reactingOn === m.id; const showDateCapsule = index === 0 || messages[index - 1]?.dateKey !== m.dateKey; return <div
                     key={m.id}
                     onMouseEnter={() => setActionOpen(m.id)}
                     onMouseLeave={() => {
                         setActionOpen(null);
                         setReactingOn(null);
                     }}
-                    className={cn(
-                        "group flex w-full items-end gap-2 py-1",
-                        mine ? "justify-end pr-6" : "justify-start pl-6"
-                    )}
-                ><div
+                    className="w-full"
+                >{showDateCapsule && <div className="mb-3 mt-2 flex justify-center text-xs text-[#62748e]"><div className="w-fit rounded-full bg-gray-100 px-3 py-1 font-medium shadow-sm">{formatDateCapsule(m.createdAt)}</div></div>}<div className={cn(
+                    "group flex w-full items-end gap-2 py-1",
+                    mine ? "justify-end pr-6" : "justify-start pl-6"
+                )}><div
                     className="relative max-w-[70%]">{actionOpen === m.id && <div
                         className={cn(
                             "absolute top-1 z-50 flex items-center gap-0.5 rounded-full border border-gray-200 bg-white px-1 py-1",
@@ -256,7 +287,7 @@ export default function ChatConversation({ id, communityId, groupId }) {
                             className="flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-[#f2f6fa]"
                         >
                             <Trash2 className="h-4 w-4 shrink-0 text-red-500" strokeWidth={2} />
-                        </button></div>}{m.deletedForEveryone ? <div className={cn("inline-flex rounded-2xl px-3.5 py-2 text-[15px] italic", mine ? "bg-[#1d9bf0] rounded-br-[7px] text-white" : "bg-[#f2f6fa] rounded-bl-[7px] text-[#62748e]")}>This message was deleted</div> : <>{m.media?.type === "image" && <img src={m.media.url} alt="" className="mb-1 max-h-80 rounded-2xl object-cover shadow-sm" />}{m.media?.type === "video" && <video src={m.media.url} controls className="mb-1 max-h-80 rounded-2xl" />}{m.media?.type === "gif" && <img src={m.media.url} alt="gif" className="mb-1 max-h-60 rounded-2xl" />}{m.text && m.messageType !== "gif" && <button onClick={() => setActionOpen(actionOpen === m.id ? null : m.id)} className={cn("inline-flex items-end gap-2 rounded-2xl px-3.5 py-2 text-left text-[15px] animate-fade-in", mine ? "bg-[#1d9bf0] rounded-br-[7px] text-white" : "bg-[#f2f6fa] rounded-bl-[7px] text-[#62748e]")}><span className="whitespace-pre-wrap break-words">{m.text}</span><span className={cn("shrink-0 text-[11px]", mine ? "text-white/80" : "text-[#62748e]")}>{m.time}</span>{mine && m.readAt && <CheckCircle2 className="h-3 w-3 text-white/90" />}</button>}</>}{m.reactions?.length > 0 && <div className={cn("-mt-2 inline-flex rounded-full border bg-[#fff] px-2 py-0.5 text-sm shadow", mine ? "float-right" : "float-left")}>{m.reactions.map((r) => r.emoji).join(" ")}</div>}{showReact && <ReactionPicker align={mine ? "right" : "left"} onClose={() => setReactingOn(null)} onPick={(e) => react(m.id, e)} />}</div></div>
+                        </button></div>}{m.deletedForEveryone ? <div className={cn("inline-flex rounded-2xl px-3.5 py-2 text-[15px] italic", mine ? "bg-[#1d9bf0] rounded-br-[7px] text-white" : "bg-[#f2f6fa] rounded-bl-[7px] text-[#62748e]")}>This message was deleted</div> : <>{m.media?.type === "image" && <img src={m.media.url} alt="" className="mb-1 max-h-80 rounded-2xl object-cover shadow-sm" />}{m.media?.type === "video" && <video src={m.media.url} controls className="mb-1 max-h-80 rounded-2xl" />}{m.media?.type === "gif" && <img src={m.media.url} alt="gif" className="mb-1 max-h-60 rounded-2xl" />}{m.text && m.messageType !== "gif" && <button onClick={() => setActionOpen(actionOpen === m.id ? null : m.id)} className={cn("inline-flex items-end gap-2 rounded-2xl px-3.5 py-2 text-left text-[15px] animate-fade-in", mine ? "bg-[#1d9bf0] rounded-br-[7px] text-white" : "bg-[#f2f6fa] rounded-bl-[7px] text-[#62748e]")}><span className="whitespace-pre-wrap break-words">{m.text}</span><span className={cn("shrink-0 text-[11px]", mine ? "text-white/80" : "text-[#62748e]")}>{m.time}</span>{mine && m.readAt && <CheckCircle2 className="h-3 w-3 text-white/90" />}</button>}</>}{m.reactions?.length > 0 && <div className={cn("-mt-2 inline-flex rounded-full border bg-[#fff] px-2 py-0.5 text-sm shadow", mine ? "float-right" : "float-left")}>{m.reactions.map((r) => r.emoji).join(" ")}</div>}{showReact && <ReactionPicker align={mine ? "right" : "left"} onClose={() => setReactingOn(null)} onPick={(e) => react(m.id, e)} />}</div></div></div>
             })}<div className="text-center flex justify-center gap-1 text-xs text-[#62748e]"><Icon icon="solar:lock-linear" /> This conversation is now end-to-end encrypted</div></div>}</div>
         </div>
         <button
