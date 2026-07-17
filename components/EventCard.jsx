@@ -31,7 +31,7 @@ export function EventCard({
     }, [lightboxOpen]);
 
     return (
-        <div className="w-full">
+        <div className="w-full cursor-pointer">
             <div
                 className="relative ml-[40px] bg-white h-[7em] rounded-2xl border border-[#dfe3e8] transition-all duration-[250ms] ease-in"
                 onClick={onClick}

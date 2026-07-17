@@ -259,7 +259,7 @@ export default function ChatConversation({ id, communityId, groupId }) {
                         setReactingOn(null);
                     }}
                     className="w-full"
-                >{showDateCapsule && <div className="mb-3 mt-2 flex justify-center text-xs text-[#62748e]"><div className="w-fit rounded-full bg-gray-100 px-3 py-1 font-medium shadow-sm">{formatDateCapsule(m.createdAt)}</div></div>}<div className={cn(
+                >{showDateCapsule && <div className="mb-3 mt-2 flex justify-center text-xs text-[#62748e]"><div className="w-fit rounded-full bg-gray-100 px-3 py-1 font-medium">{formatDateCapsule(m.createdAt)}</div></div>}<div className={cn(
                     "group flex w-full items-end gap-2 py-1",
                     mine ? "justify-end pr-6" : "justify-start pl-6"
                 )}><div
@@ -287,7 +287,18 @@ export default function ChatConversation({ id, communityId, groupId }) {
                             className="flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-[#f2f6fa]"
                         >
                             <Trash2 className="h-4 w-4 shrink-0 text-red-500" strokeWidth={2} />
-                        </button></div>}{m.deletedForEveryone ? <div className={cn("inline-flex rounded-2xl px-3.5 py-2 text-[15px] italic", mine ? "bg-[#1d9bf0] rounded-br-[7px] text-white" : "bg-[#f2f6fa] rounded-bl-[7px] text-[#62748e]")}>This message was deleted</div> : <>{m.media?.type === "image" && <img src={m.media.url} alt="" className="mb-1 max-h-80 rounded-2xl object-cover shadow-sm" />}{m.media?.type === "video" && <video src={m.media.url} controls className="mb-1 max-h-80 rounded-2xl" />}{m.media?.type === "gif" && <img src={m.media.url} alt="gif" className="mb-1 max-h-60 rounded-2xl" />}{m.text && m.messageType !== "gif" && <button onClick={() => setActionOpen(actionOpen === m.id ? null : m.id)} className={cn("inline-flex items-end gap-2 rounded-2xl px-3.5 py-2 text-left text-[15px] animate-fade-in", mine ? "bg-[#1d9bf0] rounded-br-[7px] text-white" : "bg-[#f2f6fa] rounded-bl-[7px] text-[#62748e]")}><span className="whitespace-pre-wrap break-words">{m.text}</span><span className={cn("shrink-0 text-[11px]", mine ? "text-white/80" : "text-[#62748e]")}>{m.time}</span>{mine && m.readAt && <CheckCircle2 className="h-3 w-3 text-white/90" />}</button>}</>}{m.reactions?.length > 0 && <div className={cn("-mt-2 inline-flex rounded-full border bg-[#fff] px-2 py-0.5 text-sm shadow", mine ? "float-right" : "float-left")}>{m.reactions.map((r) => r.emoji).join(" ")}</div>}{showReact && <ReactionPicker align={mine ? "right" : "left"} onClose={() => setReactingOn(null)} onPick={(e) => react(m.id, e)} />}</div></div></div>
+                        </button></div>}{m.deletedForEveryone ? <div className={cn("inline-flex rounded-2xl px-3.5 py-2 text-[15px] italic", mine ? "bg-[#1d9bf0] rounded-br-[7px] text-white" : "bg-[#f2f6fa] rounded-bl-[7px] text-[#62748e]")}>This message was deleted</div> : <>{m.media?.type === "image" && <img src={m.media.url} alt="" className="mb-1 max-h-80 rounded-2xl object-cover shadow-sm" />}{m.media?.type === "video" && <video src={m.media.url} controls className="mb-1 max-h-80 rounded-2xl" />}{m.media?.type === "gif" && <img src={m.media.url} alt="gif" className="mb-1 max-h-60 rounded-2xl" />}{m.text && m.messageType !== "gif" && <button onClick={() => setActionOpen(actionOpen === m.id ? null : m.id)} className={cn("inline-flex items-end gap-2 rounded-2xl px-3.5 py-2 text-left text-[15px] animate-fade-in", mine ? "bg-[#1d9bf0] rounded-br-[7px] text-white" : "bg-[#f2f6fa] rounded-bl-[7px] text-[#62748e]")}><span className="whitespace-pre-wrap break-words">{m.text}</span><span className={cn("shrink-0 text-[11px]", mine ? "text-white/80" : "text-[#62748e]")}>{m.time}</span>{mine && m.readAt && <CheckCircle2 className="h-3 w-3 text-white/90" />}</button>}</>}{m.reactions?.length > 0 && (
+                            <div
+                                className={cn(
+                                    "absolute -bottom-5 z-20 inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2 py-0.5 shadow-md",
+                                    mine
+                                        ? "right-3 translate-x-1/4"
+                                        : "left-3 -translate-x-1/4"
+                                )}
+                            >
+                                {m.reactions.map((r) => r.emoji).join(" ")}
+                            </div>
+                        )}{showReact && <ReactionPicker align={mine ? "right" : "left"} onClose={() => setReactingOn(null)} onPick={(e) => react(m.id, e)} />}</div></div></div>
             })}<div className="text-center flex justify-center gap-1 text-xs text-[#62748e]"><Icon icon="solar:lock-linear" /> This conversation is now end-to-end encrypted</div></div>}</div>
         </div>
         <button
@@ -446,7 +457,7 @@ export default function ChatConversation({ id, communityId, groupId }) {
                     </p>
                 )}
             </div>
-            
+
         )}
 
         {call && (
