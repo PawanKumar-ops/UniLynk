@@ -1450,22 +1450,8 @@ export function ExplorePage({ onBack }) {
 
                   <div className="min-w-0 flex-1">
                     <h3 className="truncate text-black leading-tight">{randomClub?.clubName || ''}</h3>
-                    <div className="mt-0.5 flex items-center gap-1.5 text-neutral-500">
-                      <svg
-                        width="14"
-                        height="14"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      >
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                        <circle cx="9" cy="7" r="4" />
-                        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                      </svg>
+                    <div className="mt-0.5 flex items-center gap-1 text-neutral-500">
+                      <Icon icon="solar:user-linear" className="w-4 h-4"/>
                       <span>{formatted} members</span>
                     </div>
                   </div>

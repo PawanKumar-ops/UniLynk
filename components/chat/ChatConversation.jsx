@@ -257,15 +257,205 @@ export default function ChatConversation({ id, communityId, groupId }) {
                         >
                             <Trash2 className="h-4 w-4 shrink-0 text-red-500" strokeWidth={2} />
                         </button></div>}{m.deletedForEveryone ? <div className={cn("inline-flex rounded-2xl px-3.5 py-2 text-[15px] italic", mine ? "bg-[#1d9bf0] rounded-br-[7px] text-white" : "bg-[#f2f6fa] rounded-bl-[7px] text-[#62748e]")}>This message was deleted</div> : <>{m.media?.type === "image" && <img src={m.media.url} alt="" className="mb-1 max-h-80 rounded-2xl object-cover shadow-sm" />}{m.media?.type === "video" && <video src={m.media.url} controls className="mb-1 max-h-80 rounded-2xl" />}{m.media?.type === "gif" && <img src={m.media.url} alt="gif" className="mb-1 max-h-60 rounded-2xl" />}{m.text && m.messageType !== "gif" && <button onClick={() => setActionOpen(actionOpen === m.id ? null : m.id)} className={cn("inline-flex items-end gap-2 rounded-2xl px-3.5 py-2 text-left text-[15px] animate-fade-in", mine ? "bg-[#1d9bf0] rounded-br-[7px] text-white" : "bg-[#f2f6fa] rounded-bl-[7px] text-[#62748e]")}><span className="whitespace-pre-wrap break-words">{m.text}</span><span className={cn("shrink-0 text-[11px]", mine ? "text-white/80" : "text-[#62748e]")}>{m.time}</span>{mine && m.readAt && <CheckCircle2 className="h-3 w-3 text-white/90" />}</button>}</>}{m.reactions?.length > 0 && <div className={cn("-mt-2 inline-flex rounded-full border bg-[#fff] px-2 py-0.5 text-sm shadow", mine ? "float-right" : "float-left")}>{m.reactions.map((r) => r.emoji).join(" ")}</div>}{showReact && <ReactionPicker align={mine ? "right" : "left"} onClose={() => setReactingOn(null)} onPick={(e) => react(m.id, e)} />}</div></div>
-            })}<div className="text-center flex justify-center gap-1 text-xs text-[#62748e]"><Icon icon="solar:lock-linear"/> This conversation is now end-to-end encrypted</div></div>}</div>
+            })}<div className="text-center flex justify-center gap-1 text-xs text-[#62748e]"><Icon icon="solar:lock-linear" /> This conversation is now end-to-end encrypted</div></div>}</div>
         </div>
-        <button onClick={() => scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })} className="absolute bottom-28 right-[400px] hidden rounded-full border bg-[#fff] p-2 shadow-md hover:bg-[#f2f6fa] md:block"><ArrowDown className="h-4 w-4" /></button>
-        {pendingFile && <MediaPreviewBar file={pendingFile} onRemove={() => setPendingFile(null)} />}
-        {recording ? <VoiceRecorder onClose={() => setRecording(false)} /> : <div className="border-t bg-[#fff] p-3"><div className="flex items-end gap-2 rounded-3xl bg-[#f2f6fa] px-3 py-2"><div className="relative"><button disabled={isConversationBlocked} onClick={() => setPlusOpen((v) => !v)} className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"><Plus className="h-5 w-5" /></button>{plusOpen && !isConversationBlocked && <PlusDropdown onClose={() => setPlusOpen(false)} onPickFile={(f) => uploadAndPreview(f).catch((e) => setError(e.message))} />}</div><button disabled={isConversationBlocked} onClick={() => setPicker(picker === "gif" ? null : "gif")} className="flex h-9 items-center justify-center rounded-md border border-[#1d9bf0]/50 px-1.5 text-[11px] font-extrabold text-[#1d9bf0] hover:bg-[#1d9bf0]/10">GIF</button><button disabled={isConversationBlocked} onClick={() => setPicker(picker === "emoji" ? null : "emoji")} className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"><Smile className="h-5 w-5" /></button><textarea value={text} rows={1} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); if (!isConversationBlocked) send().catch((err) => setError(err.message)); } }} placeholder={isConversationBlocked ? blockedLabel : "Start a new message"} disabled={isConversationBlocked} className="max-h-32 flex-1 resize-none bg-transparent py-2 text-[15px] outline-none" />{text || pendingFile ? <button disabled={isConversationBlocked} onClick={() => !isConversationBlocked && send().catch((err) => setError(err.message))} className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"><Icon icon="ri:send-ins-line" className="h-5 w-5" /></button> : <button disabled={isConversationBlocked} onClick={() => setRecording(true)} className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"><Mic className="h-5 w-5" /></button>}{picker === "emoji" && <div className="absolute bottom-20 left-14 z-50 rounded-2xl border bg-white shadow-2xl"><EmojiPicker onEmojiClick={(emojiData) => { if (emojiData?.emoji) setText((t) => `${t}${emojiData.emoji}`); setPicker(null); }} width={340} height={380} lazyLoadEmojis /></div>}{picker === "gif" && <div className="absolute bottom-20 left-14 z-50 h-[420px] w-[360px] overflow-hidden rounded-2xl border bg-white shadow-2xl"><ChatGiphyPicker width={340} columns={2} onSelect={(val) => { setPicker(null); if (!isConversationBlocked) send({ media: { type: "gif", url: val } }).catch((err) => setError(err.message)); }} /></div>}{picker && <button type="button" aria-label="Close picker" className="fixed inset-0 z-40 cursor-default" onClick={() => setPicker(null)} />}</div>{error && <p className="px-3 pt-2 text-sm text-red-500">{error}</p>}</div>}
-        {call && <CallModal open onClose={() => setCall(null)} user={header} video={call === "video"} />}
-        <DeleteMessageModal open={!!deleteTargetMessage} onOpenChange={(open) => !open && setDeleteTargetMessage(null)} onConfirm={handleDelete} canDeleteForEveryone={(deleteTargetMessage?.sender === currentUserId) || (deleteTargetMessage?.senderId === currentUserId)} />
-        <ForwardMessageModal open={!!forwardTargetMessage} onOpenChange={(open) => !open && setForwardTargetMessage(null)} message={forwardTargetMessage} recipients={recipients} onForward={handleForward} />
-        <BlockUserModal open={showBlockUserModal} onOpenChange={setShowBlockUserModal} onConfirm={() => handleToggleBlock("block")} userName={activeUser?.name} />
-        <BlockedModal open={showBlockedModal} onOpenChange={setShowBlockedModal} userName={activeUser?.name} />
+        <button
+            onClick={() =>
+                scrollRef.current?.scrollTo({
+                    top: scrollRef.current.scrollHeight,
+                    behavior: "smooth",
+                })
+            }
+            className="absolute bottom-28 right-[400px] hidden rounded-full border bg-[#fff] p-2 shadow-md hover:bg-[#f2f6fa] md:block"
+        >
+            <ArrowDown className="h-4 w-4" />
+        </button>
+
+        {pendingFile && (
+            <MediaPreviewBar
+                file={pendingFile}
+                onRemove={() => setPendingFile(null)}
+            />
+        )}
+
+        {recording ? (
+            <VoiceRecorder onClose={() => setRecording(false)} />
+        ) : (
+            <div className="border-t bg-[#fff] p-3">
+                <div className="flex items-end gap-2 rounded-3xl bg-[#f2f6fa] px-3 py-2">
+                    <div className="relative">
+                        <button
+                            disabled={isConversationBlocked}
+                            onClick={() => setPlusOpen((v) => !v)}
+                            className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"
+                        >
+                            <Plus className="h-5 w-5" />
+                        </button>
+
+                        {plusOpen && !isConversationBlocked && (
+                            <PlusDropdown
+                                onClose={() => setPlusOpen(false)}
+                                onPickFile={(f) =>
+                                    uploadAndPreview(f).catch((e) => setError(e.message))
+                                }
+                            />
+                        )}
+                    </div>
+
+                    <button
+                        disabled={isConversationBlocked}
+                        onClick={() => setPicker(picker === "gif" ? null : "gif")}
+                        className="flex h-9 items-center justify-center rounded-md border border-[#1d9bf0]/50 px-1.5 text-[11px] font-extrabold text-[#1d9bf0] hover:bg-[#1d9bf0]/10"
+                    >
+                        GIF
+                    </button>
+
+                    <button
+                        disabled={isConversationBlocked}
+                        onClick={() => setPicker(picker === "emoji" ? null : "emoji")}
+                        className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"
+                    >
+                        <Smile className="h-5 w-5" />
+                    </button>
+
+                    <textarea
+                        value={text}
+                        rows={1}
+                        onChange={(e) => setText(e.target.value)}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" && !e.shiftKey) {
+                                e.preventDefault();
+                                if (!isConversationBlocked) {
+                                    send().catch((err) => setError(err.message));
+                                }
+                            }
+                        }}
+                        placeholder={
+                            isConversationBlocked
+                                ? blockedLabel
+                                : "Start a new message"
+                        }
+                        disabled={isConversationBlocked}
+                        className="max-h-32 flex-1 resize-none bg-transparent py-2 text-[15px] outline-none"
+                    />
+
+                    {text || pendingFile ? (
+                        <button
+                            disabled={isConversationBlocked}
+                            onClick={() =>
+                                !isConversationBlocked &&
+                                send().catch((err) => setError(err.message))
+                            }
+                            className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"
+                        >
+                            <Icon
+                                icon="ri:send-ins-line"
+                                className="h-5 w-5"
+                            />
+                        </button>
+                    ) : (
+                        <button
+                            disabled={isConversationBlocked}
+                            onClick={() => setRecording(true)}
+                            className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"
+                        >
+                            <Mic className="h-5 w-5" />
+                        </button>
+                    )}
+
+                    {picker === "emoji" && (
+                        <div className="absolute bottom-20 left-14 z-50 rounded-2xl border bg-white shadow-2xl">
+                            <EmojiPicker
+                                onEmojiClick={(emojiData) => {
+                                    if (emojiData?.emoji) {
+                                        setText((t) => `${t}${emojiData.emoji}`);
+                                    }
+                                    setPicker(null);
+                                }}
+                                width={340}
+                                height={380}
+                                lazyLoadEmojis
+                            />
+                        </div>
+                    )}
+
+                    {picker === "gif" && (
+                        <div className="absolute bottom-20 left-14 z-50 h-[420px] w-[360px] overflow-hidden rounded-2xl border bg-white shadow-2xl">
+                            <ChatGiphyPicker
+                                width={340}
+                                columns={2}
+                                onSelect={(val) => {
+                                    setPicker(null);
+                                    if (!isConversationBlocked) {
+                                        send({
+                                            media: {
+                                                type: "gif",
+                                                url: val,
+                                            },
+                                        }).catch((err) => setError(err.message));
+                                    }
+                                }}
+                            />
+                        </div>
+                    )}
+
+                    {picker && (
+                        <button
+                            type="button"
+                            aria-label="Close picker"
+                            className="fixed inset-0 z-40 cursor-default"
+                            onClick={() => setPicker(null)}
+                        />
+                    )}
+                </div>
+
+                {error && (
+                    <p className="px-3 pt-2 text-sm text-red-500">
+                        {error}
+                    </p>
+                )}
+            </div>
+            
+        )}
+
+        {call && (
+            <CallModal
+                open
+                onClose={() => setCall(null)}
+                user={header}
+                video={call === "video"}
+            />
+        )}
+
+        <DeleteMessageModal
+            open={!!deleteTargetMessage}
+            onOpenChange={(open) => !open && setDeleteTargetMessage(null)}
+            onConfirm={handleDelete}
+            canDeleteForEveryone={
+                deleteTargetMessage?.sender === currentUserId ||
+                deleteTargetMessage?.senderId === currentUserId
+            }
+        />
+
+        <ForwardMessageModal
+            open={!!forwardTargetMessage}
+            onOpenChange={(open) => !open && setForwardTargetMessage(null)}
+            message={forwardTargetMessage}
+            recipients={recipients}
+            onForward={handleForward}
+        />
+
+        <BlockUserModal
+            open={showBlockUserModal}
+            onOpenChange={setShowBlockUserModal}
+            onConfirm={() => handleToggleBlock("block")}
+            userName={activeUser?.name}
+        />
+
+        <BlockedModal
+            open={showBlockedModal}
+            onOpenChange={setShowBlockedModal}
+            userName={activeUser?.name}
+        />
     </>;
 }

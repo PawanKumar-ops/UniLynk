@@ -677,7 +677,7 @@ export default function MessagesLayout({ children }) {
                                                         ) : null}
                                                     </div>
                                                     <div className="flex items-center gap-1 text-sm text-[#62748e]">
-                                                        <Users className="h-3 w-3" />
+                                                        <Icon icon="solar:user-linear" className="h-3 w-3" />
                                                         {(c.memberCount || c.members?.length || 0).toLocaleString()} members
                                                     </div>
                                                 </div>
