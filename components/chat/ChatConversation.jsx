@@ -305,7 +305,7 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
                                 {m.reactions.map((r) => r.emoji).join(" ")}
                             </div>
                         )}{showReact && <ReactionPicker align={mine ? "right" : "left"} onClose={() => setReactingOn(null)} onPick={(e) => react(m.id, e)} />}</div></div></div>
-            })}<div className="text-center flex justify-center gap-1 text-xs text-[#62748e]"><Icon icon="solar:lock-linear" /> This conversation is now end-to-end encrypted</div></div>}</div>
+            })}<div className="text-center flex justify-center gap-1 text-xs text-[#62748e]"><Icon icon={isSentPendingRequest ? "solar:hourglass-line-duotone" : "solar:lock-linear"} /> {isSentPendingRequest ? "Message request sent. They'll need to accept it first." : "This conversation is now end-to-end encrypted"}</div></div>}</div>
         </div>
         <button
             onClick={() =>

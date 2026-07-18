@@ -24,13 +24,21 @@ export async function GET() {
     const usersWhoBlockedMe = await User.find({ blockedUsers: currentUser._id }).select("_id").lean();
     const blockedBy = usersWhoBlockedMe.map((u) => u._id.toString());
 
-    const acceptedRequests = await MessageRequest.find({
-      status: "accepted",
-      $or: [{ requester: currentUser._id }, { recipient: currentUser._id }],
+    const visibleRequests = await MessageRequest.find({
+      $or: [
+        { status: "accepted", $or: [{ requester: currentUser._id }, { recipient: currentUser._id }] },
+        { status: "pending", requester: currentUser._id },
+      ],
+      deletedFor: { $ne: currentUser._id },
     }).lean();
-    const conversationUserIds = acceptedRequests.map((request) => (
-      request.requester.toString() === currentUser._id.toString() ? request.recipient : request.requester
-    ));
+    const requestByUserId = new Map();
+    for (const request of visibleRequests) {
+      const otherUserId = request.requester.toString() === currentUser._id.toString()
+        ? request.recipient.toString()
+        : request.requester.toString();
+      requestByUserId.set(otherUserId, request);
+    }
+    const conversationUserIds = Array.from(requestByUserId.keys());
 
     const users = await User.find({ _id: { $ne: currentUser._id } })
       .select("name email img")
@@ -55,14 +63,18 @@ export async function GET() {
         ],
         deletedFor: { $ne: currentUser._id },
       }).sort({ createdAt: -1 }).lean();
+      const request = requestByUserId.get(user._id.toString());
+      const isPendingSentRequest = request?.status === "pending" && request.requester.toString() === currentUser._id.toString();
       return {
         id: user._id.toString(),
         name: user.name || user.email,
         email: user.email,
         image: user.img || null,
-        lastMessage: latest?.text || user.email || "Start a conversation",
-        lastMessageAt: latest?.createdAt || null,
+        lastMessage: latest?.text || (isPendingSentRequest ? "Message request sent" : user.email || "Start a conversation"),
+        lastMessageAt: latest?.createdAt || request?.updatedAt || null,
         unreadCount: latest && latest.receiver?.toString() === currentUser._id.toString() && !latest.readAt ? 1 : 0,
+        requestStatus: request?.status || null,
+        requestRole: request?.requester.toString() === currentUser._id.toString() ? "requester" : "recipient",
       };
     }));
 
