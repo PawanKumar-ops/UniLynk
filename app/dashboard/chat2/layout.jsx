@@ -19,6 +19,7 @@ import { Icon } from "@iconify/react";
 import { NewMessageModal, DotsMenu } from "@/components/chat/chat-ui";
 import { CreateGroupModal } from "@/components/CreateGroupModal";
 import { cn } from "@/lib/utils";
+import { getPusherClient } from "@/lib/usePusher";
 
 const lightTheme = {
     "--radius": "0.625rem",

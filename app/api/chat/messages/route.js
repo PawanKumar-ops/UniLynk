@@ -108,7 +108,14 @@ export async function GET(req) {
       })),
     }));
 
-    return Response.json({ messages: formattedMessages });
+    return Response.json({
+      messages: formattedMessages,
+      request: request ? {
+        status: request.status,
+        requesterId: request.requester.toString(),
+        recipientId: request.recipient.toString(),
+      } : null,
+    });
   } catch (error) {
     console.error("CHAT MESSAGES GET ERROR:", error);
     return Response.json({ error: "Failed to load messages" }, { status: 500 });
@@ -227,7 +234,15 @@ export async function POST(req) {
       await triggerPusher([userChannel(receiverId)], "message-requests-updated", {});
     }
 
-    return Response.json({ message: formattedMessage }, { status: 201 });
+    const activeRequest = request || reverseRequest;
+    return Response.json({
+      message: formattedMessage,
+      request: activeRequest ? {
+        status: activeRequest.status,
+        requesterId: activeRequest.requester.toString(),
+        recipientId: activeRequest.recipient.toString(),
+      } : null,
+    }, { status: 201 });
   } catch (error) {
     console.error("CHAT MESSAGES POST ERROR:", error);
     return Response.json({ error: "Failed to send message" }, { status: 500 });

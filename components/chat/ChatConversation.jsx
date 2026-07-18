@@ -67,6 +67,7 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
     const [users, setUsers] = useState([]);
     const [communities, setCommunities] = useState([]);
     const [messages, setMessages] = useState([]);
+    const [requestInfo, setRequestInfo] = useState(null);
     const [text, setText] = useState(searchParams.get("text") || "");
     const [picker, setPicker] = useState(null);
     const [plusOpen, setPlusOpen] = useState(false);
@@ -116,7 +117,10 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
             const res = await fetch(url, { cache: "no-store" });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Failed to load messages");
-            if (!cancelled) setMessages((data.messages || []).map((m) => toChatMessage(m, currentUserId)));
+            if (!cancelled) {
+                setMessages((data.messages || []).map((m) => toChatMessage(m, currentUserId)));
+                setRequestInfo(data.request || null);
+            }
             setLoading(false);
             if (!isCommunityRoute) fetch("/api/chat/messages", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "mark-read", otherUserId: id }) });
         }
@@ -172,6 +176,7 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to send message");
         setMessages((prev) => prev.some((m) => m.id === data.message.id) ? prev : [...prev, toChatMessage(data.message, currentUserId)]);
+        if (data.request) setRequestInfo(data.request);
         setText(""); setPendingFile(null); setError("");
     }
 
@@ -241,6 +246,7 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
     }
 
     const recipients = [...users.filter((u) => u.id !== currentUserId).map((u) => ({ id: u.id, name: u.name, subtitle: u.email, avatarUrl: u.image, kind: "dm" })), ...communities.flatMap((c) => (c.groups || []).map((g) => ({ id: `group:${c.id}:${g.id}`, communityId: c.id, groupId: g.id, name: g.name, communityName: c.name, subtitle: `${c.name} community`, avatarUrl: c.image, kind: "community" })))];
+    const isSentPendingRequest = !isCommunityRoute && requestInfo?.status === "pending" && requestInfo?.requesterId === currentUserId;
 
     if (!header) return <div className="flex flex-1 items-center justify-center text-[#62748e]">Conversation not found</div>;
 
