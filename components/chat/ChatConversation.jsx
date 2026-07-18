@@ -60,13 +60,14 @@ function toChatMessage(msg, currentUserId) {
 const fallbackAvatar = (seed) => `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(seed || "User")}`;
 const quickTime = (date) => new Date(date || Date.now()).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
-export default function ChatConversation({ id, communityId, groupId }) {
+export default function ChatConversation({ id, communityId, groupId, requestMode = false, onRequestBlock, onBack }) {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [currentUserId, setCurrentUserId] = useState("");
     const [users, setUsers] = useState([]);
     const [communities, setCommunities] = useState([]);
     const [messages, setMessages] = useState([]);
+    const [requestInfo, setRequestInfo] = useState(null);
     const [text, setText] = useState(searchParams.get("text") || "");
     const [picker, setPicker] = useState(null);
     const [plusOpen, setPlusOpen] = useState(false);
@@ -116,7 +117,10 @@ export default function ChatConversation({ id, communityId, groupId }) {
             const res = await fetch(url, { cache: "no-store" });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || "Failed to load messages");
-            if (!cancelled) setMessages((data.messages || []).map((m) => toChatMessage(m, currentUserId)));
+            if (!cancelled) {
+                setMessages((data.messages || []).map((m) => toChatMessage(m, currentUserId)));
+                setRequestInfo(data.request || null);
+            }
             setLoading(false);
             if (!isCommunityRoute) fetch("/api/chat/messages", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "mark-read", otherUserId: id }) });
         }
@@ -172,6 +176,7 @@ export default function ChatConversation({ id, communityId, groupId }) {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Failed to send message");
         setMessages((prev) => prev.some((m) => m.id === data.message.id) ? prev : [...prev, toChatMessage(data.message, currentUserId)]);
+        if (data.request) setRequestInfo(data.request);
         setText(""); setPendingFile(null); setError("");
     }
 
@@ -241,13 +246,14 @@ export default function ChatConversation({ id, communityId, groupId }) {
     }
 
     const recipients = [...users.filter((u) => u.id !== currentUserId).map((u) => ({ id: u.id, name: u.name, subtitle: u.email, avatarUrl: u.image, kind: "dm" })), ...communities.flatMap((c) => (c.groups || []).map((g) => ({ id: `group:${c.id}:${g.id}`, communityId: c.id, groupId: g.id, name: g.name, communityName: c.name, subtitle: `${c.name} community`, avatarUrl: c.image, kind: "community" })))];
+    const isSentPendingRequest = !isCommunityRoute && requestInfo?.status === "pending" && requestInfo?.requesterId === currentUserId;
 
     if (!header) return <div className="flex flex-1 items-center justify-center text-[#62748e]">Conversation not found</div>;
 
     return <>
         <header className="flex items-center justify-between border-b px-4 py-2.5" style={{ display: "flex", flexDirection: "row" }}>
-            <div className="flex min-w-0 items-center gap-2"><Link href="/dashboard/chat2" className="rounded-full p-2 hover:bg-[#f2f6fa] md:hidden"><ArrowLeft className="h-5 w-5" /></Link><img src={header.avatar} alt={header.name} className="h-9 w-9 shrink-0 border rounded-full bg-[#f2f6fa] object-cover" /><div className="flex min-w-0 items-center gap-1"><span className="truncate font-bold">{header.name}</span>{header.verified && <span className="shrink-0 text-[#1d9bf0]">✓</span>}</div></div>
-            <div className="relative"><button onClick={() => setDots((v) => !v)} className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#536471] transition-all duration-200 hover:border-[#1d9bf0] hover:bg-[#e8f5fe] hover:text-[#1d9bf0] active:scale-95"><MoreHorizontal className="h-4 w-4" /></button>{dots && <DotsMenu onClose={() => setDots(false)} items={[{ label: "View profile", onClick: () => !isCommunityRoute && router.push(`/dashboard/Userprofile?userId=${id}`) }, { label: blockedUsers.includes(id) ? "Unblock user" : "Block user", onClick: () => { if (blockedUsers.includes(id)) { handleToggleBlock("unblock"); } else { setShowBlockUserModal(true); } } }, { label: "Report conversation", danger: true }]} />}</div>
+            <div className="flex min-w-0 items-center gap-2">{onBack ? <button onClick={onBack} className="rounded-full p-2 hover:bg-[#f2f6fa] md:hidden"><ArrowLeft className="h-5 w-5" /></button> : <Link href="/dashboard/chat2" className="rounded-full p-2 hover:bg-[#f2f6fa] md:hidden"><ArrowLeft className="h-5 w-5" /></Link>}<img src={header.avatar} alt={header.name} className="h-9 w-9 shrink-0 border rounded-full bg-[#f2f6fa] object-cover" /><div className="flex min-w-0 items-center gap-1"><span className="truncate font-bold">{header.name}</span>{header.verified && <span className="shrink-0 text-[#1d9bf0]">✓</span>}</div></div>
+            <div className="relative"><button onClick={() => setDots((v) => !v)} className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#536471] transition-all duration-200 hover:border-[#1d9bf0] hover:bg-[#e8f5fe] hover:text-[#1d9bf0] active:scale-95"><MoreHorizontal className="h-4 w-4" /></button>{dots && <DotsMenu onClose={() => setDots(false)} items={requestMode ? [{ label: "Report user", danger: true }, { label: "Block user", danger: true, onClick: () => setShowBlockUserModal(true) }] : [{ label: "View profile", onClick: () => !isCommunityRoute && router.push(`/dashboard/Userprofile?userId=${id}`) }, { label: blockedUsers.includes(id) ? "Unblock user" : "Block user", onClick: () => { if (blockedUsers.includes(id)) { handleToggleBlock("unblock"); } else { setShowBlockUserModal(true); } } }, { label: "Report conversation", danger: true }]} />}</div>
         </header>
         <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto"><div className="flex flex-col items-center gap-2 px-6 py-8"><img src={header.avatar} alt={header.name} className="h-20 w-20 rounded-full bg-[#f2f6fa] border object-cover" /><div className="text-center"><div className="text-lg font-extrabold">{header.name}</div><div className="text-sm text-[#62748e]">@{header.handle}</div></div><button className="mt-2 rounded-full bg-[#000] px-5 py-1.5 text-sm font-bold text-[#fff] hover:opacity-90">View Profile</button></div>
             <div className="flex-1 min-h-0 overflow-y-auto px-4 py-6">{loading ? <div className="space-y-4">{[1, 2, 3].map((i) => <div key={i} className={cn("flex", i % 2 ? "justify-end" : "justify-start")}><div className="h-10 w-40 animate-pulse rounded-2xl bg-[#f2f6fa]" /></div>)}</div> : <div className="space-y-4">{messages.map((m, index) => {
@@ -288,7 +294,7 @@ export default function ChatConversation({ id, communityId, groupId }) {
                         >
                             <Trash2 className="h-4 w-4 shrink-0 text-red-500" strokeWidth={2} />
                         </button></div>}{m.deletedForEveryone ? <div className={cn("inline-flex rounded-2xl px-3.5 py-2 text-[15px] italic", mine ? "bg-[#1d9bf0] rounded-br-[7px] text-white" : "bg-[#f2f6fa] rounded-bl-[7px] text-[#62748e]")}>This message was deleted</div> : <>{m.media?.type === "image" && <img src={m.media.url} alt="" className="mb-1 max-h-80 rounded-2xl object-cover shadow-sm" />}{m.media?.type === "video" && <video src={m.media.url} controls className="mb-1 max-h-80 rounded-2xl" />}{m.media?.type === "gif" && <img src={m.media.url} alt="gif" className="mb-1 max-h-60 rounded-2xl" />}{m.text && m.messageType !== "gif" && <button onClick={() => setActionOpen(actionOpen === m.id ? null : m.id)} className={cn("inline-flex items-end gap-2 rounded-2xl px-3.5 py-2 text-left text-[15px] animate-fade-in", mine ? "bg-[#1d9bf0] rounded-br-[7px] text-white" : "bg-[#f2f6fa] rounded-bl-[7px] text-[#62748e]")}><span className="whitespace-pre-wrap break-words">{m.text}</span><span className={cn("shrink-0 text-[11px]", mine ? "text-white/80" : "text-[#62748e]")}>{m.time}</span>{mine && m.readAt && <CheckCircle2 className="h-3 w-3 text-white/90" />}</button>}</>}{m.reactions?.length > 0 && <div className={cn("-mt-2 inline-flex rounded-full border bg-[#fff] px-2 py-0.5 text-sm shadow", mine ? "float-right" : "float-left")}>{m.reactions.map((r) => r.emoji).join(" ")}</div>}{showReact && <ReactionPicker align={mine ? "right" : "left"} onClose={() => setReactingOn(null)} onPick={(e) => react(m.id, e)} />}</div></div></div>
-            })}<div className="text-center flex justify-center gap-1 text-xs text-[#62748e]"><Icon icon="solar:lock-linear" /> This conversation is now end-to-end encrypted</div></div>}</div>
+            })}<div className="text-center flex justify-center gap-1 text-xs text-[#62748e]">{isSentPendingRequest ? "Message request sent. They'll need to accept it first." : <><Icon icon="solar:lock-linear" /> This conversation is now end-to-end encrypted</>}</div></div>}</div>
         </div>
         <button
             onClick={() =>
@@ -309,7 +315,7 @@ export default function ChatConversation({ id, communityId, groupId }) {
             />
         )}
 
-        {recording ? (
+        {!requestMode && (recording ? (
             <VoiceRecorder onClose={() => setRecording(false)} />
         ) : (
             <div className="border-t bg-[#fff] p-3">
@@ -447,7 +453,7 @@ export default function ChatConversation({ id, communityId, groupId }) {
                 )}
             </div>
             
-        )}
+        ))}
 
         {call && (
             <CallModal
@@ -479,7 +485,7 @@ export default function ChatConversation({ id, communityId, groupId }) {
         <BlockUserModal
             open={showBlockUserModal}
             onOpenChange={setShowBlockUserModal}
-            onConfirm={() => handleToggleBlock("block")}
+            onConfirm={() => handleToggleBlock("block").then(() => onRequestBlock?.())}
             userName={activeUser?.name}
         />
 

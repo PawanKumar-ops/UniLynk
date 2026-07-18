@@ -4,6 +4,7 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/user";
 import ChatMessage from "@/models/chatMessage";
+import MessageRequest from "@/models/messageRequest";
 import { triggerPusher, userChannel } from "@/lib/pusher";
 
 const ALLOWED_MESSAGE_TYPES = ["text", "emoji", "gif", "document", "media", "shared_post"];
@@ -64,6 +65,18 @@ export async function GET(req) {
       return Response.json({ error: "Valid userId is required" }, { status: 400 });
     }
 
+    const request = await MessageRequest.findOne({
+      $or: [
+        { requester: currentUser._id, recipient: otherUserId },
+        { requester: otherUserId, recipient: currentUser._id },
+      ],
+      deletedFor: { $ne: currentUser._id },
+    }).lean();
+
+    if (request && request.status !== "accepted" && request.recipient.toString() !== currentUser._id.toString() && request.requester.toString() !== currentUser._id.toString()) {
+      return Response.json({ error: "Message request is pending" }, { status: 403 });
+    }
+
     const messages = await ChatMessage.find({
       $or: [
         { sender: currentUser._id, receiver: otherUserId },
@@ -95,7 +108,14 @@ export async function GET(req) {
       })),
     }));
 
-    return Response.json({ messages: formattedMessages });
+    return Response.json({
+      messages: formattedMessages,
+      request: request ? {
+        status: request.status,
+        requesterId: request.requester.toString(),
+        recipientId: request.recipient.toString(),
+      } : null,
+    });
   } catch (error) {
     console.error("CHAT MESSAGES GET ERROR:", error);
     return Response.json({ error: "Failed to load messages" }, { status: 500 });
@@ -168,6 +188,15 @@ export async function POST(req) {
       return Response.json({ error: "Shared post data is required" }, { status: 400 });
     }
 
+    let request = await MessageRequest.findOne({ requester: currentUser._id, recipient: receiverId });
+    let reverseRequest = await MessageRequest.findOne({ requester: receiverId, recipient: currentUser._id });
+    if (!request && !reverseRequest) {
+      request = await MessageRequest.create({ requester: currentUser._id, recipient: receiverId, status: "pending", deletedFor: [] });
+    } else if (request?.deletedFor?.some((id) => id.toString() === receiverId)) {
+      request.deletedFor = request.deletedFor.filter((id) => id.toString() !== receiverId);
+      await request.save();
+    }
+
     const message = await ChatMessage.create({
       sender: currentUser._id,
       receiver: receiverId,
@@ -201,8 +230,19 @@ export async function POST(req) {
     };
 
     await triggerPusher([userChannel(currentUser._id), userChannel(receiverId)], "new-message", formattedMessage);
+    if ((request || reverseRequest)?.status !== "accepted") {
+      await triggerPusher([userChannel(currentUser._id), userChannel(receiverId)], "message-requests-updated", {});
+    }
 
-    return Response.json({ message: formattedMessage }, { status: 201 });
+    const activeRequest = request || reverseRequest;
+    return Response.json({
+      message: formattedMessage,
+      request: activeRequest ? {
+        status: activeRequest.status,
+        requesterId: activeRequest.requester.toString(),
+        recipientId: activeRequest.recipient.toString(),
+      } : null,
+    }, { status: 201 });
   } catch (error) {
     console.error("CHAT MESSAGES POST ERROR:", error);
     return Response.json({ error: "Failed to send message" }, { status: 500 });
