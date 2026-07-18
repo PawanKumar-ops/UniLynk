@@ -231,7 +231,7 @@ export async function POST(req) {
 
     await triggerPusher([userChannel(currentUser._id), userChannel(receiverId)], "new-message", formattedMessage);
     if ((request || reverseRequest)?.status !== "accepted") {
-      await triggerPusher([userChannel(receiverId)], "message-requests-updated", {});
+      await triggerPusher([userChannel(currentUser._id), userChannel(receiverId)], "message-requests-updated", {});
     }
 
     const activeRequest = request || reverseRequest;

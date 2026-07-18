@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useParams, useRouter, usePathname } from "next/navigation";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import {
     Search,
     Mail,
@@ -269,6 +269,7 @@ export default function MessagesLayout({ children }) {
     const [communities, setCommunities] = useState([]);
     const [chatConversations, setChatConversations] = useState([]);
     const [requestCount, setRequestCount] = useState(0);
+    const [currentUserId, setCurrentUserId] = useState("");
     const [newGroup, setNewGroup] = useState(false);
 
     const router = useRouter();
@@ -280,28 +281,53 @@ export default function MessagesLayout({ children }) {
     const showMainContent = isRequestsRoute || !isChatRoot;
     const isDark = useDarkMode();
 
+    const loadSidebarData = useCallback(async () => {
+        const [usersRes, communitiesRes] = await Promise.all([
+            fetch("/api/chat/users", { cache: "no-store" }),
+            fetch("/api/communities", { cache: "no-store" }),
+        ]);
+        const usersData = await usersRes.json();
+        const communitiesData = await communitiesRes.json();
+        if (usersRes.ok) {
+            setUsers(usersData.users || []);
+            setChatConversations(usersData.conversations || []);
+            setCurrentUserId(usersData.currentUserId || "");
+        }
+        if (communitiesRes.ok) setCommunities(communitiesData.communities || []);
+    }, []);
+
+    const loadRequestCount = useCallback(async () => {
+        const res = await fetch("/api/chat/requests", { cache: "no-store" });
+        const data = await res.json();
+        if (res.ok) setRequestCount(data.count || 0);
+    }, []);
+
     useEffect(() => {
-        async function loadSidebarData() {
-            const [usersRes, communitiesRes] = await Promise.all([
-                fetch("/api/chat/users", { cache: "no-store" }),
-                fetch("/api/communities", { cache: "no-store" }),
-            ]);
-            const usersData = await usersRes.json();
-            const communitiesData = await communitiesRes.json();
-            if (usersRes.ok) {
-                setUsers(usersData.users || []);
-                setChatConversations(usersData.conversations || []);
-            }
-            if (communitiesRes.ok) setCommunities(communitiesData.communities || []);
-        }
-        async function loadRequestCount() {
-            const res = await fetch("/api/chat/requests", { cache: "no-store" });
-            const data = await res.json();
-            if (res.ok) setRequestCount(data.count || 0);
-        }
         loadSidebarData().catch(console.error);
         loadRequestCount().catch(console.error);
-    }, []);
+    }, [loadSidebarData, loadRequestCount]);
+
+    useEffect(() => {
+        if (!currentUserId) return undefined;
+        let channel;
+        let mounted = true;
+        getPusherClient().then((pusher) => {
+            if (!pusher || !mounted) return;
+            channel = pusher.subscribe(`private-user-${currentUserId}`);
+            channel.bind("new-message", () => loadSidebarData().catch(console.error));
+            channel.bind("message-requests-updated", () => {
+                loadSidebarData().catch(console.error);
+                loadRequestCount().catch(console.error);
+            });
+        });
+        return () => {
+            mounted = false;
+            if (channel) {
+                channel.unbind_all();
+                channel.unsubscribe();
+            }
+        };
+    }, [currentUserId, loadRequestCount, loadSidebarData]);
 
     const conversations = useMemo(() => chatConversations.map((user) => ({
         id: user.id,
@@ -309,6 +335,8 @@ export default function MessagesLayout({ children }) {
         preview: user.lastMessage || user.email || "Start a conversation",
         time: "",
         unread: user.unreadCount || 0,
+        requestStatus: user.requestStatus,
+        requestRole: user.requestRole,
     })), [chatConversations]);
 
     const filtered = conversations.filter((c) => {
