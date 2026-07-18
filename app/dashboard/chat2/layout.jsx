@@ -269,7 +269,6 @@ export default function MessagesLayout({ children }) {
     const [communities, setCommunities] = useState([]);
     const [chatConversations, setChatConversations] = useState([]);
     const [requestCount, setRequestCount] = useState(0);
-    const [currentUserId, setCurrentUserId] = useState("");
     const [newGroup, setNewGroup] = useState(false);
 
     const router = useRouter();
@@ -292,7 +291,6 @@ export default function MessagesLayout({ children }) {
             if (usersRes.ok) {
                 setUsers(usersData.users || []);
                 setChatConversations(usersData.conversations || []);
-                setCurrentUserId(usersData.currentUserId || "");
             }
             if (communitiesRes.ok) setCommunities(communitiesData.communities || []);
         }
@@ -304,31 +302,6 @@ export default function MessagesLayout({ children }) {
         loadSidebarData().catch(console.error);
         loadRequestCount().catch(console.error);
     }, []);
-
-    useEffect(() => {
-        if (!currentUserId) return;
-        let channel;
-        let mounted = true;
-        getPusherClient().then((pusher) => {
-            if (!pusher || !mounted) return;
-            channel = pusher.subscribe(`private-user-${currentUserId}`);
-            channel.bind("message-requests-updated", () => {
-                fetch("/api/chat/users", { cache: "no-store" })
-                    .then((res) => res.json().then((data) => ({ res, data })))
-                    .then(({ res, data }) => {
-                        if (res.ok) setChatConversations(data.conversations || []);
-                    })
-                    .catch(console.error);
-                fetch("/api/chat/requests", { cache: "no-store" })
-                    .then((res) => res.json().then((data) => ({ res, data })))
-                    .then(({ res, data }) => {
-                        if (res.ok) setRequestCount(data.count || 0);
-                    })
-                    .catch(console.error);
-            });
-        });
-        return () => { mounted = false; if (channel) { channel.unbind_all(); channel.unsubscribe(); } };
-    }, [currentUserId]);
 
     const conversations = useMemo(() => chatConversations.map((user) => ({
         id: user.id,

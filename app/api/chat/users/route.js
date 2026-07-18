@@ -24,18 +24,13 @@ export async function GET() {
     const usersWhoBlockedMe = await User.find({ blockedUsers: currentUser._id }).select("_id").lean();
     const blockedBy = usersWhoBlockedMe.map((u) => u._id.toString());
 
-    const visibleConversationRequests = await MessageRequest.find({
-      $or: [
-        { status: "accepted", $or: [{ requester: currentUser._id }, { recipient: currentUser._id }] },
-        { status: "pending", requester: currentUser._id },
-      ],
-      deletedFor: { $ne: currentUser._id },
+    const acceptedRequests = await MessageRequest.find({
+      status: "accepted",
+      $or: [{ requester: currentUser._id }, { recipient: currentUser._id }],
     }).lean();
-    const requestByUserId = new Map(visibleConversationRequests.map((request) => {
-      const otherUserId = request.requester.toString() === currentUser._id.toString() ? request.recipient.toString() : request.requester.toString();
-      return [otherUserId, request];
-    }));
-    const conversationUserIds = [...requestByUserId.keys()];
+    const conversationUserIds = acceptedRequests.map((request) => (
+      request.requester.toString() === currentUser._id.toString() ? request.recipient : request.requester
+    ));
 
     const users = await User.find({ _id: { $ne: currentUser._id } })
       .select("name email img")
@@ -68,7 +63,6 @@ export async function GET() {
         lastMessage: latest?.text || user.email || "Start a conversation",
         lastMessageAt: latest?.createdAt || null,
         unreadCount: latest && latest.receiver?.toString() === currentUser._id.toString() && !latest.readAt ? 1 : 0,
-        requestStatus: requestByUserId.get(user._id.toString())?.status || "accepted",
       };
     }));
 
