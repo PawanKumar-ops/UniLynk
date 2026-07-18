@@ -60,7 +60,7 @@ function toChatMessage(msg, currentUserId) {
 const fallbackAvatar = (seed) => `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(seed || "User")}`;
 const quickTime = (date) => new Date(date || Date.now()).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
-export default function ChatConversation({ id, communityId, groupId }) {
+export default function ChatConversation({ id, communityId, groupId, requestMode = false, onRequestBlock, onBack }) {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [currentUserId, setCurrentUserId] = useState("");
@@ -246,8 +246,8 @@ export default function ChatConversation({ id, communityId, groupId }) {
 
     return <>
         <header className="flex items-center justify-between border-b px-4 py-2.5" style={{ display: "flex", flexDirection: "row" }}>
-            <div className="flex min-w-0 items-center gap-2"><Link href="/dashboard/chat2" className="rounded-full p-2 hover:bg-[#f2f6fa] md:hidden"><ArrowLeft className="h-5 w-5" /></Link><img src={header.avatar} alt={header.name} className="h-9 w-9 shrink-0 border rounded-full bg-[#f2f6fa] object-cover" /><div className="flex min-w-0 items-center gap-1"><span className="truncate font-bold">{header.name}</span>{header.verified && <span className="shrink-0 text-[#1d9bf0]">✓</span>}</div></div>
-            <div className="relative"><button onClick={() => setDots((v) => !v)} className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#536471] transition-all duration-200 hover:border-[#1d9bf0] hover:bg-[#e8f5fe] hover:text-[#1d9bf0] active:scale-95"><MoreHorizontal className="h-4 w-4" /></button>{dots && <DotsMenu onClose={() => setDots(false)} items={[{ label: "View profile", onClick: () => !isCommunityRoute && router.push(`/dashboard/Userprofile?userId=${id}`) }, { label: blockedUsers.includes(id) ? "Unblock user" : "Block user", onClick: () => { if (blockedUsers.includes(id)) { handleToggleBlock("unblock"); } else { setShowBlockUserModal(true); } } }, { label: "Report conversation", danger: true }]} />}</div>
+            <div className="flex min-w-0 items-center gap-2">{onBack ? <button onClick={onBack} className="rounded-full p-2 hover:bg-[#f2f6fa] md:hidden"><ArrowLeft className="h-5 w-5" /></button> : <Link href="/dashboard/chat2" className="rounded-full p-2 hover:bg-[#f2f6fa] md:hidden"><ArrowLeft className="h-5 w-5" /></Link>}<img src={header.avatar} alt={header.name} className="h-9 w-9 shrink-0 border rounded-full bg-[#f2f6fa] object-cover" /><div className="flex min-w-0 items-center gap-1"><span className="truncate font-bold">{header.name}</span>{header.verified && <span className="shrink-0 text-[#1d9bf0]">✓</span>}</div></div>
+            <div className="relative"><button onClick={() => setDots((v) => !v)} className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#536471] transition-all duration-200 hover:border-[#1d9bf0] hover:bg-[#e8f5fe] hover:text-[#1d9bf0] active:scale-95"><MoreHorizontal className="h-4 w-4" /></button>{dots && <DotsMenu onClose={() => setDots(false)} items={requestMode ? [{ label: "Report user", danger: true }, { label: "Block user", danger: true, onClick: () => setShowBlockUserModal(true) }] : [{ label: "View profile", onClick: () => !isCommunityRoute && router.push(`/dashboard/Userprofile?userId=${id}`) }, { label: blockedUsers.includes(id) ? "Unblock user" : "Block user", onClick: () => { if (blockedUsers.includes(id)) { handleToggleBlock("unblock"); } else { setShowBlockUserModal(true); } } }, { label: "Report conversation", danger: true }]} />}</div>
         </header>
         <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto"><div className="flex flex-col items-center gap-2 px-6 py-8"><img src={header.avatar} alt={header.name} className="h-20 w-20 rounded-full bg-[#f2f6fa] border object-cover" /><div className="text-center"><div className="text-lg font-extrabold">{header.name}</div><div className="text-sm text-[#62748e]">@{header.handle}</div></div><button className="mt-2 rounded-full bg-[#000] px-5 py-1.5 text-sm font-bold text-[#fff] hover:opacity-90">View Profile</button></div>
             <div className="flex-1 min-h-0 overflow-y-auto px-4 py-6">{loading ? <div className="space-y-4">{[1, 2, 3].map((i) => <div key={i} className={cn("flex", i % 2 ? "justify-end" : "justify-start")}><div className="h-10 w-40 animate-pulse rounded-2xl bg-[#f2f6fa]" /></div>)}</div> : <div className="space-y-4">{messages.map((m, index) => {
@@ -320,7 +320,7 @@ export default function ChatConversation({ id, communityId, groupId }) {
             />
         )}
 
-        {recording ? (
+        {!requestMode && (recording ? (
             <VoiceRecorder onClose={() => setRecording(false)} />
         ) : (
             <div className="border-t bg-[#fff] p-3">
@@ -457,8 +457,8 @@ export default function ChatConversation({ id, communityId, groupId }) {
                     </p>
                 )}
             </div>
-
-        )}
+            
+        ))}
 
         {call && (
             <CallModal
@@ -490,7 +490,7 @@ export default function ChatConversation({ id, communityId, groupId }) {
         <BlockUserModal
             open={showBlockUserModal}
             onOpenChange={setShowBlockUserModal}
-            onConfirm={() => handleToggleBlock("block")}
+            onConfirm={() => handleToggleBlock("block").then(() => onRequestBlock?.())}
             userName={activeUser?.name}
         />
 

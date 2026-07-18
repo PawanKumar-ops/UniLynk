@@ -266,6 +266,8 @@ export default function MessagesLayout({ children }) {
     const [openCommunity, setOpenCommunity] = useState(null); // the community object whose groups are shown
     const [users, setUsers] = useState([]);
     const [communities, setCommunities] = useState([]);
+    const [chatConversations, setChatConversations] = useState([]);
+    const [requestCount, setRequestCount] = useState(0);
     const [newGroup, setNewGroup] = useState(false);
 
     const router = useRouter();
@@ -285,19 +287,28 @@ export default function MessagesLayout({ children }) {
             ]);
             const usersData = await usersRes.json();
             const communitiesData = await communitiesRes.json();
-            if (usersRes.ok) setUsers(usersData.users || []);
+            if (usersRes.ok) {
+                setUsers(usersData.users || []);
+                setChatConversations(usersData.conversations || []);
+            }
             if (communitiesRes.ok) setCommunities(communitiesData.communities || []);
         }
+        async function loadRequestCount() {
+            const res = await fetch("/api/chat/requests", { cache: "no-store" });
+            const data = await res.json();
+            if (res.ok) setRequestCount(data.count || 0);
+        }
         loadSidebarData().catch(console.error);
+        loadRequestCount().catch(console.error);
     }, []);
 
-    const conversations = useMemo(() => users.map((user) => ({
+    const conversations = useMemo(() => chatConversations.map((user) => ({
         id: user.id,
         user: { id: user.id, name: user.name || user.email || "UniLynk User", handle: user.email?.split("@")[0] || "user", avatar: user.image || "/Profilepic.png", verified: false },
         preview: user.lastMessage || user.email || "Start a conversation",
         time: "",
         unread: user.unreadCount || 0,
-    })), [users]);
+    })), [chatConversations]);
 
     const filtered = conversations.filter((c) => {
         if (filter === "unread" && !c.unread) return false;
@@ -540,10 +551,15 @@ export default function MessagesLayout({ children }) {
                                         </div>
                                         <Link
                                             href="/dashboard/chat2/requests"
-                                            className="rounded-full border p-2 hover:bg-[#f2f6fa]"
+                                            className="relative rounded-full border p-2 hover:bg-[#f2f6fa]"
                                             title="Message requests"
                                         >
                                             <Icon icon="solar:inbox-linear" className="h-5 w-5" />
+                                            {requestCount > 0 && (
+                                                <span className="absolute -right-1 -top-1 rounded-full bg-[#1d9bf0] px-1.5 text-[10px] font-bold leading-4 text-white">
+                                                    {requestCount > 99 ? "99+" : requestCount}
+                                                </span>
+                                            )}
                                         </Link>
 
                                     </>
