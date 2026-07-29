@@ -18,7 +18,7 @@ export default function Home() {
           <ul className="homenavlinks">
             <Link href="./analytics"><li className="feature homenavlink"> Feature</li></Link>
             <Link href="./dashboard"><li className="about homenavlink">About</li></Link>
-            <Link href="./UserinfoForm"><li className="support homenavlink">Support</li></Link>
+            <Link href="./Onboarding"><li className="support homenavlink">Support</li></Link>
             <li className="contactus navlink">Contact Us</li>
           </ul>
 
