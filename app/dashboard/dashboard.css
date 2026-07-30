@@ -1064,17 +1064,48 @@ body {
   }
 
   .post-foot {
-    flex-wrap: wrap;
-    gap: 10px;
+    align-items: center;
+    gap: 0;
   }
 
   .post-foot-iconcont {
-    min-width: 66px;
+    flex: 1 1 0;
+    min-width: 0;
+    justify-content: center;
   }
 
   .post-content {
     font-size: 14px;
     line-height: 1.5;
+  }
+
+  .posth-left {
+    min-width: 0;
+    flex: 1;
+    flex-wrap: nowrap;
+  }
+
+  .post-author-link {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .user-name,
+  .post-author-email {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .dd-post-time {
+    flex: 0 0 auto;
+  }
+
+  .post-foot-iconcont button {
+    min-width: 44px;
+    min-height: 44px;
+    justify-content: center;
   }
 }
 
@@ -1594,6 +1625,27 @@ body {
 }
 
 @media (max-width: 768px) {
+  /* Let the document scroll on phones, allowing mobile browsers to collapse
+     their address bar while the in-app chrome slides out of view. */
+  .homebody {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .dashmain {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .feed {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+    flex: none;
+  }
+
   /* ── Mobile top header bar ── */
   .mobile-header {
     display: flex;
@@ -1760,7 +1812,25 @@ body {
   /* Feed posts: header (53px) + toggle (~50px), plus room for the bottom tab bar */
   .userposts {
     margin-top: 110px !important;
-    padding-bottom: 84px !important;
+    padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* Keep media comfortably contained on narrow phones without changing tablet
+   or desktop media proportions. */
+@media (max-width: 480px) {
+  .image-grid.count-2 {
+    height: clamp(250px, 78vw, 290.7px);
+  }
+
+  .image-grid.count-2 img {
+    height: clamp(250px, 78vw, 290.7px);
+  }
+
+  .image-grid.count-3,
+  .image-grid.count-4 {
+    height: clamp(250px, 78vw, 290.7px);
+    grid-template-rows: 1fr 1fr;
   }
 }
 

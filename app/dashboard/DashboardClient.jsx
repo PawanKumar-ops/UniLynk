@@ -870,7 +870,9 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
         }
       },
       {
-        root: feedElement,
+        // Mobile uses the document as the scroller so Chrome/Safari can collapse
+        // their browser chrome naturally. Desktop keeps the existing feed scroller.
+        root: window.innerWidth <= 768 ? null : feedElement,
         rootMargin: "600px 0px",
         threshold: 0,
       },
@@ -898,11 +900,15 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
   const handleFeedScroll = () => {
     if (!feedRef.current) return;
     const scrollTop = feedRef.current.scrollTop;
+    const scrollDelta = scrollTop - lastScrollTopRef.current;
 
-    // Scroll-hide header on mobile: hide when scrolling down, show when scrolling up
-    if (scrollTop > lastScrollTopRef.current && scrollTop > 60) {
+    // Keep the mobile chrome out of the way while reading. Ignore the tiny
+    // scroll changes that mobile browsers produce while momentum scrolling.
+    if (scrollTop <= 4) {
+      setHeaderHidden(false);
+    } else if (scrollDelta > 4 && scrollTop > 60) {
       setHeaderHidden(true);
-    } else if (scrollTop < lastScrollTopRef.current) {
+    } else if (scrollDelta < -4) {
       setHeaderHidden(false);
     }
     lastScrollTopRef.current = scrollTop;
@@ -911,6 +917,28 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
     // Scroll saving on every scroll is removed to allow fresh page refresh.
     // It is saved inside handleOpenThread when navigating to detail page instead.
   };
+
+  useEffect(() => {
+    const handleWindowScroll = () => {
+      if (window.innerWidth > 768) return;
+
+      const scrollTop = window.scrollY || document.documentElement.scrollTop || 0;
+      const scrollDelta = scrollTop - lastScrollTopRef.current;
+
+      if (scrollTop <= 4) {
+        setHeaderHidden(false);
+      } else if (scrollDelta > 4 && scrollTop > 60) {
+        setHeaderHidden(true);
+      } else if (scrollDelta < -4) {
+        setHeaderHidden(false);
+      }
+
+      lastScrollTopRef.current = scrollTop;
+    };
+
+    window.addEventListener("scroll", handleWindowScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleWindowScroll);
+  }, []);
 
   const updateCachedPost = (postId, updater) => {
     if (!postId || typeof updater !== "function") return;
