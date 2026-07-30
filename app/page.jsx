@@ -19,7 +19,7 @@ export default function Home() {
             <Link href="./analytics"><li className="feature homenavlink"> Feature</li></Link>
             <Link href="./dashboard"><li className="about homenavlink">About</li></Link>
             <Link href="./Onboarding"><li className="support homenavlink">Support</li></Link>
-            <li className="contactus navlink">Contact Us</li>
+            <Link href="./UserinfoForm"><li className="contactus navlink">Contact Us</li></Link>
           </ul>
 
           <ul className="navbuttons">

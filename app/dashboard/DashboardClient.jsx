@@ -940,6 +940,12 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
     return () => window.removeEventListener("scroll", handleWindowScroll);
   }, []);
 
+  useEffect(() => {
+    const handleExploreScroll = (event) => setHeaderHidden(Boolean(event.detail?.hidden));
+    window.addEventListener("dashboard-explore-scroll", handleExploreScroll);
+    return () => window.removeEventListener("dashboard-explore-scroll", handleExploreScroll);
+  }, []);
+
   const updateCachedPost = (postId, updater) => {
     if (!postId || typeof updater !== "function") return;
 
@@ -1813,9 +1819,13 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
           />
         </button>
 
-        <img src="/ULynk.svg" alt="ULynk" className="mobile-header-logo" />
+        {dashboardView === "explore" ? (
+          <div id="explore-mobile-search-slot" className="explore-mobile-search-slot" />
+        ) : (
+          <img src="/ULynk.svg" alt="ULynk" className="mobile-header-logo" />
+        )}
 
-        <div className="mobile-header-right">
+        {dashboardView !== "explore" && <div className="mobile-header-right">
           <button
             className="mobile-header-notif-btn"
             type="button"
@@ -1829,7 +1839,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
               </span>
             )}
           </button>
-        </div>
+        </div>}
       </div>
 
       <main className="dashmain">

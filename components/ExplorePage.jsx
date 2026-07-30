@@ -8,6 +8,7 @@ import {
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Icon } from "@iconify/react";
+import { createPortal } from "react-dom";
 import ReliableImage from "./ReliableImage";
 import CommentModal from "./CommentModal";
 import ShareModal from "./ShareModal";
@@ -30,20 +31,20 @@ const ImageWithFallback = ({ src, alt, className = "" }) => (
   />
 );
 
-const suggestedUserCardClass = "flex items-center gap-3 p-3 rounded-2xl border border-neutral-200 hover:border-neutral-300 hover:shadow-sm transition bg-white";
+const suggestedUserCardClass = "flex items-center gap-2 p-2 rounded-xl border border-neutral-200 hover:border-neutral-300 hover:shadow-sm transition bg-white md:gap-3 md:p-3 md:rounded-2xl";
 
 const SuggestedUserSkeleton = () => (
   <div
     className={suggestedUserCardClass}
     aria-hidden="true"
   >
-    <div className="w-12 h-12 rounded-full bg-neutral-100 shrink-0 animate-pulse" />
+    <div className="w-10 h-10 rounded-full bg-neutral-100 shrink-0 animate-pulse md:w-12 md:h-12" />
     <div className="min-w-0 flex-1 space-y-1.5">
       <div className="h-3.5 w-24 rounded-full bg-neutral-100 animate-pulse" />
       <div className="h-3 w-20 rounded-full bg-neutral-100 animate-pulse" />
       <div className="h-2.5 w-14 rounded-full bg-neutral-100 animate-pulse" />
     </div>
-    <div className="h-7 w-[4.625rem] shrink-0 rounded-full bg-neutral-100 animate-pulse" />
+    <div className="h-7 w-12 shrink-0 rounded-full bg-neutral-100 animate-pulse md:w-[4.625rem]" />
   </div>
 );
 
@@ -431,7 +432,7 @@ const ParticipantAvatarStack = ({ event }) => {
 
 const TrendingCard = ({ event, featured = false }) => (
   <article
-    className={`${featured ? "row-span-2" : ""} relative rounded-2xl overflow-hidden border border-neutral-200 group cursor-pointer bg-neutral-100`}
+    className={`${featured ? "row-span-2" : ""} relative rounded-xl overflow-hidden border border-neutral-200 group cursor-pointer bg-neutral-100 md:rounded-2xl`}
   >
     <ImageWithFallback
       src={event.image}
@@ -439,7 +440,7 @@ const TrendingCard = ({ event, featured = false }) => (
       className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-500"
     />
     <div className={`absolute inset-0 ${featured ? "bg-gradient-to-t from-black/80 via-black/20 to-transparent" : "bg-gradient-to-t from-black/75 to-transparent"}`} />
-    <div className={`relative flex h-full flex-col justify-end text-white ${featured ? "min-h-72 p-4" : "min-h-36 p-3"}`}>
+    <div className={`relative flex h-full flex-col justify-end text-white ${featured ? "min-h-40 p-3 md:min-h-72 md:p-4" : "min-h-[74px] p-2.5 md:min-h-36 md:p-3"}`}>
       <ParticipantAvatarStack event={event} />
       <div className={featured ? "text-sm leading-snug" : "text-xs leading-snug line-clamp-2"}>
         {event.title}
@@ -456,6 +457,7 @@ export function ExplorePage({ onBack }) {
   const [query, setQuery] = useState("");
   const postRefs = useRef({});
   const scrollContainerRef = useRef(null);
+  const lastMobileScrollTopRef = useRef(0);
   const hasRestoredInitialScrollRef = useRef(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [results, setResults] = useState([]);
@@ -464,6 +466,8 @@ export function ExplorePage({ onBack }) {
   const [trendingLoading, setTrendingLoading] = useState(true);
   const [isAllClubsModalOpen, setIsAllClubsModalOpen] = useState(false);
   const searchContainerRef = useRef(null);
+  const mobileSearchContainerRef = useRef(null);
+  const [mobileSearchTarget, setMobileSearchTarget] = useState(null);
   const [randomClub, setRandomClub] = useState(null);
   const [suggestedPosts, setSuggestedPosts] = useState(null);
   const [suggestedPostsLoading, setSuggestedPostsLoading] = useState(true);
@@ -589,13 +593,20 @@ export function ExplorePage({ onBack }) {
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
-      if (!searchContainerRef.current?.contains(event.target)) {
+      if (
+        !searchContainerRef.current?.contains(event.target) &&
+        !mobileSearchContainerRef.current?.contains(event.target)
+      ) {
         setIsDropdownOpen(false);
       }
     };
 
     document.addEventListener("mousedown", handleOutsideClick);
     return () => document.removeEventListener("mousedown", handleOutsideClick);
+  }, []);
+
+  useEffect(() => {
+    setMobileSearchTarget(document.getElementById("explore-mobile-search-slot"));
   }, []);
 
 
@@ -1262,12 +1273,80 @@ export function ExplorePage({ onBack }) {
     </div>
   );
 
+  const mobileSearch = mobileSearchTarget
+    ? createPortal(
+      <div className="relative w-full" ref={mobileSearchContainerRef}>
+        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
+        <input
+          value={query}
+          onFocus={() => setIsDropdownOpen(Boolean(query.trim()))}
+          onChange={(e) => {
+            const nextQuery = e.target.value;
+            setQuery(nextQuery);
+            setIsDropdownOpen(Boolean(nextQuery.trim()));
+          }}
+          placeholder="Search students, clubs, events…"
+          className="w-full py-2 pl-10 pr-3 rounded-full bg-neutral-100 border border-transparent focus:bg-white focus:border-neutral-300 outline-none text-sm transition"
+        />
+        {showSearchResults && (
+          <div className="absolute top-[calc(100%+8px)] right-0 z-30 w-[calc(100vw-4rem)] max-h-[min(520px,calc(100dvh-72px))] overflow-y-auto rounded-2xl border border-neutral-200/80 bg-white p-2 shadow-[0_8px_30px_rgb(0,0,0,0.06)]">
+            {searchLoading ? (
+              <div className="px-4 py-8 text-center text-neutral-500">Searching users...</div>
+            ) : results.length === 0 ? (
+              <div className="px-4 py-8 text-center text-neutral-500">No users found for "{query}"</div>
+            ) : (
+              <ul className="flex flex-col">
+                {results.map((user) => (
+                  <li key={user.id}>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-neutral-50"
+                      onClick={() => {
+                        setIsDropdownOpen(false);
+                        router.push(`/dashboard/search/id=${user.id}`);
+                      }}
+                    >
+                      <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-neutral-100 ring-2 ring-white shadow-sm">
+                        {user.image ? (
+                          <ImageWithFallback src={user.image} alt={user.name} className="h-full w-full object-cover" />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-neutral-700">{initials(user.name)}</div>
+                        )}
+                      </div>
+                      <div className="flex min-w-0 flex-1 flex-col">
+                        <span className="truncate text-neutral-900">{user.name}</span>
+                        <span className="truncate text-neutral-500">{user.email || `@${user.username || "user"}`}</span>
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        )}
+      </div>,
+      mobileSearchTarget,
+    )
+    : null;
+
+  const handleExploreScroll = (event) => {
+    if (window.innerWidth > 768) return;
+    const scrollTop = event.currentTarget.scrollTop;
+    const scrollDelta = scrollTop - lastMobileScrollTopRef.current;
+    const hidden = scrollTop > 60 && scrollDelta > 4 ? true : scrollDelta < -4 ? false : scrollTop <= 4 ? false : null;
+    if (hidden !== null) {
+      window.dispatchEvent(new CustomEvent("dashboard-explore-scroll", { detail: { hidden } }));
+    }
+    lastMobileScrollTopRef.current = scrollTop;
+  };
+
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      <div className="flex items-center gap-3 px-6 py-4 border-b border-neutral-100">
+      {mobileSearch}
+      <div className="hidden md:flex items-center gap-3 px-6 py-4 border-b border-neutral-100">
         <button
           onClick={onBack}
-          className="w-9 h-9 shrink-0 grid place-items-center rounded-full hover:bg-neutral-100 transition"
+          className="hidden md:grid w-9 h-9 shrink-0 place-items-center rounded-full hover:bg-neutral-100 transition"
           aria-label="Back"
         >
           <ArrowLeft size={18} />
@@ -1291,8 +1370,7 @@ export function ExplorePage({ onBack }) {
 
           {showSearchResults && (
             <div
-              className="absolute top-[calc(100%+8px)] left-0 z-30 max-h-[520px] overflow-y-auto overflow-hidden rounded-2xl border border-neutral-200/80 bg-white p-2 shadow-[0_8px_30px_rgb(0,0,0,0.06)]"
-              style={{ width: 484 }}
+              className="absolute top-[calc(100%+8px)] left-0 z-30 w-[calc(100vw-2rem)] max-h-[min(520px,calc(100dvh-72px))] overflow-y-auto overflow-hidden rounded-2xl border border-neutral-200/80 bg-white p-2 shadow-[0_8px_30px_rgb(0,0,0,0.06)] md:w-[484px] md:max-h-[520px]"
             >
               {searchLoading ? (
                 <div className="px-4 py-8 text-center text-neutral-500">
@@ -1343,7 +1421,7 @@ export function ExplorePage({ onBack }) {
         </div>
       </div>
 
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [&::-webkit-scrollbar-thumb]:hidden [&::-webkit-scrollbar-track]:hidden px-[14px] py-5 space-y-8">
+      <div ref={scrollContainerRef} onScroll={handleExploreScroll} className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [&::-webkit-scrollbar-thumb]:hidden [&::-webkit-scrollbar-track]:hidden px-4 pt-[69px] pb-24 space-y-6 md:px-[14px] md:py-5 md:space-y-8">
 
 
         <section>
@@ -1356,9 +1434,9 @@ export function ExplorePage({ onBack }) {
 
           {trendingLoading ? (
             <div className="grid grid-cols-2 gap-3">
-              <div className="row-span-2 min-h-72 rounded-2xl bg-neutral-100 animate-pulse" />
-              <div className="min-h-36 rounded-2xl bg-neutral-100 animate-pulse" />
-              <div className="min-h-36 rounded-2xl bg-neutral-100 animate-pulse" />
+              <div className="row-span-2 min-h-40 rounded-xl bg-neutral-100 animate-pulse md:min-h-72 md:rounded-2xl" />
+              <div className="min-h-[74px] rounded-xl bg-neutral-100 animate-pulse md:min-h-36 md:rounded-2xl" />
+              <div className="min-h-[74px] rounded-xl bg-neutral-100 animate-pulse md:min-h-36 md:rounded-2xl" />
             </div>
           ) : campusTrending.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-8 text-center text-sm text-neutral-500">
@@ -1411,7 +1489,7 @@ export function ExplorePage({ onBack }) {
                   }
                 }}
               >
-                <div className="relative h-36 w-full overflow-hidden rounded-2xl bg-neutral-100">
+                <div className="relative h-24 w-full overflow-hidden rounded-2xl bg-neutral-100 md:h-36">
                   {randomClub?.banner ? (
                     <img
                       src={randomClub.banner}
@@ -1437,8 +1515,8 @@ export function ExplorePage({ onBack }) {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3 px-3 pb-3 pt-4">
-                  <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full ring-2 ring-white shadow-[0_4px_12px_-4px_rgba(0,0,0,0.25)]">
+                <div className="flex items-center gap-2 px-2 pb-2 pt-2.5 md:gap-3 md:px-3 md:pb-3 md:pt-4">
+                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-full ring-2 ring-white shadow-[0_4px_12px_-4px_rgba(0,0,0,0.25)] md:h-12 md:w-12">
                     {randomClub?.logo ? (
                       <img
                         src={randomClub.logo}
@@ -1449,14 +1527,14 @@ export function ExplorePage({ onBack }) {
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <h3 className="truncate text-black leading-tight">{randomClub?.clubName || ''}</h3>
-                    <div className="mt-0.5 flex items-center gap-1 text-neutral-500">
+                    <h3 className="truncate text-sm text-black leading-tight md:text-base">{randomClub?.clubName || ''}</h3>
+                    <div className="mt-0.5 flex items-center gap-1 text-xs text-neutral-500 md:text-sm">
                       <Icon icon="solar:user-linear" className="w-4 h-4"/>
                       <span>{formatted} members</span>
                     </div>
                   </div>
 
-                  <button className="shrink-0 rounded-full bg-black px-4 py-2 text-white transition hover:bg-neutral-800 active:scale-95">
+                  <button className="shrink-0 rounded-full bg-black px-3 py-1.5 text-sm text-white transition hover:bg-neutral-800 active:scale-95 md:px-4 md:py-2 md:text-base">
                     Visit
                   </button>
                 </div>
@@ -1495,9 +1573,9 @@ export function ExplorePage({ onBack }) {
               suggestedUsers.map((u) => (
                 <div
                   key={u.id}
-                  className="flex items-center gap-3 p-3 rounded-2xl border border-neutral-200 hover:border-neutral-300 hover:shadow-sm transition bg-white"
+                  className="flex items-center gap-2 p-2 rounded-xl border border-neutral-200 hover:border-neutral-300 hover:shadow-sm transition bg-white md:gap-3 md:p-3 md:rounded-2xl"
                 >
-                  <div className="w-12 h-12 rounded-full overflow-hidden bg-neutral-100 shrink-0">
+                  <div className="w-10 h-10 rounded-full overflow-hidden bg-neutral-100 shrink-0 md:w-12 md:h-12">
                     <ImageWithFallback
                       src={u.avatar}
                       alt={u.name}
@@ -1505,17 +1583,18 @@ export function ExplorePage({ onBack }) {
                     />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm truncate">{u.name}</div>
-                    <div className="text-xs text-neutral-500 truncate">{u.role}</div>
+                    <div className="text-xs truncate md:text-sm">{u.name}</div>
+                    <div className="text-[11px] text-neutral-500 truncate md:text-xs">{u.role}</div>
 
                   </div>
                   <button
                     type="button"
                     onClick={() => router.push(`/dashboard/Userprofile?userId=${u.id}`)}
-                    className="shrink-0 flex items-center gap-1 px-3 py-1.5 rounded-full bg-black text-white text-xs hover:bg-neutral-800 transition"
+                    className="shrink-0 flex items-center gap-1 px-2 py-1.5 rounded-full bg-black text-white text-[11px] hover:bg-neutral-800 transition md:px-3 md:text-xs"
                   >
-                    <UserPlus size={12} />
-                    View
+                    <UserPlus size={11} className="md:hidden" />
+                    <UserPlus size={12} className="hidden md:block" />
+                    <span className="hidden min-[380px]:inline">View</span>
                   </button>
                 </div>
               ))
