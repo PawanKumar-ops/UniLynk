@@ -1071,7 +1071,8 @@ body {
   .post-foot-iconcont {
     flex: 1 1 0;
     min-width: 0;
-    justify-content: center;
+    justify-content: flex-start;
+    gap: 2px;
   }
 
   .post-content {
@@ -1106,6 +1107,35 @@ body {
     min-width: 44px;
     min-height: 44px;
     justify-content: center;
+  }
+
+  /* X keeps the save action pinned to the trailing edge while the engagement
+     actions share the available space, leaving room for their live counts. */
+  .post-foot-iconcont:last-child {
+    flex: 0 0 auto;
+    margin-left: auto;
+  }
+
+  .post-foot-iconcont span {
+    white-space: nowrap;
+    font-size: 13px;
+  }
+
+  /* X-style multi-media canvas: the first image in a three-image post fills
+     the left half and the remaining images form two equal right-hand cells. */
+  .image-grid.count-2,
+  .image-grid.count-3,
+  .image-grid.count-4 {
+    height: min(290.7px, calc((100vw - 102px) * 1.125));
+  }
+
+  .image-grid.count-2 img {
+    height: 100%;
+  }
+
+  .image-grid.count-3,
+  .image-grid.count-4 {
+    grid-template-rows: 1fr 1fr;
   }
 }
 
@@ -1798,10 +1828,14 @@ body {
 
     /* Pricing toggle: sticks under the mobile header and slides up with it */
   .feed-toggle-wrap {
+    position: fixed;
     top: 53px;                                   /* sits right under fixed header */
+    left: 0;
+    right: 0;
     transform: translateY(0);
     transition: transform .28s cubic-bezier(.22,.61,.36,1);
     will-change: transform;
+    z-index: 90;
   }
 
   /* When header hides, the toggle slides up to the very top in lock-step */
@@ -1813,24 +1847,6 @@ body {
   .userposts {
     margin-top: 110px !important;
     padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important;
-  }
-}
-
-/* Keep media comfortably contained on narrow phones without changing tablet
-   or desktop media proportions. */
-@media (max-width: 480px) {
-  .image-grid.count-2 {
-    height: clamp(250px, 78vw, 290.7px);
-  }
-
-  .image-grid.count-2 img {
-    height: clamp(250px, 78vw, 290.7px);
-  }
-
-  .image-grid.count-3,
-  .image-grid.count-4 {
-    height: clamp(250px, 78vw, 290.7px);
-    grid-template-rows: 1fr 1fr;
   }
 }
 
