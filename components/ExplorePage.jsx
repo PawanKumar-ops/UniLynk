@@ -457,7 +457,7 @@ const MobileTrendingCarousel = ({ events, activeIndex }) => {
 
   return (
     <div className="md:hidden">
-      <div className="relative h-[210px] w-full overflow-hidden rounded-2xl bg-neutral-100">
+      <div className="relative h-[230px] w-full overflow-hidden rounded-[20px] bg-neutral-100">
         {visibleEvents.map((event, index) => (
           <article
             key={event.id}
@@ -467,17 +467,39 @@ const MobileTrendingCarousel = ({ events, activeIndex }) => {
             <ImageWithFallback
               src={event.image}
               alt={event.title}
-              className="absolute inset-0 h-full w-full object-cover"
+              className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
-            <div className="relative flex h-full flex-col justify-end px-4 pb-4 text-white">
+            <div
+  className="absolute inset-0"
+  style={{
+    background:
+      "linear-gradient(180deg, rgba(0,0,0,0) 25%, rgba(0,0,0,.08) 55%, rgba(0,0,0,.28) 72%, rgba(0,0,0,.55) 90%, rgba(0,0,0,.68) 100%)",
+  }}
+/>
+            <div className="absolute inset-x-0 bottom-0 px-4 pb-5 text-white">
               <ParticipantAvatarStack event={event} />
-              <div className="text-[15px] font-semibold leading-snug line-clamp-2">
-                {event.title}
-              </div>
-              <div className="mt-1 text-[13px] leading-4 text-white/75">
-                by {event.clubName} · {event.participants} participants
-              </div>
+              <h3
+  className="line-clamp-2"
+  style={{
+    fontSize: "22px",
+    fontWeight: 800,
+    lineHeight: 1.08,
+    letterSpacing: "-0.03em",
+  }}
+>
+  {event.title}
+</h3>
+              <p
+  style={{
+    marginTop: 6,
+    fontSize: 13,
+    fontWeight: 500,
+    lineHeight: 1.35,
+    color: "rgba(255,255,255,.82)",
+  }}
+>
+  by {event.clubName} · {event.participants} participants
+</p>
             </div>
           </article>
         ))}
@@ -1489,9 +1511,9 @@ export function ExplorePage({ onBack }) {
         <section>
           <div className="mb-3 flex items-center justify-between md:mb-3">
             <div className="flex min-w-0 items-center gap-2">
-              <h3 className="text-xl font-extrabold tracking-tight text-neutral-950 md:text-[1.125rem] md:font-bold md:tracking-normal">Trending on Campus</h3>
+              <h3 className="text-[1.125rem] font-bold">Trending on Campus</h3>
             </div>
-            <button className="text-[15px] text-sky-500 hover:text-sky-600 md:text-xs md:text-neutral-500 md:hover:text-black">View all</button>
+            <button className="text-xs text-neutral-500 hover:text-black">View all</button>
           </div>
 
           {trendingLoading ? (
