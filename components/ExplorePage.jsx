@@ -457,7 +457,7 @@ const MobileTrendingCarousel = ({ events, activeIndex }) => {
 
   return (
     <div className="md:hidden">
-      <div className="relative h-[230px] w-full overflow-hidden rounded-[20px] bg-neutral-100">
+      <div className="relative h-[210px] w-full overflow-hidden rounded-[20px] bg-neutral-100">
         {visibleEvents.map((event, index) => (
           <article
             key={event.id}
