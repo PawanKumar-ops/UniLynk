@@ -452,6 +452,50 @@ const TrendingCard = ({ event, featured = false }) => (
   </article>
 );
 
+const MobileTrendingCarousel = ({ events, activeIndex }) => {
+  const visibleEvents = events.slice(0, 3);
+
+  return (
+    <div className="md:hidden">
+      <div className="relative h-[210px] w-full overflow-hidden rounded-2xl bg-neutral-100">
+        {visibleEvents.map((event, index) => (
+          <article
+            key={event.id}
+            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${index === activeIndex ? "opacity-100" : "opacity-0"}`}
+            aria-hidden={index !== activeIndex}
+          >
+            <ImageWithFallback
+              src={event.image}
+              alt={event.title}
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
+            <div className="relative flex h-full flex-col justify-end px-4 pb-4 text-white">
+              <ParticipantAvatarStack event={event} />
+              <div className="text-[15px] font-semibold leading-snug line-clamp-2">
+                {event.title}
+              </div>
+              <div className="mt-1 text-[13px] leading-4 text-white/75">
+                by {event.clubName} · {event.participants} participants
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+      {visibleEvents.length > 1 && (
+        <div className="mt-2 flex justify-center gap-1.5" aria-hidden="true">
+          {visibleEvents.map((event, index) => (
+            <span
+              key={`${event.id}-indicator`}
+              className={`h-1.5 rounded-full transition-all duration-500 ${index === activeIndex ? "w-4 bg-neutral-900" : "w-1.5 bg-neutral-300"}`}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 export function ExplorePage({ onBack }) {
   const { data: session } = useSession();
   const [query, setQuery] = useState("");
@@ -464,6 +508,7 @@ export function ExplorePage({ onBack }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [campusTrending, setCampusTrending] = useState([]);
   const [trendingLoading, setTrendingLoading] = useState(true);
+  const [mobileTrendingIndex, setMobileTrendingIndex] = useState(0);
   const [isAllClubsModalOpen, setIsAllClubsModalOpen] = useState(false);
   const searchContainerRef = useRef(null);
   const mobileSearchContainerRef = useRef(null);
@@ -530,6 +575,23 @@ export function ExplorePage({ onBack }) {
 
     return () => controller.abort();
   }, []);
+
+
+  useEffect(() => {
+    const visibleTrendingCount = Math.min(campusTrending.length, 3);
+
+    if (visibleTrendingCount <= 1) {
+      setMobileTrendingIndex(0);
+      return undefined;
+    }
+
+    setMobileTrendingIndex((current) => current % visibleTrendingCount);
+    const intervalId = window.setInterval(() => {
+      setMobileTrendingIndex((current) => (current + 1) % visibleTrendingCount);
+    }, 5000);
+
+    return () => window.clearInterval(intervalId);
+  }, [campusTrending.length]);
 
   const loadSuggestedUsers = useCallback(async (signal) => {
     try {
@@ -1425,40 +1487,52 @@ export function ExplorePage({ onBack }) {
 
 
         <section>
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <h3 className="text-[1.125rem] font-bold">Trending on Campus</h3>
+          <div className="mb-3 flex items-center justify-between md:mb-3">
+            <div className="flex min-w-0 items-center gap-2">
+              <h3 className="text-xl font-extrabold tracking-tight text-neutral-950 md:text-[1.125rem] md:font-bold md:tracking-normal">Trending on Campus</h3>
             </div>
-            <button className="text-xs text-neutral-500 hover:text-black">View all</button>
+            <button className="text-[15px] text-sky-500 hover:text-sky-600 md:text-xs md:text-neutral-500 md:hover:text-black">View all</button>
           </div>
 
           {trendingLoading ? (
-            <div className="grid grid-cols-2 gap-3">
-              <div className="row-span-2 min-h-40 rounded-xl bg-neutral-100 animate-pulse md:min-h-72 md:rounded-2xl" />
-              <div className="min-h-[74px] rounded-xl bg-neutral-100 animate-pulse md:min-h-36 md:rounded-2xl" />
-              <div className="min-h-[74px] rounded-xl bg-neutral-100 animate-pulse md:min-h-36 md:rounded-2xl" />
-            </div>
+            <>
+              <div className="md:hidden">
+                <div className="h-[210px] rounded-2xl bg-neutral-100 animate-pulse" />
+              </div>
+              <div className="hidden grid-cols-2 gap-3 md:grid">
+                <div className="row-span-2 min-h-72 rounded-2xl bg-neutral-100 animate-pulse" />
+                <div className="min-h-36 rounded-2xl bg-neutral-100 animate-pulse" />
+                <div className="min-h-36 rounded-2xl bg-neutral-100 animate-pulse" />
+              </div>
+            </>
           ) : campusTrending.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-neutral-200 bg-neutral-50 px-4 py-8 text-center text-sm text-neutral-500">
               Past activity photos will appear here after club leaders publish them.
             </div>
-          ) : campusTrending.length === 1 ? (
-            <div className="grid grid-cols-1 gap-3">
-              <TrendingCard event={campusTrending[0]} featured />
-            </div>
-          ) : campusTrending.length === 2 ? (
-            <div className="grid grid-cols-2 gap-3">
-              {campusTrending.map((event) => (
-                <TrendingCard key={event.id} event={event} featured />
-              ))}
-            </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
-              <TrendingCard event={campusTrending[0]} featured />
-              {campusTrending.slice(1, 3).map((event) => (
-                <TrendingCard key={event.id} event={event} />
-              ))}
-            </div>
+            <>
+              <MobileTrendingCarousel events={campusTrending} activeIndex={mobileTrendingIndex} />
+              <div className="hidden md:block">
+                {campusTrending.length === 1 ? (
+                  <div className="grid grid-cols-1 gap-3">
+                    <TrendingCard event={campusTrending[0]} featured />
+                  </div>
+                ) : campusTrending.length === 2 ? (
+                  <div className="grid grid-cols-2 gap-3">
+                    {campusTrending.map((event) => (
+                      <TrendingCard key={event.id} event={event} featured />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    <TrendingCard event={campusTrending[0]} featured />
+                    {campusTrending.slice(1, 3).map((event) => (
+                      <TrendingCard key={event.id} event={event} />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </>
           )}
         </section>
 
