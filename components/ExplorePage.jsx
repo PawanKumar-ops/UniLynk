@@ -470,36 +470,36 @@ const MobileTrendingCarousel = ({ events, activeIndex }) => {
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
             />
             <div
-  className="absolute inset-0"
-  style={{
-    background:
-      "linear-gradient(180deg, rgba(0,0,0,0) 25%, rgba(0,0,0,.08) 55%, rgba(0,0,0,.28) 72%, rgba(0,0,0,.55) 90%, rgba(0,0,0,.68) 100%)",
-  }}
-/>
+              className="absolute inset-0"
+              style={{
+                background:
+                  "linear-gradient(180deg, rgba(0,0,0,0) 25%, rgba(0,0,0,.08) 55%, rgba(0,0,0,.28) 72%, rgba(0,0,0,.55) 90%, rgba(0,0,0,.68) 100%)",
+              }}
+            />
             <div className="absolute inset-x-0 bottom-0 px-4 pb-5 text-white">
               <ParticipantAvatarStack event={event} />
               <h3
-  className="line-clamp-2"
-  style={{
-    fontSize: "22px",
-    fontWeight: 800,
-    lineHeight: 1.08,
-    letterSpacing: "-0.03em",
-  }}
->
-  {event.title}
-</h3>
+                className="line-clamp-2"
+                style={{
+                  fontSize: "22px",
+                  fontWeight: 800,
+                  lineHeight: 1.08,
+                  letterSpacing: "-0.03em",
+                }}
+              >
+                {event.title}
+              </h3>
               <p
-  style={{
-    marginTop: 6,
-    fontSize: 13,
-    fontWeight: 500,
-    lineHeight: 1.35,
-    color: "rgba(255,255,255,.82)",
-  }}
->
-  by {event.clubName} · {event.participants} participants
-</p>
+                style={{
+                  marginTop: 6,
+                  fontSize: 13,
+                  fontWeight: 500,
+                  lineHeight: 1.35,
+                  color: "rgba(255,255,255,.82)",
+                }}
+              >
+                by {event.clubName} · {event.participants} participants
+              </p>
             </div>
           </article>
         ))}
@@ -535,6 +535,8 @@ export function ExplorePage({ onBack }) {
   const searchContainerRef = useRef(null);
   const mobileSearchContainerRef = useRef(null);
   const [mobileSearchTarget, setMobileSearchTarget] = useState(null);
+  const [isMobileSearchActive, setIsMobileSearchActive] = useState(false);
+  const [isMobileHeaderHidden, setIsMobileHeaderHidden] = useState(false);
   const [randomClub, setRandomClub] = useState(null);
   const [suggestedPosts, setSuggestedPosts] = useState(null);
   const [suggestedPostsLoading, setSuggestedPostsLoading] = useState(true);
@@ -682,6 +684,7 @@ export function ExplorePage({ onBack }) {
         !mobileSearchContainerRef.current?.contains(event.target)
       ) {
         setIsDropdownOpen(false);
+        setIsMobileSearchActive(false);
       }
     };
 
@@ -1357,61 +1360,141 @@ export function ExplorePage({ onBack }) {
     </div>
   );
 
-  const mobileSearch = mobileSearchTarget
-    ? createPortal(
-      <div className="relative w-full" ref={mobileSearchContainerRef}>
-        <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400" />
-        <input
-          value={query}
-          onFocus={() => setIsDropdownOpen(Boolean(query.trim()))}
-          onChange={(e) => {
-            const nextQuery = e.target.value;
-            setQuery(nextQuery);
-            setIsDropdownOpen(Boolean(nextQuery.trim()));
-          }}
-          placeholder="Search students, clubs, events…"
-          className="w-full py-2 pl-10 pr-3 rounded-full bg-neutral-100 border border-transparent focus:bg-white focus:border-neutral-300 outline-none text-sm transition"
-        />
-        {showSearchResults && (
-          <div className="absolute top-[calc(100%+8px)] right-0 z-30 w-[calc(100vw-4rem)] max-h-[min(520px,calc(100dvh-72px))] overflow-y-auto rounded-2xl border border-neutral-200/80 bg-white p-2 shadow-[0_8px_30px_rgb(0,0,0,0.06)]">
-            {searchLoading ? (
-              <div className="px-4 py-8 text-center text-neutral-500">Searching users...</div>
-            ) : results.length === 0 ? (
-              <div className="px-4 py-8 text-center text-neutral-500">No users found for "{query}"</div>
-            ) : (
-              <ul className="flex flex-col">
-                {results.map((user) => (
-                  <li key={user.id}>
-                    <button
-                      type="button"
-                      className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-neutral-50"
-                      onClick={() => {
-                        setIsDropdownOpen(false);
-                        router.push(`/dashboard/search/id=${user.id}`);
-                      }}
-                    >
-                      <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-neutral-100 ring-2 ring-white shadow-sm">
-                        {user.image ? (
-                          <ImageWithFallback src={user.image} alt={user.name} className="h-full w-full object-cover" />
-                        ) : (
-                          <div className="flex h-full w-full items-center justify-center text-neutral-700">{initials(user.name)}</div>
-                        )}
-                      </div>
-                      <div className="flex min-w-0 flex-1 flex-col">
-                        <span className="truncate text-neutral-900">{user.name}</span>
-                        <span className="truncate text-neutral-500">{user.email || `@${user.username || "user"}`}</span>
-                      </div>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )}
+  // ── X (Twitter) style mobile header ───────────────────────────────────────
+  // Only rendered on phones (md:hidden). Avatar (opens sidebar) + search pill.
+  // Focusing the input expands it over the avatar, exactly like X.
+  const openMobileSidebar = () => {
+    window.dispatchEvent(new CustomEvent("dashboard-open-sidebar"));
+  };
+
+  const mobileHeaderContent = (
+    <div
+      className={`md:hidden fixed top-0 left-0 right-0 z-40 border-b border-neutral-200/70 bg-white/85 backdrop-blur-xl backdrop-saturate-150 transition-transform duration-300 ease-out ${
+        isMobileHeaderHidden && !isMobileSearchActive ? "-translate-y-[calc(100%+1px)]" : "translate-y-0"
+      }`}
+      style={{ paddingTop: "env(safe-area-inset-top)" }}
+    >
+      <div className="relative flex h-[58px] items-center px-3">
+        {/* profile avatar — opens the sidebar; fades out as the input takes over */}
+        <button
+          type="button"
+          aria-label="Open menu"
+          onClick={openMobileSidebar}
+          tabIndex={isMobileSearchActive ? -1 : 0}
+          className={`absolute left-3 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center overflow-hidden rounded-full bg-neutral-200 ring-1 ring-black/5 transition-opacity duration-200 ease-out active:scale-95 ${
+            isMobileSearchActive ? "pointer-events-none opacity-0" : "opacity-100"
+          }`}
+        >
+          <ImageWithFallback
+            src={session?.user?.image || "/Profilepic.png"}
+            alt={session?.user?.name || "Profile"}
+            className="h-full w-full object-cover"
+          />
+        </button>
+
+        {/* search pill — slides over the avatar and spans the full width when active */}
+        <div
+          ref={mobileSearchContainerRef}
+          className={`relative z-10 w-full transition-[padding] duration-300 ease-out ${
+            isMobileSearchActive ? "pl-0" : "pl-12"
+          }`}
+        >
+          <div className="relative">
+          <Search
+            size={18}
+            className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-neutral-400"
+          />
+          <input
+            value={query}
+            inputMode="search"
+            enterKeyHint="search"
+            onFocus={() => {
+              setIsMobileSearchActive(true);
+              setIsDropdownOpen(Boolean(query.trim()));
+            }}
+            onBlur={() => {
+              if (!query.trim()) setIsMobileSearchActive(false);
+            }}
+            onChange={(e) => {
+              const nextQuery = e.target.value;
+              setQuery(nextQuery);
+              setIsDropdownOpen(Boolean(nextQuery.trim()));
+            }}
+            placeholder="Search students, clubs..."
+            className={`h-[42px] w-full rounded-full border border-transparent bg-neutral-100 pl-10 text-sm leading-none outline-none transition placeholder:text-neutral-500 focus:border-neutral-300 focus:bg-white ${
+              query ? "pr-10" : "pr-4"
+            }`}
+          />
+          {!!query && (
+            <button
+              type="button"
+              aria-label="Clear search"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                setQuery("");
+                setIsDropdownOpen(false);
+              }}
+              className="absolute right-2.5 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-full bg-neutral-300 text-white active:scale-95 transition hover:bg-neutral-400"
+            >
+              <svg viewBox="0 0 24 24" width="12" height="12" aria-hidden="true">
+                <path
+                  fill="none"
+                  d="M6 6l12 12M18 6L6 18"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+          )}
           </div>
-        )}
-      </div>,
-      mobileSearchTarget,
-    )
-    : null;
+
+          {showSearchResults && (
+            <div className="absolute top-[calc(100%+10px)] left-1/2 z-30 w-[calc(100vw-1.5rem)] max-w-[calc(100vw-1.5rem)] -translate-x-1/2 max-h-[calc(100dvh-90px)] overflow-y-auto rounded-2xl border border-neutral-200/80 bg-white p-2 shadow-[0_10px_40px_rgb(0,0,0,0.12)]">
+              {searchLoading ? (
+                <div className="px-4 py-8 text-center text-neutral-500">Searching users...</div>
+              ) : results.length === 0 ? (
+                <div className="px-4 py-8 text-center text-neutral-500">No users found for "{query}"</div>
+              ) : (
+                <ul className="flex flex-col">
+                  {results.map((user) => (
+                    <li key={user.id}>
+                      <button
+                        type="button"
+                        className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors active:bg-neutral-100 hover:bg-neutral-50"
+                        onClick={() => {
+                          setIsDropdownOpen(false);
+                          router.push(`/dashboard/search/id=${user.id}`);
+                        }}
+                      >
+                        <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-neutral-100 ring-2 ring-white shadow-sm">
+                          {user.image ? (
+                            <ImageWithFallback src={user.image} alt={user.name} className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-neutral-700">{initials(user.name)}</div>
+                          )}
+                        </div>
+                        <div className="flex min-w-0 flex-1 flex-col">
+                          <span className="truncate text-[15px] font-semibold text-neutral-900">{user.name}</span>
+                          <span className="truncate text-[13px] text-neutral-500">{user.email || `@${user.username || "user"}`}</span>
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
+  // If your layout still renders the old <div id="explore-mobile-search-slot" />,
+  // the header is portaled into it; otherwise it renders itself at the top.
+  const mobileHeader = mobileSearchTarget
+    ? createPortal(mobileHeaderContent, mobileSearchTarget)
+    : mobileHeaderContent;
 
   const handleExploreScroll = (event) => {
     if (window.innerWidth > 768) return;
@@ -1419,6 +1502,7 @@ export function ExplorePage({ onBack }) {
     const scrollDelta = scrollTop - lastMobileScrollTopRef.current;
     const hidden = scrollTop > 60 && scrollDelta > 4 ? true : scrollDelta < -4 ? false : scrollTop <= 4 ? false : null;
     if (hidden !== null) {
+      setIsMobileHeaderHidden(hidden);
       window.dispatchEvent(new CustomEvent("dashboard-explore-scroll", { detail: { hidden } }));
     }
     lastMobileScrollTopRef.current = scrollTop;
@@ -1426,7 +1510,7 @@ export function ExplorePage({ onBack }) {
 
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
-      {mobileSearch}
+      {mobileHeader}
       <div className="hidden md:flex items-center gap-3 px-6 py-4 border-b border-neutral-100">
         <button
           onClick={onBack}
@@ -1505,7 +1589,7 @@ export function ExplorePage({ onBack }) {
         </div>
       </div>
 
-      <div ref={scrollContainerRef} onScroll={handleExploreScroll} className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [&::-webkit-scrollbar-thumb]:hidden [&::-webkit-scrollbar-track]:hidden px-4 pt-[69px] pb-24 space-y-6 md:px-[14px] md:py-5 md:space-y-8">
+      <div ref={scrollContainerRef} onScroll={handleExploreScroll} className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [&::-webkit-scrollbar-thumb]:hidden [&::-webkit-scrollbar-track]:hidden px-2.5 pt-[69px] pb-24 space-y-6 md:px-[14px] md:py-5 md:space-y-8">
 
 
         <section>
@@ -1625,7 +1709,7 @@ export function ExplorePage({ onBack }) {
                   <div className="min-w-0 flex-1">
                     <h3 className="truncate text-sm text-black leading-tight md:text-base">{randomClub?.clubName || ''}</h3>
                     <div className="mt-0.5 flex items-center gap-1 text-xs text-neutral-500 md:text-sm">
-                      <Icon icon="solar:user-linear" className="w-4 h-4"/>
+                      <Icon icon="solar:user-linear" className="w-4 h-4" />
                       <span>{formatted} members</span>
                     </div>
                   </div>
