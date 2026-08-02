@@ -20,14 +20,63 @@ export default function EventDetails({ eventId }) {
         if (!eventId) return;
         let cancelled = false;
 
+        const getCachedEvent = () => {
+            if (typeof window === "undefined") return null;
+
+            const keys = [`unilynk:event:${eventId}`, `unilynk:form:${eventId}`];
+            for (const storage of [sessionStorage, localStorage]) {
+                for (const key of keys) {
+                    try {
+                        const cached = storage.getItem(key);
+                        if (cached) return JSON.parse(cached);
+                    } catch (error) {
+                        console.warn("Could not read cached event:", error);
+                    }
+                }
+            }
+
+            return null;
+        };
+
+        const cacheEvent = (data) => {
+            if (!data || typeof window === "undefined") return;
+            try {
+                const eventJson = JSON.stringify(data);
+                sessionStorage.setItem(`unilynk:event:${eventId}`, eventJson);
+                localStorage.setItem(`unilynk:event:${eventId}`, eventJson);
+            } catch (error) {
+                console.warn("Could not cache event details:", error);
+            }
+        };
+
         const loadEvent = async () => {
+            const cachedEvent = getCachedEvent();
+            if (cachedEvent && !cancelled) setEvent(cachedEvent);
+
             try {
                 const response = await fetch(`/api/forms/${eventId}`, { cache: "no-store" });
                 if (!response.ok) throw new Error("Unable to load event");
                 const data = await response.json();
+                cacheEvent(data);
                 if (!cancelled) setEvent(data);
             } catch (error) {
                 console.error("Failed to load event details:", error);
+
+                if (!cachedEvent) {
+                    try {
+                        const response = await fetch("/api/forms/publics", { cache: "no-store" });
+                        const data = response.ok ? await response.json() : [];
+                        const fallbackEvent = Array.isArray(data)
+                            ? data.find((item) => (item?._id?.toString?.() || item?.id?.toString?.()) === eventId)
+                            : null;
+                        if (fallbackEvent) {
+                            cacheEvent(fallbackEvent);
+                            if (!cancelled) setEvent(fallbackEvent);
+                        }
+                    } catch (fallbackError) {
+                        console.error("Failed to load fallback event details:", fallbackError);
+                    }
+                }
             } finally {
                 if (!cancelled) setLoading(false);
             }
@@ -51,7 +100,7 @@ export default function EventDetails({ eventId }) {
 
     if (loading) return null;
     if (!event) {
-        return <div className="p-6 text-sm text-[#8a8a8e]">Event not found.</div>;
+        return <div className="p-6 text-sm text-[#8a8a8e]">Loading event details...</div>;
     }
 
     return (
