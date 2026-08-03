@@ -269,14 +269,31 @@ export function EventsPage() {
     })[0];
   }, [events]);
 
+  const rememberEvent = (event) => {
+    const id = getEventId(event);
+    if (!id || typeof window === "undefined") return;
+
+    try {
+      const eventJson = JSON.stringify(event);
+      sessionStorage.setItem(`unilynk:event:${id}`, eventJson);
+      localStorage.setItem(`unilynk:event:${id}`, eventJson);
+    } catch (error) {
+      console.warn("Could not cache event for navigation:", error);
+    }
+  };
+
   const openApply = (event) => {
     const id = getEventId(event);
-    if (id) router.push(`/FormPreview/${id}`);
+    if (!id) return;
+    rememberEvent(event);
+    router.push(`/FormPreview/${id}`);
   };
 
   const openDetails = (event) => {
     const id = getEventId(event);
-    if (id) router.push(`/dashboard/events/${id}`);
+    if (!id) return;
+    rememberEvent(event);
+    router.push(`/dashboard/events/${id}`);
   };
 
   if (loading) {

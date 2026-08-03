@@ -422,17 +422,83 @@ export default function FormPreview() {
   // LOAD FORM
   useEffect(() => {
     if (!safeFormId) return;
+    let ignore = false;
     setLoading(true);
 
-    if (safeFormId.startsWith("draft_")) {
-      const draft = getDraft(safeFormId);
-      if (draft) { setFormData(draft); setLoading(false); return; }
-    }
+    const getCachedForm = () => {
+      if (typeof window === "undefined") return null;
 
-    fetch(`/api/forms/${safeFormId}`)
-      .then((res) => { if (!res.ok) throw new Error("Form not found"); return res.json(); })
-      .then((data) => { setFormData(data); setLoading(false); })
-      .catch((err) => { console.error(err); setFormData(null); setLoading(false); });
+      const keys = [`unilynk:form:${safeFormId}`, `unilynk:event:${safeFormId}`];
+      for (const storage of [sessionStorage, localStorage]) {
+        for (const key of keys) {
+          try {
+            const cached = storage.getItem(key);
+            if (cached) return JSON.parse(cached);
+          } catch (error) {
+            console.warn("Could not read cached form:", error);
+          }
+        }
+      }
+
+      return null;
+    };
+
+    const cacheForm = (data) => {
+      if (!data || typeof window === "undefined") return;
+      try {
+        const formJson = JSON.stringify(data);
+        sessionStorage.setItem(`unilynk:form:${safeFormId}`, formJson);
+        localStorage.setItem(`unilynk:form:${safeFormId}`, formJson);
+        sessionStorage.setItem(`unilynk:event:${safeFormId}`, formJson);
+        localStorage.setItem(`unilynk:event:${safeFormId}`, formJson);
+      } catch (error) {
+        console.warn("Could not cache form:", error);
+      }
+    };
+
+    const loadForm = async () => {
+      if (safeFormId.startsWith("draft_")) {
+        const draft = getDraft(safeFormId);
+        if (draft) {
+          if (!ignore) { setFormData(draft); setLoading(false); }
+          return;
+        }
+      }
+
+      const cachedForm = getCachedForm();
+      if (cachedForm && !ignore) setFormData(cachedForm);
+
+      try {
+        const res = await fetch(`/api/forms/${safeFormId}`, { cache: "no-store" });
+        if (!res.ok) throw new Error("Form not found");
+        const data = await res.json();
+        cacheForm(data);
+        if (!ignore) setFormData(data);
+      } catch (err) {
+        console.error(err);
+
+        if (!cachedForm) {
+          try {
+            const res = await fetch("/api/forms/publics", { cache: "no-store" });
+            const data = res.ok ? await res.json() : [];
+            const fallbackForm = Array.isArray(data)
+              ? data.find((item) => (item?._id?.toString?.() || item?.id?.toString?.()) === safeFormId)
+              : null;
+            if (fallbackForm) {
+              cacheForm(fallbackForm);
+              if (!ignore) setFormData(fallbackForm);
+            }
+          } catch (fallbackError) {
+            console.error("Failed to load fallback form:", fallbackError);
+          }
+        }
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    };
+
+    loadForm();
+    return () => { ignore = true; };
   }, [safeFormId]);
 
   // CHECK IF USER ALREADY APPLIED
@@ -512,7 +578,7 @@ export default function FormPreview() {
   );
 
   if (!formData) return (
-    <div className="not-found-container"><p className="not-found-text">Form not found</p></div>
+    <div className="not-found-container"><p className="not-found-text">Loading form...</p></div>
   );
 
   if (submitted) return (
