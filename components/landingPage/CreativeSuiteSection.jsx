@@ -21,162 +21,192 @@ const PANELS = [
       {
         icon: "calendar",
         label: "Events",
-        description: "Never miss workshops, fests, hackathons, and club activities."
+        description: "Never miss workshops, fests, hackathons, and club activities.",
+        video: 'https://videocdn.cdnpk.net/videos/0f7559cf-1e75-4d7b-bee6-52ae249c9854/horizontal/previews/clear/large.mp4?token=exp=1785772447~hmac=e2db690b098d09e0cb4ee0128ecd023077e79a2168c218ee1c0fb3cd79eae520',
       },
       {
         icon: "post",
         label: "Campus Feed",
-        description: "See updates, announcements, and posts shared across your campus."
+        description: "See updates, announcements, and posts shared across your campus.",
+        video: 'https://videocdn.cdnpk.net/videos/1e8ac744-3fc7-497c-ac9a-9793096a85d8/horizontal/previews/clear/large.mp4?token=exp=1785772692~hmac=6435914a521c58a963df3c577988363dd9d35a0bd223d49ac18c1521e05989e6',
       },
       {
         icon: "clubs",
         label: "Clubs",
-        description: "Discover student clubs and become part of communities you love."
+        description: "Discover student clubs and become part of communities you love.",
+        video: "https://videocdn.cdnpk.net/videos/ec6849b0-bbf0-53f5-9685-28fcf8309fd3/horizontal/previews/clear/large.mp4?token=exp=1785773802~hmac=b320b6367458ba1651063320c1eba4b67590536124816c65e9c76ea14621c2a8",
       },
       {
         icon: "network",
         label: "Networking",
-        description: "Meet seniors, classmates, and students across departments."
+        description: "Meet seniors, classmates, and students across departments.",
+        video: "https://videocdn.cdnpk.net/videos/a266430c-29c3-5b67-8a6e-5f1bb63bd453/horizontal/previews/clear/large.mp4?token=exp=1785773920~hmac=a762475a6317f65709382eed0fc23492be3abf3f12f920a707ae300a4934eae8",
       }
     ]
   },
   {
-    id: 'mcp-api',
-    tab: 'MCP & API',
+    id: 'campus-network',
+    tab: 'Campus Network',
     isNew: true,
-    heading: 'The models, assets, and workflows that run Magnific, now yours',
+    heading: 'Build meaningful connections across your campus.',
     description:
-      'Connect via MCP and use Magnific from any AI agent. Or go deeper with the API. Both run on credits, like the rest of your plan.',
+      'Connect with classmates, seniors, juniors, and club members. Discover people with shared interests and grow your campus network naturally.',
     links: [
       { label: 'MCP', href: 'https://www.magnific.com/mcp#from_element=home_tabs_mcp-api_mcp' },
       { label: 'API', href: 'https://www.magnific.com/api#from_element=home_tabs_mcp-api_api' },
     ],
-    video: 'https://media.magnific.com/home/relaunch/media/tabs/videos/developer-api.webm',
+    video: 'https://videocdn.cdnpk.net/videos/472d683e-edde-4c8a-8606-72edb82487b5/horizontal/previews/clear/large.mp4?token=exp=1785774896~hmac=401954b115e9139c20e31c5c606aa524c9b0c7f98500039be48dfb8584884ebc',
     features: [
       {
         icon: 'mcp',
-        label: 'MCP',
+        label: 'Student Profiles',
         description:
-          'All of Magnific in your workspace, through MCP. Use it from Claude, ChatGPT, Cursor, and more.',
+          'Explore student profiles, interests, and achievements. Discover people who share your passions across campus.',
       },
       {
         icon: 'images',
-        label: 'Image API',
-        description: 'Generate images with multi-image references. Every leading model.',
+        label: 'Connections',
+        description: 'Build meaningful connections with classmates, seniors, juniors, and students from every department.',
       },
       {
         icon: 'video',
-        label: 'Video API',
+        label: 'Communities',
         description:
-          'Static image to dynamic video with motion control. Built for ads, content, and film.',
+          'Join interest-based communities, participate in discussions, and connect with students who share your goals.',
       },
       {
         icon: 'microphone',
-        label: 'Audio API',
+        label: 'Club Network',
         description:
-          'Text to speech, voice cloning, lip sync, and sound generation. Every audio output from one endpoint.',
+          'Discover student clubs, explore their activities, and become part of vibrant campus communities.',
       },
       {
         icon: 'resources',
-        label: 'Stock API',
-        description: 'Access 250M+ licensed assets directly from your stack.',
+        label: 'Campus Feed',
+        description: 'Follow campus updates, announcements, and trending conversations from students and organizations alike.',
       },
     ],
   },
   {
-    id: 'agents',
-    tab: 'Agents',
+    id: 'events',
+    tab: 'Events',
     isNew: true,
-    heading: 'Design the agent. Direct the work.',
+    heading: 'Every event on campus. Never miss a moment.',
     description:
-      'Feed it your brand book, your references, your workflow. The agent learns your world and works the way you do.',
+      'Discover workshops, hackathons, seminars, fests, competitions, and club activities. Stay informed, register with ease, and experience campus life like never before.',
     links: [
       {
-        label: 'Build your agent',
-        href: 'https://www.magnific.com/agents#from_element=home_tabs_agents',
+        label: 'Explore Events',
       },
     ],
-    image: {
-      src: 'https://media.magnific.com/home/relaunch/media/tabs/images/agents-2x.webp',
-      srcSet:
-        'https://media.magnific.com/home/relaunch/media/tabs/images/agents-1x.webp 1x, https://media.magnific.com/home/relaunch/media/tabs/images/agents-2x.webp 2x',
+    video: 'https://videocdn.cdnpk.net/videos/efa450b3-a309-4365-8655-1870d82ab43c/horizontal/previews/clear/large.mp4?token=exp=1785775751~hmac=880bbdbbf2258bac5286daba52e5c6db0c40e3d413ce5b461c78b172be64ff75',
+    features: [
+      {
+        icon: 'calendar',
+        label: 'Upcoming Events',
+        description:
+          'Explore upcoming workshops, seminars, hackathons, competitions, and cultural events happening across your campus.',
+      },
+      {
+        icon: 'ticket',
+        label: 'Registrations',
+        description:
+          'Register for events in seconds, manage your participation, and keep track of everything you have joined.',
+      },
+      {
+        icon: 'bell',
+        label: 'Reminders',
+        description:
+          'Receive timely reminders before every event so you never miss important sessions or activities.',
+      },
+      {
+        icon: 'location',
+        label: 'Venues',
+        description:
+          'Find event locations, schedules, and essential details before you arrive on campus with confidence.',
+      },
+    ],
+  },
+  {
+  id: 'clubs',
+  tab: 'Clubs',
+  isNew: true,
+  heading: 'Discover clubs. Find your community.',
+  description:
+    'Explore student clubs across your campus, discover their activities, connect with members, and become part of communities that match your interests.',
+  links: [
+    {
+      label: 'Explore Clubs',
     },
-    features: [
-      {
-        icon: 'book',
-        label: 'Knowledge bases',
-        description:
-          'Upload your brand book, references, and manuals. The agent starts from your world, not a blank slate.',
-      },
-      {
-        icon: 'code-block',
-        label: 'Skills as files',
-        description: 'Drop a skill as a markdown file. Your rulebook, applied every time.',
-      },
-      {
-        icon: 'history',
-        label: 'Memory that sticks',
-        description: 'Remembers your preferences and project conventions across every session.',
-      },
-      {
-        icon: 'play',
-        label: 'Operates the canvas',
-        description:
-          'Not a chat beside your work. It wires nodes, picks models, and runs tasks inside your space.',
-      },
-    ],
-  },
+  ],
+  video: 'https://videocdn.cdnpk.net/videos/72ea9882-f25f-499c-860c-d07fb8e04dbb/horizontal/previews/clear/large.mp4?token=exp=1785776153~hmac=83ed7e32eaf804b49f7363129c4a9ba9d64e28afca635bbd823f5fb71899915e',
+  features: [
+    {
+      icon: 'compass',
+      label: 'Discover Clubs',
+      description:
+        'Browse clubs from every category, explore their missions, and find communities that match your interests.',
+    },
+    {
+      icon: 'users',
+      label: 'Club Members',
+      description:
+        'Meet club members, connect with student leaders, and learn more about every community before joining.',
+    },
+    {
+      icon: 'calendar',
+      label: 'Club Activities',
+      description:
+        'Stay updated with workshops, competitions, meetings, and activities organized by your favorite clubs.',
+    },
+    {
+      icon: 'add-user',
+      label: 'Join Clubs',
+      description:
+        'Become a member in just a few clicks and start participating in exciting opportunities across campus.',
+    },
+  ],
+},
   {
-    id: 'plugins',
-    tab: 'Plugins',
-    isNew: true,
-    heading: 'Magnific, where you already create.',
-    headingClassName:
-      'font-alternate text-lg font-extrabold leading-tight tracking-tight text-white xl:text-xl',
-    description:
-      'Generate, upscale, and edit with Magnific, without ever leaving your editor. Install the plugin and start creating where you already work.',
-    descriptionClassName: 'mt-2 text-sm leading-relaxed text-white/70 xl:hidden',
-    links: [
-      { label: 'Learn more', href: 'https://www.magnific.com/plugins#from_element=home_tabs_plugins' },
-    ],
-  },
-  {
-    id: 'stock',
-    tab: 'Stock',
-    heading: "The world's creative library. Ready to use.",
-    description:
-      '250M+ photos, vectors, icons, and templates. Licensed for commercial use, connected to every workflow on Magnific.',
-    links: [{ label: 'More info', href: 'https://www.magnific.com/stock#from_element=home_tabs_stock' }],
-    video: 'https://media.magnific.com/home/relaunch/media/tabs/videos/stock.webm',
-    features: [
-      { icon: 'photo', label: 'Photos', description: 'Millions of high-quality images.' },
-      {
-        icon: 'vector',
-        label: 'Vectors & illustrations',
-        description: 'Editable Photoshop files with every layer intact.',
-      },
-      {
-        icon: 'psd',
-        label: 'PSD',
-        description: 'Editable Photoshop files with every layer intact.',
-      },
-      {
-        icon: 'template',
-        label: 'Templates',
-        description: 'Pro-designed templates for every format and brand.',
-      },
-      {
-        icon: 'video',
-        label: 'Video',
-        description: '4K clips for ads, social, and film. References for AI generation.',
-      },
-      {
-        icon: 'icons',
-        label: 'Icons',
-        description: 'Consistent icon sets for UI, brand, and presentations.',
-      },
-    ],
-  },
+  id: 'chat',
+  tab: 'Chat',
+  isNew: true,
+  heading: 'Conversations that keep campus connected.',
+  description:
+    'Chat with classmates, seniors, juniors, clubs, and communities. Stay connected through real-time conversations, group discussions, and meaningful campus interactions.',
+  links: [
+    {
+      label: 'Start Chatting',
+    },
+  ],
+  video: 'https://videocdn.cdnpk.net/videos/e717e56c-7578-5c65-85a6-15101b3ab1c1/horizontal/previews/clear/large.mp4?token=exp=1785776419~hmac=bf8cc2fff3e88ad5a71b2f57db4ee8bfe219cd4fd4c91c1a358dabb39064928e',
+  features: [
+    {
+      icon: 'chat',
+      label: 'Direct Messages',
+      description:
+        'Start private conversations with classmates, seniors, juniors, and friends from across your campus.',
+    },
+    {
+      icon: 'users-group',
+      label: 'Group Chats',
+      description:
+        'Create group conversations for clubs, events, projects, and communities to stay connected together.',
+    },
+    {
+      icon: 'notification',
+      label: 'Real-time Updates',
+      description:
+        'Receive instant message notifications, stay informed, and never miss important conversations again.',
+    },
+    {
+      icon: 'shield-check',
+      label: 'Safe Conversations',
+      description:
+        'Chat in a secure environment designed to help students communicate with confidence and respect.',
+    },
+  ],
+},
 ]
 
 const PLUGINS = [
@@ -445,10 +475,10 @@ export default function CreativeSuiteSection() {
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-8">
             <div className="min-w-0 flex-1">
               <h2 className="mx-auto max-w-2xl font-alternate text-3xl font-bold leading-tight text-[#3f0808] lg:text-5xl">
-                One place to create anything
+                Built for every part of campus life
               </h2>
               <p className="mt-4 max-w-2xl text-base text-[#3f0808] lg:text-lg">
-                Pick your starting point. Every tool, every model, every format.
+                Start your campus journey. Discover clubs, join events, build connections.
               </p>
             </div>
           </div>
