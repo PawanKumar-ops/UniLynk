@@ -1,0 +1,63 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Inter:wght@400;500;600&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-alternate: 'Poppins', 'Inter', ui-sans-serif, system-ui, sans-serif;
+
+  --text-2xs: 0.625rem;
+
+  --radius-2lg: 0.875rem;
+
+  --animate-scroll-horizontal: scroll-horizontal 24s linear infinite;
+  --animate-accordion-down: accordion-down 200ms ease-out;
+
+  @keyframes accordion-down {
+    from {
+      height: 0;
+    }
+    to {
+      height: var(--radix-collapsible-content-height, auto);
+    }
+  }
+
+  @keyframes scroll-horizontal {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-50%);
+    }
+  }
+}
+
+body {
+  font-family: var(--font-sans);
+}
+
+@utility scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Visually-hidden label class used by the captured header markup. */
+._1uvu8nb0 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+@utility typo-body-2xs {
+  font-size: 0.625rem;
+  line-height: 1;
+}

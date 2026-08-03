@@ -1,0 +1,348 @@
+import { useState } from 'react'
+import SpriteIcon from './SpriteIcon'
+
+const LOGO_PATH =
+  'M84.1957 6.09947L83.689 7.85857C83.1747 7.28915 82.5631 6.81996 81.851 6.45245C80.8438 5.93387 79.6661 5.67386 78.3226 5.67386C76.7996 5.67386 75.4469 6.01667 74.2601 6.7023C73.0749 7.38793 72.1543 8.32631 71.5031 9.51744C70.8504 10.71 70.5248 12.0377 70.5248 13.5005C70.5248 14.9632 70.8549 16.2604 71.5183 17.4428C72.1802 18.6252 73.1053 19.5549 74.2906 20.2304C75.4773 20.9058 76.8209 21.2443 78.3226 21.2443C79.5276 21.2443 80.576 21.0467 81.4661 20.6502C81.6882 20.5514 81.9012 20.4425 82.1066 20.3262C83.1245 19.7481 83.9461 19 84.4893 18.3754L85.1938 20.8216L88.704 20.8201L87.1003 15.245V6.09947H84.1957ZM83.1899 15.9612C83.1762 15.9859 83.161 16.0091 83.1473 16.0324C82.735 16.7325 82.1705 17.2772 81.4509 17.668C80.7099 18.0704 79.8745 18.2708 78.9449 18.2708C78.0153 18.2708 77.1252 18.0704 76.3948 17.668C75.663 17.2656 75.0894 16.7006 74.6755 15.9699C74.2601 15.2407 74.0532 14.4171 74.0532 13.5005C74.0532 12.5839 74.2601 11.7283 74.6755 10.9889C75.0909 10.251 75.6645 9.66996 76.3948 9.24871C77.1252 8.82746 77.9757 8.61683 78.9449 8.61683C79.9141 8.61683 80.7099 8.8231 81.4509 9.23418C82.1918 9.64527 82.77 10.2249 83.1854 10.9744C83.6008 11.7239 83.8077 12.565 83.8077 13.5005C83.8077 14.4359 83.6023 15.2334 83.1899 15.9597V15.9612ZM126.369 3.51384H130.047V0H126.369V3.51384ZM126.517 20.8187H129.927V6.09947H126.517V20.8201V20.8187ZM162.601 17.4646C161.83 17.9832 160.96 18.2432 159.992 18.2432C158.548 18.2432 157.398 17.8176 156.538 16.9664C155.678 16.1152 155.248 14.9502 155.248 13.4729C155.248 12.4822 155.446 11.6252 155.841 10.9061C156.237 10.1856 156.791 9.62929 157.501 9.23564C158.213 8.84343 159.042 8.64588 159.992 8.64588C161.79 8.64588 163.347 9.29519 164.287 11.3622L167.28 10.219C166.767 8.6851 165.684 7.58403 164.38 6.81996C163.074 6.05589 161.612 5.67386 159.992 5.67386C158.371 5.67386 156.991 6.00796 155.736 6.67325C154.481 7.33999 153.498 8.26385 152.786 9.44626C152.074 10.6287 151.718 11.9709 151.718 13.4729C151.718 14.9749 152.063 16.3447 152.756 17.5271C153.448 18.7095 154.42 19.6246 155.677 20.2725C156.932 20.9204 158.37 21.2443 159.992 21.2443C161.614 21.2443 163.053 20.8492 164.336 20.0982C165.638 19.3341 166.696 18.2127 167.23 16.7151L164.261 15.5806C163.867 16.3461 163.373 16.9446 162.601 17.4646ZM102.967 7.75834C99.8704 4.30406 93.2259 5.33976 91.1658 9.34313C87.5248 16.1021 94.5527 23.4043 101.692 19.4881C101.692 19.4881 102.256 19.1467 102.967 18.5526V20.2623C103.353 25.3886 94.6166 26.1047 93.2122 21.3009L90.2179 22.4441C90.8113 23.8212 92.4758 27.4759 98.1055 27.4759C105.524 27.4759 106.378 22.5923 106.378 20.4236V6.09947H103.444L102.967 7.75834ZM102.492 15.4324C99.1036 20.3277 91.4503 16.2691 94.3382 10.8146C95.4732 8.6299 98.7293 8.03579 100.861 9.18044C103.069 10.3149 103.686 13.3988 102.492 15.431V15.4324ZM120.954 6.40597C120.095 5.9179 119.042 5.67386 117.797 5.67386C116.828 5.67386 116.023 5.80169 115.381 6.05589C114.842 6.26943 114.371 6.55995 113.964 6.926C113.964 6.926 113.432 7.38212 112.905 7.97914L112.364 6.09947H109.494V20.8201H112.904V13.0051C112.904 12.106 113.056 11.3332 113.363 10.6868C113.669 10.0404 114.119 9.54359 114.713 9.19642C115.306 8.84925 116.008 8.67638 116.819 8.67638C117.945 8.67638 118.78 8.99015 119.325 9.61767C119.868 10.2452 120.14 11.2155 120.14 12.5272V20.8201H123.55V11.8677C123.55 10.5735 123.332 9.46079 122.897 8.53258C122.462 7.60437 121.815 6.8955 120.954 6.40742V6.40597ZM145.353 3.51384H149.029V0H145.353V3.51384ZM138.548 3.79274C138.548 2.97638 139.193 2.77592 139.613 2.77592H142.491L143.289 0.0014526H138.942C136.84 0.0014526 135.138 1.62691 135.138 3.63295V6.09947H132.35V8.87394H135.138V20.8201H138.548V8.87394H145.502V20.8201H148.912V6.09947H138.548V3.79274ZM18.0474 0L15.0394 7.17875L12.0328 0H6.01674L0.000637226 20.8187C-0.0800035 20.8187 7.52001 20.8187 7.52001 20.8187L15.0394 11.4857L22.5587 20.8187C22.5587 20.8187 30.1588 20.8187 30.0781 20.8187L24.0635 0H18.0474ZM62.3998 0L56.653 12.6478L50.8454 0H45.1169V20.8187H48.5859V3.42378L56.6515 20.9262L64.6578 3.42378V20.8201H68.1269V0H62.3983H62.3998Z'
+
+const CHEVRON_PATH =
+  'm256 275.6-92.3-92.3c-9.8-9.8-25.6-9.8-35.4 0s-9.8 25.6 0 35.4l110 110c4.9 4.9 11.3 7.3 17.7 7.3s12.8-2.4 17.7-7.3l110-110c9.8-9.8 9.8-25.6 0-35.4s-25.6-9.8-35.4 0z'
+const SEARCH_PATH =
+  'M448.178 602.822 316.426 471.071c26.355-33.88 42.074-76.422 42.074-122.571 0-110.28-89.72-200-200-200s-200 89.72-200 200 89.72 200 200 200c46.149 0 88.691-15.719 122.571-42.074l131.751 131.751c4.882 4.882 11.28 7.323 17.678 7.323s12.796-2.441 17.678-7.322c9.762-9.763 9.762-25.593 0-35.356M8.5 348.5c0-82.71 67.29-150 150-150s150 67.29 150 150-67.29 150-150 150-150-67.29-150-150'
+const CHECK_PATH =
+  'M127 552.25a24.92 24.92 0 0 1-17.678-7.322l-101-101c-9.763-9.763-9.763-25.593 0-35.355 9.764-9.764 25.592-9.764 35.355 0l83.339 83.34 243.323-242.857c9.771-9.754 25.602-9.74 35.355.033 9.754 9.772 9.739 25.602-.033 35.355l-261 260.5A24.92 24.92 0 0 1 127 552.25'
+
+const LANGUAGES = [
+  { label: 'English', href: '/', current: true },
+  { label: 'Čeština', href: '/cz' },
+  { label: 'Dansk', href: '/dk' },
+  { label: 'Deutsch', href: '/de' },
+  { label: 'Español', href: '/es' },
+  { label: 'Suomi', href: '/fi' },
+  { label: 'Français', href: '/fr' },
+  { label: 'हिन्दी', href: '/in' },
+  { label: 'Bahasa Indonesia', href: '/idn' },
+  { label: 'Italiano', href: '/it' },
+  { label: '日本語', href: '/jp' },
+  { label: '한국어', href: '/kr' },
+  { label: 'Norsk bokmål', href: '/no' },
+  { label: 'Nederlands', href: '/nl' },
+  { label: 'Polski', href: '/pl' },
+  { label: 'Português', href: '/br' },
+  { label: 'Pусский', href: '/ru' },
+  { label: 'Svenska', href: '/se' },
+  { label: 'ภาษาไทย', href: '/th' },
+  { label: 'Türkçe', href: '/tr' },
+  { label: 'Tiếng Việt', href: '/vn' },
+  { label: '简体中文', href: '/cn' },
+  { label: '繁體中文 (香港)', href: '/zh' },
+]
+
+const COLUMNS = [
+  {
+    title: 'Products',
+    links: [
+      { label: 'Spaces', href: '/spaces' },
+      { label: 'AI Assistant', href: '/app/assistant' },
+      { label: 'AI Image Generator', href: '/ai/image-generator' },
+      { label: 'AI Video Generator', href: '/ai/video-generator' },
+      { label: 'AI Voice Generator', href: '/ai/voice-generator' },
+      { label: 'Stock content', href: '/stock' },
+      { label: 'MCP for Claude/ChatGPT', href: '/mcp', isNew: true },
+      { label: 'Agents', href: '/agents', isNew: true },
+      { label: 'API', href: '/api' },
+      { label: 'Mobile App', href: '/mobile-app' },
+      { label: 'All Magnific tools', href: '/ai' },
+    ],
+  },
+  {
+    title: 'Get started',
+    links: [
+      { label: 'Academy', href: '/academy' },
+      { label: 'Documentation', href: '/ai/docs' },
+      { label: 'Support', href: '/ai/support' },
+      {
+        label: 'Terms of use',
+        href: '/legal/terms-of-use',
+        target: '_blank',
+        rel: 'noreferrer noopener',
+      },
+      { label: 'Privacy policy', href: '/legal/privacy', target: '_blank', rel: 'noreferrer noopener' },
+      { label: 'Originals', href: '/originals', isNew: true },
+      { label: 'Cookies policy', href: '/legal/cookies', target: '_blank', rel: 'noreferrer noopener' },
+      { label: 'Cookies Settings', button: true },
+      {
+        label: 'Trust center',
+        href: 'https://trust.magnific.com/',
+        target: '_blank',
+        rel: 'noreferrer noopener',
+      },
+      { label: 'Affiliates', href: '/affiliates' },
+      { label: 'Enterprise', href: '/enterprise' },
+    ],
+  },
+  {
+    title: 'Company',
+    links: [
+      { label: 'Pricing', href: '/pricing?origin=magnific_web' },
+      { label: 'About us', href: '/company/about-us' },
+      { label: 'Reviews', href: '/reviews' },
+      {
+        label: 'Careers',
+        href: 'https://jobs.magnific.com/',
+        target: '_blank',
+        rel: 'noreferrer noopener',
+      },
+      { label: 'Search trends', href: '/tags' },
+      { label: 'Blog', href: 'https://www.magnific.com/blog/' },
+      { label: 'Events', href: '/events', target: '_blank', rel: 'noreferrer noopener' },
+      {
+        label: 'Slidesgo',
+        href: 'https://slidesgo.com/',
+        target: '_blank',
+        rel: 'noreferrer noopener nofollow',
+      },
+      {
+        label: 'Sell content',
+        href: 'https://contributor.magnific.com/',
+        target: '_blank',
+        rel: 'noreferrer noopener nofollow',
+      },
+      { label: 'Press room', href: '/press' },
+      {
+        label: 'Looking for magnific.ai',
+        href: 'https://magnific.ai/legacy',
+        target: '_blank',
+        rel: 'noreferrer noopener nofollow',
+      },
+    ],
+  },
+  {
+    title: 'Get in touch',
+    links: [
+      { label: 'Customer support', href: '/ai/support', compact: true },
+      {
+        label: 'Instagram',
+        href: 'https://www.instagram.com/magnific_ai/',
+        target: '_blank',
+        rel: 'nofollow noopener noreferrer',
+        compact: true,
+      },
+      {
+        label: 'YouTube',
+        href: 'https://www.youtube.com/@magnific_ai',
+        target: '_blank',
+        rel: 'nofollow noopener noreferrer',
+        compact: true,
+      },
+      {
+        label: 'LinkedIn',
+        href: 'https://www.linkedin.com/company/magnific',
+        target: '_blank',
+        rel: 'nofollow noopener noreferrer',
+        compact: true,
+      },
+      {
+        label: 'TikTok',
+        href: 'https://www.tiktok.com/@magnific_ai',
+        target: '_blank',
+        rel: 'nofollow noopener noreferrer',
+        compact: true,
+      },
+      {
+        label: 'Discord',
+        href: 'https://discord.gg/magnific',
+        target: '_blank',
+        rel: 'nofollow noopener noreferrer',
+        compact: true,
+      },
+      {
+        label: 'X',
+        href: 'https://x.com/magnific',
+        target: '_blank',
+        rel: 'nofollow noopener noreferrer',
+        compact: true,
+      },
+      {
+        label: 'Reddit',
+        href: 'https://www.reddit.com/r/magnific/',
+        target: '_blank',
+        rel: 'nofollow noopener noreferrer',
+        compact: true,
+      },
+    ],
+  },
+]
+
+const NEW_BADGE =
+  'relative rounded-sm bg-[#dbe7ff] p-1 align-middle text-2xs font-semibold leading-none tracking-wide text-[#1b3a7a] dark:bg-[#2E3035] dark:text-[#b9d0ff]'
+
+function LanguagePicker() {
+  const [open, setOpen] = useState(false)
+  const state = open ? 'open' : 'closed'
+  return (
+    <div className="relative" data-state={state}>
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        onClick={() => setOpen(!open)}
+        className="flex h-8 items-center gap-2 rounded-lg border border-white bg-transparent px-4 text-xs font-medium text-white"
+      >
+        <SpriteIcon name="translate" className="inline-block size-3.5 fill-current" />
+        English
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          viewBox="0 0 512 512"
+          width="16"
+          height="16"
+          aria-hidden="true"
+          className="size-3.5"
+        >
+          <path fill="currentColor" d={CHEVRON_PATH} />
+        </svg>
+      </button>
+      <div
+        data-side="bottom"
+        data-align="start"
+        data-state={state}
+        role="dialog"
+        data-theme="dark"
+        className={`absolute left-0 top-full z-20 mt-1 rounded-lg border border-white/10 bg-[#101010] text-left text-white shadow-sm transition-all duration-150 ease-in-out ${
+          open ? '' : 'hidden'
+        }`}
+        tabIndex={-1}
+      >
+        <div className="relative pb-1">
+          <div className="relative">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="-49 141 512 512"
+              width="16"
+              height="16"
+              aria-hidden="true"
+              className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#ffffff]"
+            >
+              <path fill="currentColor" d={SEARCH_PATH} />
+            </svg>
+            <input
+              type="text"
+              placeholder="Search by"
+              className="h-10 w-full rounded-lg border border-[#ffffff26] bg-[#ffffff0d] px-9 text-sm text-[#ffffff] outline-none transition-colors placeholder:text-[#ffffff80] hover:border-[#ffffff4c] focus:border-2 focus:border-[#ff3ea5] focus-visible:outline-none active:border-[#ffffff66] disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </div>
+        </div>
+        <ul className="max-h-[215px] min-w-[200px] overflow-auto scroll-smooth">
+          {LANGUAGES.map((language) => (
+            <li key={language.href}>
+              <a
+                className={`block cursor-pointer bg-transparent p-4 text-white no-underline transition-all duration-75 hover:bg-white/10 ${
+                  language.current ? 'flex items-center justify-between font-medium' : 'text-left'
+                }`}
+                href={language.href}
+              >
+                <span>{language.label}</span>
+                {language.current ? (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="-49 141 512 512"
+                    width="16"
+                    height="16"
+                    aria-hidden="true"
+                    className="size-4"
+                  >
+                    <path fill="currentColor" d={CHECK_PATH} />
+                  </svg>
+                ) : null}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  )
+}
+
+export default function SiteFooter() {
+  return (
+    <footer className="bg-[#101010]">
+      <div className="mx-auto w-full max-w-screen-2xl px-5">
+        <div className="py-12 lg:px-24 lg:py-20">
+          <div className="flex flex-col gap-10 xl:flex-row xl:gap-32">
+            <div className="mx-auto flex shrink-0 flex-col items-center gap-8 text-center lg:w-[600px] xl:w-[280px] xl:items-start xl:text-left">
+              <a href="https://www.magnific.com" aria-label="Magnific">
+                <svg
+                  width="168"
+                  height="28"
+                  viewBox="0 0 168 28"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="text-white"
+                >
+                  <path d={LOGO_PATH} fill="currentColor" />
+                </svg>
+              </a>
+              <p className="text-sm text-white/90">
+                The creative platform to direct your best work. More than 1 million subscribers across
+                creatives, enterprises, agencies, and studios.
+              </p>
+              <LanguagePicker />
+            </div>
+            <div className="grid flex-1 grid-cols-1 gap-0 lg:grid-cols-4 lg:gap-8">
+              {COLUMNS.map((column) => (
+                <div
+                  key={column.title}
+                  className="border-b border-white/10 py-3 lg:border-b-0 lg:py-0"
+                  data-state="open"
+                >
+                  <button
+                    type="button"
+                    aria-expanded="true"
+                    data-state="open"
+                    className="flex w-full items-center justify-between font-alternate text-base font-semibold leading-loose text-[#ff3ea5]"
+                    style={{ cursor: 'auto' }}
+                  >
+                    {column.title}
+                    <SpriteIcon
+                      name="unfold"
+                      className="inline-block size-8 fill-current"
+                      style={{ display: 'none' }}
+                    />
+                  </button>
+                  <ul className="mt-2 block space-y-0.5 lg:mt-3" data-state="open">
+                    {column.links.map((link) => (
+                      <li key={link.label}>
+                        {link.button ? (
+                          <button
+                            className="ot-sdk-show-settings text-left text-sm font-normal text-white transition-colors hover:text-[#ff3ea5]"
+                            type="button"
+                          >
+                            {link.label}
+                          </button>
+                        ) : (
+                          <a
+                            className={`text-sm font-normal text-white no-underline transition-colors hover:text-[#ff3ea5] ${
+                              link.compact ? '' : 'inline-flex items-center gap-2'
+                            }`}
+                            href={link.href}
+                            target={link.target}
+                            rel={link.rel}
+                          >
+                            {link.label}
+                            {link.isNew ? <span className={NEW_BADGE}>New</span> : null}
+                          </a>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+          <p className="mt-10 text-center text-xs text-white/50 xl:text-left">
+            Copyright © 2010-2026 Freepik Company S.L.U. All rights reserved.
+          </p>
+        </div>
+      </div>
+    </footer>
+  )
+}
