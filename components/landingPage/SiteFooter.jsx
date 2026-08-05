@@ -11,164 +11,47 @@ const SEARCH_PATH =
 const CHECK_PATH =
   'M127 552.25a24.92 24.92 0 0 1-17.678-7.322l-101-101c-9.763-9.763-9.763-25.593 0-35.355 9.764-9.764 25.592-9.764 35.355 0l83.339 83.34 243.323-242.857c9.771-9.754 25.602-9.74 35.355.033 9.754 9.772 9.739 25.602-.033 35.355l-261 260.5A24.92 24.92 0 0 1 127 552.25'
 
-const LANGUAGES = [
-  { label: 'English', href: '/', current: true },
-  { label: 'Čeština', href: '/cz' },
-  { label: 'Dansk', href: '/dk' },
-  { label: 'Deutsch', href: '/de' },
-  { label: 'Español', href: '/es' },
-  { label: 'Suomi', href: '/fi' },
-  { label: 'Français', href: '/fr' },
-  { label: 'हिन्दी', href: '/in' },
-  { label: 'Bahasa Indonesia', href: '/idn' },
-  { label: 'Italiano', href: '/it' },
-  { label: '日本語', href: '/jp' },
-  { label: '한국어', href: '/kr' },
-  { label: 'Norsk bokmål', href: '/no' },
-  { label: 'Nederlands', href: '/nl' },
-  { label: 'Polski', href: '/pl' },
-  { label: 'Português', href: '/br' },
-  { label: 'Pусский', href: '/ru' },
-  { label: 'Svenska', href: '/se' },
-  { label: 'ภาษาไทย', href: '/th' },
-  { label: 'Türkçe', href: '/tr' },
-  { label: 'Tiếng Việt', href: '/vn' },
-  { label: '简体中文', href: '/cn' },
-  { label: '繁體中文 (香港)', href: '/zh' },
-]
 
 const COLUMNS = [
   {
-    title: 'Products',
+    title: 'Platform',
     links: [
-      { label: 'Spaces', href: '/spaces' },
-      { label: 'AI Assistant', href: '/app/assistant' },
-      { label: 'AI Image Generator', href: '/ai/image-generator' },
-      { label: 'AI Video Generator', href: '/ai/video-generator' },
-      { label: 'AI Voice Generator', href: '/ai/voice-generator' },
-      { label: 'Stock content', href: '/stock' },
-      { label: 'MCP for Claude/ChatGPT', href: '/mcp', isNew: true },
-      { label: 'Agents', href: '/agents', isNew: true },
-      { label: 'API', href: '/api' },
-      { label: 'Mobile App', href: '/mobile-app' },
-      { label: 'All Magnific tools', href: '/ai' },
+      { label: 'Home', href: '/' },
+      { label: 'Explore', href: '/explore' },
+      { label: 'Clubs', href: '/clubs' },
+      { label: 'Events', href: '/events' },
+      { label: 'Marketplace', href: '/marketplace' },
+      { label: 'Get Help', href: '/help' },
     ],
   },
   {
-    title: 'Get started',
+    title: 'Community',
     links: [
-      { label: 'Academy', href: '/academy' },
-      { label: 'Documentation', href: '/ai/docs' },
-      { label: 'Support', href: '/ai/support' },
-      {
-        label: 'Terms of use',
-        href: '/legal/terms-of-use',
-        target: '_blank',
-        rel: 'noreferrer noopener',
-      },
-      { label: 'Privacy policy', href: '/legal/privacy', target: '_blank', rel: 'noreferrer noopener' },
-      { label: 'Originals', href: '/originals', isNew: true },
-      { label: 'Cookies policy', href: '/legal/cookies', target: '_blank', rel: 'noreferrer noopener' },
-      { label: 'Cookies Settings', button: true },
-      {
-        label: 'Trust center',
-        href: 'https://trust.magnific.com/',
-        target: '_blank',
-        rel: 'noreferrer noopener',
-      },
-      { label: 'Affiliates', href: '/affiliates' },
-      { label: 'Enterprise', href: '/enterprise' },
+      { label: 'Create a Club', href: '/club/register' },
+      { label: 'Campus Feed', href: '/feed' },
+      { label: 'Announcements', href: '/announcements' },
+      { label: 'Student Directory', href: '/students' },
+      { label: 'FAQs', href: '/faq' },
+      { label: 'Support', href: '/support' },
     ],
   },
   {
     title: 'Company',
     links: [
-      { label: 'Pricing', href: '/pricing?origin=magnific_web' },
-      { label: 'About us', href: '/company/about-us' },
-      { label: 'Reviews', href: '/reviews' },
-      {
-        label: 'Careers',
-        href: 'https://jobs.magnific.com/',
-        target: '_blank',
-        rel: 'noreferrer noopener',
-      },
-      { label: 'Search trends', href: '/tags' },
-      { label: 'Blog', href: 'https://www.magnific.com/blog/' },
-      { label: 'Events', href: '/events', target: '_blank', rel: 'noreferrer noopener' },
-      {
-        label: 'Slidesgo',
-        href: 'https://slidesgo.com/',
-        target: '_blank',
-        rel: 'noreferrer noopener nofollow',
-      },
-      {
-        label: 'Sell content',
-        href: 'https://contributor.magnific.com/',
-        target: '_blank',
-        rel: 'noreferrer noopener nofollow',
-      },
-      { label: 'Press room', href: '/press' },
-      {
-        label: 'Looking for magnific.ai',
-        href: 'https://magnific.ai/legacy',
-        target: '_blank',
-        rel: 'noreferrer noopener nofollow',
-      },
+      { label: 'About UniLynk', href: '/about' },
+      { label: 'Contact Us', href: '/contact' },
+      { label: 'Privacy Policy', href: '/privacy' },
+      { label: 'Terms of Service', href: '/terms' },
     ],
   },
   {
-    title: 'Get in touch',
+    title: 'Follow Us',
     links: [
-      { label: 'Customer support', href: '/ai/support', compact: true },
-      {
-        label: 'Instagram',
-        href: 'https://www.instagram.com/magnific_ai/',
-        target: '_blank',
-        rel: 'nofollow noopener noreferrer',
-        compact: true,
-      },
-      {
-        label: 'YouTube',
-        href: 'https://www.youtube.com/@magnific_ai',
-        target: '_blank',
-        rel: 'nofollow noopener noreferrer',
-        compact: true,
-      },
-      {
-        label: 'LinkedIn',
-        href: 'https://www.linkedin.com/company/magnific',
-        target: '_blank',
-        rel: 'nofollow noopener noreferrer',
-        compact: true,
-      },
-      {
-        label: 'TikTok',
-        href: 'https://www.tiktok.com/@magnific_ai',
-        target: '_blank',
-        rel: 'nofollow noopener noreferrer',
-        compact: true,
-      },
-      {
-        label: 'Discord',
-        href: 'https://discord.gg/magnific',
-        target: '_blank',
-        rel: 'nofollow noopener noreferrer',
-        compact: true,
-      },
-      {
-        label: 'X',
-        href: 'https://x.com/magnific',
-        target: '_blank',
-        rel: 'nofollow noopener noreferrer',
-        compact: true,
-      },
-      {
-        label: 'Reddit',
-        href: 'https://www.reddit.com/r/magnific/',
-        target: '_blank',
-        rel: 'nofollow noopener noreferrer',
-        compact: true,
-      },
+      { label: 'Instagram', href: '#' },
+      { label: 'LinkedIn', href: '#' },
+      { label: 'X (Twitter)', href: '#' },
+      { label: 'Discord', href: '#' },
+      { label: 'GitHub', href: '#' },
     ],
   },
 ]
@@ -176,91 +59,6 @@ const COLUMNS = [
 const NEW_BADGE =
   'relative rounded-sm bg-[#dbe7ff] p-1 align-middle text-2xs font-semibold leading-none tracking-wide text-[#1b3a7a] dark:bg-[#2E3035] dark:text-[#b9d0ff]'
 
-function LanguagePicker() {
-  const [open, setOpen] = useState(false)
-  const state = open ? 'open' : 'closed'
-  return (
-    <div className="relative" data-state={state}>
-      <button
-        type="button"
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        onClick={() => setOpen(!open)}
-        className="flex h-8 items-center gap-2 rounded-lg border border-white bg-transparent px-4 text-xs font-medium text-white"
-      >
-        <SpriteIcon name="translate" className="inline-block size-3.5 fill-current" />
-        English
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          viewBox="0 0 512 512"
-          width="16"
-          height="16"
-          aria-hidden="true"
-          className="size-3.5"
-        >
-          <path fill="currentColor" d={CHEVRON_PATH} />
-        </svg>
-      </button>
-      <div
-        data-side="bottom"
-        data-align="start"
-        data-state={state}
-        role="dialog"
-        data-theme="dark"
-        className={`absolute left-0 top-full z-20 mt-1 rounded-lg border border-white/10 bg-[#101010] text-left text-white shadow-sm transition-all duration-150 ease-in-out ${
-          open ? '' : 'hidden'
-        }`}
-        tabIndex={-1}
-      >
-        <div className="relative pb-1">
-          <div className="relative">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="-49 141 512 512"
-              width="16"
-              height="16"
-              aria-hidden="true"
-              className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#ffffff]"
-            >
-              <path fill="currentColor" d={SEARCH_PATH} />
-            </svg>
-            <input
-              type="text"
-              placeholder="Search by"
-              className="h-10 w-full rounded-lg border border-[#ffffff26] bg-[#ffffff0d] px-9 text-sm text-[#ffffff] outline-none transition-colors placeholder:text-[#ffffff80] hover:border-[#ffffff4c] focus:border-2 focus:border-[#ff3ea5] focus-visible:outline-none active:border-[#ffffff66] disabled:cursor-not-allowed disabled:opacity-50"
-            />
-          </div>
-        </div>
-        <ul className="max-h-[215px] min-w-[200px] overflow-auto scroll-smooth">
-          {LANGUAGES.map((language) => (
-            <li key={language.href}>
-              <a
-                className={`block cursor-pointer bg-transparent p-4 text-white no-underline transition-all duration-75 hover:bg-white/10 ${
-                  language.current ? 'flex items-center justify-between font-medium' : 'text-left'
-                }`}
-                href={language.href}
-              >
-                <span>{language.label}</span>
-                {language.current ? (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    viewBox="-49 141 512 512"
-                    width="16"
-                    height="16"
-                    aria-hidden="true"
-                    className="size-4"
-                  >
-                    <path fill="currentColor" d={CHECK_PATH} />
-                  </svg>
-                ) : null}
-              </a>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  )
-}
 
 export default function SiteFooter() {
   return (
@@ -282,10 +80,11 @@ export default function SiteFooter() {
                 </svg>
               </a>
               <p className="text-sm text-white/90">
-                The creative platform to direct your best work. More than 1 million subscribers across
-                creatives, enterprises, agencies, and studios.
+                Connecting students, clubs, and campus communities through one platform built to make college life more connected, engaging, and collaborative.
               </p>
-              <LanguagePicker />
+              <p className="text-sm text-white/60">
+                Made for students.
+              </p>
             </div>
             <div className="grid flex-1 grid-cols-1 gap-0 lg:grid-cols-4 lg:gap-8">
               {COLUMNS.map((column) => (
@@ -320,9 +119,8 @@ export default function SiteFooter() {
                           </button>
                         ) : (
                           <a
-                            className={`text-sm font-normal text-white no-underline transition-colors hover:text-[#ff3ea5] ${
-                              link.compact ? '' : 'inline-flex items-center gap-2'
-                            }`}
+                            className={`text-sm font-normal text-white no-underline transition-colors hover:text-[#ff3ea5] ${link.compact ? '' : 'inline-flex items-center gap-2'
+                              }`}
                             href={link.href}
                             target={link.target}
                             rel={link.rel}
@@ -339,7 +137,7 @@ export default function SiteFooter() {
             </div>
           </div>
           <p className="mt-10 text-center text-xs text-white/50 xl:text-left">
-            Copyright © 2010-2026 Freepik Company S.L.U. All rights reserved.
+            © 2026 UniLynk. All rights reserved.
           </p>
         </div>
       </div>

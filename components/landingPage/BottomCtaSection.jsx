@@ -7,8 +7,8 @@ export default function BottomCtaSection() {
       data-cy="section-bottom-cta"
     >
       <img
-        src="https://media.magnific.com/home/relaunch/media/start/start-2x.webp?w=1974&h=1175"
-        srcSet="https://media.magnific.com/home/relaunch/media/start/start-1x.webp?w=1480&h=881 1480w, https://media.magnific.com/home/relaunch/media/start/start-2x.webp?w=1974&h=1175 1974w"
+        src="https://img.magnific.com/free-photo/man-standing-stone-hooker-valley-track-with-view-mount-cook-new-zealand_181624-12196.jpg?t=st=1785927154~exp=1785930754~hmac=d4fcaf61b1ec5837d611ebb090a5dbb9dc1469211348a87b5069ade7787043e7&w=1480"
+        srcSet="https://img.magnific.com/free-photo/man-standing-stone-hooker-valley-track-with-view-mount-cook-new-zealand_181624-12196.jpg?t=st=1785927154~exp=1785930754~hmac=d4fcaf61b1ec5837d611ebb090a5dbb9dc1469211348a87b5069ade7787043e7&w=1480"
         sizes="100vw"
         alt=""
         loading="lazy"
@@ -23,7 +23,7 @@ export default function BottomCtaSection() {
           href="https://www.magnific.com/sign-up?client_id=magnific&lang=en#from_element=home_bottom_cta"
           className="mt-8 inline-flex h-10 items-center justify-center gap-2 text-nowrap rounded-lg bg-[#101010] px-6 py-3 text-base font-medium text-white transition duration-150 ease-in-out hover:bg-[#1a1a1a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ffffff4c] active:outline-none"
         >
-          Start creating
+          Get Started
           <SpriteIcon name="right-small" className="inline-block size-4 fill-current" />
         </a>
       </div>

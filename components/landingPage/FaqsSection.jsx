@@ -7,52 +7,29 @@ const MINUS_PATH =
 
 const FAQS = [
   {
-    question: 'Is Magnific the same as Freepik?',
-    answer: (
-      <>
-        Freepik is now Magnific. Same team, same technology, redesigned as a full AI creative platform
-        for images, video, audio, 3D, collaborative tools, and 250M+ assets. Want to know more about
-        it?{' '}
-        <a
-          href="https://www.magnific.com/company/about-us#from_element=home_faqs"
-          className="font-medium text-[#ff3ea5] underline"
-        >
-          Meet Magnific →
-        </a>
-      </>
-    ),
-  },
-  {
-    question: 'I have a magnific.ai subscription—what happens now?',
-    answer: (
-      <>
-        Your upscaler stays at{' '}
-        <a
-          href="https://magnific.ai/legacy"
-          className="font-medium text-[#ff3ea5] underline"
-        >
-          magnific.ai
-        </a>{' '}
-        with no disruption to your current subscription. Your plan runs until it expires. What's new
-        is that Magnific is now a much bigger platform at magnific.com—the same upscaler, 40+ AI
-        models, audio tools, collaborative Spaces, and 250M+ stock assets, all in one place.
-      </>
-    ),
-  },
-  {
-    question: 'Will stock content still be available, or is everything now AI-based?',
+    question: 'Who can join UniLynk?',
     answer:
-      'Both. Magnific brings together the full 250M+ stock library—photos, vectors, illustrations, icons, 3D, video, audio, templates, mockups, and fonts—alongside a complete suite of AI creative tools. Everything in one place.',
+      'UniLynk is designed for verified students and campus organizations. Sign in with your college email to access clubs, events, communities, and other campus features.',
   },
   {
-    question: 'I already have a Magnific paid plan. What happens to it?',
+    question: 'Can anyone create a club on UniLynk?',
     answer:
-      'Nothing changes. Your plan, price, billing cycle, and payment method stay exactly as they are. You keep access to everything your plan includes.',
+      'Yes. Students can submit a club registration request. Once approved by the campus administrator, the club becomes visible for students to discover and join.',
   },
   {
-    question: 'Who owns the content I create?',
+    question: 'How do I join clubs and attend events?',
     answer:
-      'You do. Everything you generate belongs to you. Magnific never trains on your data, and all content comes with a full commercial AI license.',
+      'Browse clubs and upcoming events, open the page that interests you, and join or register in just a few clicks. You will receive updates and announcements automatically.',
+  },
+  {
+    question: 'Is my personal information secure?',
+    answer:
+      'Absolutely. Your account, messages, and personal information are protected using secure authentication and privacy-focused practices designed for student communities.',
+  },
+  {
+    question: 'Is UniLynk free for students?',
+    answer:
+      'Yes. Students can join, explore clubs, discover events, connect with classmates, and participate in campus communities without paying any subscription fee.',
   },
 ]
 

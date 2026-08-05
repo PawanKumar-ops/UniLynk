@@ -11,19 +11,22 @@ const FILL = {
 
 const CARDS = [
   {
-    title: 'Advertising',
-    description: 'Brief to final asset. No vendor chain, no waiting. Just the work.',
-    image: 'https://media.magnific.com/home/relaunch/media/useCases/advertising.webp',
+    title: 'Campus Events',
+    description:
+      'Discover upcoming events, workshops, and activities happening across your campus.',
+    image: 'https://img.magnific.com/free-photo/close-up-recording-video-with-smartphone-concert-toned-picture_1153-6815.jpg?t=st=1785925407~exp=1785929007~hmac=a5faefe1eeb7cdd10afcadc7b377fbc844a7cea182a72f5159d3fcee93a9721a&w=1480',
   },
   {
-    title: 'Product shots',
-    description: 'AI-powered photoshoots. No studio. No crew. No scheduling.',
-    image: 'https://media.magnific.com/home/relaunch/media/useCases/product-shots.webp',
+    title: 'Student Clubs',
+    description:
+      'Join communities, meet like-minded students, and grow through shared interests.',
+    image: 'https://img.magnific.com/free-photo/colleagues-working-together-full-shot_23-2149739303.jpg?t=st=1785925953~exp=1785929553~hmac=96e4d4f4232f6f80094ebac0f2114ae0518ed6fd2d076f4602e53e7a02a797a9&w=1480',
   },
   {
-    title: 'Brand campaigns',
-    description: 'On-brand visuals, video, and audio at any scale, any format.',
-    image: 'https://media.magnific.com/home/relaunch/media/useCases/brand-campaign.webp',
+    title: 'Campus Network',
+    description:
+      'Connect with classmates, share updates, and build meaningful campus relationships.',
+    image: 'https://img.magnific.com/free-photo/brown-white-concrete-building-blue-sky-daytime_246466-17.jpg?t=st=1785926220~exp=1785929820~hmac=3418ce47dc4c8f4221ba6780512a6913d0d1c05d39c0c3bf4f53c7077ef229b2&w=1480',
   },
 ]
 
@@ -37,11 +40,10 @@ export default function UseCasesSection() {
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-8">
           <div className="min-w-0 flex-1">
             <h2 className="max-w-2xl font-alternate text-3xl font-bold leading-tight text-[#3f0808] lg:text-5xl">
-              From product shot to viral phenomenon
+              Everything you need for campus life
             </h2>
             <p className="mt-4 max-w-2xl text-base text-[#3f0808] lg:text-lg">
-              Global on-brand campaigns, product shots, and top-tier filmmaking. Everything a brand
-              needs to show up at the highest level, in every format, every time.
+              Discover clubs, attend events, connect with students, and stay updated through one unified platform designed for campus life.
             </p>
           </div>
           <div className="lg:shrink-0">
@@ -49,7 +51,7 @@ export default function UseCasesSection() {
               href="https://www.magnific.com/sign-up?client_id=magnific&lang=en#from_element=home_use_cases"
               className="group inline-flex w-fit items-center gap-2 rounded-lg bg-[#101010] px-6 py-3 text-base font-medium text-white transition-colors hover:bg-[#1a1a1a]"
             >
-              Start creating
+              Explore now
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 viewBox="-49 141 512 512"
@@ -104,18 +106,17 @@ export default function UseCasesSection() {
           className="absolute inset-0 size-full object-cover"
         >
           <source
-            src="https://media.magnific.com/home/relaunch/media/useCases/filmmaking.webm"
+            src="https://videocdn.cdnpk.net/videos/5aec3547-58ef-4133-8ca7-f3411258063b/horizontal/previews/clear/large.mp4?token=exp=1785927631~hmac=376f04fab00f23f57a2dc54a50511f7a472680c97057262985c28aff6a5089e8"
             type="video/webm"
           />
         </video>
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 to-transparent" />
         <div className="relative">
           <h3 className="font-alternate text-lg font-bold leading-tight tracking-tight text-white md:text-xl lg:text-2xl">
-            Filmmaking
+            Campus Life
           </h3>
           <p className="mt-2 max-w-lg font-sans text-sm font-normal leading-normal text-white/70 lg:text-base">
-            Characters, storyboards, and concepts to explore. Cinematic tools made for the final
-            frame.
+            Experience the energy of your campus through communities, events, and unforgettable student moments.
           </p>
         </div>
       </div>

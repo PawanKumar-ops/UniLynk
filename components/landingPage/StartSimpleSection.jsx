@@ -24,12 +24,12 @@ export default function StartSimpleSection() {
           <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-8">
             <div className="min-w-0 flex-1">
               <h2 className="max-w-2xl font-alternate text-3xl font-bold leading-tight text-[#3f0808] lg:text-5xl">
-                Start simple.
+                Find your people.
                 <br />
-                Scale when you're ready
+                Build your campus
               </h2>
               <p className="mt-4 max-w-2xl text-base text-[#3f0808] lg:text-lg">
-                From a single tool to a complete workflow, at your own pace.
+                Discover clubs, events and students—all in one place, built for your campus.
               </p>
             </div>
             <div className="lg:shrink-0">
@@ -37,7 +37,7 @@ export default function StartSimpleSection() {
                 href="https://www.magnific.com/sign-up?client_id=magnific&lang=en#from_element=home_start_simple"
                 className="group inline-flex w-fit items-center gap-2 rounded-lg bg-[#101010] px-6 py-3 text-base font-medium text-white transition-colors hover:bg-[#1a1a1a]"
               >
-                Start creating
+                Explore Campus
                 <LinkArrow />
               </a>
             </div>
@@ -47,17 +47,16 @@ export default function StartSimpleSection() {
           <article className="rounded-2lg relative flex flex-col gap-6 overflow-hidden bg-[#e3e3e3] text-[#1a1a1a] xl:row-span-2">
             <header className="flex flex-col gap-4 p-8 md:p-10">
               <h3 className="font-alternate text-lg font-bold leading-tight tracking-tight md:text-xl lg:text-2xl">
-                Every tool, ready to go
+                Everything on campus
               </h3>
               <p className="font-sans text-sm font-normal leading-normal lg:text-base">
-                Every tool, ready to go. Image, video, audio, 3D—thirty tools, no setup. Open what you
-                need, make what you want.
+                Discover clubs, events, communities and opportunities. Everything happening on your campus, all in one place.
               </p>
             </header>
             <img
-              src="https://media.magnific.com/home/relaunch/media/useCases/card-alltools-3-2x.webp?w=930&h=1090"
+              src="https://wallpaperaccess.com/full/9344003.jpg"
               alt=""
-              className="mt-auto h-auto w-full xl:ml-5 xl:h-[551px] xl:w-[470px] xl:max-w-none xl:self-start"
+              className="mt-auto rounded-t-2xl h-auto w-full xl:ml-5 xl:h-[551px] xl:w-[470px] xl:max-w-none xl:self-start"
               loading="lazy"
             />
           </article>
@@ -72,50 +71,57 @@ export default function StartSimpleSection() {
             />
             <div className="relative flex flex-col gap-4 p-8 md:p-10 xl:max-w-[400px] xl:shrink-0">
               <h3 className="font-alternate text-lg font-bold leading-tight tracking-tight text-[#e3e3e3] md:text-xl lg:text-2xl">
-                Your entire creative process on one node-based canvas
+                Everything you need without switching tabs
               </h3>
               <p className="font-sans text-sm font-normal leading-normal text-[#c5c5c5] lg:text-base">
-                All your tools. All your workflows. One infinite, node-based canvas. Branch ideas,
-                compare versions, work with your team, all in Spaces.
+                Every update. Every conversation. One familiar
+                experience. Explore faster,
+                stay informed, work naturally,
+                without leaving the app.
               </p>
             </div>
             <img
-              src="https://media.magnific.com/home/relaunch/media/useCases/card-yourentire-2x.webp?w=2860&h=1252"
+              src="https://img.magnific.com/free-photo/authentic-book-club-scene_23-2150104609.jpg?t=st=1785918292~exp=1785921892~hmac=96f3159510cdf3fd4e852dbd10b7a9375083dd0f3664dc444a59d2129f25323d&w=1480"
               alt=""
-              className="relative aspect-video w-full object-cover object-left xl:aspect-auto xl:h-[293px] xl:w-auto xl:max-w-none xl:flex-none xl:self-center"
+              className="relative rounded-2xl aspect-video w-full object-cover object-left xl:aspect-auto xl:h-[293px] xl:w-auto xl:max-w-none xl:flex-none xl:self-center"
               loading="lazy"
             />
           </article>
           <article className="rounded-2lg relative flex flex-col gap-6 overflow-hidden bg-[#3f0808]">
             <header className="flex flex-col gap-4 p-8 md:p-10">
               <h3 className="font-alternate text-lg font-bold leading-tight tracking-tight text-[#e3e3e3] md:text-xl lg:text-2xl">
-                One place, whole team
+                Built for every community
               </h3>
               <p className="font-sans text-sm font-normal leading-normal text-[#E3C2C2] lg:text-base">
-                Organize brand assets, generated content, and workflows with Projects. Your team works
-                together, your work stays together.
+                Bring people together,
+                share important moments, and build
+                stronger connections. Every member stays
+                in sync, every update stays visible.
               </p>
             </header>
             <img
-              src="https://media.magnific.com/home/relaunch/media/useCases/card-oneplace-2x.webp?w=2000"
+              src="https://img.magnific.com/free-photo/paper-dolls-against-sky_23-2148144531.jpg?t=st=1785918695~exp=1785922295~hmac=0e04ee4e9a99f266383ca6e28516f91731966e0c3b680d06e5d8fc09fc33f54f&w=1480"
               alt=""
-              className="h-auto w-full xl:ml-12 xl:h-[180px] xl:w-[585px] xl:max-w-none xl:self-start"
+              className="h-auto rounded-2xl w-full xl:ml-12 xl:h-[180px] xl:w-[585px] xl:max-w-none xl:self-start"
               loading="lazy"
             />
           </article>
           <article className="rounded-2lg relative min-h-[450px] overflow-hidden">
             <img
-              src="https://media.magnific.com/home/relaunch/media/useCases/card-workflow-2x.webp?w=477"
+              src="https://img.magnific.com/free-photo/man-doing-extreme-tricks-long-shot_23-2148288486.jpg?t=st=1785918839~exp=1785922439~hmac=fc23950d4c5ce42430fc044b75efb33e1487137e6b053d5dbdfc9dfbc87c9513&w=1480"
               alt=""
               className="absolute inset-0 size-full object-cover"
               loading="lazy"
             />
             <header className="relative z-10 flex flex-col gap-4 p-8 md:p-10">
               <h3 className="font-alternate text-lg font-bold leading-tight tracking-tight text-neutral-50 md:text-xl lg:text-2xl">
-                Workflow in one click
+                Always within reach
               </h3>
-              <p className="font-sans text-sm font-normal leading-normal text-[#BEDBEA] lg:text-base">
-                Save any complex on-brand workflow as an App. The next person runs it in one click.
+              <p className="font-sans text-sm font-normal leading-normal text-[#DCE8F2] lg:text-base">
+                Open any discussion,
+                find what matters instantly. The next
+                message reaches everyone
+                without missing a beat.
               </p>
             </header>
           </article>

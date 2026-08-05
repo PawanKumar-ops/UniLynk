@@ -1,17 +1,18 @@
 import SpriteIcon from './SpriteIcon'
+import { Icon } from '@iconify/react'
 
 const CARDS = [
   {
-    title: 'All the AI tools in a single place',
+    title: 'Everything happening on campus in one place',
     description:
-      'Access multiple top-performing generative models from a single platform. Choose models via the admin panel.',
-    image: 'https://media.magnific.com/home/relaunch/media/teams/ai-tools.webp?w=1252&h=694',
+      'Discover clubs, events, and opportunities from one platform designed for every student.',
+    image: 'https://img.magnific.com/free-photo/old-masters-picture-gallery-dresden-night_1398-2646.jpg?t=st=1785924557~exp=1785928157~hmac=d43dcf19dc25753b257e5f92e51d2673501fdda1621a9ab2b5d074dbac8c2bad&w=1480',
   },
   {
-    title: 'Unlimited users, flexible credits',
+    title: 'Built for students, clubs, and communities',
     description:
-      'Scale freely with no seat limits. Pay based on how many credits you use—not how many people use them.',
-    image: 'https://media.magnific.com/home/relaunch/media/teams/unlimited-users.webp?w=1252&h=694',
+      'Manage clubs, organize events, and build stronger campus communities with ease.',
+    image: 'https://img.magnific.com/free-photo/high-angle-man-working-late-night_23-2150280984.jpg?t=st=1785924846~exp=1785928446~hmac=80b59295160fc5726e7e82be41a486a62b27fcb692bd090af349078b415e9124&w=1480',
   },
 ]
 
@@ -19,72 +20,63 @@ const FEATURES = [
   [
     {
       icon: 'license',
-      title: 'Legal indemnification',
-      description: 'Full legal protection for AI-generated content used commercially.',
+      title: 'Verified students',
+      description: 'A trusted community where every member belongs to your campus.',
     },
     {
       icon: 'security',
-      title: 'Security & compliance',
-      description: 'GDPR, ISO/IEC 27001, and SOC 2. Procurement-ready from day one.',
+      title: 'Privacy first',
+      description: 'Your profile, conversations, and activity stay secure and protected.',
     },
     {
       icon: 'settings',
-      title: 'Admin control',
-      description: 'Users, permissions, credits, and model access—one dashboard, total visibility.',
+      title: 'Club management',
+      description: 'Manage members, announcements, events, and requests from one place.',
     },
   ],
   [
     {
       icon: 'shield',
-      title: 'You own everything',
-      description: 'Every asset belongs to you. We never train on your data.',
+      title: 'Safe community',
+      description: 'Reporting, moderation, and verification help keep the campus welcoming.',
     },
     {
       icon: 'headphones',
-      title: 'Dedicated support',
-      description: 'A real team, from onboarding through to day-to-day.',
+      title: 'Always connected',
+      description: 'Stay updated with instant notifications for chats, clubs, and events.',
     },
     {
       icon: 'users',
-      title: 'Scale without limits',
-      description: 'Flexible credits, parallel generations, and no seat restrictions.',
+      title: 'Grow together',
+      description: 'Meet classmates, join communities, and build lasting campus connections.',
     },
   ],
 ]
 
 const QUOTES = [
   {
-    logo: 'https://media.magnific.com/home/relaunch/media/hero/companies/rga.svg',
-    alt: 'RGA',
-    width: 106,
-    height: 32,
-    logoClass: 'h-5',
+    logo: 'UNILYNK',
+    icon: 'fa6-solid:user-group',
     quote:
-      "“Best-in-class models and workflow tools through a single unified interface. Magnific has been a key unlock as we've woven AI into our workflows, end to end.”",
-    name: 'Nick Coronges',
-    role: 'CTO at R/GA',
+      '“UniLynk has become the central hub for campus life. Students discover clubs, events, communities, and opportunities from one unified platform.”',
+    name: 'Student Council',
+    role: 'NIT Kurukshetra',
   },
   {
-    logo: 'https://media.magnific.com/home/relaunch/media/hero/companies/deliveryhero.svg',
-    alt: 'Delivery Hero',
-    width: 103,
-    height: 32,
-    logoClass: 'h-6',
+    logo: 'CAMPUS CLUBS',
+    icon: 'solar:buildings-3-bold',
     quote:
-      '“At Delivery Hero, we are highly satisfied with Magnific. It consistently delivers high-quality, reliable results while streamlining workflows and enhancing efficiency.”',
-    name: 'Javier Romero',
-    role: 'Global Head of Content, Marketing at Delivery Hero',
+      '“Managing clubs is now effortless. Member requests, announcements, and event registrations happen in one place without relying on scattered social platforms.”',
+    name: 'Club Coordinator',
+    role: 'Student Organizations',
   },
   {
-    logo: 'https://media.magnific.com/home/relaunch/media/hero/companies/jobandtalent.svg',
-    alt: 'Job & Talent',
-    width: 106,
-    height: 32,
-    logoClass: 'h-6',
+    logo: 'STUDENT LIFE',
+    icon: 'solar:chat-line-bold',
     quote:
-      '“Magnific is a key part of our marketing stack. It helps us create high-quality content at scale as we expand our AI-native workforce platform powering our global staffing marketplace.”',
-    name: 'Juan Urdiales',
-    role: 'Co-Founder and Co-CEO, Job&Talent',
+      '“UniLynk keeps students connected every day. Whether it is finding teammates, joining communities, or attending events, everything starts here.”',
+    name: 'Campus Ambassador',
+    role: 'UniLynk Community',
   },
 ]
 
@@ -95,43 +87,42 @@ export default function TeamPlansSection() {
         <div className="mx-auto flex w-full max-w-screen-2xl flex-col gap-16">
           <div className="flex flex-col gap-16 pb-8">
             <h3 className="max-w-2xl font-alternate text-5xl font-extrabold leading-none tracking-tight text-[#ffffff] lg:text-7xl">
-              Team plans built for creative work at scale
+              Connecting every part of campus, beautifully
             </h3>
             <div className="flex flex-col gap-8 lg:flex-row">
               <div className="flex flex-1 flex-col gap-8">
                 <div className="flex flex-col">
                   <p className="font-sans text-xl font-semibold leading-snug tracking-tight text-[#ffffff] md:text-3xl">
-                    Business
+                    Students
                   </p>
                   <p className="text-base leading-normal text-[#ffffff99] md:text-lg">
-                    For creative teams and agencies ready to move faster and produce more. Shared
-                    credits, collaborative workflows, and access to every AI model—without the
-                    complexity of enterprise procurement.
+                    Discover communities, attend events, connect with classmates, and explore everything
+                    your campus has to offer through one seamless student platform.
                   </p>
                 </div>
                 <a
                   href="https://www.magnific.com/pricing?view=business#from_element=home_team_plans"
                   className="inline-flex h-12 w-fit items-center justify-center rounded-lg bg-[#ffffff] px-6 text-base font-medium text-[#0b0b0b] transition-colors hover:bg-[#e0e0e0]"
                 >
-                  Learn more
+                  Get Started
                 </a>
               </div>
               <div className="flex flex-1 flex-col gap-8">
                 <div className="flex flex-col">
                   <p className="font-sans text-xl font-semibold leading-snug tracking-tight text-[#ffffff] md:text-3xl">
-                    Enterprise
+                    Clubs
                   </p>
                   <p className="text-base leading-normal text-[#ffffff99] md:text-lg">
-                    For organizations where creative output is mission-critical. Full legal
-                    indemnification, enterprise-grade security, unlimited users, custom SSO, and a
-                    dedicated team from day one.
+                    For clubs and campus organizations managing members, events, announcements, and
+                    applications. Everything you need to organize, engage, and grow your student
+                    community from one place.
                   </p>
                 </div>
                 <a
                   href="https://www.magnific.com/enterprise#contact"
                   className="inline-flex h-12 w-fit items-center justify-center rounded-lg border border-[#ffffff33] px-6 text-base font-medium text-[#ffffff] transition-colors hover:bg-[#ffffff]/5"
                 >
-                  Talk to the team
+                  Create Club
                 </a>
               </div>
             </div>
@@ -177,10 +168,10 @@ export default function TeamPlansSection() {
           <div className="rounded-2lg flex flex-col gap-12 bg-[#161616] p-8 md:p-12">
             <div className="flex flex-col gap-4">
               <h4 className="font-alternate text-xl font-extrabold leading-tight tracking-tight text-[#ffffff] md:text-3xl md:leading-tight">
-                Enterprise features built for scale
+                Built for every student
               </h4>
               <p className="font-sans text-base font-normal leading-normal text-[#ffffff99] md:text-lg md:leading-normal">
-                Security, compliance, and admin control for teams of any size.
+                Everything you need to connect, discover, and make the most of campus life.
               </p>
             </div>
             <div className="flex flex-col gap-8">
@@ -211,14 +202,16 @@ export default function TeamPlansSection() {
           <div className="flex flex-col gap-6 xl:flex-row">
             {QUOTES.map((item) => (
               <div key={item.name} className="rounded-2lg flex flex-1 flex-col gap-4 p-8">
-                <img
-                  src={item.logo}
-                  alt={item.alt}
-                  width={item.width}
-                  height={item.height}
-                  className={`w-auto self-start object-contain ${item.logoClass}`}
-                  loading="lazy"
-                />
+                <div className="flex items-center gap-3">
+                  <Icon
+                    icon={item.icon}
+                    className="h-7 w-7 text-[#c4c4c4]"
+                  />
+
+                  <span className="font-sans text-[28px] font-extrabold tracking-[-0.04em] text-[#c4c4c4]">
+                    {item.logo}
+                  </span>
+                </div>
                 <p className="font-alternate text-xl font-normal leading-tight text-[#ffffff99]">
                   {item.quote}
                 </p>
