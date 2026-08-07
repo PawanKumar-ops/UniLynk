@@ -1,6 +1,7 @@
 "use client"
 import { useEffect, useState } from 'react'
 import { Inter, Bricolage_Grotesque } from "next/font/google";
+import { Icon } from '@iconify/react';
 
 const inter = Inter({
     subsets: ["latin"],
@@ -20,150 +21,57 @@ const SLIDE_DURATION = 7000
 
 const slides = [
     {
-        key: 'spaces',
-        label: 'Spaces',
-        title: 'Build together, faster',
-        body: 'Node-based workflows on an infinite canvas.',
-        image: 'https://mkt.cdnpk.net/web-app/media/magnific-spaces.webp',
-        alt: 'Build together, faster',
+        key: "Clubs",
+        label: "Clubs",
+        title: "Connect with your campus",
+        body: "Join clubs, discover communities, and meet students who share your interests.",
+        image: "https://img.magnific.com/free-photo/close-up-young-colleagues-having-meeting_23-2149060255.jpg?t=st=1786106934~exp=1786110534~hmac=45cb14fd2ee4256900ea2877af3144d2a95f541db28846d2b3c4f496ed19f5a7&w=1480",
+        alt: "Campus clubs",
     },
     {
-        key: 'image',
-        label: 'Image',
-        title: 'From idea to final image',
-        body: 'A complete image workflow: generation, editing, and upscaling with professional control.',
-        image: 'https://mkt.cdnpk.net/web-app/media/magnific-image.webp',
-        alt: 'From idea to final image',
+        key: "events",
+        label: "Events",
+        title: "Never miss an opportunity",
+        body: "Discover workshops, hackathons, fests, and campus events all in one place.",
+        image: "https://img.magnific.com/free-photo/team-programmers-talking-about-algorithm-running-laptop-screen-pointing-source-code-while-sitting-desk-software-developers-collaborating-data-coding-group-project_482257-33548.jpg?t=st=1786107109~exp=1786110709~hmac=921a643ef98c4e07af62e0ce718e0f9b6e1b9e31ac228b5a7a1107f8dc4b87be&w=1480",
+        alt: "Campus events",
     },
     {
-        key: 'video',
-        label: 'Video',
-        title: 'Direct every frame',
-        body: 'Video creation and editing with full creative control, start to finish.',
-        image:
-            'https://images.unsplash.com/photo-1562350683-774f43c5bdca?w=1400&h=1800&fit=crop&auto=format',
-        alt: 'Direct every frame',
+        key: "network",
+        label: "Network",
+        title: "Build your student network",
+        body: "Connect with seniors, alumni, and classmates to learn, collaborate, and grow.",
+        image: "https://img.magnific.com/free-photo/smiling-business-leader-greeting-partner_1262-3306.jpg?t=st=1786107039~exp=1786110639~hmac=d66b811c582f81f464e895f4d91e585474748b1815ce5acb67c2bd79016d8be7&w=1480",
+        alt: "Student networking",
     },
     {
-        key: 'audio',
-        label: 'Audio',
-        title: 'Generate audio for your projects',
-        body: 'Generation of music, voiceovers, and sound effects with the quality your work needs.',
-        image: 'https://mkt.cdnpk.net/web-app/media/magnific-audio.webp',
-        alt: 'Generate audio for your projects',
+        key: "posts",
+        label: "Posts",
+        title: "Share what matters",
+        body: "Post updates, ask questions, share achievements, and stay connected with your campus community.",
+        image: "SignInTransitions/PostBannerTransition.png",
+        alt: "Campus posts",
     },
     {
-        key: '3d',
-        label: '3D',
-        title: 'Generate in 3D',
-        body: 'Models, scenes, and environments ready for any of your projects.',
-        image: 'https://mkt.cdnpk.net/web-app/media/magnific-3d.webp',
-        alt: 'Generate in 3D',
+        key: "help",
+        label: "Get Help",
+        title: "Help is always nearby",
+        body: "Ask questions, seek guidance, and get support from seniors and fellow students whenever you need it.",
+        image: "https://img.magnific.com/free-photo/i-can-handle-multi-tasks-cropped-shot-successful-girl-typing-keyboard-making-notes-while-looking-computer-screen-studying-new-business-graphic-there-is-no-time-rest_176420-8700.jpg?t=st=1786107326~exp=1786110926~hmac=741ab8f3aa1d1a6d727c5a4021c02ecc617281ed7ccbb98b248adbd7a77aff74&w=1480",
+        alt: "Student help",
     },
-]
+];
 
 /* ------------------------------------------------------------------ *
  * Icons
  * ------------------------------------------------------------------ */
 
-function MagnificMark() {
+function UnilynkMark() {
     return (
-        <svg
-            className="h-11 w-11 text-[#0b0b0c]"
-            viewBox="0 0 44 44"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            aria-hidden="true"
-        >
-            <path
-                d="M26.4003 6.84445L22 17.6336L17.602 6.84445H8.80145L0.000932151 38.1333C-0.117031 38.1333 11.0005 38.1333 11.0005 38.1333L22 24.1066L32.9995 38.1333C32.9995 38.1333 44.117 38.1333 43.9991 38.1333L35.2008 6.84445H26.4003Z"
-                fill="currentColor"
-            />
-        </svg>
+        <img src="ULynk.svg" alt="" className='h-11 w-11' />
     )
 }
 
-function GoogleMark() {
-    return (
-        <svg className="size-[18px] shrink-0" viewBox="0 0 48 48" aria-hidden="true">
-            <path
-                fill="#EA4335"
-                d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
-            />
-            <path
-                fill="#4285F4"
-                d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
-            />
-            <path
-                fill="#FBBC05"
-                d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
-            />
-            <path
-                fill="#34A853"
-                d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
-            />
-        </svg>
-    )
-}
-
-function AppleMark() {
-    return (
-        <svg
-            className="size-4 shrink-0"
-            viewBox="0 0 16 16"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="currentColor"
-            aria-hidden="true"
-        >
-            <path d="M13.62 12.36c-.24.55-.52 1.06-.85 1.53-.45.64-.82 1.08-1.1 1.32-.43.4-.9.6-1.39.61-.36 0-.79-.1-1.29-.31-.5-.21-.95-.31-1.37-.31-.44 0-.91.1-1.41.31-.5.21-.91.32-1.22.33-.48.02-.95-.19-1.42-.62-.31-.26-.7-.71-1.16-1.37-.5-.7-.92-1.51-1.24-2.43C.79 10.42.55 9.45.55 8.5c0-1.09.24-2.03.71-2.82.37-.64.86-1.14 1.48-1.51.61-.37 1.27-.56 1.99-.57.39 0 .89.12 1.52.36s1.03.36 1.21.36c.13 0 .58-.14 1.34-.42.72-.26 1.33-.37 1.83-.33 1.36.11 2.38.65 3.06 1.62-1.22.74-1.82 1.78-1.81 3.11.01 1.04.39 1.9 1.13 2.59.33.32.71.56 1.12.74-.09.26-.18.51-.29.74zM10.74.32c0 .81-.3 1.58-.89 2.28-.71.84-1.58 1.32-2.51 1.25-.01-.1-.02-.21-.02-.32 0-.78.34-1.62.94-2.31C8.56.87 8.98.61 9.45.4c.47-.21.93-.32 1.36-.34.01.09.02.18.02.27z" />
-        </svg>
-    )
-}
-
-function SsoMark() {
-    return (
-        <svg
-            className="h-4 shrink-0"
-            viewBox="0 0 13 16"
-            xmlns="http://www.w3.org/2000/svg"
-            fill="currentColor"
-            aria-hidden="true"
-        >
-            <path d="M5.82187 10.0938C5.62187 10.0938 5.42187 10.0188 5.27187 9.86563L3.325 7.92813C3.01875 7.625 3.01875 7.12813 3.32188 6.82188C3.625 6.51563 4.12187 6.51562 4.42812 6.81875L5.82813 8.2125L8.51875 5.56563C8.825 5.2625 9.32188 5.26562 9.625 5.575C9.92813 5.88125 9.925 6.37813 9.61563 6.68125L6.375 9.86875C6.21875 10.0187 6.01875 10.0938 5.82187 10.0938Z" />
-            <path d="M6.4375 15.6875C6.30625 15.6875 6.17812 15.6562 6.05937 15.5906L4.275 14.6062C1.6375 13.15 0 10.3719 0 7.35625V2.34375C0 1.99375 0.234375 1.68438 0.571875 1.59063L6.22813 0.028125C6.36563 -0.009375 6.50938 -0.009375 6.64375 0.028125L12.3 1.59063C12.6375 1.68438 12.8719 1.99375 12.8719 2.34375V7.35625C12.8719 10.3687 11.2344 13.1469 8.59688 14.6062L6.8125 15.5906C6.69688 15.6562 6.56875 15.6875 6.4375 15.6875ZM1.5625 2.94062V7.35938C1.5625 9.80313 2.89063 12.0594 5.03125 13.2406L6.4375 14.0156L7.84375 13.2406C9.98438 12.0594 11.3125 9.80625 11.3125 7.35938V2.94062L6.4375 1.59375L1.5625 2.94062Z" />
-        </svg>
-    )
-}
-
-function MagnificLegacyMark() {
-    return (
-        <svg
-            aria-hidden="true"
-            className="h-4 w-4 shrink-0"
-            fill="none"
-            viewBox="0 0 20 20"
-            xmlns="http://www.w3.org/2000/svg"
-        >
-            <defs>
-                <linearGradient
-                    id="magnific-footer-link-magnific-gradient"
-                    x1="2"
-                    y1="16.5"
-                    x2="18"
-                    y2="16.5"
-                    gradientUnits="userSpaceOnUse"
-                >
-                    <stop stopColor="#41D1A5" />
-                    <stop offset="0.33" stopColor="#FFD84A" />
-                    <stop offset="0.66" stopColor="#FF8A5B" />
-                    <stop offset="1" stopColor="#7B61FF" />
-                </linearGradient>
-            </defs>
-            <path d="M10 1.5L19 17.5H1L10 1.5Z" fill="url(#magnific-footer-link-magnific-gradient)" />
-            <path d="M10 5.25L15.3 14.75H4.7L10 5.25Z" className="fill-[#ffffff]" />
-        </svg>
-    )
-}
 
 function EyeOffIcon() {
     return (
@@ -452,24 +360,14 @@ function FooterLinks({
     return (
         <div className="flex flex-col items-center gap-6 text-xs font-medium text-[#797f88]">
             {children}
-            <a
-                href="https://magnific.ai/legacy"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-xs font-medium text-[#5b5f66] hover:underline"
-            >
-                <MagnificLegacyMark />
-                <span>
-                    Looking for <span className="underline">magnific.ai</span>
-                </span>
-            </a>
-            <button type="button" className="hover:underline">
-                Cookies Settings
-            </button>
             {showRecaptchaInside && (
-                <p className="text-center text-xs font-medium text-[#797f88]">
-                    This site is protected by reCAPTCHA
-                </p>
+                <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-[#797f88]">
+                    <Icon
+                        icon="solar:lock-linear"
+                        className="h-3.5 w-3.5 shrink-0 text-[#797f88]"
+                    />
+                    <span>Your data is encrypted and handled securely.</span>
+                </div>
             )}
         </div>
     )
@@ -526,13 +424,13 @@ export default function App() {
 
                     <div className="flex w-full max-w-[27rem] flex-col items-stretch gap-9">
                         <a
-                            href="https://magnific.com/"
+                            href="./"
                             target="_blank"
                             rel="noreferrer"
-                            aria-label="Magnific"
+                            aria-label="Unilynk"
                             className="mx-auto"
                         >
-                            <MagnificMark />
+                            <UnilynkMark />
                         </a>
 
                         {/* ---------------- Sign up (email step) ---------------- */}
@@ -551,10 +449,10 @@ export default function App() {
                                 <div className="flex flex-col gap-2">
                                     <SocialButton
                                         variant="outline"
-                                        icon={<GoogleMark />}
+                                        icon={<Icon icon="selfhst:google" />}
                                         label="Continue with Google"
                                     />
-                                    <SocialButton icon={<AppleMark />} label="Continue with Apple" />
+                                    <SocialButton icon={<Icon icon="selfhst:github-dark" />} label="Continue with Github" />
                                 </div>
 
                                 <div className="flex w-full items-center gap-2 text-xs font-medium text-[#5b5f66]">
@@ -596,20 +494,20 @@ export default function App() {
                                         onChange={(e) => setNoNews(e.target.checked)}
                                         className="mt-0.5 h-4 w-4 rounded border-[rgba(0,0,0,0.14)] bg-[#ffffff] text-[#17181a] focus:ring-2 focus:ring-[rgba(23,24,26,0.4)]"
                                     />
-                                    <span>I do not wish to receive news and promotions from Magnific by email.</span>
+                                    <span>I agree to receive occasional emails about Unilynk updates. I can unsubscribe anytime.</span>
                                 </label>
 
                                 <p className="text-center text-xs leading-normal font-normal text-[#797f88] [&_a]:text-[#5b5f66] [&_a:hover]:underline">
-                                    By continuing, you agree to Magnific&rsquo;s{' '}
+                                    By continuing, you agree to Unilynk&rsquo;s{' '}
                                     <a
-                                        href="https://www.magnific.com/legal/terms-of-use"
+                                        href="./Terms-of-use"
                                         target="_blank"
                                         rel="noreferrer"
                                     >
                                         Terms of Use
                                     </a>{' '}
                                     and{' '}
-                                    <a href="https://www.magnific.com/legal/privacy" target="_blank" rel="noreferrer">
+                                    <a href="./Privacy-Policy" target="_blank" rel="noreferrer">
                                         Privacy Policy.
                                     </a>
                                 </p>
@@ -678,17 +576,17 @@ export default function App() {
                                 </div>
 
                                 <p className="text-center text-xs leading-normal font-normal text-[#797f88] [&_a]:text-[#5b5f66] [&_a:hover]:underline">
-                                    By clicking the &ldquo;Sign up&rdquo; button, you are creating a Magnific account
-                                    and therefore you agree to Magnific&rsquo;s{' '}
+                                    By clicking the &ldquo;Sign up&rdquo; button, you are creating a Unilynk account
+                                    and therefore you agree to Unilynk&rsquo;s{' '}
                                     <a
-                                        href="https://www.magnific.com/legal/terms-of-use"
+                                        href="./Terms-of-use"
                                         target="_blank"
                                         rel="noreferrer"
                                     >
                                         Terms of Use
                                     </a>{' '}
                                     and{' '}
-                                    <a href="https://www.magnific.com/legal/privacy" target="_blank" rel="noreferrer">
+                                    <a href="./Privacy-Policy" target="_blank" rel="noreferrer">
                                         Privacy Policy.
                                     </a>
                                 </p>
@@ -715,7 +613,7 @@ export default function App() {
                             <div className="flex w-full flex-col gap-6 text-[#17181a]">
                                 <header className="flex flex-col gap-2 text-center">
                                     <h1 className={`${bricolage.className} text-3xl leading-tight font-bold tracking-tight text-[#17181a]`}>
-                                        Welcome to Magnific
+                                        Welcome to Unilynk
                                     </h1>
                                 </header>
 
@@ -726,11 +624,10 @@ export default function App() {
                                 <div className="flex flex-col gap-2">
                                     <SocialButton
                                         variant="outline"
-                                        icon={<GoogleMark />}
+                                        icon={<Icon icon="selfhst:google" />}
                                         label="Continue with Google"
                                     />
-                                    <SocialButton icon={<AppleMark />} label="Continue with Apple" />
-                                    <SocialButton icon={<SsoMark />} label="Continue with SSO" />
+                                    <SocialButton icon={<Icon icon="selfhst:github-dark" />} label="Continue with Github" />
                                 </div>
 
                                 <div className="flex w-full items-center gap-2 text-xs font-medium text-[#5b5f66]">
@@ -786,7 +683,7 @@ export default function App() {
                             <div className="flex w-full flex-col gap-6 text-[#17181a]">
                                 <header className="flex flex-col gap-2 text-center">
                                     <h1 className={`${bricolage.className} text-3xl leading-tight font-bold tracking-tight text-[#17181a]`}>
-                                        Welcome to Magnific
+                                        Welcome to Unilynk
                                     </h1>
                                 </header>
 
@@ -857,9 +754,13 @@ export default function App() {
                                     </div>
                                 </FooterLinks>
 
-                                <p className="text-center text-xs font-medium text-[#797f88]">
-                                    This site is protected by reCAPTCHA
-                                </p>
+                                <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-[#797f88]">
+                                    <Icon
+                                        icon="solar:lock-linear"
+                                        className="h-3.5 w-3.5 shrink-0 text-[#797f88]"
+                                    />
+                                    <span>Your data is encrypted and handled securely.</span>
+                                </div>
                             </div>
                         )}
 
@@ -922,9 +823,13 @@ export default function App() {
                                     </div>
                                 </FooterLinks>
 
-                                <p className="text-center text-xs font-medium text-[#797f88]">
-                                    This site is protected by reCAPTCHA
-                                </p>
+                                <div className="flex items-center justify-center gap-1.5 text-xs font-medium text-[#797f88]">
+                                    <Icon
+                                        icon="solar:lock-linear"
+                                        className="h-3.5 w-3.5 shrink-0 text-[#797f88]"
+                                    />
+                                    <span>Your data is encrypted and handled securely.</span>
+                                </div>
                             </div>
                         )}
                     </div>
