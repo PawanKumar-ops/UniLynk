@@ -67,17 +67,29 @@ export default function SiteFooter() {
         <div className="py-12 lg:px-24 lg:py-20">
           <div className="flex flex-col gap-10 xl:flex-row xl:gap-32">
             <div className="mx-auto flex shrink-0 flex-col items-center gap-8 text-center lg:w-[600px] xl:w-[280px] xl:items-start xl:text-left">
-              <a href="https://www.magnific.com" aria-label="Magnific">
-                <svg
-                  width="168"
-                  height="28"
-                  viewBox="0 0 168 28"
-                  fill="none"
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="text-white"
+              <a
+                href="/"
+                aria-label="Unilynk"
+                className="flex min-h-11 min-w-11 shrink-0 items-center md:min-w-[170px]"
+              >
+                <img
+                  src="/UnilynkLight.svg"
+                  alt="Unilynk"
+                  className="h-7 w-7 shrink-0 object-contain"
+                />
+
+                <span
+                  className="hidden md:block whitespace-nowrap text-white leading-none ml-[14px]"
+                  style={{
+                    fontFamily:
+                      'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                    fontSize: "28px",
+                    fontWeight: 600,
+                    letterSpacing: "-0.03em",
+                  }}
                 >
-                  <path d={LOGO_PATH} fill="currentColor" />
-                </svg>
+                  Unilynk
+                </span>
               </a>
               <p className="text-sm text-white/90">
                 Connecting students, clubs, and campus communities through one platform built to make college life more connected, engaging, and collaborative.

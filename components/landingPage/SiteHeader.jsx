@@ -23,32 +23,40 @@ export default function SiteHeader() {
         </button>
         <div className="flex shrink-0 items-center gap-4 lg:mr-auto lg:gap-10 xl:gap-11">
           <a
-            href="https://www.magnific.com"
-            aria-label="Magnific"
-            className="flex min-h-11 min-w-11 shrink-0 items-center md:min-w-[108px]"
+            href="/"
+            aria-label="Unilynk"
+            className="flex min-h-11 min-w-11 shrink-0 items-center md:min-w-[170px]"
           >
-            <span className="_1uvu8nb0">Magnific</span>
-            <span className="block md:hidden">
+            {/* Mobile */}
+            <span className="flex md:hidden items-center justify-center w-8 h-8">
+              <img
+                src="/UnilynkLight.svg"
+                alt="Unilynk"
+                className="w-8 h-8 object-contain"
+              />
+            </span>
+
+            {/* Desktop */}
+            <span className="hidden md:flex items-center gap-3">
+              <img
+                src="/UnilynkLight.svg"
+                alt="Unilynk"
+                className="w-6 h-6 object-contain shrink-0"
+              />
+
               <span
-                aria-hidden="true"
-                className="flex size-8 shrink-0 items-center justify-center text-[#ffffffbf]"
+                className="text-white leading-none whitespace-nowrap"
+                style={{
+                  fontSize: "24px",
+                  fontWeight: 600,
+                  letterSpacing: "-0.04em",
+                  fontFamily:
+                    'Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
+                }}
               >
-                <SpriteIcon
-                  name="magnific-logo"
-                  className="inline-block size-8 fill-current text-[#ffffff]"
-                />
+                Unilynk
               </span>
             </span>
-            <svg
-              width="216"
-              height="44"
-              viewBox="0 -8.381 216 44"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-              className="hidden h-auto w-[126px] md:block lg:w-[144px] text-[#ffffff]"
-            >
-              <path d={LOGO_PATH} fill="currentColor" />
-            </svg>
           </a>
           <nav
             className="hidden items-center gap-8 lg:flex text-[#ffffff]"
@@ -95,7 +103,7 @@ export default function SiteHeader() {
           </button>
           <div className="flex h-10 min-w-0 shrink-0 items-center justify-end gap-4">
             <a
-              href="https://www.magnific.com/log-in?client_id=magnific&lang=en"
+              href="./LoginPage"
               data-cy="signin-button"
               className="inline-flex items-center justify-center gap-2 font-medium transition duration-150 ease-in-out disabled:cursor-default disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ffffff4c] active:outline-none text-nowrap h-10 px-4 text-sm bg-[#ffffff] text-[#0b0b0d] hover:bg-[#f0f0f0] active:bg-[#e0e0e0] rounded-lg sm:bg-[transparent] sm:text-[#ffffff] sm:hover:bg-[#ffffff1a] sm:active:bg-[#ffffff2e]"
             >
