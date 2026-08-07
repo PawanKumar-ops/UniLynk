@@ -1,61 +1,42 @@
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/user";
-import OTP from "@/models/OTP";
-import bcrypt from "bcrypt";
+import { getClientIp, hashPassword, isValidEmail, normalizeEmail, rateLimit, validatePassword, verifyVerificationToken } from "@/lib/auth-utils";
 
 export async function POST(req) {
   try {
-    const { email, password, skills = [] } = await req.json();
+    const { email, password, verificationToken, skills = [] } = await req.json();
+    const normalizedEmail = normalizeEmail(email);
+    const passwordError = validatePassword(password);
 
-    if (!email || !password) {
-      return Response.json(
-        { error: "Email and password required" },
-        { status: 400 }
-      );
+    if (!isValidEmail(normalizedEmail) || passwordError) {
+      return Response.json({ error: passwordError || "Enter a valid email address." }, { status: 400 });
+    }
+    if (!verifyVerificationToken(verificationToken, normalizedEmail, "register")) {
+      return Response.json({ error: "Please verify your email before creating an account." }, { status: 403 });
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
+    const limited = rateLimit(`register:${getClientIp(req)}:${normalizedEmail}`, { limit: 5, windowMs: 60 * 60_000 });
+    if (!limited.ok) return Response.json({ error: "Too many signup attempts. Please try again later." }, { status: 429 });
 
     await connectDB();
-
-    const existingUser = await User.findOne({
-      email: normalizedEmail,
-    });
-
-    if (existingUser) {
-      return Response.json(
-        { error: "User already exists" },
-        { status: 409 }
-      );
+    if (await User.exists({ email: normalizedEmail })) {
+      return Response.json({ error: "User already exists." }, { status: 409 });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
     const nitDomain = "@nitkkr.ac.in";
-    const rollNumber =
-      email.endsWith(nitDomain) ? email.slice(0, -nitDomain.length) : undefined;
+    const rollNumber = normalizedEmail.endsWith(nitDomain) ? normalizedEmail.slice(0, -nitDomain.length) : undefined;
 
     await User.create({
       email: normalizedEmail,
-      password: hashedPassword,
+      password: await hashPassword(password),
       provider: "credentials",
-      skills: Array.isArray(skills)
-        ? skills
-          .map((skill) => (typeof skill === "string" ? skill.trim() : ""))
-          .filter(Boolean)
-        : [],
+      skills: Array.isArray(skills) ? skills.map((s) => (typeof s === "string" ? s.trim() : "")).filter(Boolean) : [],
       ...(rollNumber ? { rollNumber } : {}),
     });
 
-    return Response.json(
-      { success: true, message: "User created successfully" },
-      { status: 201 }
-    );
+    return Response.json({ success: true, message: "User created successfully." }, { status: 201 });
   } catch (error) {
     console.error("REGISTER ERROR:", error);
-    return Response.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
-    );
+    return Response.json({ error: "Unable to create account right now." }, { status: 500 });
   }
 }
