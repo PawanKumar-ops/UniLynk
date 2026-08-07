@@ -3,17 +3,18 @@ import mongoose from "mongoose";
 const OtpSchema = new mongoose.Schema(
   {
     email: { type: String, required: true, index: true },
-    otp: { type: String, required: true },
+    otpHash: { type: String, required: true },
     purpose: {
       type: String,
-      enum: ["register", "login"],
+      enum: ["register", "login", "reset"],
       required: true,
     },
-    expiresAt: { type: Date, required: true },
+    expiresAt: { type: Date, required: true, index: { expires: 0 } },
     attempts: { type: Number, default: 0 },
   },
   { timestamps: true }
 );
 
-export default mongoose.models.OTP ||
-  mongoose.model("OTP", OtpSchema);
+OtpSchema.index({ email: 1, purpose: 1 });
+
+export default mongoose.models.OTP || mongoose.model("OTP", OtpSchema);

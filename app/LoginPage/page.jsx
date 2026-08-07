@@ -1,5 +1,7 @@
 "use client"
 import { useEffect, useState } from 'react'
+import { signIn } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import { Inter, Bricolage_Grotesque } from "next/font/google";
 import { Icon } from '@iconify/react';
 
@@ -134,11 +136,15 @@ function SocialButton({
     icon,
     label,
     variant = 'default',
+    onClick,
+    disabled = false,
 }) {
     return (
         <button
             type="button"
             aria-label={label}
+            onClick={onClick}
+            disabled={disabled}
             className={`group relative inline-flex h-10 w-full items-center justify-center overflow-hidden rounded-lg px-4 text-sm font-medium text-nowrap text-[#17181a] transition-[background-color,box-shadow] duration-300 ease-out focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgba(0,0,0,0.24)] ${variant === 'outline'
                 ? 'border border-[rgba(0,0,0,0.1)] bg-white hover:bg-[#f4f5f6]'
                 : 'bg-[#f4f5f6] hover:bg-[#eceef0]'
@@ -387,18 +393,132 @@ export default function App() {
     // Where the verification step was entered from, so Back returns there.
     const [verifyOrigin, setVerifyOrigin] = useState('sign-up-password')
     const [verifyReason, setVerifyReason] = useState('sign-up')
+    const [verificationToken, setVerificationToken] = useState('')
+    const [newPassword, setNewPassword] = useState('')
+    const [confirmPassword, setConfirmPassword] = useState('')
+    const [status, setStatus] = useState({ type: '', message: '' })
+    const [loading, setLoading] = useState(false)
+    const router = useRouter()
 
     const goto = (next) => {
         setPassword('')
+        setCode('')
+        setStatus({ type: '', message: '' })
         setView(next)
     }
 
     const startVerification = (reason, origin) => {
         setCode('')
+        setStatus({ type: '', message: '' })
         setVerifyReason(reason)
         setVerifyOrigin(origin)
         setView('verify')
     }
+
+    const showStatus = (type, message) => setStatus({ type, message })
+
+    const requestOtp = async (purpose, origin) => {
+        setLoading(true)
+        showStatus('', '')
+        try {
+            const res = await fetch('/api/auth/send-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, purpose }),
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Unable to send code.')
+            startVerification(purpose === 'reset' ? 'reset' : 'sign-up', origin)
+            showStatus('success', data.message || 'Verification code sent.')
+        } catch (error) {
+            showStatus('error', error.message)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleCredentialsLogin = async () => {
+        setLoading(true)
+        showStatus('', '')
+        const result = await signIn('credentials', { email, password, redirect: false, callbackUrl: '/Onboarding' })
+        setLoading(false)
+        if (result?.error) {
+            showStatus('error', 'Invalid email or password.')
+            return
+        }
+        showStatus('success', 'Login successful. Redirecting...')
+        router.push('/Onboarding')
+    }
+
+    const handleVerifyCode = async () => {
+        setLoading(true)
+        showStatus('', '')
+        try {
+            const purpose = verifyReason === 'reset' ? 'reset' : 'register'
+            const res = await fetch('/api/auth/verify-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, otp: code, purpose }),
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Unable to verify code.')
+            setVerificationToken(data.verificationToken)
+            if (verifyReason === 'reset') {
+                setNewPassword('')
+                setConfirmPassword('')
+                setView('reset-password')
+                showStatus('success', 'Code verified. Choose a new password.')
+                return
+            }
+            const registerRes = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password, verificationToken: data.verificationToken }),
+            })
+            const registerData = await registerRes.json()
+            if (!registerRes.ok) throw new Error(registerData.error || 'Unable to create account.')
+            const loginResult = await signIn('credentials', { email, password, redirect: false, callbackUrl: '/Onboarding' })
+            if (loginResult?.error) throw new Error('Account created, but automatic login failed. Please log in.')
+            showStatus('success', 'Account created. Redirecting...')
+            router.push('/Onboarding')
+        } catch (error) {
+            showStatus('error', error.message)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const handleResetPassword = async () => {
+        if (newPassword !== confirmPassword) {
+            showStatus('error', 'Passwords do not match.')
+            return
+        }
+        setLoading(true)
+        showStatus('', '')
+        try {
+            const res = await fetch('/api/auth/reset-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password: newPassword, verificationToken }),
+            })
+            const data = await res.json()
+            if (!res.ok) throw new Error(data.error || 'Unable to reset password.')
+            setPassword(newPassword)
+            showStatus('success', 'Password reset. Redirecting...')
+            const loginResult = await signIn('credentials', { email, password: newPassword, redirect: false, callbackUrl: '/Onboarding' })
+            if (loginResult?.error) {
+                goto('log-in-password')
+                showStatus('success', 'Password reset. Please log in with your new password.')
+                return
+            }
+            router.push('/Onboarding')
+        } catch (error) {
+            showStatus('error', error.message)
+        } finally {
+            setLoading(false)
+        }
+    }
+
 
     return (
         <div className={`${inter.className} flex h-screen w-screen overflow-hidden bg-[#ffffff] p-2 text-sm text-[#17181a] antialiased`}>
@@ -433,6 +553,12 @@ export default function App() {
                             <UnilynkMark />
                         </a>
 
+                        {status.message && (
+                            <div className={`rounded-lg border px-3 py-2 text-center text-xs font-medium ${status.type === 'error' ? 'border-red-200 bg-red-50 text-red-700' : 'border-green-200 bg-green-50 text-green-700'}`} role="status" aria-live="polite">
+                                {status.message}
+                            </div>
+                        )}
+
                         {/* ---------------- Sign up (email step) ---------------- */}
                         {view === 'sign-up' && (
                             <div className="flex w-full flex-col gap-6 text-[#17181a]">
@@ -451,8 +577,10 @@ export default function App() {
                                         variant="outline"
                                         icon={<Icon icon="selfhst:google" />}
                                         label="Continue with Google"
+                                        onClick={() => signIn('google', { callbackUrl: '/Onboarding' })}
+                                        disabled={loading}
                                     />
-                                    <SocialButton icon={<Icon icon="selfhst:github-dark" />} label="Continue with Github" />
+                                    <SocialButton icon={<Icon icon="selfhst:github-dark" />} label="Continue with Github" onClick={() => signIn('github', { callbackUrl: '/Onboarding' })} disabled={loading} />
                                 </div>
 
                                 <div className="flex w-full items-center gap-2 text-xs font-medium text-[#5b5f66]">
@@ -543,7 +671,7 @@ export default function App() {
                                         className="flex flex-col gap-4"
                                         onSubmit={(e) => {
                                             e.preventDefault()
-                                            startVerification('sign-up', 'sign-up-password')
+                                            requestOtp('register', 'sign-up-password')
                                         }}
                                     >
                                         <div className="flex w-full flex-col gap-1">
@@ -567,10 +695,10 @@ export default function App() {
 
                                         <button
                                             type="submit"
-                                            disabled={password.length < 6}
+                                            disabled={password.length < 8 || loading}
                                             className={secondaryButtonClass}
                                         >
-                                            Sign up
+                                            {loading ? 'Sending code...' : 'Sign up'}
                                         </button>
                                     </form>
                                 </div>
@@ -626,8 +754,10 @@ export default function App() {
                                         variant="outline"
                                         icon={<Icon icon="selfhst:google" />}
                                         label="Continue with Google"
+                                        onClick={() => signIn('google', { callbackUrl: '/Onboarding' })}
+                                        disabled={loading}
                                     />
-                                    <SocialButton icon={<Icon icon="selfhst:github-dark" />} label="Continue with Github" />
+                                    <SocialButton icon={<Icon icon="selfhst:github-dark" />} label="Continue with Github" onClick={() => signIn('github', { callbackUrl: '/Onboarding' })} disabled={loading} />
                                 </div>
 
                                 <div className="flex w-full items-center gap-2 text-xs font-medium text-[#5b5f66]">
@@ -688,7 +818,7 @@ export default function App() {
                                 </header>
 
                                 <div className="flex w-full flex-col gap-4">
-                                    <form className="flex flex-col gap-4" onSubmit={(e) => e.preventDefault()}>
+                                    <form className="flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); handleCredentialsLogin() }}>
                                         <div className="flex w-full flex-col gap-1">
                                             <label className="text-xs font-medium text-[#5b5f66]">Email</label>
                                             <input
@@ -721,17 +851,17 @@ export default function App() {
 
                                         <button
                                             type="submit"
-                                            disabled={password.length < 6}
+                                            disabled={password.length < 8 || loading}
                                             className={secondaryButtonClass}
                                         >
-                                            Log in
+                                            {loading ? 'Logging in...' : 'Log in'}
                                         </button>
                                     </form>
 
                                     <div className="text-center text-xs font-medium text-[#797f88]">
                                         <button
                                             type="button"
-                                            onClick={() => startVerification('reset', 'log-in-password')}
+                                            onClick={() => requestOtp('reset', 'log-in-password')}
                                             className="text-[#5b5f66] hover:underline"
                                         >
                                             I forgot my password
@@ -779,7 +909,7 @@ export default function App() {
                                 </header>
 
                                 <div className="flex w-full flex-col gap-4">
-                                    <form className="flex w-full flex-col gap-4" onSubmit={(e) => e.preventDefault()}>
+                                    <form className="flex w-full flex-col gap-4" onSubmit={(e) => { e.preventDefault(); handleVerifyCode() }}>
                                         <div className="flex w-full flex-col gap-1">
                                             <label className="text-xs font-medium text-[#5b5f66]">Verification code</label>
                                             <OtpField value={code} onChange={setCode} />
@@ -787,10 +917,10 @@ export default function App() {
 
                                         <button
                                             type="submit"
-                                            disabled={code.length < OTP_LENGTH}
+                                            disabled={code.length < OTP_LENGTH || loading}
                                             className={secondaryButtonClass}
                                         >
-                                            {verifyReason === 'reset' ? 'Continue' : 'Verify email'}
+                                            {loading ? 'Verifying...' : (verifyReason === 'reset' ? 'Continue' : 'Verify email')}
                                         </button>
                                     </form>
 
@@ -798,7 +928,7 @@ export default function App() {
                                         Didn&rsquo;t get the code?{' '}
                                         <button
                                             type="button"
-                                            onClick={() => setCode('')}
+                                            onClick={() => requestOtp(verifyReason === 'reset' ? 'reset' : 'register', verifyOrigin)}
                                             className="text-[#5b5f66] hover:underline"
                                         >
                                             Send it again
@@ -830,6 +960,21 @@ export default function App() {
                                     />
                                     <span>Your data is encrypted and handled securely.</span>
                                 </div>
+                            </div>
+                        )}
+
+                        {view === 'reset-password' && (
+                            <div className="flex w-full flex-col gap-6 text-[#17181a]">
+                                <header className="flex flex-col gap-2 text-center">
+                                    <h1 className={`${bricolage.className} text-3xl leading-tight font-bold tracking-tight text-[#17181a]`}>Create new password</h1>
+                                </header>
+                                <form className="flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); handleResetPassword() }}>
+                                    <PasswordField label="New password" value={newPassword} onChange={setNewPassword} maxLength={72} />
+                                    <PasswordField label="Confirm password" value={confirmPassword} onChange={setConfirmPassword} maxLength={72} />
+                                    <button type="submit" disabled={newPassword.length < 8 || confirmPassword.length < 8 || loading} className={secondaryButtonClass}>
+                                        {loading ? 'Resetting...' : 'Reset password'}
+                                    </button>
+                                </form>
                             </div>
                         )}
                     </div>

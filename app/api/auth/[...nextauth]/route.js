@@ -33,6 +33,13 @@ export const authOptions = {
 
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60,
+    updateAge: 24 * 60 * 60,
+  },
+
+  pages: {
+    signIn: "/LoginPage",
+    error: "/LoginPage",
   },
 
   providers: [
@@ -87,7 +94,7 @@ export const authOptions = {
   callbacks: {
     // SIGN IN CALLBACK (MERGED LOGIC)
     async signIn({ user, account }) {
-  try {
+      try {
     await connectDB();
 
     if (!user?.email) return false;
@@ -121,6 +128,11 @@ export const authOptions = {
       }
     },
 
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      if (url.startsWith(baseUrl)) return url;
+      return `${baseUrl}/Onboarding`;
+    },
 
    async jwt({ token }) {
       if (!token?.email) return token;
