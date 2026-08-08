@@ -1,14 +1,13 @@
+import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/user";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { syncUserClubProfile } from "@/lib/clubProfileSync";
 
 export async function PATCH(req) {
   try {
     await connectDB();
 
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) {
       return Response.json({ error: "Not authenticated" }, { status: 401 });
     }

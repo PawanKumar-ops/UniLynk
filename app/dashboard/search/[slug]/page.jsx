@@ -1,10 +1,9 @@
+import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { getServerSession } from "next-auth/next";
-import { authOptions } from "../../../api/auth/[...nextauth]/route";
 import Userprofile from "../../Userprofile/page";
 
 export default async function SearchUserPage() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session) redirect("/");
   return <Userprofile />;
 }

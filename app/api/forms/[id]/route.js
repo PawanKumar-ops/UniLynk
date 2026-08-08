@@ -1,11 +1,10 @@
+import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
 import Form from "@/models/Form";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 export async function GET(req, context) {
   try {
     await connectDB();
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     const { id } = await context.params;
     const form = await Form.findById(id).populate("clubId", "clubName logo");

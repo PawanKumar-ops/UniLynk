@@ -1,7 +1,6 @@
+import { auth } from "@/auth";
 import path from "path";
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import cloudinary from "@/lib/cloudinary";
 
 const ALLOWED_DOCUMENT_TYPES = [
@@ -38,7 +37,7 @@ function getPublicId(fileName = "") {
 
 export async function POST(req) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session?.user?.email) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

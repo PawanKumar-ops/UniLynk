@@ -1,7 +1,6 @@
+import { auth } from "@/auth";
 import mongoose from "mongoose";
-import { getServerSession } from "next-auth";
 
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/mongodb";
 import { enforceUserRateLimit } from "@/lib/rateLimit";
 import { adjustLikeCount, getLikeCount } from "@/lib/postLikeCache";
@@ -11,7 +10,7 @@ import PostLike from "@/models/postLike";
 import User from "@/models/user";
 
 const resolveCurrentUser = async () => {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   const email = session?.user?.email?.trim().toLowerCase();
 
   if (!email) return null;

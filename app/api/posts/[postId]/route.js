@@ -1,3 +1,4 @@
+import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
 import Post from "@/models/post";
 import Comment from "@/models/comment";
@@ -7,8 +8,6 @@ import PostLike from "@/models/postLike";
 import Club from "@/models/Club";
 import cloudinary from "@/lib/cloudinary";
 import { getLikeCount } from "@/lib/postLikeCache";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 const normalizeEmail = (email) => {
   if (typeof email !== "string") return "";
@@ -163,7 +162,7 @@ export async function GET(_req, { params }) {
       return Response.json({ error: "Post not found" }, { status: 404 });
     }
 
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const sessionEmail = normalizeEmail(session?.user?.email);
     const user = sessionEmail
       ? await User.findOne({ email: sessionEmail }, { _id: 1, savedPosts: 1 }).lean()
@@ -217,7 +216,7 @@ export async function DELETE(_req, { params }) {
       return Response.json({ error: "Post not found" }, { status: 404 });
     }
 
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const sessionEmail = normalizeEmail(session?.user?.email);
     if (!sessionEmail) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });

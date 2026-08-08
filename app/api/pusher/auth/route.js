@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/user";
 import Community from "@/models/Community";
@@ -8,7 +7,7 @@ import { pusherServer } from "@/lib/pusher";
 export async function POST(req) {
   try {
     if (!pusherServer) return Response.json({ error: "Pusher is not configured" }, { status: 500 });
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     if (!session?.user?.email) return Response.json({ error: "Unauthorized" }, { status: 401 });
     await connectDB();
     const user = await User.findOne({ email: session.user.email.toLowerCase().trim() }).select("_id");

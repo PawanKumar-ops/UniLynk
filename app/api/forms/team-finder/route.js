@@ -1,8 +1,7 @@
+import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
 import ResponseModel from "@/models/Response";
 import User from "@/models/user";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 const toPlainMember = (member = {}) => ({
   name: member.name || member.fullName || member.email || "Participant",
@@ -121,7 +120,7 @@ export async function GET(req) {
 
 export async function POST(req) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session?.user?.email) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });

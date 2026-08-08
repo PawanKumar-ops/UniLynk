@@ -1,9 +1,8 @@
+import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
 import Post from "@/models/post";
 import Comment from "@/models/comment";
 import User from "@/models/user";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 const normalizeEmail = (email) => {
   if (typeof email !== "string") return "";
@@ -49,7 +48,7 @@ export async function POST(req, { params }) {
       return Response.json({ error: "Post id is required" }, { status: 400 });
     }
 
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const sessionEmail = normalizeEmail(session?.user?.email);
 
     if (!sessionEmail) {

@@ -1,9 +1,8 @@
+import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
 import Form from "@/models/Form";
 import FormResponse from "@/models/Response";
 import User from "@/models/user";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 const TEAM_REGISTRATION_ANSWER_ID = "teamRegistration";
 
@@ -125,7 +124,7 @@ const buildTeamFinderAnalytics = (responses, usersByEmail) => {
 export async function GET(req, context) {
   try {
     await connectDB();
-    const session = await getServerSession(authOptions);
+    const session = await auth();
 
     if (!session?.user?.email) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });

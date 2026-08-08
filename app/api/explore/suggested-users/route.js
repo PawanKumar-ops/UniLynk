@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
 import { normalizeEmail } from "@/lib/clubProfileSync";
 import Club from "@/models/Club";
@@ -47,7 +46,7 @@ const collectClubEmails = (club = {}) => {
 };
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user?.email) {
     return buildJsonResponse({ message: "Unauthorized" }, { status: 401 });

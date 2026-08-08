@@ -1,13 +1,12 @@
-import { getServerSession } from "next-auth";
+import { auth } from "@/auth";
 import { NextResponse } from "next/server";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/mongodb";
 import Community from "@/models/Community";
 import User from "@/models/user";
 import { syncClubCommunitiesForUser } from "@/lib/communitySync";
 
 async function getCurrentUser() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.email) return null;
   await connectDB();
   return User.findOne({ email: session.user.email.toLowerCase().trim() });

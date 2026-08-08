@@ -1,8 +1,7 @@
+import { auth } from "@/auth";
 import { connectDB } from '@/lib/mongodb';
 import User from '@/models/user';
 import Post from '@/models/post';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 
 export async function POST(req) {
   try {
@@ -10,7 +9,7 @@ export async function POST(req) {
     const { postId } = await req.json();
     if (!postId) return new Response('postId required', { status: 400 });
 
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const userEmail = session?.user?.email;
     if (!userEmail) return new Response('Unauthorized', { status: 401 });
 

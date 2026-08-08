@@ -1,11 +1,10 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
 import Club from "@/models/Club";
 import Form from "@/models/Form";
 
 export async function POST(req, { params }) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user?.email) {
     return Response.json({ message: "Unauthorized" }, { status: 401 });

@@ -1,6 +1,5 @@
+import { auth } from "@/auth";
 import mongoose from "mongoose";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/user";
 import ChatMessage from "@/models/chatMessage";
@@ -8,7 +7,7 @@ import MessageRequest from "@/models/messageRequest";
 import { triggerPusher, userChannel } from "@/lib/pusher";
 
 async function getCurrentUser() {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
   if (!session?.user?.email) return null;
   await connectDB();
   return User.findOne({ email: session.user.email });

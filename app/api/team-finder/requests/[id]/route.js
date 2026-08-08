@@ -1,7 +1,6 @@
-import { getServerSession } from "next-auth";
+import { auth } from "@/auth";
 import nodemailer from "nodemailer";
 import mongoose from "mongoose";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/mongodb";
 import Notification from "@/models/Notification";
 import ResponseModel from "@/models/Response";
@@ -43,7 +42,7 @@ const buildDecisionEmail = ({ accepted, recipientName, formTitle, teamName }) =>
 };
 
 export async function PATCH(req, context) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user?.email) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });

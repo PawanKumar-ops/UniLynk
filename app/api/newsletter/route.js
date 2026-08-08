@@ -1,6 +1,5 @@
+import { auth } from "@/auth";
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import cloudinary from "@/lib/cloudinary";
 import { connectDB } from "@/lib/mongodb";
 import { cleanupExpiredNewsletters, NEWSLETTER_TTL_MS } from "@/lib/newsletterCleanup";
@@ -83,7 +82,7 @@ export async function GET() {
 
 export async function POST(req) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const sessionEmail = normalizeEmail(session?.user?.email);
 
     if (!sessionEmail) {

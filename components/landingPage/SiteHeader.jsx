@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import SpriteIcon from './SpriteIcon'
 
 const LOGO_PATH =
@@ -22,7 +23,7 @@ export default function SiteHeader() {
           <span className="_1uvu8nb0">Toggle menu</span>
         </button>
         <div className="flex shrink-0 items-center gap-4 lg:mr-auto lg:gap-10 xl:gap-11">
-          <a
+          <Link
             href="/"
             aria-label="Unilynk"
             className="flex min-h-11 min-w-11 shrink-0 items-center md:min-w-[170px]"
@@ -57,7 +58,7 @@ export default function SiteHeader() {
                 Unilynk
               </span>
             </span>
-          </a>
+          </Link>
           <nav
             className="hidden items-center gap-8 lg:flex text-[#ffffff]"
             data-cy="top-menu-bar"

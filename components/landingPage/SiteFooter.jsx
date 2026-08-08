@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { useState } from 'react'
 import SpriteIcon from './SpriteIcon'
 
@@ -67,7 +68,7 @@ export default function SiteFooter() {
         <div className="py-12 lg:px-24 lg:py-20">
           <div className="flex flex-col gap-10 xl:flex-row xl:gap-32">
             <div className="mx-auto flex shrink-0 flex-col items-center gap-8 text-center lg:w-[600px] xl:w-[280px] xl:items-start xl:text-left">
-              <a
+              <Link
                 href="/"
                 aria-label="Unilynk"
                 className="flex min-h-11 min-w-11 shrink-0 items-center md:min-w-[170px]"
@@ -90,7 +91,7 @@ export default function SiteFooter() {
                 >
                   Unilynk
                 </span>
-              </a>
+              </Link>
               <p className="text-sm text-white/90">
                 Connecting students, clubs, and campus communities through one platform built to make college life more connected, engaging, and collaborative.
               </p>

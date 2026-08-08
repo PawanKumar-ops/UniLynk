@@ -1,3 +1,4 @@
+import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
 import Post from "@/models/post";
 import User from "@/models/user";
@@ -6,8 +7,6 @@ import Club from "@/models/Club";
 import PostLike from "@/models/postLike";
 import { getLikeCounts } from "@/lib/postLikeCache";
 import { parseLegacyPollContent } from "@/lib/polls";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { getHybridFeedPosts, decodeFeedCursor } from "@/lib/feedRanking";
 
 
@@ -298,7 +297,7 @@ export async function GET(req) {
 
     const hydratedPosts = await resolvePostAuthorImages(paginatedPosts);
 
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const sessionEmail = normalizeEmail(session?.user?.email);
     const user = sessionEmail
       ? await User.findOne({ email: sessionEmail }, { _id: 1, savedPosts: 1 }).lean()
@@ -387,7 +386,7 @@ export async function POST(req) {
 
     await connectDB();
 
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const sessionEmail = normalizeEmail(session?.user?.email);
 
     const safeAuthorEmail = normalizeEmail(authorEmail) || sessionEmail;

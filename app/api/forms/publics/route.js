@@ -1,9 +1,8 @@
+import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
 import Form from "@/models/Form";
 import Club from "@/models/Club";
 import ResponseModel from "@/models/Response";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 
 export async function GET(req) {
   try {
@@ -12,7 +11,7 @@ export async function GET(req) {
     const url = new URL(req.url);
     const clubId = url.searchParams.get("clubId");
 
-    const session = await getServerSession(authOptions);
+    const session = await auth();
     const normalizedEmail = session?.user?.email?.toLowerCase?.().trim?.() || "";
 
     const publicFilter = { isPublished: true, isPublic: true };

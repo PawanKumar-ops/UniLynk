@@ -1,7 +1,6 @@
-import { getServerSession } from "next-auth";
+import { auth } from "@/auth";
 import nodemailer from "nodemailer";
 import mongoose from "mongoose";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { connectDB } from "@/lib/mongodb";
 import Form from "@/models/Form";
 import Notification from "@/models/Notification";
@@ -195,7 +194,7 @@ UniLynk Team Finder`;
 };
 
 export async function POST(req) {
-  const session = await getServerSession(authOptions);
+  const session = await auth();
 
   if (!session?.user?.email) {
     return Response.json({ error: "Unauthorized" }, { status: 401 });
