@@ -1,48 +1,41 @@
 "use client"
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   Camera,
   Check,
-  GraduationCap,
   Pencil,
   Plus,
-  Sparkles,
   Trash2,
-  User,
   X,
 } from "lucide-react";
 import { Icon } from "@iconify/react";
+import { SKILLS } from "@/lib/skillsList";
 
 const BRANCHES = [
-  "PIE", "CSE", "CSE (Dual)", "IT", "ME", "ME (Dual)",
-  "EE", "EE (Dual)", "ECE", "ECE (Dual)", "CE", "CE (Dual)",
-  "MnC", "SET", "R&A", "VLSI", "IIoT", "AIML", "AI & DS", "B.Arch.",
+  "PIE", "CSE",
+  "CSE(Dual)", "IT",
+  "ME", "ME(Dual)",
+  "EE ", "EE(Dual)",
+  "ECE", "ECE(Dual)",
+  "CE", "CE(Dual)", "MnC",
+  "SET", "RA", "VLSI",
+  "IIoT", "AIML",
+  "AIDS", "B.Arch.",
 ];
 
 const YEARS = [
-  { value: "1", label: "1st Year", hint: "Just started my journey." },
-  { value: "2", label: "2nd Year", hint: "Finding my direction." },
-  { value: "3", label: "3rd Year", hint: "Building projects & skills." },
-  { value: "4", label: "4th Year", hint: "Preparing for placements." },
-  { value: "5", label: "5th Year", hint: "Final year of dual degree." },
-];
-
-const SKILL_SUGGESTIONS = [
-  "React", "Python", "Machine Learning", "UI/UX", "Figma", "Node.js",
-  "Data Science", "C++", "Java", "Public Speaking", "Video Editing",
-  "Photography", "Writing", "Robotics", "IoT", "Cloud", "DevOps", "Rust",
-  "TypeScript", "Next.js", "Tailwind", "Flutter", "Kotlin", "Swift",
-  "Blender", "Solidity", "DSA", "SQL", "MongoDB", "PostgreSQL",
-  "TensorFlow", "PyTorch", "OpenCV", "AWS", "GCP", "Azure",
-  "Docker", "Kubernetes", "Git", "Linux", "Arduino", "Raspberry Pi",
-  "3D Modeling", "Animation", "Graphic Design", "Content Writing",
-  "SEO", "Marketing", "Product Management", "Entrepreneurship",
+  { value: "First Year", label: "1", hint: "Just started my journey." },
+  { value: "Second Year", label: "2", hint: "Finding my direction." },
+  { value: "Third Year", label: "3", hint: "Building projects & skills." },
+  { value: "Fourth Year", label: "4", hint: "Preparing for placements." },
+  { value: "Fifth Year", label: "5", hint: "Final year of dual degree." },
 ];
 
 
-const STEPS = ["profile", "branch", "year", "skills", "done"];
+const STEPS = ["profile", "branch", "year", "skills"];
 
 // Explicit palette (no semantic tokens)
 const C = {
@@ -58,8 +51,11 @@ const C = {
 };
 
 export default function Onboarding() {
+  const router = useRouter();
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [completed, setCompleted] = useState(false);
   const [visited, setVisited] = useState(new Set([0]));
   const [data, setData] = useState({
     photo: null,
@@ -70,7 +66,9 @@ export default function Onboarding() {
   });
 
   const current = STEPS[step];
-  const progress = ((step + 1) / STEPS.length) * 100;
+  const progress = completed
+  ? 100
+  : (step / STEPS.length) * 100;
 
   const canContinue = useMemo(() => {
     if (current === "profile") return data.name.trim().length > 1;
@@ -88,9 +86,50 @@ export default function Onboarding() {
       return t;
     });
   };
+  const isLastStep = step === STEPS.length - 1;
   const next = () => {
     if (!canContinue) return;
+    if (isLastStep) {
+      saveProfile();
+      return;
+    }
     advance();
+  };
+
+  const saveProfile = async () => {
+    if (loading) return;
+
+    setCompleted(true);
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/user/update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          name: data.name,
+          branch: data.branch,
+          year: data.year,
+          skills: data.skills,
+        }),
+      });
+      const result = await response.json();
+
+      if (response.status === 401) {
+        router.push("/");
+        return;
+      }
+      if (!response.ok) throw new Error(result.error || "Unable to save your profile.");
+
+      router.push("/dashboard");
+    } catch (error) {
+      console.error("Onboarding profile save failed:", error);
+      setCompleted(false);
+      alert(error.message || "Unable to save your profile. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
   const back = () => {
     setDirection(-1);
@@ -157,12 +196,11 @@ export default function Onboarding() {
               {current === "skills" && (
                 <SkillsStep data={data} setData={setData} />
               )}
-              {current === "done" && <DoneStep data={data} />}
             </motion.div>
           </AnimatePresence>
 
           {/* Nav — sits directly under content, like reference */}
-          {current !== "done" && (
+          {(
             <div
               className="fixed bottom-0 flex gap-3 left-0 right-0 border-t  border-[#1010101a] bg-white px-5 py-3 lg:static lg:border-none lg:bg-transparent lg:p-0"
             >
@@ -173,7 +211,7 @@ export default function Onboarding() {
                   className="inline-flex items-center justify-center bg-[#506bf2] rounded-full px-4 py-3 text-sm font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#344ce7]"
                   style={{ color: C.primaryFg }}
                 >
-                  {step === STEPS.length - 2 ? "Finish" : "Continue"}
+                  {isLastStep ? "Finish" : "Continue"}
                 </button>
               )}
               {step > 0 && (
@@ -189,7 +227,109 @@ export default function Onboarding() {
           )}
         </div>
       </main>
+
+      {/* Premium loading screen */}
+      <AnimatePresence>
+        {loading && <LoadingScreen name={data.name} />}
+      </AnimatePresence>
     </div>
+  );
+}
+/* ---------- Loading screen ---------- */
+
+function LoadingScreen({ name }) {
+  const firstName = name?.trim().split(" ")[0] || "";
+  const messages = [
+    "Setting up your profile",
+    "Matching you with your campus",
+    "Finding people like you",
+    "Almost there",
+  ];
+  const [msgIndex, setMsgIndex] = useState(0);
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setMsgIndex((i) => (i + 1) % messages.length);
+    }, 1400);
+    return () => window.clearInterval(id);
+  }, []);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      className="fixed inset-0 z-[60] flex flex-col items-center justify-center px-6"
+      style={{ background: C.bg, color: C.text, fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}
+    >
+      {/* Spinner mark */}
+      <motion.div
+        initial={{ scale: 0.85, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 220, damping: 18 }}
+        className="relative h-16 w-16"
+      >
+        {/* Track */}
+        <div
+          className="absolute inset-0 rounded-full"
+          style={{ border: `3px solid ${C.muted}` }}
+        />
+        {/* Spinning arc */}
+        <motion.div
+          className="absolute inset-0 rounded-full"
+          style={{
+            border: "3px solid transparent",
+            borderTopColor: "#506BF2",
+            borderRightColor: "#506BF2",
+          }}
+          animate={{ rotate: 360 }}
+          transition={{ repeat: Infinity, ease: "linear", duration: 0.9 }}
+        />
+        {/* Pulsing core */}
+        <motion.div
+          className="absolute inset-[22px] rounded-full"
+          style={{ background: "#506BF2" }}
+          animate={{ scale: [1, 0.7, 1], opacity: [1, 0.5, 1] }}
+          transition={{ repeat: Infinity, duration: 1.4, ease: "easeInOut" }}
+        />
+      </motion.div>
+
+      {/* Rotating status text */}
+      <div className="mt-8 h-6 overflow-hidden text-center">
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={msgIndex}
+            initial={{ y: 12, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -12, opacity: 0 }}
+            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            className="text-[15px] font-semibold"
+            style={{ color: C.text }}
+          >
+            {messages[msgIndex]}
+            {firstName && msgIndex === 0 ? `, ${firstName}` : ""}
+          </motion.p>
+        </AnimatePresence>
+      </div>
+
+      <p className="mt-1.5 text-[13px]" style={{ color: C.subtext }}>
+        This will only take a moment.
+      </p>
+
+      {/* Indeterminate progress bar */}
+      <div
+        className="mt-7 h-1 w-full max-w-[220px] overflow-hidden rounded-full"
+        style={{ background: C.muted }}
+      >
+        <motion.div
+          className="h-full w-1/3 rounded-full"
+          style={{ background: "#506BF2" }}
+          animate={{ x: ["-120%", "320%"] }}
+          transition={{ repeat: Infinity, duration: 1.3, ease: "easeInOut" }}
+        />
+      </div>
+    </motion.div>
   );
 }
 
@@ -201,11 +341,24 @@ function ProfileStep({
 }) {
   const inputRef = useRef(null);
 
-  const onFile = (f) => {
+  const onFile = async (f) => {
     if (!f) return;
-    const reader = new FileReader();
-    reader.onload = () => setData((d) => ({ ...d, photo: reader.result }));
-    reader.readAsDataURL(f);
+    if (f.size > 5 * 1024 * 1024) {
+      alert("Max size is 5MB");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", f);
+    try {
+      const response = await fetch("/api/user/upload-image", { method: "POST", body: formData });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Image upload failed");
+      setData((d) => ({ ...d, photo: result.url }));
+    } catch (error) {
+      console.error("Profile image upload failed:", error);
+      alert(error.message || "Image upload failed");
+    }
   };
 
   const initial = data.name.trim().charAt(0).toUpperCase();
@@ -400,9 +553,9 @@ function YearStep({
                   color: active ? C.primaryFg : C.text,
                 }}
               >
-                {y.value}
+                {y.label}
               </div>
-              <div className="text-[14px] font-bold" style={{ color: C.text }}>{y.label}</div>
+              <div className="text-[14px] font-bold" style={{ color: C.text }}>{y.value}</div>
               <div className="mt-0.5 text-[11.5px] leading-snug" style={{ color: C.subtext }}>
                 {y.hint}
               </div>
@@ -432,13 +585,13 @@ function SkillsStep({
 
   const query = input.trim().toLowerCase();
   const matches = query
-    ? SKILL_SUGGESTIONS.filter(
+    ? SKILLS.filter(
       (s) => s.toLowerCase().includes(query) && !data.skills.includes(s),
     ).slice(0, 6)
     : [];
-  const exactMatch = SKILL_SUGGESTIONS.some((s) => s.toLowerCase() === query);
+  const exactMatch = SKILLS.some((s) => s.toLowerCase() === query);
   const showDropdown = focused && query.length > 0 && (matches.length > 0 || !exactMatch);
-  const popular = SKILL_SUGGESTIONS.slice(0, 12);
+  const popular = SKILLS.slice(0, 12);
 
   return (
     <div>
@@ -598,75 +751,6 @@ function SkillsStep({
           })}
         </div>
       </div>
-    </div>
-  );
-}
-
-function DoneStep({ data }) {
-  return (
-    <div className="flex flex-col items-center text-center pt-2">
-      <motion.div
-        initial={{ scale: 0, rotate: -20 }}
-        animate={{ scale: 1, rotate: 0 }}
-        transition={{ type: "spring", stiffness: 200, damping: 15 }}
-        className="h-16 w-16 rounded-full grid place-items-center mb-4"
-        style={{ background: C.primary, color: C.primaryFg }}
-      >
-        <Check className="h-7 w-7" strokeWidth={3} />
-      </motion.div>
-      <h1 className="text-xl md:text-3xl font-bold tracking-tight"
-        style={{ color: C.text }}>
-        Welcome to Unilynk{data.name ? `, ${data.name.split(" ")[0]}` : ""}.
-      </h1>
-      <p className="mt-2 text-[14px] max-w-md" style={{ color: C.subtext }}>
-        Your profile is ready. Start exploring communities, projects, and people from your campus.
-      </p>
-
-      <div
-        className="mt-6 w-full max-w-sm rounded-2xl p-4 text-left"
-        style={{ background: C.bg, border: `1px solid ${C.border}` }}
-      >
-        <div className="flex items-center gap-3">
-          <div
-            className="h-12 w-12 rounded-full overflow-hidden grid place-items-center shrink-0"
-            style={{ background: C.muted }}
-          >
-            {data.photo ? (
-              <img src={data.photo} alt="" className="h-full w-full object-cover" />
-            ) : (
-              <User className="h-5 w-5" style={{ color: C.subtext }} />
-            )}
-          </div>
-          <div className="min-w-0">
-            <div className="font-semibold truncate" style={{ color: C.text }}>{data.name || "Unnamed"}</div>
-            <div className="text-xs flex items-center gap-1.5" style={{ color: C.subtext }}>
-              <GraduationCap className="h-3 w-3" />
-              {data.branch || "—"} · Year {data.year || "—"}
-            </div>
-          </div>
-        </div>
-        {data.skills.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {data.skills.slice(0, 6).map((s) => (
-              <span
-                key={s}
-                className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
-                style={{ background: C.muted, color: C.text }}
-              >
-                {s}
-              </span>
-            ))}
-          </div>
-        )}
-      </div>
-
-      <button
-        className="mt-6 inline-flex items-center gap-2 rounded-full px-7 py-3 text-[15px] font-semibold hover:opacity-90 active:scale-[0.98] transition"
-        style={{ background: C.primary, color: C.primaryFg }}
-      >
-        <Sparkles className="h-4 w-4" />
-        Enter Unilynk
-      </button>
     </div>
   );
 }

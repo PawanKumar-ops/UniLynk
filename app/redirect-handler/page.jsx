@@ -14,7 +14,7 @@ export default async function RedirectHandler() {
   const user = await User.findOne({ email: session.user.email });
 
   if (!user || !user.profileCompleted) {
-    redirect("/UserinfoForm");
+    redirect("/Onboarding");
   }
 
   redirect("/dashboard");
