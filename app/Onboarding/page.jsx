@@ -122,13 +122,12 @@ export default function Onboarding() {
       }
       if (!response.ok) throw new Error(result.error || "Unable to save your profile.");
 
-      router.push("/dashboard");
+      router.replace("/dashboard");
     } catch (error) {
       console.error("Onboarding profile save failed:", error);
       setCompleted(false);
-      alert(error.message || "Unable to save your profile. Please try again.");
-    } finally {
       setLoading(false);
+      alert(error.message || "Unable to save your profile. Please try again.");
     }
   };
   const back = () => {

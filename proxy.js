@@ -10,7 +10,6 @@ export const config = {
     "/Onboarding/:path*",
     "/dashboard/:path*",
     "/Profile/:path*",
-    "/UserinfoForm/:path*",
     "/NewClubForm/:path*",
   ],
 };
