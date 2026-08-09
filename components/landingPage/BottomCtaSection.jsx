@@ -20,7 +20,7 @@ export default function BottomCtaSection() {
           Join Unilynk
         </h2>
         <a
-          href="https://www.magnific.com/sign-up?client_id=magnific&lang=en#from_element=home_bottom_cta"
+          href="/LoginPage"
           className="mt-8 inline-flex h-10 items-center justify-center gap-2 text-nowrap rounded-lg bg-[#101010] px-6 py-3 text-base font-medium text-white transition duration-150 ease-in-out hover:bg-[#1a1a1a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ffffff4c] active:outline-none"
         >
           Get Started

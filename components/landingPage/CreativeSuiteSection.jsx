@@ -10,37 +10,37 @@ const PANELS = [
     description:
       "Discover clubs, attend events, connect with students, and stay updated with everything happening around you.",
     links: [{ label: "Explore Campus" }],
-    video: 'https://videocdn.cdnpk.net/videos/4ff63825-3cb3-4cfd-a54f-7c6f1ab86bc5/horizontal/previews/clear/large.mp4?token=exp=1785759247~hmac=c5b77118c2a7b6fdb01b90822b15319b34799f2636ee989e09fa66384726c294',
+    video: 'https://res.cloudinary.com/m89jw24l/video/upload/v1786287489/community.mp4',
     features: [
       {
         icon: "users",
         label: "Communities",
         description: "Join communities based on your interests and connect with like-minded students.",
-        video: 'https://videocdn.cdnpk.net/videos/4ff63825-3cb3-4cfd-a54f-7c6f1ab86bc5/horizontal/previews/clear/large.mp4?token=exp=1785759247~hmac=c5b77118c2a7b6fdb01b90822b15319b34799f2636ee989e09fa66384726c294',
+        video: 'https://res.cloudinary.com/m89jw24l/video/upload/v1786287489/community.mp4',
       },
       {
         icon: "calendar",
         label: "Events",
         description: "Never miss workshops, fests, hackathons, and club activities.",
-        video: 'https://videocdn.cdnpk.net/videos/0f7559cf-1e75-4d7b-bee6-52ae249c9854/horizontal/previews/clear/large.mp4?token=exp=1785772447~hmac=e2db690b098d09e0cb4ee0128ecd023077e79a2168c218ee1c0fb3cd79eae520',
+        video: 'https://res.cloudinary.com/m89jw24l/video/upload/v1786287859/4932799_Dj_Deejay_1920x1080.mp4',
       },
       {
         icon: "post",
         label: "Campus Feed",
         description: "See updates, announcements, and posts shared across your campus.",
-        video: 'https://videocdn.cdnpk.net/videos/1e8ac744-3fc7-497c-ac9a-9793096a85d8/horizontal/previews/clear/large.mp4?token=exp=1785772692~hmac=6435914a521c58a963df3c577988363dd9d35a0bd223d49ac18c1521e05989e6',
+        video: 'https://res.cloudinary.com/m89jw24l/video/upload/v1786288111/large.mp4',
       },
       {
         icon: "clubs",
         label: "Clubs",
         description: "Discover student clubs and become part of communities you love.",
-        video: "https://videocdn.cdnpk.net/videos/ec6849b0-bbf0-53f5-9685-28fcf8309fd3/horizontal/previews/clear/large.mp4?token=exp=1785773802~hmac=b320b6367458ba1651063320c1eba4b67590536124816c65e9c76ea14621c2a8",
+        video: "https://res.cloudinary.com/m89jw24l/video/upload/v1786287754/clubs.mp4",
       },
       {
         icon: "network",
         label: "Networking",
         description: "Meet seniors, classmates, and students across departments.",
-        video: "https://videocdn.cdnpk.net/videos/a266430c-29c3-5b67-8a6e-5f1bb63bd453/horizontal/previews/clear/large.mp4?token=exp=1785773920~hmac=a762475a6317f65709382eed0fc23492be3abf3f12f920a707ae300a4934eae8",
+        video: "https://res.cloudinary.com/m89jw24l/video/upload/v1786288235/hand-shake.mp4",
       }
     ]
   },
@@ -52,10 +52,9 @@ const PANELS = [
     description:
       'Connect with classmates, seniors, juniors, and club members. Discover people with shared interests and grow your campus network naturally.',
     links: [
-      { label: 'MCP', href: 'https://www.magnific.com/mcp#from_element=home_tabs_mcp-api_mcp' },
-      { label: 'API', href: 'https://www.magnific.com/api#from_element=home_tabs_mcp-api_api' },
+      { label: 'Lets start', href: '/LoginPage' },
     ],
-    video: 'https://videocdn.cdnpk.net/videos/472d683e-edde-4c8a-8606-72edb82487b5/horizontal/previews/clear/large.mp4?token=exp=1785774896~hmac=401954b115e9139c20e31c5c606aa524c9b0c7f98500039be48dfb8584884ebc',
+    video: 'https://res.cloudinary.com/m89jw24l/video/upload/v1786289176/building-upper-view.mp4',
     features: [
       {
         icon: 'mcp',
@@ -99,7 +98,7 @@ const PANELS = [
         label: 'Explore Events',
       },
     ],
-    video: 'https://videocdn.cdnpk.net/videos/efa450b3-a309-4365-8655-1870d82ab43c/horizontal/previews/clear/large.mp4?token=exp=1785775751~hmac=880bbdbbf2258bac5286daba52e5c6db0c40e3d413ce5b461c78b172be64ff75',
+    video: 'https://res.cloudinary.com/m89jw24l/video/upload/v1786288692/typing.mp4',
     features: [
       {
         icon: 'calendar',
@@ -139,7 +138,7 @@ const PANELS = [
       label: 'Explore Clubs',
     },
   ],
-  video: 'https://videocdn.cdnpk.net/videos/72ea9882-f25f-499c-860c-d07fb8e04dbb/horizontal/previews/clear/large.mp4?token=exp=1785776153~hmac=83ed7e32eaf804b49f7363129c4a9ba9d64e28afca635bbd823f5fb71899915e',
+  video: 'https://res.cloudinary.com/m89jw24l/video/upload/v1786289596/group-upper.mp4',
   features: [
     {
       icon: 'compass',
@@ -179,7 +178,7 @@ const PANELS = [
       label: 'Start Chatting',
     },
   ],
-  video: 'https://videocdn.cdnpk.net/videos/e717e56c-7578-5c65-85a6-15101b3ab1c1/horizontal/previews/clear/large.mp4?token=exp=1785776419~hmac=bf8cc2fff3e88ad5a71b2f57db4ee8bfe219cd4fd4c91c1a358dabb39064928e',
+  video: 'https://res.cloudinary.com/m89jw24l/video/upload/v1786289815/large.mp4',
   features: [
     {
       icon: 'chat',
@@ -209,67 +208,6 @@ const PANELS = [
 },
 ]
 
-const PLUGINS = [
-  {
-    key: 'figma',
-    icon: 'figma',
-    label: 'Figma',
-    href: 'https://www.magnific.com/plugins/figma#from_element=home_tabs_plugins_figma',
-  },
-  {
-    key: 'adobe',
-    icon: 'adobe',
-    label: 'Adobe Creative Cloud',
-    entries: [
-      {
-        name: 'Illustrator',
-        download: 'menu',
-        href: 'https://www.magnific.com/plugins/illustrator#from_element=home_tabs_plugins_illustrator',
-      },
-      {
-        name: 'Photoshop',
-        download: 'single',
-        href: 'https://www.magnific.com/plugins/photoshop#from_element=home_tabs_plugins_photoshop',
-      },
-      {
-        name: 'After Effects',
-        download: 'menu',
-        href: 'https://www.magnific.com/plugins/after-effects#from_element=home_tabs_plugins_after-effects',
-      },
-      {
-        name: 'Premiere Pro',
-        download: 'single',
-        href: 'https://www.magnific.com/plugins/premiere-pro#from_element=home_tabs_plugins_premiere-pro',
-      },
-      {
-        name: 'InDesign',
-        download: 'single',
-        href: 'https://www.magnific.com/plugins/indesign#from_element=home_tabs_plugins_indesign',
-      },
-    ],
-  },
-  {
-    key: 'final-cut-pro',
-    icon: 'finalcut-pro',
-    label: 'Final Cut Pro',
-    download: 'macos',
-    href: 'https://www.magnific.com/plugins/final-cut-pro#from_element=home_tabs_plugins_final-cut-pro',
-  },
-  {
-    key: 'davinci-resolve',
-    icon: 'davinci',
-    label: 'DaVinci Resolve',
-    download: 'menu',
-    href: 'https://www.magnific.com/plugins/davinci-resolve#from_element=home_tabs_plugins_davinci-resolve',
-  },
-  {
-    key: 'microsoft-office',
-    icon: 'office',
-    label: 'Microsoft Office',
-    download: 'menu',
-    href: 'https://www.magnific.com/plugins/microsoft-office#from_element=home_tabs_plugins_microsoft-office',
-  },
-]
 
 const PILL =
   'inline-flex h-8 items-center gap-2 rounded-full border border-white/20 px-4 text-xs font-medium text-white transition-colors hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent'

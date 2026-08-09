@@ -60,7 +60,7 @@ export default function FaqsSection() {
               Answers to your top questions
             </h2>
             <a
-              href="https://www.magnific.com/ai/support?form=true#from_element=home_faqs"
+              href="mailto:pawankumarr16108@gmail.com?subject=Support Request&body=Hi, I need help with "
               className="inline-flex w-fit rounded-lg border border-[#dcd8d2] px-5 py-2.5 text-sm font-medium text-[#3f0808] no-underline transition-colors duration-200 hover:bg-[#3f0808]/5"
             >
               Contact support

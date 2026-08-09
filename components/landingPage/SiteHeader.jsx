@@ -111,7 +111,7 @@ export default function SiteHeader() {
               Log in
             </a>
             <a
-              href="https://www.magnific.com/sign-up?client_id=magnific&lang=en#from_element=home_topbar"
+              href="/LoginPage"
               data-cy="signup-button"
               className="items-center justify-center gap-2 font-medium transition duration-150 ease-in-out disabled:cursor-default disabled:opacity-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ffffff4c] active:outline-none text-nowrap h-10 px-4 text-sm bg-[#ffffff] text-[#0b0b0d] hover:bg-[#f0f0f0] active:bg-[#e0e0e0] rounded-lg hidden sm:flex"
             >

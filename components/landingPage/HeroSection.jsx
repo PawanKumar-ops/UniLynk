@@ -122,13 +122,14 @@ export default function HeroSection() {
             </p>
             <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">
               <a
-                href="https://www.magnific.com/sign-up?client_id=magnific&lang=en#from_element=home_hero"
+                href="/LoginPage"
                 className="flex h-10 items-center justify-center gap-2 text-nowrap rounded-lg bg-white px-6 py-3 text-base font-medium text-black transition duration-150 ease-in-out hover:bg-white/90 focus:bg-white/90 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ffffff4c] active:outline-none"
               >
                 Get Started
               </a>
-              <button
+              <a
                 type="button"
+                href='/LoginPage'
                 className="inline-flex h-10 items-center justify-center gap-2 text-nowrap rounded-lg border border-white bg-transparent px-6 py-3 text-base font-medium text-white transition duration-150 ease-in-out hover:bg-white/10 focus:bg-white/10 focus:outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#ffffff4c] active:outline-none"
               >
                 <svg
@@ -141,7 +142,7 @@ export default function HeroSection() {
                   <path d="M8 5v14l11-7z" />
                 </svg>
                 Explore Features
-              </button>
+              </a>
             </div>
           </div>
           <div className="hidden lg:block">

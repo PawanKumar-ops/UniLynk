@@ -101,7 +101,7 @@ export default function TeamPlansSection() {
                   </p>
                 </div>
                 <a
-                  href="https://www.magnific.com/pricing?view=business#from_element=home_team_plans"
+                  href="/LoginPage"
                   className="inline-flex h-12 w-fit items-center justify-center rounded-lg bg-[#ffffff] px-6 text-base font-medium text-[#0b0b0b] transition-colors hover:bg-[#e0e0e0]"
                 >
                   Get Started
@@ -119,7 +119,7 @@ export default function TeamPlansSection() {
                   </p>
                 </div>
                 <a
-                  href="https://www.magnific.com/enterprise#contact"
+                  href="/NewClubForm"
                   className="inline-flex h-12 w-fit items-center justify-center rounded-lg border border-[#ffffff33] px-6 text-base font-medium text-[#ffffff] transition-colors hover:bg-[#ffffff]/5"
                 >
                   Create Club
