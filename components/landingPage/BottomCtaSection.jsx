@@ -7,8 +7,8 @@ export default function BottomCtaSection() {
       data-cy="section-bottom-cta"
     >
       <img
-        src="https://img.magnific.com/free-photo/man-standing-stone-hooker-valley-track-with-view-mount-cook-new-zealand_181624-12196.jpg?t=st=1785927154~exp=1785930754~hmac=d4fcaf61b1ec5837d611ebb090a5dbb9dc1469211348a87b5069ade7787043e7&w=1480"
-        srcSet="https://img.magnific.com/free-photo/man-standing-stone-hooker-valley-track-with-view-mount-cook-new-zealand_181624-12196.jpg?t=st=1785927154~exp=1785930754~hmac=d4fcaf61b1ec5837d611ebb090a5dbb9dc1469211348a87b5069ade7787043e7&w=1480"
+        src="https://res.cloudinary.com/m89jw24l/image/upload/v1786281670/man-standing-stone-hooker-valley-track-with-view-mount-cook-new-zealand_181624-12196.jpg"
+        srcSet="https://res.cloudinary.com/m89jw24l/image/upload/v1786281670/man-standing-stone-hooker-valley-track-with-view-mount-cook-new-zealand_181624-12196.jpg"
         sizes="100vw"
         alt=""
         loading="lazy"

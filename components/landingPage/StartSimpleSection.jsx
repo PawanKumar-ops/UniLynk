@@ -54,7 +54,7 @@ export default function StartSimpleSection() {
               </p>
             </header>
             <img
-              src="https://wallpaperaccess.com/full/9344003.jpg"
+              src="https://res.cloudinary.com/m89jw24l/image/upload/v1786280274/high-angle-laptop-books-assortment_23-2149765847.jpg"
               alt=""
               className="mt-auto rounded-t-2xl h-auto w-full xl:ml-5 xl:h-[551px] xl:w-[470px] xl:max-w-none xl:self-start"
               loading="lazy"
@@ -81,7 +81,7 @@ export default function StartSimpleSection() {
               </p>
             </div>
             <img
-              src="https://img.magnific.com/free-photo/authentic-book-club-scene_23-2150104609.jpg?t=st=1785918292~exp=1785921892~hmac=96f3159510cdf3fd4e852dbd10b7a9375083dd0f3664dc444a59d2129f25323d&w=1480"
+              src="https://res.cloudinary.com/m89jw24l/image/upload/v1786279956/authentic-book-club-scene_23-2150104609.jpg"
               alt=""
               className="relative rounded-2xl aspect-video w-full object-cover object-left xl:aspect-auto xl:h-[293px] xl:w-auto xl:max-w-none xl:flex-none xl:self-center"
               loading="lazy"
@@ -100,7 +100,7 @@ export default function StartSimpleSection() {
               </p>
             </header>
             <img
-              src="https://img.magnific.com/free-photo/paper-dolls-against-sky_23-2148144531.jpg?t=st=1785918695~exp=1785922295~hmac=0e04ee4e9a99f266383ca6e28516f91731966e0c3b680d06e5d8fc09fc33f54f&w=1480"
+              src="https://res.cloudinary.com/m89jw24l/image/upload/v1786280034/paper-dolls-against-sky_23-2148144531.jpg"
               alt=""
               className="h-auto rounded-2xl w-full xl:ml-12 xl:h-[180px] xl:w-[585px] xl:max-w-none xl:self-start"
               loading="lazy"
@@ -108,7 +108,7 @@ export default function StartSimpleSection() {
           </article>
           <article className="rounded-2lg relative min-h-[450px] overflow-hidden">
             <img
-              src="https://img.magnific.com/free-photo/man-doing-extreme-tricks-long-shot_23-2148288486.jpg?t=st=1785918839~exp=1785922439~hmac=fc23950d4c5ce42430fc044b75efb33e1487137e6b053d5dbdfc9dfbc87c9513&w=1480"
+              src="https://res.cloudinary.com/m89jw24l/image/upload/v1786278936/man-doing-extreme-tricks-long-shot.jpg"
               alt=""
               className="absolute inset-0 size-full object-cover"
               loading="lazy"

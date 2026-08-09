@@ -84,7 +84,7 @@ export default function HeroSection() {
   return (
     <section className="relative flex flex-col overflow-hidden bg-[#0b0b0d]" data-cy="section-hero">
       <img
-        src="Backgroundland.jpg"
+        src="https://res.cloudinary.com/m89jw24l/image/upload/v1786281748/demographic-census-concept-representation.jpg"
         alt=""
         fetchPriority="high"
         decoding="async"

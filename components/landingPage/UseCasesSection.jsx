@@ -14,19 +14,19 @@ const CARDS = [
     title: 'Campus Events',
     description:
       'Discover upcoming events, workshops, and activities happening across your campus.',
-    image: 'https://img.magnific.com/free-photo/close-up-recording-video-with-smartphone-concert-toned-picture_1153-6815.jpg?t=st=1785925407~exp=1785929007~hmac=a5faefe1eeb7cdd10afcadc7b377fbc844a7cea182a72f5159d3fcee93a9721a&w=1480',
+    image: 'https://res.cloudinary.com/m89jw24l/image/upload/v1786281142/close-up-recording-video-with-smartphone-concert-toned-picture_1153-6815.jpg',
   },
   {
     title: 'Student Clubs',
     description:
       'Join communities, meet like-minded students, and grow through shared interests.',
-    image: 'https://img.magnific.com/free-photo/colleagues-working-together-full-shot_23-2149739303.jpg?t=st=1785925953~exp=1785929553~hmac=96e4d4f4232f6f80094ebac0f2114ae0518ed6fd2d076f4602e53e7a02a797a9&w=1480',
+    image: 'https://res.cloudinary.com/m89jw24l/image/upload/v1786281290/colleagues-working-together-full-shot_23-2149739303.jpg',
   },
   {
     title: 'Campus Network',
     description:
       'Connect with classmates, share updates, and build meaningful campus relationships.',
-    image: 'https://img.magnific.com/free-photo/brown-white-concrete-building-blue-sky-daytime_246466-17.jpg?t=st=1785926220~exp=1785929820~hmac=3418ce47dc4c8f4221ba6780512a6913d0d1c05d39c0c3bf4f53c7077ef229b2&w=1480',
+    image: 'https://res.cloudinary.com/m89jw24l/image/upload/v1786281327/brown-white-concrete-building-blue-sky-daytime_246466-17.jpg',
   },
 ]
 
@@ -102,11 +102,11 @@ export default function UseCasesSection() {
           muted
           autoPlay
           preload="none"
-          poster="https://media.magnific.com/home/relaunch/media/useCases/filmmaking-preview.webp"
+          poster="https://res.cloudinary.com/m89jw24l/image/upload/v1786282215/videoframe_5538.png"
           className="absolute inset-0 size-full object-cover"
         >
           <source
-            src="https://videocdn.cdnpk.net/videos/5aec3547-58ef-4133-8ca7-f3411258063b/horizontal/previews/clear/large.mp4?token=exp=1785927631~hmac=376f04fab00f23f57a2dc54a50511f7a472680c97057262985c28aff6a5089e8"
+            src="https://res.cloudinary.com/m89jw24l/video/upload/v1786281826/1103252_1080p_Endurance_1280x720.mp4"
             type="video/webm"
           />
         </video>

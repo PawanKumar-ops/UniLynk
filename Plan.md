@@ -7,3 +7,7 @@ A better approach is to implement **cursor-based infinite comment loading** usin
 error is coming password should contain 1 no. and 1 alphabet after sending otp
 
 user go to onboarding page even if he has an account while sign in
+
+if loged in in deploy by google, it go to localhost page and when tried to go to dashboard without log in it still go to localhost instead of signin page
+
+after sign out go to localhost page

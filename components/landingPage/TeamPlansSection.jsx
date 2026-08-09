@@ -6,13 +6,13 @@ const CARDS = [
     title: 'Everything happening on campus in one place',
     description:
       'Discover clubs, events, and opportunities from one platform designed for every student.',
-    image: 'https://img.magnific.com/free-photo/old-masters-picture-gallery-dresden-night_1398-2646.jpg?t=st=1785924557~exp=1785928157~hmac=d43dcf19dc25753b257e5f92e51d2673501fdda1621a9ab2b5d074dbac8c2bad&w=1480',
+    image: 'https://res.cloudinary.com/m89jw24l/image/upload/v1786280635/old-masters-picture-gallery-dresden-night_1398-2646.jpg',
   },
   {
     title: 'Built for students, clubs, and communities',
     description:
       'Manage clubs, organize events, and build stronger campus communities with ease.',
-    image: 'https://img.magnific.com/free-photo/high-angle-man-working-late-night_23-2150280984.jpg?t=st=1785924846~exp=1785928446~hmac=80b59295160fc5726e7e82be41a486a62b27fcb692bd090af349078b415e9124&w=1480',
+    image: 'https://res.cloudinary.com/m89jw24l/image/upload/v1786280959/high-angle-man-working-late-night_23-2150280984.jpg',
   },
 ]
 
