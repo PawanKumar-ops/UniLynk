@@ -28,7 +28,7 @@ const PANELS = [
         icon: "post",
         label: "Campus Feed",
         description: "See updates, announcements, and posts shared across your campus.",
-        video: 'https://res.cloudinary.com/m89jw24l/video/upload/v1786288111/large.mp4',
+        video: 'https://res.cloudinary.com/m89jw24l/video/upload/v1786288111/posts.mp4',
       },
       {
         icon: "clubs",

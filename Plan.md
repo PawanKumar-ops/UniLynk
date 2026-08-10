@@ -11,3 +11,5 @@ user go to onboarding page even if he has an account while sign in
 if loged in in deploy by google, it go to localhost page and when tried to go to dashboard without log in it still go to localhost instead of signin page
 
 after sign out go to localhost page
+
+404 error if net slow when clicked on group chat

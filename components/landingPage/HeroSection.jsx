@@ -117,7 +117,7 @@ export default function HeroSection() {
             <h1 className="font-alternate text-4xl leading-[1.15] tracking-tight text-[#ffffff] sm:text-5xl lg:text-[55px]">
               Everything your campus needs, all in one place.
             </h1>
-            <p className="text-sm leading-[1.35] text-[#ffffffbf] sm:text-lg">
+            <p className="text-lg leading-relaxed text-[#f0f0f1] lg:text-2xl">
               Connect with students, discover clubs, attend events, share updates, and become part of a thriving campus community—all through UniLynk.
             </p>
             <div className="flex flex-col items-start gap-4 sm:flex-row sm:items-center">

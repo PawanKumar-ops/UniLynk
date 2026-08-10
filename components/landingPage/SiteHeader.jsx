@@ -8,10 +8,10 @@ const NAV_BUTTON =
   "cursor-pointer no-underline focus:outline-none md:order-2 text-[#ffffff] flex h-12 items-center p-0 text-center text-[16px] font-normal leading-relaxed whitespace-nowrap transition-colors duration-100 [font-feature-settings:'ss02'_1,'ss03'_1] hover:text-[#ff3ea5]"
 
 const NAV_ITEMS = [
-  { label: 'Creative Suite', cy: 'ai-tools-menu' },
-  { label: 'Stock', cy: 'stock-menu' },
-  { label: 'Resources', cy: 'resources-menu' },
-  { label: 'Enterprise', cy: 'enterprise-menu', hiddenUntilXl: true },
+  { label: 'Home', cy: 'ai-tools-menu', href: '/' },
+  { label: 'About', cy: 'stock-menu', href: './about' },
+  { label: 'Support', cy: 'resources-menu' },
+  { label: 'Contact us', cy: 'enterprise-menu', hiddenUntilXl: true },
 ]
 
 export default function SiteHeader() {
@@ -63,29 +63,33 @@ export default function SiteHeader() {
             className="hidden items-center gap-8 lg:flex text-[#ffffff]"
             data-cy="top-menu-bar"
           >
-            {NAV_ITEMS.map((item) => (
-              <button
-                key={item.cy}
-                type="button"
-                data-cy={item.cy}
-                aria-haspopup="dialog"
-                aria-expanded="false"
-                data-state="closed"
-                className={
-                  item.hiddenUntilXl
-                    ? NAV_BUTTON.replace('flex h-12', 'hidden h-12') + ' xl:flex'
-                    : NAV_BUTTON
-                }
-              >
-                <span className="relative">{item.label}</span>
-              </button>
-            ))}
-            <a
-              className="text-[#ffffff] no-underline md:order-2 inline-flex h-12 items-center p-0 text-center text-[16px] font-normal leading-relaxed whitespace-nowrap transition-colors duration-100 [font-feature-settings:'ss02'_1,'ss03'_1] hover:text-[#ff3ea5]"
-              href="https://magnific.com/pricing?origin=magnific_web#from_element=mainmenu"
-            >
-              Pricing
-            </a>
+            {NAV_ITEMS.map((item) =>
+  item.href ? (
+    <Link
+      key={item.cy}
+      href={item.href}
+      className={
+        item.hiddenUntilXl
+          ? NAV_BUTTON.replace('flex h-12', 'hidden h-12') + ' xl:flex'
+          : NAV_BUTTON
+      }
+    >
+      <span className="relative">{item.label}</span>
+    </Link>
+  ) : (
+    <button
+      key={item.cy}
+      type="button"
+      className={
+        item.hiddenUntilXl
+          ? NAV_BUTTON.replace('flex h-12', 'hidden h-12') + ' xl:flex'
+          : NAV_BUTTON
+      }
+    >
+      <span className="relative">{item.label}</span>
+    </button>
+  )
+)}
           </nav>
         </div>
         <div className="ml-auto flex min-w-0 items-center gap-2 lg:ml-0 lg:gap-4">
