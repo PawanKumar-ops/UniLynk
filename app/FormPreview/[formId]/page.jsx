@@ -1,783 +1,628 @@
-"use client";
+"use client"
 
-import { useState, useEffect, useMemo, useRef } from 'react';
-import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { CheckCircle2, Calendar as CalendarIcon, Clock, MapPin, Tag, Plus, Users, X } from 'lucide-react';
-import { format } from 'date-fns';
-import './FormPreview.css';
-import { getDraft } from "@/lib/drafts";
-import { TeamFinderCard } from "@/components/TeamFinderCard";
-import { AddTeamFinder } from "@/components/AddTeamFinder";
+import { useMemo, useRef, useState } from "react";
+import {
+  Calendar,
+  Check,
+  ChevronDown,
+  Clock,
+  FileText,
+  ImageIcon,
+  MapPin,
+  Plus,
+  Search,
+  Trash2,
+  UploadCloud,
+  X,
+} from "lucide-react";
 
-const TEAM_REGISTRATION_ANSWER_ID = "teamRegistration";
-const DEFAULT_TEAM_CONFIG = {
-  minSize: 2,
-  maxSize: 5,
-  memberFields: ['name', 'email'],
-  customFields: [],
+const C = {
+  bg: "#ffffff",
+  text: "#363636",
+  subtext: "#6b7280",
+  muted: "#f3f4f6",
+  soft: "#ffffff",
+  border: "#e5e7eb",
+  primary: "#000000",
+  primaryFg: "#ffffff",
+  primarySoft: "#f5f5f5",
+  accent: "#2c2c2e",
 };
 
-const TEAM_FIELD_LABELS = {
-  name: 'Full Name',
-  fullName: 'Full Name',
-  email: 'Email',
-  phone: 'Phone',
-  rollNo: 'Roll No.',
-  branch: 'Branch / Dept.',
-  year: 'Year of Study',
-  role: 'Role',
-  linkedin: 'LinkedIn',
-  github: 'GitHub',
+/* ---------- Mock data ---------- */
+
+const EVENT = {
+  club: "Cricket Club",
+  clubLogo:
+    "https://res.cloudinary.com/dpzqayckn/image/upload/v1784122081/club-logos/bxryxmx4jgzivqnixlsn.jpg",
+  cover:
+    "https://res.cloudinary.com/dpzqayckn/image/upload/v1784122921/event-covers/zbfxmye36apeekgxsbkc.webp",
+  date: "Jul 17",
 };
 
-const getTeamFields = (teamConfig = {}) => {
-  const memberFields = teamConfig.memberFields?.length
-    ? teamConfig.memberFields
-    : DEFAULT_TEAM_CONFIG.memberFields;
-  const customFields = teamConfig.customFields || [];
-  return [...memberFields, ...customFields].filter(Boolean);
-};
+const INFO = [
+  { icon: MapPin, label: "Location", value: "Main Campus" },
+  { icon: Clock, label: "Time", value: "4:00 PM" },
+  { icon: Calendar, label: "Venue", value: "Central Ground" },
+];
 
-const getUserFieldValue = (user = {}, field) => {
-  if (!user) return '';
+const USERS = [
+  { roll: "2023CSE1042", name: "Ananya Sharma", branch: "CSE", year: "Second Year", avatar: "https://i.pravatar.cc/80?img=47" },
+  { roll: "2022ECE0318", name: "Rohan Verma", branch: "ECE", year: "Third Year", avatar: "https://i.pravatar.cc/80?img=12" },
+  { roll: "2023IT2201", name: "Ishita Nair", branch: "IT", year: "Second Year", avatar: "https://i.pravatar.cc/80?img=32" },
+  { roll: "2021ME0091", name: "Karan Mehta", branch: "ME", year: "Fourth Year", avatar: "https://i.pravatar.cc/80?img=15" },
+  { roll: "2023CSE1088", name: "Priya Reddy", branch: "CSE(Dual)", year: "First Year", avatar: "https://i.pravatar.cc/80?img=45" },
+  { roll: "2022EE0455", name: "Aditya Singh", branch: "EE", year: "Third Year", avatar: "https://i.pravatar.cc/80?img=8" },
+  { roll: "2023AIML0712", name: "Sneha Iyer", branch: "AIML", year: "Second Year", avatar: "https://i.pravatar.cc/80?img=27" },
+  { roll: "2021CE0233", name: "Vikram Rao", branch: "CE", year: "Fourth Year", avatar: "https://i.pravatar.cc/80?img=3" },
+];
 
-  const values = {
-    name: user.name,
-    fullName: user.name,
-    email: user.email,
-    branch: user.branch,
-    year: user.year,
-    rollNo: user.rollNumber,
-    rollNumber: user.rollNumber,
-  };
+const MCQ_OPTIONS = ["Batsman", "Bowler", "All-rounder", "Wicket-keeper"];
+const CHECKBOX_OPTIONS = ["Jersey", "Bat", "Gloves", "Helmet", "Pads", "Water bottle"];
+const DROPDOWN_OPTIONS = ["Beginner", "Intermediate", "Advanced", "Professional"];
 
-  return values[field] || '';
-};
+/* ---------- Page ---------- */
 
-const createEmptyMember = (teamConfig = {}, defaultMemberDetails = null) => (
-  Object.fromEntries(getTeamFields(teamConfig).map((field) => [field, getUserFieldValue(defaultMemberDetails, field)]))
-);
+export default function App() {
+  const [team, setTeam] = useState([]);
+  const [teamOpen, setTeamOpen] = useState(false);
 
-const normalizeTeamConfig = (teamConfig = {}) => ({
-  minSize: Number(teamConfig.minSize) || DEFAULT_TEAM_CONFIG.minSize,
-  maxSize: Number(teamConfig.maxSize) || DEFAULT_TEAM_CONFIG.maxSize,
-  memberFields: teamConfig.memberFields?.length
-    ? teamConfig.memberFields
-    : DEFAULT_TEAM_CONFIG.memberFields,
-  customFields: teamConfig.customFields || [],
-});
+  const [about, setAbout] = useState("");
+  const [role, setRole] = useState("");
+  const [gear, setGear] = useState([]);
+  const [level, setLevel] = useState("");
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [files, setFiles] = useState([]);
 
-const createDefaultTeamAnswer = (teamConfig = {}, defaultMemberDetails = null) => ({
-  mode: 'team',
-  teamName: '',
-  members: [createEmptyMember(teamConfig, defaultMemberDetails)],
-});
-
-function TeamRegistrationCard({ teamConfig, value, onChange, onFindTeammates, onAddToTeamFinder, defaultMemberDetails, readOnly }) {
-  const cfg = normalizeTeamConfig(teamConfig);
-  const minSize = cfg.minSize;
-  const maxSize = Math.max(minSize, cfg.maxSize);
-  const allFields = getTeamFields(cfg);
-  const safeValue = value || createDefaultTeamAnswer(cfg, defaultMemberDetails);
-  const members = safeValue.members?.length ? safeValue.members : [createEmptyMember(cfg, defaultMemberDetails)];
-
-  const updateTeam = (patch) => onChange({ ...safeValue, members, ...patch });
-  const updateMember = (idx, field, v) => {
-    const updatedMembers = members.map((m, i) => (i === idx ? { ...m, [field]: v } : m));
-    updateTeam({ members: updatedMembers });
-  };
-  const addMember = () => {
-    if (members.length >= maxSize) return;
-    updateTeam({ members: [...members, createEmptyMember(cfg)] });
-  };
-  const removeMember = (idx) => {
-    if (members.length <= 1) return;
-    updateTeam({ members: members.filter((_, i) => i !== idx) });
-  };
-  const setMode = (mode) => {
-    if (mode === 'solo') updateTeam({ mode: 'solo', members: members.slice(0, 1) });
-    else updateTeam({ mode: 'team' });
-  };
+  const toggleGear = (g) =>
+    setGear((prev) => (prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]));
 
   return (
-    <div className="team-q">
-      {/* Mode toggle */}
-      <div className="team-q-mode">
-        <div
-          className="team-q-mode-indicator"
-          style={{
-            transform:
-              safeValue.mode === "team"
-                ? "translateX(0%)"
-                : "translateX(100%)",
-          }}
-        />
-        <button
-          type="button"
-          className={`team-q-mode-btn ${safeValue.mode === "team" ? "is-active" : ""}`}
-          onClick={() => setMode("team")}
-          disabled={readOnly}
-        >
-          Create Team
-        </button>
-        <button
-          type="button"
-          className={`team-q-mode-btn ${safeValue.mode === "solo" ? "is-active" : ""}`}
-          onClick={() => setMode("solo")}
-        >
-          Join Team
-        </button>
-      </div>
-
-      {safeValue.mode === 'solo' ? (
-        <div className="team-q-solo">
-          <p className="team-q-solo-title">You'll be added to the Team Finder</p>
-          <p className="team-q-solo-desc">
-            Other participants looking for teammates will be able to invite you.
-            Fill in your details below — we'll match you with a team of {minSize}–{maxSize}.
-          </p>
-          <div className="team-q-member no-team-card">
-            <div className="team-finder-actions">
-              <button
-                type="button"
-                className="team-finder-btn team-finder-btn-primary"
-                onClick={() => onAddToTeamFinder("solo")}
-              >
-                Add me to Team Finder
-              </button>
-              <button
-                type="button"
-                className="team-finder-btn"
-                onClick={onFindTeammates}
-              >
-                Find Teammates / Team
-              </button>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <>
-          <div className="team-q-meta">
-            <div className="team-q-field team-q-field-full">
-              <label>Team Name</label>
-              <input
-                type="text"
-                value={safeValue.teamName || ''}
-                onChange={(e) => updateTeam({ teamName: e.target.value })}
-                placeholder="e.g. Pixel Pirates"
-              />
-            </div>
-            <div className="team-q-size-hint">
-              {members.length} / {maxSize} members
-              <span className="team-q-size-sub">min {minSize}</span>
-            </div>
-          </div>
-
-          <div className="team-q-members">
-            {members.map((member, idx) => (
-              <div key={idx} className="team-q-member">
-                <div className="team-q-member-head">
-                  <span className="team-q-chip">
-                    {idx === 0 ? 'Team Lead' : `Member ${idx + 1}`}
-                  </span>
-                  {idx > 0 && (
-                    <button type="button" className="team-q-remove" onClick={() => removeMember(idx)} disabled={readOnly}>
-                        Remove
-                      </button>
-                  )}
-                </div>
-                <div className="team-q-grid">
-                  {allFields.map((f) => (
-                    <div key={f} className="team-q-field">
-                      <label>{TEAM_FIELD_LABELS[f] || f}</label>
-                        <input
-                          type={f === 'email' ? 'email' : 'text'}
-                          value={member[f] || ''}
-                          onChange={(e) => updateMember(idx, f, e.target.value)}
-                          placeholder={TEAM_FIELD_LABELS[f] || f}
-                          disabled={readOnly}
-                        />
-                    </div>
-                  ))}
+    <div className="min-h-full w-full" style={{ background: C.bg, color: C.text }}>
+      <div className="mx-auto w-full max-w-[640px] px-5 py-8 sm:py-12">
+        {/* ---------- Banner ---------- */}
+        <div style={{ backgroundColor: "rgb(247, 247, 249)", borderRadius: 28, position: "relative", border: `1px solid ${C.border}` }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px 10px" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, backgroundColor: "rgb(235, 235, 237)", borderRadius: 999, padding: "6px 13px 6px 7px" }}>
+              <div style={{ width: 20, height: 20, backgroundColor: "rgb(28, 28, 30)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+                <div className="w-[20px] h-[20px] rounded-full overflow-hidden bg-white flex items-center justify-center">
+                  <img alt="Cricket Club logo" className="w-full h-full object-cover rounded-full block" src={EVENT.clubLogo} />
                 </div>
               </div>
-            ))}
+              <span style={{ fontSize: 12, fontWeight: 500, color: "rgb(28, 28, 30)" }}>{EVENT.club}</span>
+            </div>
           </div>
-
-          <div className="flex items-center justify-between w-full">
-            <button
-                type="button"
-                className="team-q-add flex gap-1 items-center justify-center p-2 rounded-lg"
-                onClick={addMember}
-                disabled={members.length >= maxSize || readOnly}
-              >
-              <Plus height={15} width={15} />
-              <div>Add member</div>
-            </button>
-
-            <button
-                type="button"
-                className="team-q-add-teamfinder flex gap-1 items-center justify-center p-2 rounded-lg bg-black text-white"
-                onClick={() => onAddToTeamFinder("team")}
-                disabled={readOnly}
-              >
-              <div>Add team to TeamFinder</div>
-            </button>
+          <div style={{ margin: "0px 10px", borderRadius: 20, overflow: "hidden", height: 250, border: "1px solid rgb(230, 230, 230)", backgroundColor: "#efeff2" }}>
+            <img alt="Cricket Tournament" src={EVENT.cover} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-// ─── Floating Team Finder Hint ────────────────────────────────────────────────
-
-function TeamFinderHint({ hintPos, onDismiss }) {
-  // hintPos = { left, width } for desktop fixed float; null = mobile inline
-  const isFloating = hintPos !== null;
-
-  const content = (
-    <>
-      <div className="tfhf-icon-wrap">
-        <Users size={15} strokeWidth={2} />
-      </div>
-      <div className="tfhf-body">
-        <p className="tfhf-title">Find your team using Team Finder</p>
-        <p className="tfhf-desc">Browse solo applicants and open teams to find your match.</p>
-      </div>
-      <button type="button" className="tfhf-close" onClick={onDismiss} aria-label="Dismiss">
-        <X size={12} strokeWidth={2.5} />
-      </button>
-      {/* Downward caret — points at the TeamFinderCard below */}
-      <div className="tfhf-caret" />
-    </>
-  );
-
-  if (isFloating) {
-    return (
-      /* Outer wrapper: handles fixed position + entrance slide */
-      <div
-        className="tfhf-wrapper"
-        style={{ left: hintPos.left, width: hintPos.width }}
-      >
-        {/* Inner card: handles the continuous bob */}
-        <div className="tfhf-card">
-          {content}
+          <div style={{ display: "flex", justifyContent: "center", position: "relative", zIndex: 2 }}>
+            <div style={{ backgroundColor: "rgb(44, 44, 46)", color: "rgb(255, 255, 255)", border: "3px solid rgb(255, 255, 255)", borderRadius: 999, padding: "7px 22px", fontSize: 13, fontWeight: 500, margin: "12px 0px -16px" }}>
+              {EVENT.date}
+            </div>
+          </div>
         </div>
-      </div>
-    );
-  }
 
-  // Mobile / narrow viewport — inline at top of form
-  return (
-    <div className="tfhf-inline">
-      <div className="tfhf-inline-card">
-        {content}
+        {/* ---------- Title ---------- */}
+        <div className="mt-8">
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight" style={{ color: C.text }}>
+            Inter-College Cricket Cup
+          </h1>
+          <p className="mt-1.5 text-[14px]" style={{ color: C.subtext }}>
+            Register your team for the summer tournament.
+          </p>
+        </div>
+
+        {/* ---------- Info cards (square) ---------- */}
+        <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-3">
+          {INFO.map((it) => {
+            const Icon = it.icon;
+            return (
+              <div key={it.label} className="rounded-2xl p-3 sm:p-4" style={{ background: C.bg, border: `1px solid ${C.border}` }}>
+                <div className="h-8 w-8 rounded-full grid place-items-center mb-2 sm:mb-3" style={{ background: C.muted }}>
+                  <Icon className="h-4 w-4" style={{ color: C.text }} />
+                </div>
+                <div className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide" style={{ color: C.subtext }}>
+                  {it.label}
+                </div>
+                <div className="mt-0.5 text-[13px] sm:text-[15px] font-bold leading-snug" style={{ color: C.text }}>
+                  {it.value}
+                </div>
+                <div className="mt-0.5 text-[11px] sm:text-[12px] leading-snug" style={{ color: C.subtext }}>
+                  {it.hint}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* ---------- Add Team ---------- */}
+        <div className="mt-6">
+          {!teamOpen && team.length === 0 ? (
+            <div className="rounded-2xl p-4" style={{ background: C.accent }}>
+              <div className="text-[15px] font-bold" style={{ color: C.primaryFg }}>
+                Manage Team
+              </div>
+              <div className="mt-0.5 text-[12px]" style={{ color: "rgba(255,255,255,0.6)" }}>
+                {EVENT.date}, 2026
+              </div>
+              <button
+                onClick={() => setTeamOpen(true)}
+                className="mt-4 w-full inline-flex items-center justify-center gap-1.5 rounded-full py-2.5 text-[13px] font-semibold transition active:scale-[0.99] hover:opacity-90"
+                style={{ background: C.bg, color: C.text }}
+              >
+                <Plus className="h-4 w-4" strokeWidth={2.5} />
+                Add Team
+              </button>
+            </div>
+          ) : (
+            <TeamPicker team={team} setTeam={setTeam} onClose={() => setTeamOpen(false)} />
+          )}
+        </div>
+
+        {/* ---------- Questions ---------- */}
+        <div className="mt-8 flex flex-col gap-8">
+          {/* Paragraph */}
+          <Field label="Tell us about your team" required>
+            <textarea
+              value={about}
+              onChange={(e) => setAbout(e.target.value)}
+              rows={1}
+              placeholder="A few words about your team's playing style, past wins…"
+              className="autogrow w-full resize-none rounded-lg border px-3 py-2.5 text-sm font-medium outline-none transition-colors leading-relaxed"
+              style={{ background: C.bg, color: C.text, border: `1px solid ${C.border}`, minHeight: 40 }}
+              onFocus={(e) => (e.currentTarget.style.borderColor = C.primary)}
+              onBlur={(e) => (e.currentTarget.style.borderColor = C.border)}
+            />
+          </Field>
+
+          {/* Multiple choice */}
+          <Field label="What's your primary role on the field?" required>
+            <div className="flex flex-col gap-2.5 w-full">
+              {MCQ_OPTIONS.map((opt) => {
+                const active = role === opt;
+                return (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => setRole(opt)}
+                    className="w-full inline-flex items-center justify-start rounded-full px-5 h-11 text-[14px] font-medium transition-all active:scale-[0.99]"
+                    style={{
+                      background: active ? "#E7E7E7" : C.bg,
+                      color: C.text,
+                      border: active ? "1px solid #10101080" : `1px solid ${C.border}`,
+                    }}
+                  >
+                    {opt}
+                  </button>
+                );
+              })}
+            </div>
+          </Field>
+
+          {/* Checkboxes */}
+          <Field label="What gear will you bring?">
+            <div className="flex flex-wrap gap-2.5">
+              {CHECKBOX_OPTIONS.map((opt) => {
+                const active = gear.includes(opt);
+                const badge = opt.slice(0, 2).toUpperCase();
+                return (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => toggleGear(opt)}
+                    className="inline-flex items-center gap-2 rounded-full px-4 h-10 text-[13px] font-medium transition-all active:scale-[0.97]"
+                    style={{
+                      background: active ? "#E7E7E7" : C.bg,
+                      color: C.text,
+                      border: active ? "1px solid #10101080" : `1px solid ${C.border}`,
+                    }}
+                  >
+                    <span
+                      className="h-5 min-w-5 px-1 rounded-full grid place-items-center text-[9px] font-black tracking-tight"
+                      style={{ background: active ? C.primary : C.muted, color: active ? C.primaryFg : C.text }}
+                    >
+                      {badge}
+                    </span>
+                    {opt}
+                  </button>
+                );
+              })}
+            </div>
+          </Field>
+
+          {/* Dropdown */}
+          <Field label="Experience level" required>
+            <Dropdown value={level} onChange={setLevel} options={DROPDOWN_OPTIONS} placeholder="Select a level" />
+          </Field>
+
+          {/* Date */}
+          <Field label="Preferred practice date" required>
+            <IconInput icon={Calendar}>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="flex-1 bg-transparent outline-none text-[14px] font-medium min-w-0"
+                style={{ color: date ? C.text : C.subtext }}
+              />
+            </IconInput>
+          </Field>
+
+          {/* Time */}
+          <Field label="Preferred practice time" required>
+            <IconInput icon={Clock}>
+              <input
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className="flex-1 bg-transparent outline-none text-[14px] font-medium min-w-0"
+                style={{ color: time ? C.text : C.subtext }}
+              />
+            </IconInput>
+          </Field>
+
+          {/* File upload */}
+          <Field label="Upload documents">
+            <FileUpload files={files} setFiles={setFiles} />
+          </Field>
+        </div>
+
+        {/* ---------- Submit ---------- */}
+        <button
+          onClick={() => alert("Registration submitted! (mock)")}
+          className="mt-10 w-full inline-flex items-center justify-center rounded-full py-3.5 text-[15px] font-semibold transition active:scale-[0.99] hover:opacity-90"
+          style={{ background: C.primary, color: C.primaryFg }}
+        >
+          Submit registration
+        </button>
       </div>
     </div>
   );
 }
 
-// ─── FormPreview ──────────────────────────────────────────────────────────────
+/* ---------- File upload ---------- */
 
-export default function FormPreview() {
-  const { formId } = useParams();
-  const [formData, setFormData] = useState(null);
-  const [responses, setResponses] = useState({});
-  const [submitted, setSubmitted] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [alreadyApplied, setAlreadyApplied] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
+function formatSize(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
-  const [showHint, setShowHint] = useState(false);
-  const [hintPos, setHintPos] = useState(null); // null = mobile/inline
-  const [teamFinderDialogOpen, setTeamFinderDialogOpen] = useState(false);
-  const [teamFinderDialogType, setTeamFinderDialogType] = useState("solo");
-  const [teamFinderSaving, setTeamFinderSaving] = useState(false);
-  const [teamFinderRefreshKey, setTeamFinderRefreshKey] = useState(0);
-  const [teamFinderComplete, setTeamFinderComplete] = useState(false);
+function FileUpload({ files, setFiles }) {
+  const inputRef = useRef(null);
+  const [dragging, setDragging] = useState(false);
 
-  const asideRef = useRef(null);
-
-  const safeFormId = useMemo(() => (formId && formId !== "undefined" ? formId : null), [formId]);
-
-  const getTeamFinderRegistration = () => {
-    const registration = responses[TEAM_REGISTRATION_ANSWER_ID] ||
-      Object.values(responses).find((value) => value && typeof value === "object" && Array.isArray(value.members));
-
-    return {
-      ...(registration || createDefaultTeamAnswer(formData?.teamConfig)),
-      maxSize: formData?.teamConfig?.maxSize,
-    };
+  const addFiles = (list) => {
+    if (!list) return;
+    const next = Array.from(list).map((f) => ({
+      id: `${f.name}-${f.size}-${crypto.randomUUID()}`,
+      name: f.name,
+      size: f.size,
+      type: f.type,
+      preview: f.type.startsWith("image/") ? URL.createObjectURL(f) : null,
+    }));
+    setFiles((prev) => [...prev, ...next]);
   };
 
-  const handleAddToTeamFinder = (type) => {
-    setTeamFinderDialogType(type);
-    setTeamFinderDialogOpen(true);
-  };
-
-  const handleConfirmTeamFinder = async () => {
-    if (!safeFormId || safeFormId.startsWith("draft_")) {
-      alert("Draft forms cannot use Team Finder yet");
-      return;
-    }
-
-    setTeamFinderSaving(true);
-
-    try {
-      const res = await fetch("/api/forms/team-finder", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          formId: safeFormId,
-          type: teamFinderDialogType,
-          teamRegistration: getTeamFinderRegistration(),
-        }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        alert(data.error || "Could not add to Team Finder");
-        return;
-      }
-
-      setTeamFinderDialogOpen(false);
-      setTeamFinderComplete(true);
-      setTeamFinderRefreshKey((key) => key + 1);
-    } catch (error) {
-      console.error(error);
-      alert("Could not add to Team Finder");
-    } finally {
-      setTeamFinderSaving(false);
-    }
-  };
-
-  const handleFindTeammates = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-
-    // On desktop (≥ 1360px) float above the aside; on narrower screens go inline
-    if (typeof window !== 'undefined' && window.innerWidth >= 1360 && asideRef.current) {
-      const rect = asideRef.current.getBoundingClientRect();
-      // rect.left is viewport-relative — correct for position:fixed children
-      setHintPos({ left: rect.left, width: rect.width });
-    } else {
-      setHintPos(null);
-    }
-
-    setShowHint(true);
-  };
-
-  const dismissHint = () => {
-    setShowHint(false);
-    setHintPos(null);
-  };
-
-  // LOAD CURRENT USER DETAILS FOR TEAM REGISTRATION DEFAULTS
-  useEffect(() => {
-    let ignore = false;
-
-    fetch("/api/user/me")
-      .then((res) => {
-        if (!res.ok) return null;
-        return res.json();
-      })
-      .then((data) => {
-        if (!ignore) setCurrentUser(data?.user || null);
-      })
-      .catch((error) => {
-        console.error("Current user fetch failed:", error);
-      });
-
-    return () => {
-      ignore = true;
-    };
-  }, []);
-
-  // PREFILL TEAM REGISTRATION FIELDS ONCE FROM THE CURRENT USER PROFILE
-  useEffect(() => {
-    if (!formData || !currentUser) return;
-
-    setResponses((prev) => {
-      const next = { ...prev };
-      let changed = false;
-
-      if (formData.isTeamEvent && !next[TEAM_REGISTRATION_ANSWER_ID]) {
-        next[TEAM_REGISTRATION_ANSWER_ID] = createDefaultTeamAnswer(formData.teamConfig, currentUser);
-        changed = true;
-      }
-
-      (formData.questions || []).forEach((question) => {
-        if (question.type === 'team' && !next[question.id]) {
-          next[question.id] = createDefaultTeamAnswer(question.teamConfig, currentUser);
-          changed = true;
-        }
-      });
-
-      return changed ? next : prev;
+  const remove = (id) =>
+    setFiles((prev) => {
+      const target = prev.find((f) => f.id === id);
+      if (target?.preview) URL.revokeObjectURL(target.preview);
+      return prev.filter((f) => f.id !== id);
     });
-  }, [formData, currentUser]);
-
-  // LOAD FORM
-  useEffect(() => {
-    if (!safeFormId) return;
-    let ignore = false;
-    setLoading(true);
-
-    const getCachedForm = () => {
-      if (typeof window === "undefined") return null;
-
-      const keys = [`unilynk:form:${safeFormId}`, `unilynk:event:${safeFormId}`];
-      for (const storage of [sessionStorage, localStorage]) {
-        for (const key of keys) {
-          try {
-            const cached = storage.getItem(key);
-            if (cached) return JSON.parse(cached);
-          } catch (error) {
-            console.warn("Could not read cached form:", error);
-          }
-        }
-      }
-
-      return null;
-    };
-
-    const cacheForm = (data) => {
-      if (!data || typeof window === "undefined") return;
-      try {
-        const formJson = JSON.stringify(data);
-        sessionStorage.setItem(`unilynk:form:${safeFormId}`, formJson);
-        localStorage.setItem(`unilynk:form:${safeFormId}`, formJson);
-        sessionStorage.setItem(`unilynk:event:${safeFormId}`, formJson);
-        localStorage.setItem(`unilynk:event:${safeFormId}`, formJson);
-      } catch (error) {
-        console.warn("Could not cache form:", error);
-      }
-    };
-
-    const loadForm = async () => {
-      if (safeFormId.startsWith("draft_")) {
-        const draft = getDraft(safeFormId);
-        if (draft) {
-          if (!ignore) { setFormData(draft); setLoading(false); }
-          return;
-        }
-      }
-
-      const cachedForm = getCachedForm();
-      if (cachedForm && !ignore) setFormData(cachedForm);
-
-      try {
-        const res = await fetch(`/api/forms/${safeFormId}`, { cache: "no-store" });
-        if (!res.ok) throw new Error("Form not found");
-        const data = await res.json();
-        cacheForm(data);
-        if (!ignore) setFormData(data);
-      } catch (err) {
-        console.error(err);
-
-        if (!cachedForm) {
-          try {
-            const res = await fetch("/api/forms/publics", { cache: "no-store" });
-            const data = res.ok ? await res.json() : [];
-            const fallbackForm = Array.isArray(data)
-              ? data.find((item) => (item?._id?.toString?.() || item?.id?.toString?.()) === safeFormId)
-              : null;
-            if (fallbackForm) {
-              cacheForm(fallbackForm);
-              if (!ignore) setFormData(fallbackForm);
-            }
-          } catch (fallbackError) {
-            console.error("Failed to load fallback form:", fallbackError);
-          }
-        }
-      } finally {
-        if (!ignore) setLoading(false);
-      }
-    };
-
-    loadForm();
-    return () => { ignore = true; };
-  }, [safeFormId]);
-
-  // CHECK IF USER ALREADY APPLIED
-  useEffect(() => {
-    if (!safeFormId) return;
-    fetch(`/api/forms/check-applied?formId=${safeFormId}`)
-      .then(res => res.json())
-      .then((data) => {
-        setAlreadyApplied(data.applied);
-        setTeamFinderComplete(Boolean(data.teamFinderComplete));
-      });
-  }, [safeFormId]);
-
-  // ─── Fetch saved answers when the user has already applied ────────────────────────
-  useEffect(() => {
-    if (alreadyApplied && safeFormId) {
-      fetch(`/api/forms/submission?formId=${safeFormId}`)
-        .then((res) => {
-          if (!res.ok) {
-            // If no submission found or error, just skip silently
-            return null;
-          }
-          return res.json();
-        })
-        .then((data) => {
-          if (data && data.answers) setResponses(data.answers);
-        })
-        .catch((err) => console.error('Failed to load submission', err));
-    }
-  }, [alreadyApplied, safeFormId]);
-
-  const handleSubmit = async (e) => {
-    if (alreadyApplied) return;
-    if (!safeFormId) return;
-    e.preventDefault();
-    if (safeFormId.startsWith("draft_")) { alert("Draft forms cannot be submitted"); return; }
-
-    const missingRequired = (formData?.questions || []).filter((q) => q.required && !responses[q.id]);
-    if (missingRequired && missingRequired.length > 0) { alert("Please fill in all required fields"); return; }
-
-    if (formData?.isTeamEvent && !teamFinderComplete) {
-      alert("Team Registration is required. Request to join an open team or add your team to Team Finder before submitting.");
-      return;
-    }
-
-    const answers = { ...responses };
-    if (formData?.isTeamEvent) {
-      answers[TEAM_REGISTRATION_ANSWER_ID] =
-        responses[TEAM_REGISTRATION_ANSWER_ID] || createDefaultTeamAnswer(formData.teamConfig, currentUser);
-    }
-
-    try {
-      const res = await fetch("/api/forms/submit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ formId: safeFormId, answers }),
-      });
-      if (!res.ok) { const err = await res.json(); console.error("Submit Error:", err); alert(err.error || "Submission failed"); return; }
-      setSubmitted(true);
-    } catch (error) {
-      console.error(error);
-    }
-  };
-
-  const handleResponse = (questionId, value) => {
-    setResponses((prev) => ({ ...prev, [questionId]: value }));
-  };
-
-  const handleCheckboxChange = (questionId, option, checked) => {
-    const current = responses[questionId] ?? [];
-    const updated = checked ? [...current, option] : current.filter((o) => o !== option);
-    handleResponse(questionId, updated);
-  };
-
-  if (loading) return (
-    <div className="not-found-container"><p className="not-found-text">Loading form...</p></div>
-  );
-
-  if (!formData) return (
-    <div className="not-found-container"><p className="not-found-text">Loading form...</p></div>
-  );
-
-  if (submitted) return (
-    <div className="success-container">
-      <div className="success-inner">
-        <div className="success-card">
-          <div className="success-icon"><CheckCircle2 /></div>
-          <h2 className="success-title">Response Submitted</h2>
-          <p className="success-text">Thank you for completing the form. Your response has been recorded.</p>
-          <Link href="/dashboard/events" className="btn-back-home">Back to Forms</Link>
-        </div>
-      </div>
-    </div>
-  );
 
   return (
-    <div className="form-preview-container">
-      <AddTeamFinder
-        open={teamFinderDialogOpen}
-        onOpenChange={setTeamFinderDialogOpen}
-        type={teamFinderDialogType}
-        onConfirm={handleConfirmTeamFinder}
-        loading={teamFinderSaving}
+    <div className="w-full">
+      {/* Drop zone */}
+      <button
+        type="button"
+        onClick={() => inputRef.current?.click()}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          addFiles(e.dataTransfer.files);
+        }}
+        className="w-full flex flex-col items-center justify-center gap-2 rounded-2xl px-6 py-8 text-center transition-colors"
+        style={{
+          background: dragging ? C.muted : C.bg,
+          border: `1.5px dashed ${dragging ? C.primary : C.border}`,
+        }}
+      >
+        <span className="h-11 w-11 rounded-full grid place-items-center" style={{ background: C.muted }}>
+          <UploadCloud className="h-5 w-5" style={{ color: C.text }} />
+        </span>
+        <span className="text-[14px] font-semibold" style={{ color: C.text }}>
+          Click to upload or drag &amp; drop
+        </span>
+        <span className="text-[12px]" style={{ color: C.subtext }}>
+          Images, PDF or DOCX · up to 10MB each
+        </span>
+      </button>
+
+      <input
+        ref={inputRef}
+        type="file"
+        multiple
+        accept="image/*,.pdf,.doc,.docx"
+        className="hidden"
+        onChange={(e) => {
+          addFiles(e.target.files);
+          e.currentTarget.value = "";
+        }}
       />
 
-      {/* Floating hint — rendered at root level so it escapes the grid */}
-      {showHint && hintPos && (
-        <TeamFinderHint hintPos={hintPos} onDismiss={dismissHint} />
-      )}
-
-      <div className="form-preview-content-shell">
-        {/* Form */}
-        <main className="form-preview-main">
-          <form onSubmit={handleSubmit}>
-
-            {/* Inline hint for mobile / narrow viewports */}
-            {showHint && !hintPos && (
-              <TeamFinderHint hintPos={null} onDismiss={dismissHint} />
-            )}
-
-            {/* Form Header */}
-            <div className="form-preview-header-card">
-              <div className="form-preview-accent"></div>
-              <h1 className="form-preview-title">{formData.title}</h1>
-              {formData.description && <p className="form-preview-description">{formData.description}</p>}
-              {formData.genre && (
-                <div className="form-genre-badge">
-                  <Tag /><span>{formData.genre.replace('-', ' ')}</span>
+      {/* Uploaded list */}
+      {files.length > 0 && (
+        <div className="mt-3 flex flex-col gap-2">
+          {files.map((f) => (
+            <div
+              key={f.id}
+              className="flex items-center gap-3 rounded-xl px-3 py-2.5"
+              style={{ background: C.soft, border: `1px solid ${C.border}` }}
+            >
+              <span className="h-10 w-10 rounded-lg overflow-hidden grid place-items-center shrink-0" style={{ background: C.muted }}>
+                {f.preview ? (
+                  <img src={f.preview} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <FileText className="h-4 w-4" style={{ color: C.subtext }} />
+                )}
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-[13px] font-semibold truncate" style={{ color: C.text }}>
+                  {f.name}
                 </div>
-              )}
-              {(formData.date || formData.time || formData.location) && (
-                <div className="event-details-preview-section">
-                  <h3 className="event-details-preview-title">Event Details</h3>
-                  <div className="event-details-preview-grid">
-                    {formData.date && (
-                      <div className="event-detail-item">
-                        <div className="event-detail-icon"><CalendarIcon /></div>
-                        <div className="event-detail-content">
-                          <p className="event-detail-label">Date</p>
-                          <p className="event-detail-value">{format(new Date(formData.date), 'MMM d, yyyy')}</p>
-                        </div>
-                      </div>
-                    )}
-                    {formData.time && (
-                      <div className="event-detail-item">
-                        <div className="event-detail-icon"><Clock /></div>
-                        <div className="event-detail-content">
-                          <p className="event-detail-label">Time</p>
-                          <p className="event-detail-value">{formData.time}</p>
-                        </div>
-                      </div>
-                    )}
-                    {formData.location && (
-                      <div className="event-detail-item">
-                        <div className="event-detail-icon"><MapPin /></div>
-                        <div className="event-detail-content">
-                          <p className="event-detail-label">Location</p>
-                          <p className="event-detail-value">{formData.location}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                <div className="flex items-center gap-1.5 text-[11px]" style={{ color: C.subtext }}>
+                  <span>{formatSize(f.size)}</span>
+                  <span>·</span>
+                  <span className="inline-flex items-center gap-1" style={{ color: "#16a34a" }}>
+                    <Check className="h-3 w-3" strokeWidth={3} />
+                    Uploaded
+                  </span>
                 </div>
-              )}
-            </div>
-
-            {formData.isTeamEvent && (
-              <div className="question-card">
-                <div className="question-text-wrapper">
-                  <h3 className="question-text">Team Registration<span className="question-required">*</span></h3>
-                  <p className="question-desc">Required: request to join an open team or add your team to Team Finder before submitting.</p>
-                  {teamFinderComplete && <p className="team-finder-required-done">Team Finder requirement completed.</p>}
-                </div>
-                 <TeamRegistrationCard
-                   teamConfig={formData.teamConfig}
-                   value={responses[TEAM_REGISTRATION_ANSWER_ID]}
-                   onChange={(value) => handleResponse(TEAM_REGISTRATION_ANSWER_ID, value)}
-                   onFindTeammates={handleFindTeammates}
-                   onAddToTeamFinder={handleAddToTeamFinder}
-                   defaultMemberDetails={currentUser}
-                   readOnly={alreadyApplied}
-                 />
               </div>
+              <button
+                type="button"
+                onClick={() => remove(f.id)}
+                className="h-8 w-8 rounded-full grid place-items-center transition hover:bg-[#ececef] shrink-0"
+                aria-label={`Remove ${f.name}`}
+              >
+                <X className="h-4 w-4" style={{ color: C.subtext }} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------- Field wrapper ---------- */
+
+function Field({ label, required, children }) {
+  return (
+    <div>
+      <label className="mb-3 block text-base sm:text-[20px]" style={{ color: C.text }}>
+        {label}
+        {required && <span style={{ color: "#ef4444" }}> *</span>}
+      </label>
+      {children}
+    </div>
+  );
+}
+
+/* ---------- Icon input shell ---------- */
+
+function IconInput({ icon: Icon, children }) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <div
+      className="flex items-center gap-2 rounded-lg px-3 h-10 w-full transition-colors"
+      style={{ background: C.bg, border: `1px solid ${focused ? C.primary : C.border}` }}
+      onFocusCapture={() => setFocused(true)}
+      onBlurCapture={() => setFocused(false)}
+    >
+      <Icon className="h-4 w-4 shrink-0 ml-0.5" style={{ color: C.subtext }} />
+      {children}
+    </div>
+  );
+}
+
+/* ---------- Dropdown ---------- */
+
+function Dropdown({ value, onChange, options, placeholder }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  return (
+    <div className="relative w-full" ref={ref}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        onBlur={() => setTimeout(() => setOpen(false), 150)}
+        className="w-full flex items-center justify-between gap-2 rounded-lg px-3 h-10 text-[14px] font-medium transition-colors"
+        style={{ background: C.bg, color: value ? C.text : C.subtext, border: `1px solid ${open ? C.primary : C.border}` }}
+      >
+        {value || placeholder}
+        <ChevronDown className="h-4 w-4 shrink-0 transition-transform" style={{ color: C.subtext, transform: open ? "rotate(180deg)" : "none" }} />
+      </button>
+      {open && (
+        <div
+          className="absolute z-10 mt-1.5 w-full rounded-xl overflow-hidden shadow-lg"
+          style={{ background: C.bg, border: `1px solid ${C.border}` }}
+        >
+          {options.map((opt) => {
+            const active = value === opt;
+            return (
+              <button
+                key={opt}
+                type="button"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  onChange(opt);
+                  setOpen(false);
+                }}
+                className="w-full flex items-center justify-between px-4 py-2.5 text-left text-[14px] font-medium transition"
+                style={{ color: C.text, background: active ? C.muted : "transparent" }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = C.muted)}
+                onMouseLeave={(e) => (e.currentTarget.style.background = active ? C.muted : "transparent")}
+              >
+                {opt}
+                {active && <Check className="h-4 w-4" strokeWidth={2.5} style={{ color: C.primary }} />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ---------- Team picker ---------- */
+
+function TeamPicker({ team, setTeam, onClose }) {
+  const [query, setQuery] = useState("");
+  const [focused, setFocused] = useState(false);
+
+  const q = query.trim().toLowerCase();
+  const matches = useMemo(() => {
+    if (!q) return [];
+    return USERS.filter(
+      (u) =>
+        !team.some((t) => t.roll === u.roll) &&
+        (u.roll.toLowerCase().includes(q) || u.name.toLowerCase().includes(q)),
+    ).slice(0, 5);
+  }, [q, team]);
+
+  const add = (u) => {
+    setTeam((prev) => (prev.some((t) => t.roll === u.roll) ? prev : [...prev, u]));
+    setQuery("");
+  };
+  const remove = (roll) => setTeam((prev) => prev.filter((t) => t.roll !== roll));
+
+  return (
+    <div className="rounded-2xl p-4" style={{ background: C.bg, border: `1px solid ${C.border}` }}>
+      <div className="flex items-center justify-between">
+        <div>
+          <div className="text-[15px] font-bold" style={{ color: C.text }}>
+            Add team members
+          </div>
+          <div className="mt-0.5 text-[12px]" style={{ color: C.subtext }}>
+            Search by roll number or name.
+          </div>
+        </div>
+        <button
+          onClick={onClose}
+          className="h-8 w-8 rounded-full grid place-items-center transition hover:bg-[#f3f4f6]"
+          aria-label="Close"
+        >
+          <X className="h-4 w-4" style={{ color: C.subtext }} />
+        </button>
+      </div>
+
+      {/* Search */}
+      <div className="mt-4 relative">
+        <div
+          className="flex items-center gap-2 rounded-lg px-3 h-11 transition-colors"
+          style={{ background: C.bg, border: `1px solid ${focused ? C.primary : C.border}` }}
+        >
+          <Search className="h-4 w-4 shrink-0 ml-0.5" style={{ color: C.subtext }} />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setTimeout(() => setFocused(false), 150)}
+            placeholder="e.g. 2023CSE1042 or Ananya"
+            className="flex-1 bg-transparent outline-none text-[14px] font-medium min-w-0"
+            style={{ color: C.text }}
+          />
+        </div>
+
+        {focused && q.length > 0 && (
+          <div
+            className="absolute z-10 mt-1.5 w-full rounded-xl overflow-hidden shadow-lg"
+            style={{ background: C.bg, border: `1px solid ${C.border}` }}
+          >
+            {matches.length === 0 ? (
+              <div className="px-4 py-3 text-[13px]" style={{ color: C.subtext }}>
+                No students found.
+              </div>
+            ) : (
+              matches.map((u) => (
+                <button
+                  key={u.roll}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    add(u);
+                  }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition"
+                  onMouseEnter={(e) => (e.currentTarget.style.background = C.muted)}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                >
+                  <img src={u.avatar} alt="" className="h-9 w-9 rounded-full object-cover shrink-0" style={{ background: C.muted }} />
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[14px] font-semibold truncate" style={{ color: C.text }}>
+                      {u.name}
+                    </div>
+                    <div className="flex items-center gap-1.5 text-[12px]" style={{ color: C.subtext }}>
+                      <span className="font-medium" style={{ color: C.text }}>{u.branch}</span>
+                      <span>·</span>
+                      <span>{u.year}</span>
+                    </div>
+                  </div>
+                  <span className="text-[11px] font-medium tabular-nums shrink-0" style={{ color: C.subtext }}>
+                    {u.roll}
+                  </span>
+                </button>
+              ))
             )}
+          </div>
+        )}
+      </div>
 
-            {/* Questions */}
-            {(formData.questions || []).map((question) => (
-              <div key={question.id} className="question-card">
-                <div className="question-text-wrapper">
-                  <h3 className="question-text">
-                    {question.question}
-                    {question.required && <span className="question-required">*</span>}
-                  </h3>
-                  {question.description && <p className="question-desc">{question.description}</p>}
+      {/* Selected members */}
+      {team.length > 0 && (
+        <div className="mt-4">
+          <div className="text-[11px] font-semibold uppercase tracking-wide mb-2" style={{ color: C.subtext }}>
+            Team ({team.length})
+          </div>
+          <div className="flex flex-col gap-2">
+            {team.map((u) => (
+              <div
+                key={u.roll}
+                className="flex items-center gap-3 rounded-xl px-3 py-2.5"
+                style={{ background: C.soft, border: `1px solid ${C.border}` }}
+              >
+                <img src={u.avatar} alt="" className="h-9 w-9 rounded-full object-cover shrink-0" style={{ background: C.muted }} />
+                <div className="min-w-0 flex-1">
+                  <div className="text-[14px] font-semibold truncate" style={{ color: C.text }}>
+                    {u.name}
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[12px]" style={{ color: C.subtext }}>
+                    <span className="font-medium" style={{ color: C.text }}>{u.branch}</span>
+                    <span>·</span>
+                    <span>{u.year}</span>
+                    <span>·</span>
+                    <span className="tabular-nums">{u.roll}</span>
+                  </div>
                 </div>
-
-                {question.type === 'short' && (
-                  <input type="text" value={responses[question.id] || ''} onChange={(e) => handleResponse(question.id, e.target.value)} className="input-text" placeholder="Your answer" required={question.required} disabled={alreadyApplied} />
-                )}
-                {question.type === 'long' && (
-                  <textarea value={responses[question.id] || ''} onChange={(e) => handleResponse(question.id, e.target.value)} className="input-textarea" placeholder="Your answer" rows={4} required={question.required} disabled={alreadyApplied} />
-                )}
-                {question.type === 'email' && (
-                  <input type="email" value={responses[question.id] || ''} onChange={(e) => handleResponse(question.id, e.target.value)} className="input-text" placeholder="example@email.com" required={question.required} disabled={alreadyApplied} />
-                )}
-                {question.type === 'phone' && (
-                  <input type="tel" value={responses[question.id] || ''} onChange={(e) => handleResponse(question.id, e.target.value)} className="input-text" placeholder="(123) 456-7890" required={question.required} disabled={alreadyApplied} />
-                )}
-                {question.type === 'date' && (
-                  <input type="date" value={responses[question.id] || ''} onChange={(e) => handleResponse(question.id, e.target.value)} className="input-text" required={question.required} disabled={alreadyApplied} />
-                )}
-                {question.type === 'time' && (
-                  <input type="time" value={responses[question.id] || ''} onChange={(e) => handleResponse(question.id, e.target.value)} className="input-text" required={question.required} disabled={alreadyApplied} />
-                )}
-                {question.type === 'multiple' && (
-                  <div className="radio-options">
-                    {question.options?.map((option, index) => (
-                      <label key={index} className="radio-option">
-                        <input type="radio" name={question.id} value={option} checked={responses[question.id] === option} onChange={(e) => handleResponse(question.id, e.target.value)} required={question.required} disabled={alreadyApplied} />
-                        <span>{option}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-                {question.type === 'checkbox' && (
-                  <div className="checkbox-options">
-                    {question.options?.map((option, index) => (
-                      <label key={index} className="checkbox-option">
-                        <input type="checkbox" checked={(responses[question.id] || []).includes(option)} onChange={(e) => handleCheckboxChange(question.id, option, e.target.checked)} disabled={alreadyApplied} />
-                        <span>{option}</span>
-                      </label>
-                    ))}
-                  </div>
-                )}
-                {question.type === 'dropdown' && (
-                  <select value={responses[question.id] || ''} onChange={(e) => handleResponse(question.id, e.target.value)} className="dropdown-select" required={question.required}>
-                    <option value="">Choose</option>
-                    {question.options?.map((option, index) => (
-                      <option key={index} value={option}>{option}</option>
-                    ))}
-                  </select>
-                )}
-                {question.type === 'team' && (
-                  <TeamRegistrationCard
-                    teamConfig={question.teamConfig}
-                    value={responses[question.id]}
-                    onChange={(value) => handleResponse(question.id, value)}
-                    onFindTeammates={handleFindTeammates}
-                    onAddToTeamFinder={handleAddToTeamFinder}
-                    defaultMemberDetails={currentUser}
-                  />
-                )}
+                <button
+                  onClick={() => remove(u.roll)}
+                  className="h-8 w-8 rounded-full grid place-items-center transition hover:bg-[#ececef] shrink-0"
+                  aria-label={`Remove ${u.name}`}
+                >
+                  <Trash2 className="h-3.5 w-3.5" style={{ color: C.subtext }} />
+                </button>
               </div>
             ))}
-
-            <button type="submit" className="btn-submit" disabled={alreadyApplied}>
-              {alreadyApplied ? "Submitted" : "Submit"}
-            </button>
-          </form>
-        </main>
-
-        {/*
-          On desktop the aside is sticky at top:32px.
-          When the hint is floating, push the aside down so the hint floats above it cleanly.
-          HINT_CARD_HEIGHT ≈ 80px + 8px top offset + 16px gap = 104px sticky top.
-        */}
-        <aside
-          ref={asideRef}
-          className="team-finder-preview-aside"
-          style={showHint && hintPos ? { top: '108px', transition: 'top 0.4s cubic-bezier(0.22,1,0.36,1)' } : { transition: 'top 0.3s ease' }}
-          aria-label="Find a team"
-        >
-          <TeamFinderCard
-            formId={safeFormId}
-            refreshKey={teamFinderRefreshKey}
-            onTeamFinderActionComplete={() => setTeamFinderComplete(true)}
-          />
-        </aside>
-      </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

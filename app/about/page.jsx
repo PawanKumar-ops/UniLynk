@@ -13,12 +13,12 @@ export default function About() {
             {/* Hero */}
             <section className="relative flex min-h-[650px] flex-col overflow-hidden bg-[#0a0a0b] py-10 lg:min-h-[730px] lg:py-20">
                 <video
-  autoPlay
-  muted
-  loop
-  playsInline
-  className="pointer-events-none absolute top-1/2 left-1/2 min-w-full min-h-full -translate-x-1/2 -translate-y-1/2 object-cover"
->
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    className="pointer-events-none absolute top-1/2 left-1/2 min-w-full min-h-full -translate-x-1/2 -translate-y-1/2 object-cover"
+                >
                     <source src="https://res.cloudinary.com/m89jw24l/video/upload/v1786341392/about-hero.mp4" type="video/mp4" />
                 </video>
                 <div

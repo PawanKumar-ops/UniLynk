@@ -13,3 +13,6 @@ if loged in in deploy by google, it go to localhost page and when tried to go to
 after sign out go to localhost page
 
 404 error if net slow when clicked on group chat
+
+
+searching of users must be start after 5 roll no. digits in explore page, EventForm to create team, team finder
