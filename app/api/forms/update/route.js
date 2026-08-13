@@ -13,22 +13,51 @@ export async function PUT(req) {
 
     const { formId, formData } = await req.json();
 
-    const parsedSeats =
-      formData?.seats === "" || formData?.seats === null || formData?.seats === undefined
-        ? undefined
-        : Number(formData.seats);
-
-    const normalizedFormData = {
-      ...formData,
-      ...(Number.isFinite(parsedSeats) ? { seats: parsedSeats } : { seats: undefined }),
-    };
-
     if (!formId) {
       return Response.json(
         { error: "Missing formId" },
         { status: 400 }
       );
     }
+
+    const title = (formData.name || formData.title || "").trim();
+    const pointsList = Array.isArray(formData.points)
+      ? formData.points.map((p) => (typeof p === "string" ? p : p.text || "")).filter(Boolean)
+      : Array.isArray(formData.moreInformation)
+      ? formData.moreInformation
+      : [];
+
+    const questionsList = Array.isArray(formData.questions)
+      ? formData.questions.map((q) => ({
+          id: q.id,
+          type: q.type,
+          title: q.title || q.question || "",
+          question: q.title || q.question || "",
+          required: Boolean(q.required),
+          options: Array.isArray(q.options) ? q.options : [],
+        }))
+      : [];
+
+    const normalizedFormData = {
+      title,
+      name: title,
+      description: formData.description || "",
+      points: pointsList,
+      moreInformation: pointsList,
+      date: formData.date || "",
+      time: formData.time || "",
+      venue: formData.venue || formData.location || "",
+      location: formData.venue || formData.location || "",
+      banner: formData.banner || formData.image || "",
+      image: formData.banner || formData.image || "",
+      isTeam: Boolean(formData.isTeam ?? formData.isTeamEvent),
+      isTeamEvent: Boolean(formData.isTeam ?? formData.isTeamEvent),
+      teamSize: Number(formData.teamSize || 4),
+      questions: questionsList,
+      ...(formData.clubId !== undefined ? { clubId: formData.clubId } : {}),
+      ...(formData.visibility ? { visibility: formData.visibility } : {}),
+      ...(formData.isPublished !== undefined ? { isPublished: Boolean(formData.isPublished) } : {}),
+    };
 
     const updatedForm = await Form.findOneAndUpdate(
       {
@@ -55,3 +84,4 @@ export async function PUT(req) {
     );
   }
 }
+

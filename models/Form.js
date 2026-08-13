@@ -1,50 +1,32 @@
 import mongoose from "mongoose";
 
-const TeamConfigSchema = new mongoose.Schema(
-  {
-    minSize: { type: Number, default: 2 },
-    maxSize: { type: Number, default: 5 },
-    memberFields: { type: [String], default: ["name", "email"] },
-    customFields: { type: [String], default: [] },
-  },
-  { _id: false }
-);
-
 const QuestionSchema = new mongoose.Schema({
   id: String,
   type: String,
-  question: String,
-  description: String,
-  required: Boolean,
-  options: [String],
-  teamConfig: { type: TeamConfigSchema, default: undefined },
+  title: String,
+  question: String, // fallback mapping
+  required: { type: Boolean, default: false },
+  options: { type: [String], default: [] },
 });
 
 const FormSchema = new mongoose.Schema(
   {
-    title: String,
-    description: String,
-    genre: String,
-    seats: Number,
-    date: String,
-    time: String,
-    location: String,
-    image: String,
+    title: { type: String, default: "" },
+    name: { type: String, default: "" },
+    description: { type: String, default: "" },
+    points: { type: [String], default: [] },
     moreInformation: { type: [String], default: [] },
+    date: { type: String, default: "" },
+    time: { type: String, default: "" },
+    venue: { type: String, default: "" },
+    location: { type: String, default: "" },
+    banner: { type: String, default: "" },
+    image: { type: String, default: "" },
+    isTeam: { type: Boolean, default: false },
+    isTeamEvent: { type: Boolean, default: false },
+    teamSize: { type: Number, default: 4 },
+
     questions: [QuestionSchema],
-    isTeamEvent: {
-      type: Boolean,
-      default: false,
-    },
-    teamConfig: {
-      type: TeamConfigSchema,
-      default: () => ({
-        minSize: 2,
-        maxSize: 5,
-        memberFields: ["name", "email"],
-        customFields: [],
-      }),
-    },
 
     createdBy: String,
 
@@ -56,7 +38,7 @@ const FormSchema = new mongoose.Schema(
 
     visibility: {
       type: String,
-      enum: ["everyone", "members"],
+      enum: ["everyone", "members", "public"],
       default: "everyone",
     },
 
@@ -75,21 +57,9 @@ const FormSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const cachedFormModel = mongoose.models.Form;
+delete mongoose.models.Form;
+delete mongoose.connection?.models?.Form;
 
-if (
-  cachedFormModel &&
-  (
-    !cachedFormModel.schema.path("isTeamEvent") ||
-    !cachedFormModel.schema.path("teamConfig") ||
-    !cachedFormModel.schema.path("moreInformation") ||
-    !cachedFormModel.schema.path("questions.teamConfig")
-  )
-) {
-  delete mongoose.models.Form;
-  delete mongoose.connection.models.Form;
-}
-
-// 🔥 FORCE collection name to avoid mismatch
 export default mongoose.models.Form ||
   mongoose.model("Form", FormSchema, "forms");
+

@@ -1,6 +1,8 @@
-"use client"
+"use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { getDraft, saveDraft } from "@/lib/drafts";
 import {
   AlignLeft,
   Calendar,
@@ -59,33 +61,16 @@ const uid = () =>
     ? crypto.randomUUID()
     : Math.random().toString(36).slice(2);
 
-
-const CLUBS = [
-  {
-    id: "cricket",
-    name: "Cricket Club",
-    handle: "@cricket",
-    logo: "https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=120&h=120&fit=crop&auto=format",
-  },
-  {
-    id: "coding",
-    name: "Coding Society",
-    handle: "@codesoc",
-    logo: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?w=120&h=120&fit=crop&auto=format",
-  },
-  {
-    id: "music",
-    name: "Music Club",
-    handle: "@music",
-    logo: "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=120&h=120&fit=crop&auto=format",
-  },
-];
-
 /* ============================================================= *
  *  App — Event Registration Form Builder
  * ============================================================= */
 
-export default function App() {
+export default function App({ formId: propFormId }) {
+  const router = useRouter();
+  const params = useParams();
+  const formId = propFormId || params?.formId;
+
+  const [formMongoId, setFormMongoId] = useState(formId || "");
   const [banner, setBanner] = useState(null);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -103,13 +88,29 @@ export default function App() {
 
   const [publishOpen, setPublishOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [isPublished, setIsPublished] = useState(false);
 
   /* points */
-  const setPoint = (id, text) =>
-    setPoints((p) => p.map((it) => (it.id === id ? { ...it, text: text.slice(0, POINT_LIMIT) } : it)));
-  const addPoint = () => setPoints((p) => [...p, { id: uid(), text: "" }]);
-  const removePoint = (id) =>
-    setPoints((p) => (p.length === 1 ? [{ id: uid(), text: "" }] : p.filter((it) => it.id !== id)));
+  const addPoint = () => {
+    if (points.length >= 10) return;
+    setPoints((prev) => [...prev, { id: uid(), text: "" }]);
+  };
+
+  const setPoint = (id, text) => {
+    setPoints((prev) =>
+      prev.map((point) =>
+        point.id === id ? { ...point, text: text.slice(0, POINT_LIMIT) } : point
+      )
+    );
+  };
+
+  const removePoint = (id) => {
+    setPoints((prev) => {
+      const filtered = prev.filter((point) => point.id !== id);
+      return filtered.length > 0 ? filtered : [{ id: uid(), text: "" }];
+    });
+  };
 
   /* questions */
   const addQuestion = (type) => {
@@ -120,7 +121,7 @@ export default function App() {
         type,
         title: "",
         options:
-          type === "single" || type === "multiple" || type === "dropdown"
+          type === "single" || type === "multiple" || type === "dropdown" || type === "checkbox"
             ? ["Option 1", "Option 2"]
             : [],
         required: false,
@@ -128,9 +129,13 @@ export default function App() {
     ]);
     setAddOpen(false);
   };
+
   const patchQuestion = (id, patch) =>
     setQuestions((q) => q.map((it) => (it.id === id ? { ...it, ...patch } : it)));
-  const removeQuestion = (id) => setQuestions((q) => q.filter((it) => it.id !== id));
+
+  const removeQuestion = (id) =>
+    setQuestions((q) => q.filter((it) => it.id !== id));
+
   const duplicateQuestion = (id) =>
     setQuestions((q) => {
       const idx = q.findIndex((it) => it.id === id);
@@ -139,6 +144,7 @@ export default function App() {
       next.splice(idx + 1, 0, { ...q[idx], id: uid() });
       return next;
     });
+
   const [dragIndex, setDragIndex] = useState(null);
   const [overIndex, setOverIndex] = useState(null);
 
@@ -152,6 +158,184 @@ export default function App() {
     });
 
   const canPreview = name.trim().length > 0;
+
+  // Load existing form data or draft
+  useEffect(() => {
+    if (!formId) return;
+
+    const loadForm = async () => {
+      try {
+        if (formId.startsWith("draft_")) {
+          const draft = getDraft(formId);
+          if (draft) {
+            setFormMongoId(draft._id || formId);
+            setName(draft.name || draft.title || "");
+            setDescription(draft.description || "");
+            setBanner(draft.banner || draft.image || null);
+            setDate(draft.date || "");
+            setTime(draft.time || "");
+            setVenue(draft.venue || draft.location || "");
+            setIsTeam(Boolean(draft.isTeam ?? draft.isTeamEvent));
+            setTeamSize(String(draft.teamSize || "4"));
+            setIsPublished(Boolean(draft.isPublished));
+            if (Array.isArray(draft.points) && draft.points.length > 0) {
+              setPoints(draft.points.map((p) => typeof p === "string" ? { id: uid(), text: p } : p));
+            } else if (Array.isArray(draft.moreInformation) && draft.moreInformation.length > 0) {
+              setPoints(draft.moreInformation.map((p) => ({ id: uid(), text: typeof p === "string" ? p : "" })));
+            }
+            if (Array.isArray(draft.questions)) {
+              setQuestions(draft.questions.map((q) => ({
+                id: q.id || uid(),
+                type: q.type || "paragraph",
+                title: q.title || q.question || "",
+                options: Array.isArray(q.options) ? q.options : [],
+                required: Boolean(q.required),
+              })));
+            }
+            return;
+          }
+        }
+
+        const res = await fetch(`/api/forms/${formId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setFormMongoId(data._id);
+          setName(data.name || data.title || "");
+          setDescription(data.description || "");
+          setBanner(data.banner || data.image || null);
+          setDate(data.date || "");
+          setTime(data.time || "");
+          setVenue(data.venue || data.location || "");
+          setIsTeam(Boolean(data.isTeam ?? data.isTeamEvent));
+          setTeamSize(String(data.teamSize || "4"));
+          setIsPublished(Boolean(data.isPublished));
+
+          if (Array.isArray(data.points) && data.points.length > 0) {
+            setPoints(data.points.map((p) => typeof p === "string" ? { id: uid(), text: p } : p));
+          } else if (Array.isArray(data.moreInformation) && data.moreInformation.length > 0) {
+            setPoints(data.moreInformation.map((p) => ({ id: uid(), text: typeof p === "string" ? p : "" })));
+          }
+
+          if (Array.isArray(data.questions)) {
+            setQuestions(data.questions.map((q) => ({
+              id: q.id || uid(),
+              type: q.type || "paragraph",
+              title: q.title || q.question || "",
+              options: Array.isArray(q.options) ? q.options : [],
+              required: Boolean(q.required),
+            })));
+          }
+        }
+      } catch (err) {
+        console.error("Error loading form:", err);
+      }
+    };
+
+    loadForm();
+  }, [formId]);
+
+  // Save to draft if draft_...
+  useEffect(() => {
+    if (!formId || !formId.startsWith("draft_")) return;
+
+    const draftData = {
+      _id: formId,
+      name,
+      title: name,
+      description,
+      banner,
+      image: banner,
+      points: points.map((p) => p.text).filter(Boolean),
+      moreInformation: points.map((p) => p.text).filter(Boolean),
+      date,
+      time,
+      venue,
+      location: venue,
+      isTeam,
+      isTeamEvent: isTeam,
+      teamSize: Number(teamSize || 4),
+      questions,
+      updatedAt: new Date().toISOString(),
+    };
+
+    saveDraft(draftData);
+  }, [formId, name, description, banner, points, date, time, venue, isTeam, teamSize, questions]);
+
+  /* publish action */
+  const handlePublish = async ({ clubId, visibility }) => {
+    try {
+      setIsPublishing(true);
+      const isDraft = formMongoId?.startsWith("draft_");
+      const cleanPoints = points.map((p) => p.text.trim()).filter(Boolean);
+
+      const payload = {
+        name: name.trim(),
+        title: name.trim(),
+        description: description.trim(),
+        banner,
+        image: banner,
+        points: cleanPoints,
+        moreInformation: cleanPoints,
+        date,
+        time,
+        venue: venue.trim(),
+        location: venue.trim(),
+        isTeam,
+        isTeamEvent: isTeam,
+        teamSize: Number(teamSize || 4),
+        questions,
+        clubId: clubId || null,
+        visibility: visibility || "everyone",
+        isPublic: visibility !== "members",
+        isPublished: true,
+      };
+
+      let res;
+      if (isDraft) {
+        res = await fetch("/api/forms/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+      } else {
+        await fetch("/api/forms/update", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            formId: formMongoId,
+            formData: payload,
+          }),
+        });
+
+        res = await fetch("/api/forms/publish", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            formId: formMongoId,
+            clubId: clubId || null,
+            visibility: visibility || "everyone",
+          }),
+        });
+      }
+
+      if (!res.ok) throw new Error("Publishing failed");
+      const publishedForm = await res.json();
+
+      if (formId?.startsWith("draft_")) {
+        try {
+          localStorage.removeItem(`draft-${formId}`);
+        } catch (e) {}
+      }
+
+      setIsPublished(true);
+      if (publishedForm?._id) setFormMongoId(publishedForm._id);
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Failed to publish event");
+    } finally {
+      setIsPublishing(false);
+    }
+  };
 
   return (
     <div className="min-h-full w-full" style={{ background: C.bg, color: C.text }}>
@@ -424,7 +608,15 @@ export default function App() {
 </div>
       </main>
 
-      {publishOpen && <PublishModal eventName={name.trim() || "your event"} onClose={() => setPublishOpen(false)} />}
+      {publishOpen && (
+        <PublishModal
+          eventName={name.trim() || "your event"}
+          onClose={() => setPublishOpen(false)}
+          onPublish={handlePublish}
+          isPublishing={isPublishing}
+          published={isPublished}
+        />
+      )}
       {previewOpen && (
         <PreviewModal
           onClose={() => setPreviewOpen(false)}
@@ -576,10 +768,35 @@ function AutoTextarea({
 function BannerUpload({ banner, setBanner }) {
   const inputRef = useRef(null);
   const [dragging, setDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
-  const handle = (list) => {
+  const handle = async (list) => {
     const f = list?.[0];
-    if (f && f.type.startsWith("image/")) setBanner(URL.createObjectURL(f));
+    if (!f || !f.type.startsWith("image/")) return;
+
+    try {
+      setUploading(true);
+      const payload = new FormData();
+      payload.append("file", f);
+
+      const res = await fetch("/api/forms/upload-image", {
+        method: "POST",
+        body: payload,
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to upload banner image");
+      }
+
+      const data = await res.json();
+      setBanner(data.url);
+    } catch (err) {
+      console.error("Banner upload error:", err);
+      alert(err.message || "Could not upload image");
+    } finally {
+      setUploading(false);
+    }
   };
 
   if (banner) {
@@ -589,10 +806,11 @@ function BannerUpload({ banner, setBanner }) {
         <div className="absolute right-3 top-3 flex gap-2">
           <button
             onClick={() => inputRef.current?.click()}
-            className="rounded-full px-3 py-1.5 text-[12px] font-medium shadow-sm backdrop-blur transition hover:opacity-90"
+            disabled={uploading}
+            className="rounded-full px-3 py-1.5 text-[12px] font-medium shadow-sm backdrop-blur transition hover:opacity-90 disabled:opacity-50"
             style={{ background: "rgba(255,255,255,0.94)", color: C.ink }}
           >
-            Replace
+            {uploading ? "Uploading..." : "Replace"}
           </button>
           <button
             onClick={() => setBanner(null)}
@@ -612,6 +830,7 @@ function BannerUpload({ banner, setBanner }) {
     <button
       type="button"
       onClick={() => inputRef.current?.click()}
+      disabled={uploading}
       onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
       onDragLeave={() => setDragging(false)}
       onDrop={(e) => { e.preventDefault(); setDragging(false); handle(e.dataTransfer.files); }}
@@ -622,7 +841,7 @@ function BannerUpload({ banner, setBanner }) {
         <ImageIcon className="h-5 w-5" style={{ color: C.ink }} />
       </span>
       <span className="text-[14px] font-semibold" style={{ color: C.ink }}>
-        Add event banner
+        {uploading ? "Uploading to Cloudinary..." : "Add event banner"}
       </span>
       <span className="text-[12px]" style={{ color: C.subtext }}>
         Tap to upload · 16:9 recommended
@@ -705,11 +924,12 @@ function QuestionEditor({
   onDrop,
   onDragEnd,
 }) {
-const meta = QUESTION_TYPES.find((t) => t.type === q.type);
+const meta = QUESTION_TYPES.find((t) => t.type === q.type) || QUESTION_TYPES[0];
 const hasOptions =
   q.type === "single" ||
   q.type === "multiple" ||
-  q.type === "dropdown";
+  q.type === "dropdown" ||
+  q.type === "checkbox";
 
 const [armed, setArmed] = useState(false);
 
@@ -929,11 +1149,47 @@ function OptionRow({
  *  Publish modal (drawer on mobile, dialog on desktop)
  * ============================================================= */
 
-function PublishModal({ eventName, onClose }) {
-  const [club, setClub] = useState(CLUBS[0]);
+function PublishModal({ eventName, onClose, onPublish, isPublishing, published }) {
+  const router = useRouter();
+  const [clubs, setClubs] = useState([]);
+  const [club, setClub] = useState(null);
   const [clubOpen, setClubOpen] = useState(false);
   const [audience, setAudience] = useState("public");
-  const [published, setPublished] = useState(false);
+
+  useEffect(() => {
+    let ignore = false;
+    fetch("/api/clubs?memberOf=true")
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (ignore) return;
+        const fetchedClubs = Array.isArray(data?.clubs)
+          ? data.clubs.map((c) => ({
+              id: c._id,
+              name: c.clubName,
+              handle: c.roleLabel || c.position || "Club",
+              logo: c.logo || "/Defaultclublogo.svg",
+            }))
+          : [];
+        setClubs(fetchedClubs);
+        if (fetchedClubs.length > 0) {
+          setClub(fetchedClubs[0]);
+        }
+      })
+      .catch((err) => console.error("Fetch clubs error:", err));
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const handlePublishClick = () => {
+    onPublish({ clubId: club?.id || null, visibility: audience });
+  };
+
+  const handleDoneClick = () => {
+    onClose();
+    router.push("/dashboard/events/yourform");
+  };
 
   return (
     <Overlay onClose={onClose}>
@@ -953,10 +1209,9 @@ function PublishModal({ eventName, onClose }) {
             </div>
             <h3 className="mt-4 text-[20px] font-semibold tracking-tight" style={{ color: C.ink }}>Event published</h3>
             <p className="mx-auto mt-1.5 max-w-xs text-[13.5px] leading-relaxed" style={{ color: C.subtext }}>
-              <span className="font-semibold" style={{ color: C.ink }}>{eventName}</span> is now live under{" "}
-              <span className="font-semibold" style={{ color: C.ink }}>{club.name}</span> for {audience === "public" ? "everyone" : "club members"}.
+              <span className="font-semibold" style={{ color: C.ink }}>{eventName}</span> is now live {club?.name ? `under ${club.name}` : ""} for {audience === "public" ? "everyone" : "club members"}.
             </p>
-            <button onClick={onClose} className="mt-6 w-full rounded-full py-3.5 text-[15px] font-medium transition hover:opacity-90" style={{ background: C.primary, color: C.primaryFg }}>
+            <button onClick={handleDoneClick} className="mt-6 w-full rounded-full py-3.5 text-[15px] font-medium transition hover:opacity-90" style={{ background: C.primary, color: C.primaryFg }}>
               Done
             </button>
           </div>
@@ -981,28 +1236,34 @@ function PublishModal({ eventName, onClose }) {
                 Publishing as
               </div>
               <div className="relative">
-                <button
-                  onClick={() => setClubOpen((o) => !o)}
-                  className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors"
-                  style={{ background: C.muted, border: `1px solid ${clubOpen ? C.ink : "transparent"}` }}
-                >
-                  <img src={club.logo} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" style={{ background: "#e4e4e6" }} />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-[14.5px] font-semibold" style={{ color: C.ink }}>{club.name}</div>
-                    <div className="truncate text-[12px]" style={{ color: C.subtext }}>{club.handle}</div>
+                {club ? (
+                  <button
+                    onClick={() => setClubOpen((o) => !o)}
+                    className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-left transition-colors"
+                    style={{ background: C.muted, border: `1px solid ${clubOpen ? C.ink : "transparent"}` }}
+                  >
+                    <img src={club.logo} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" style={{ background: "#e4e4e6" }} />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[14.5px] font-semibold" style={{ color: C.ink }}>{club.name}</div>
+                      <div className="truncate text-[12px]" style={{ color: C.subtext }}>{club.handle}</div>
+                    </div>
+                    <ChevronDown className="h-4.5 w-4.5 shrink-0 transition-transform" style={{ color: C.subtext, transform: clubOpen ? "rotate(180deg)" : "none" }} />
+                  </button>
+                ) : (
+                  <div className="rounded-2xl px-4 py-3 text-[13.5px]" style={{ background: C.muted, color: C.subtext }}>
+                    Publishing as personal event
                   </div>
-                  <ChevronDown className="h-4.5 w-4.5 shrink-0 transition-transform" style={{ color: C.subtext, transform: clubOpen ? "rotate(180deg)" : "none" }} />
-                </button>
+                )}
 
-                {clubOpen && (
+                {clubOpen && clubs.length > 0 && (
                   <>
                     <div className="fixed inset-0 z-10" onClick={() => setClubOpen(false)} />
                     <div
                       className="absolute z-20 mt-2 w-full overflow-hidden rounded-2xl bg-white p-1.5"
                       style={{ border: `1px solid ${C.border}`, boxShadow: "0 16px 40px rgba(0,0,0,0.14)", animation: "modal-in 150ms ease" }}
                     >
-                      {CLUBS.map((c) => {
-                        const active = c.id === club.id;
+                      {clubs.map((c) => {
+                        const active = c.id === club?.id;
                         return (
                           <button
                             key={c.id}
@@ -1043,8 +1304,13 @@ function PublishModal({ eventName, onClose }) {
               <button onClick={onClose} className="flex-1 rounded-full py-3.5 text-[14px] font-medium transition hover:bg-[#f3f3f4]" style={{ color: C.ink, border: `1px solid ${C.border}` }}>
                 Cancel
               </button>
-              <button onClick={() => setPublished(true)} className="flex-1 rounded-full py-3.5 text-[14px] font-medium transition hover:opacity-90 active:scale-[0.99]" style={{ background: C.primary, color: C.primaryFg }}>
-                Publish
+              <button
+                onClick={handlePublishClick}
+                disabled={isPublishing}
+                className="flex-1 rounded-full py-3.5 text-[14px] font-medium transition hover:opacity-90 active:scale-[0.99] disabled:opacity-50"
+                style={{ background: C.primary, color: C.primaryFg }}
+              >
+                {isPublishing ? "Publishing..." : "Publish"}
               </button>
             </div>
           </>

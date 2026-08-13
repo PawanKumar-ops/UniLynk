@@ -1,6 +1,7 @@
 "use client"
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
 import {
   Calendar,
   Check,
@@ -15,6 +16,7 @@ import {
   UploadCloud,
   X,
 } from "lucide-react";
+import { getDraft } from "@/lib/drafts";
 
 const C = {
   bg: "#ffffff",
@@ -29,54 +31,219 @@ const C = {
   accent: "#2c2c2e",
 };
 
-/* ---------- Mock data ---------- */
-
-const EVENT = {
+const DEFAULT_EVENT = {
   club: "Cricket Club",
   clubLogo:
     "https://res.cloudinary.com/dpzqayckn/image/upload/v1784122081/club-logos/bxryxmx4jgzivqnixlsn.jpg",
   cover:
     "https://res.cloudinary.com/dpzqayckn/image/upload/v1784122921/event-covers/zbfxmye36apeekgxsbkc.webp",
   date: "Jul 17",
+  name: "Inter-College Cricket Cup",
+  time: "4:00 PM",
+  venue: "Main Campus",
+  isTeam: false,
+  teamSize: 4,
+  questions: [],
 };
 
-const INFO = [
-  { icon: Calendar, label: "Date", value: "Aug 16" },
-  { icon: Clock, label: "Time", value: "4:00 PM" },
-  { icon: MapPin, label: "Location", value: "Main Campus" },
-];
+function formatDate(dateStr) {
+  if (!dateStr) return "Jul 17";
+  try {
+    const d = new Date(dateStr.includes("T") ? dateStr : `${dateStr}T00:00:00`);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  } catch (e) {
+    return dateStr;
+  }
+}
 
-const USERS = [
-  { roll: "2023CSE1042", name: "Ananya Sharma", branch: "CSE", year: "Second Year", avatar: "https://i.pravatar.cc/80?img=47" },
-  { roll: "2022ECE0318", name: "Rohan Verma", branch: "ECE", year: "Third Year", avatar: "https://i.pravatar.cc/80?img=12" },
-  { roll: "2023IT2201", name: "Ishita Nair", branch: "IT", year: "Second Year", avatar: "https://i.pravatar.cc/80?img=32" },
-  { roll: "2021ME0091", name: "Karan Mehta", branch: "ME", year: "Fourth Year", avatar: "https://i.pravatar.cc/80?img=15" },
-  { roll: "2023CSE1088", name: "Priya Reddy", branch: "CSE(Dual)", year: "First Year", avatar: "https://i.pravatar.cc/80?img=45" },
-  { roll: "2022EE0455", name: "Aditya Singh", branch: "EE", year: "Third Year", avatar: "https://i.pravatar.cc/80?img=8" },
-  { roll: "2023AIML0712", name: "Sneha Iyer", branch: "AIML", year: "Second Year", avatar: "https://i.pravatar.cc/80?img=27" },
-  { roll: "2021CE0233", name: "Vikram Rao", branch: "CE", year: "Fourth Year", avatar: "https://i.pravatar.cc/80?img=3" },
-];
-
-const MCQ_OPTIONS = ["Batsman", "Bowler", "All-rounder", "Wicket-keeper"];
-const CHECKBOX_OPTIONS = ["Jersey", "Bat", "Gloves", "Helmet", "Pads", "Water bottle"];
-const DROPDOWN_OPTIONS = ["Beginner", "Intermediate", "Advanced", "Professional"];
+function formatTime(timeStr) {
+  if (!timeStr) return "4:00 PM";
+  try {
+    if (timeStr.includes("AM") || timeStr.includes("PM")) return timeStr;
+    const [h, m] = timeStr.split(":");
+    const date = new Date(2000, 0, 1, parseInt(h, 10), parseInt(m, 10));
+    return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  } catch (e) {
+    return timeStr;
+  }
+}
 
 /* ---------- Page ---------- */
 
-export default function App() {
+export default function EventPreview({ formId: propFormId, initialData }) {
+  const params = useParams();
+  const formId = propFormId || params?.formId;
+
+  const [eventData, setEventData] = useState(initialData || null);
+  const [loading, setLoading] = useState(!initialData);
+  const [applied, setApplied] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
   const [team, setTeam] = useState([]);
   const [teamOpen, setTeamOpen] = useState(false);
 
-  const [about, setAbout] = useState("");
-  const [role, setRole] = useState("");
-  const [gear, setGear] = useState([]);
-  const [level, setLevel] = useState("");
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
-  const [files, setFiles] = useState([]);
+  const [answers, setAnswers] = useState({});
+  const [filesByQuestion, setFilesByQuestion] = useState({});
 
-  const toggleGear = (g) =>
-    setGear((prev) => (prev.includes(g) ? prev.filter((x) => x !== g) : [...prev, g]));
+  useEffect(() => {
+    if (initialData) {
+      setEventData(initialData);
+      setLoading(false);
+      return;
+    }
+
+    if (!formId) {
+      setEventData(DEFAULT_EVENT);
+      setLoading(false);
+      return;
+    }
+
+    let ignore = false;
+
+    const loadForm = async () => {
+      setLoading(true);
+      try {
+        if (formId.startsWith("draft_")) {
+          const draft = getDraft(formId);
+          if (draft && !ignore) {
+            setEventData(draft);
+            setLoading(false);
+            return;
+          }
+        }
+
+        const res = await fetch(`/api/forms/${formId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (!ignore) setEventData(data);
+        }
+      } catch (err) {
+        console.error("Failed to load event data:", err);
+      } finally {
+        if (!ignore) setLoading(false);
+      }
+    };
+
+    const checkApplied = async () => {
+      if (formId.startsWith("draft_")) return;
+      try {
+        const res = await fetch(`/api/forms/check-applied?formId=${formId}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (!ignore) setApplied(Boolean(data.applied));
+        }
+      } catch (err) {
+        console.error("Check applied error:", err);
+      }
+    };
+
+    loadForm();
+    checkApplied();
+
+    return () => {
+      ignore = true;
+    };
+  }, [formId, initialData]);
+
+  const clubName = eventData?.clubId?.clubName || eventData?.club || DEFAULT_EVENT.club;
+  const clubLogo = eventData?.clubId?.logo || eventData?.clubLogo || DEFAULT_EVENT.clubLogo;
+  const coverImage = eventData?.banner || eventData?.image || eventData?.cover || DEFAULT_EVENT.cover;
+  const rawDate = eventData?.date || DEFAULT_EVENT.date;
+  const displayDate = formatDate(rawDate);
+  const rawTime = eventData?.time || DEFAULT_EVENT.time;
+  const displayTime = formatTime(rawTime);
+  const displayVenue = eventData?.venue || eventData?.location || DEFAULT_EVENT.venue;
+
+  const isTeamEvent = Boolean(eventData?.isTeam ?? eventData?.isTeamEvent);
+  const maxTeamSize = Number(eventData?.teamSize || 4);
+
+  const questions = eventData?.questions || [];
+
+  const handleAnswerChange = (qId, val) => {
+    setAnswers((prev) => ({ ...prev, [qId]: val }));
+  };
+
+  const handleToggleMultiple = (qId, option) => {
+    setAnswers((prev) => {
+      const current = Array.isArray(prev[qId]) ? prev[qId] : [];
+      const next = current.includes(option)
+        ? current.filter((x) => x !== option)
+        : [...current, option];
+      return { ...prev, [qId]: next };
+    });
+  };
+
+  const handleFilesChange = (qId, filesList) => {
+    setFilesByQuestion((prev) => ({ ...prev, [qId]: filesList }));
+    setAnswers((prev) => ({
+      ...prev,
+      [qId]: filesList.map((f) => f.url || f.preview || f.name),
+    }));
+  };
+
+  const handleSubmit = async () => {
+    if (applied || submitted) return;
+
+    const missingRequired = questions.filter(
+      (q) => q.required && !answers[q.id] && (!filesByQuestion[q.id] || filesByQuestion[q.id].length === 0)
+    );
+
+    if (missingRequired.length > 0) {
+      alert(`Please fill in required question: ${missingRequired[0].title || missingRequired[0].question || "Untitled question"}`);
+      return;
+    }
+
+    if (!formId || formId.startsWith("draft_")) {
+      alert("Registration submitted! (Preview Mode)");
+      setSubmitted(true);
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const payloadAnswers = { ...answers };
+      if (isTeamEvent) {
+        payloadAnswers.team = team;
+      }
+
+      const res = await fetch("/api/forms/submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          formId,
+          answers: payloadAnswers,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Submission failed");
+      }
+
+      setSubmitted(true);
+    } catch (err) {
+      console.error(err);
+      alert(err.message || "Failed to submit registration");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-full w-full flex items-center justify-center py-20" style={{ background: C.bg, color: C.subtext }}>
+        Loading event details...
+      </div>
+    );
+  }
+
+  const infoCards = [
+    { icon: Calendar, label: "Date", value: displayDate },
+    { icon: Clock, label: "Time", value: displayTime },
+    { icon: MapPin, label: "Location", value: displayVenue },
+  ];
 
   return (
     <div className="min-h-full w-full" style={{ background: C.bg, color: C.text }}>
@@ -87,18 +254,18 @@ export default function App() {
             <div style={{ display: "flex", alignItems: "center", gap: 8, backgroundColor: "rgb(235, 235, 237)", borderRadius: 999, padding: "6px 13px 6px 7px" }}>
               <div style={{ width: 20, height: 20, backgroundColor: "rgb(28, 28, 30)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                 <div className="w-[20px] h-[20px] rounded-full overflow-hidden bg-white flex items-center justify-center">
-                  <img alt="Cricket Club logo" className="w-full h-full object-cover rounded-full block" src={EVENT.clubLogo} />
+                  <img alt={clubName} className="w-full h-full object-cover rounded-full block" src={clubLogo} />
                 </div>
               </div>
-              <span style={{ fontSize: 12, fontWeight: 500, color: "rgb(28, 28, 30)" }}>{EVENT.club}</span>
+              <span style={{ fontSize: 12, fontWeight: 500, color: "rgb(28, 28, 30)" }}>{clubName}</span>
             </div>
           </div>
           <div style={{ margin: "0px 10px", borderRadius: 20, overflow: "hidden", height: 250, border: "1px solid rgb(230, 230, 230)", backgroundColor: "#efeff2" }}>
-            <img alt="Cricket Tournament" src={EVENT.cover} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+            <img alt={eventData?.name || "Event cover"} src={coverImage} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
           </div>
           <div style={{ display: "flex", justifyContent: "center", position: "relative", zIndex: 2 }}>
             <div style={{ backgroundColor: "rgb(44, 44, 46)", color: "rgb(255, 255, 255)", border: "3px solid rgb(255, 255, 255)", borderRadius: 999, padding: "7px 22px", fontSize: 13, fontWeight: 500, margin: "12px 0px -16px" }}>
-              {EVENT.date}
+              {displayDate}
             </div>
           </div>
         </div>
@@ -106,16 +273,16 @@ export default function App() {
         {/* ---------- Title ---------- */}
         <div className="mt-8">
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight" style={{ color: C.text }}>
-            Inter-College Cricket Cup
+            {eventData?.name || eventData?.title || "Inter-College Cricket Cup"}
           </h1>
           <p className="mt-1.5 text-[14px]" style={{ color: C.subtext }}>
-            Register your team for the summer tournament.
+            Register yourself and join the event.
           </p>
         </div>
 
         {/* ---------- Info cards (square) ---------- */}
         <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-3">
-          {INFO.map((it) => {
+          {infoCards.map((it) => {
             const Icon = it.icon;
             return (
               <div key={it.label} className="rounded-2xl p-3 sm:p-4" style={{ background: C.bg, border: `1px solid ${C.border}` }}>
@@ -128,172 +295,194 @@ export default function App() {
                 <div className="mt-0.5 text-[13px] sm:text-[15px] font-bold leading-snug" style={{ color: C.text }}>
                   {it.value}
                 </div>
-                <div className="mt-0.5 text-[11px] sm:text-[12px] leading-snug" style={{ color: C.subtext }}>
-                  {it.hint}
-                </div>
               </div>
             );
           })}
         </div>
 
-        {/* ---------- Add Team ---------- */}
-        <div className="mt-6">
-          {!teamOpen && team.length === 0 ? (
-            <div className="rounded-2xl p-4" style={{ background: C.accent }}>
-              <div className="text-[15px] font-bold" style={{ color: C.primaryFg }}>
-                Manage Team
+        {/* ---------- Add Team (Rendered ONLY IF Event is Team-based) ---------- */}
+        {isTeamEvent && (
+          <div className="mt-6">
+            {!teamOpen && team.length === 0 ? (
+              <div className="rounded-2xl p-4" style={{ background: C.accent }}>
+                <div className="text-[15px] font-bold" style={{ color: C.primaryFg }}>
+                  Build Your Team
+                </div>
+                <div className="mt-0.5 text-[12px]" style={{ color: "rgba(255,255,255,0.6)" }}>
+                  {maxTeamSize} members
+                </div>
+                <button
+                  onClick={() => setTeamOpen(true)}
+                  className="mt-4 w-full inline-flex items-center justify-center gap-1.5 rounded-full py-2.5 text-[13px] font-semibold transition active:scale-[0.99] hover:opacity-90"
+                  style={{ background: C.bg, color: C.text }}
+                >
+                  <Plus className="h-4 w-4" strokeWidth={2.5} />
+                  Add Team
+                </button>
               </div>
-              <div className="mt-0.5 text-[12px]" style={{ color: "rgba(255,255,255,0.6)" }}>
-                {EVENT.date}, 2026
-              </div>
-              <button
-                onClick={() => setTeamOpen(true)}
-                className="mt-4 w-full inline-flex items-center justify-center gap-1.5 rounded-full py-2.5 text-[13px] font-semibold transition active:scale-[0.99] hover:opacity-90"
-                style={{ background: C.bg, color: C.text }}
-              >
-                <Plus className="h-4 w-4" strokeWidth={2.5} />
-                Add Team
-              </button>
-            </div>
-          ) : (
-            <TeamPicker team={team} setTeam={setTeam} onClose={() => setTeamOpen(false)} />
-          )}
-        </div>
+            ) : (
+              <TeamPicker
+                team={team}
+                setTeam={setTeam}
+                maxSize={maxTeamSize}
+                onClose={() => setTeamOpen(false)}
+              />
+            )}
+          </div>
+        )}
 
         {/* ---------- Questions ---------- */}
         <div className="mt-8 flex flex-col gap-8">
-          {/* Paragraph */}
-          <Field label="Tell us about your team" required>
-            <textarea
-  value={about}
-  onChange={(e) => {
-    setAbout(e.target.value);
-    e.currentTarget.style.height = "auto";
-    e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
-  }}
-  rows={1}
-  placeholder="A few words about your team's playing style, past wins…"
-  className="w-full resize-none rounded-lg border px-3 py-2.5 text-sm font-medium outline-none transition-colors leading-relaxed overflow-hidden"
-  style={{
-    background: C.bg,
-    color: C.text,
-    border: `1px solid ${C.border}`,
-    minHeight: 40,
-    height: 40,
-  }}
-  onFocus={(e) => (e.currentTarget.style.borderColor = C.primary)}
-  onBlur={(e) => (e.currentTarget.style.borderColor = C.border)}
-/>
-          </Field>
+          {questions.map((q) => {
+            const title = q.title || q.question || "Untitled question";
+            const val = answers[q.id];
 
-          {/* Multiple choice */}
-          <Field label="What's your primary role on the field?" required>
-            <div className="flex flex-col gap-2.5 w-full">
-              {MCQ_OPTIONS.map((opt) => {
-                const active = role === opt;
-                return (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={() => setRole(opt)}
-                    className="w-full inline-flex items-center justify-start rounded-full px-5 h-11 text-[14px] font-medium transition-all active:scale-[0.99]"
-                    style={{
-                      background: active ? "#E7E7E7" : C.bg,
-                      color: C.text,
-                      border: active ? "1px solid #10101080" : `1px solid ${C.border}`,
+            return (
+              <Field key={q.id} label={title} required={q.required}>
+                {(q.type === "paragraph" || q.type === "short" || q.type === "long" || q.type === "text" || q.type === "email" || q.type === "phone" || !q.type) && (
+                  <textarea
+                    value={val || ""}
+                    onChange={(e) => {
+                      handleAnswerChange(q.id, e.target.value);
+                      e.currentTarget.style.height = "auto";
+                      e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
                     }}
-                  >
-                    {opt}
-                  </button>
-                );
-              })}
-            </div>
-          </Field>
-
-          {/* Checkboxes */}
-          <Field label="What gear will you bring?">
-            <div className="flex flex-wrap gap-2.5">
-              {CHECKBOX_OPTIONS.map((opt) => {
-                const active = gear.includes(opt);
-                const badge = opt.slice(0, 2).toUpperCase();
-                return (
-                  <button
-                    key={opt}
-                    type="button"
-                    onClick={() => toggleGear(opt)}
-                    className="inline-flex items-center gap-2 rounded-full px-4 h-10 text-[13px] font-medium transition-all active:scale-[0.97]"
+                    rows={2}
+                    placeholder="Your answer…"
+                    className="w-full resize-y rounded-lg border px-3 py-2.5 text-sm font-medium outline-none transition-colors leading-relaxed min-h-[50px]"
                     style={{
-                      background: active ? "#E7E7E7" : C.bg,
+                      background: C.bg,
                       color: C.text,
-                      border: active ? "1px solid #10101080" : `1px solid ${C.border}`,
+                      border: `1px solid ${C.border}`,
                     }}
-                  >
-                    <span
-                      className="h-5 min-w-5 px-1 rounded-full grid place-items-center text-[9px] font-black tracking-tight"
-                      style={{ background: active ? C.primary : C.muted, color: active ? C.primaryFg : C.text }}
-                    >
-                      {badge}
-                    </span>
-                    {opt}
-                  </button>
-                );
-              })}
-            </div>
-          </Field>
+                    onFocus={(e) => (e.currentTarget.style.borderColor = C.primary)}
+                    onBlur={(e) => (e.currentTarget.style.borderColor = C.border)}
+                  />
+                )}
 
-          {/* Dropdown */}
-          <Field label="Experience level" required>
-            <Dropdown value={level} onChange={setLevel} options={DROPDOWN_OPTIONS} placeholder="Select a level" />
-          </Field>
+                {q.type === "single" && (
+                  <div className="flex flex-col gap-2.5 w-full">
+                    {(q.options || []).map((opt) => {
+                      const active = val === opt;
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => handleAnswerChange(q.id, opt)}
+                          className="w-full inline-flex items-center justify-start rounded-full px-5 h-11 text-[14px] font-medium transition-all active:scale-[0.99]"
+                          style={{
+                            background: active ? "#E7E7E7" : C.bg,
+                            color: C.text,
+                            border: active ? "1px solid #10101080" : `1px solid ${C.border}`,
+                          }}
+                        >
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
 
-          {/* Date */}
-          <Field label="Preferred practice date" required>
-            <IconInput icon={Calendar}>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="flex-1 bg-transparent outline-none text-[14px] font-medium min-w-0"
-                style={{ color: date ? C.text : C.subtext }}
-              />
-            </IconInput>
-          </Field>
+                {q.type === "multiple" && (
+                  <div className="flex flex-wrap gap-2.5">
+                    {(q.options || []).map((opt) => {
+                      const active = Array.isArray(val) && val.includes(opt);
+                      const badge = opt.slice(0, 2).toUpperCase();
+                      return (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => handleToggleMultiple(q.id, opt)}
+                          className="inline-flex items-center gap-2 rounded-full px-4 h-10 text-[13px] font-medium transition-all active:scale-[0.97]"
+                          style={{
+                            background: active ? "#E7E7E7" : C.bg,
+                            color: C.text,
+                            border: active ? "1px solid #10101080" : `1px solid ${C.border}`,
+                          }}
+                        >
+                          <span
+                            className="h-5 min-w-5 px-1 rounded-full grid place-items-center text-[9px] font-black tracking-tight"
+                            style={{ background: active ? C.primary : C.muted, color: active ? C.primaryFg : C.text }}
+                          >
+                            {badge}
+                          </span>
+                          {opt}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
 
-          {/* Time */}
-          <Field label="Preferred practice time" required>
-            <IconInput icon={Clock}>
-              <input
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                className="flex-1 bg-transparent outline-none text-[14px] font-medium min-w-0"
-                style={{ color: time ? C.text : C.subtext }}
-              />
-            </IconInput>
-          </Field>
+                {q.type === "dropdown" && (
+                  <Dropdown
+                    value={val || ""}
+                    onChange={(v) => handleAnswerChange(q.id, v)}
+                    options={q.options || []}
+                    placeholder="Select an option"
+                  />
+                )}
 
-          {/* File upload */}
-          <Field label="Upload documents">
-            <FileUpload files={files} setFiles={setFiles} />
-          </Field>
+                {q.type === "date" && (
+                  <IconInput icon={Calendar}>
+                    <input
+                      type="date"
+                      value={val || ""}
+                      onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+                      className="flex-1 bg-transparent outline-none text-[14px] font-medium min-w-0"
+                      style={{ color: val ? C.text : C.subtext }}
+                    />
+                  </IconInput>
+                )}
+
+                {q.type === "time" && (
+                  <IconInput icon={Clock}>
+                    <input
+                      type="time"
+                      value={val || ""}
+                      onChange={(e) => handleAnswerChange(q.id, e.target.value)}
+                      className="flex-1 bg-transparent outline-none text-[14px] font-medium min-w-0"
+                      style={{ color: val ? C.text : C.subtext }}
+                    />
+                  </IconInput>
+                )}
+
+                {q.type === "file" && (
+                  <FileUpload
+                    files={filesByQuestion[q.id] || []}
+                    setFiles={(fn) => {
+                      const prev = filesByQuestion[q.id] || [];
+                      const next = typeof fn === "function" ? fn(prev) : fn;
+                      handleFilesChange(q.id, next);
+                    }}
+                  />
+                )}
+              </Field>
+            );
+          })}
         </div>
 
         {/* ---------- Submit ---------- */}
         <button
-          onClick={() => alert("Registration submitted! (mock)")}
-          className="mt-10 w-full inline-flex items-center justify-center rounded-full py-3.5 text-[15px] font-semibold transition active:scale-[0.99] hover:opacity-90"
+          onClick={handleSubmit}
+          disabled={applied || submitted || submitting}
+          className="mt-10 w-full inline-flex items-center justify-center rounded-full py-3.5 text-[15px] font-semibold transition active:scale-[0.99] hover:opacity-90 disabled:opacity-50"
           style={{ background: C.primary, color: C.primaryFg }}
         >
-          Submit registration
+          {submitted || applied
+            ? "Submitted"
+            : submitting
+            ? "Submitting..."
+            : "Submit registration"}
         </button>
       </div>
     </div>
   );
 }
 
-/* ---------- File upload ---------- */
+/* ---------- File upload with Cloudinary integration ---------- */
 
 function formatSize(bytes) {
+  if (!bytes) return "0 B";
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
@@ -302,25 +491,48 @@ function formatSize(bytes) {
 function FileUpload({ files, setFiles }) {
   const inputRef = useRef(null);
   const [dragging, setDragging] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
-  const addFiles = (list) => {
-    if (!list) return;
-    const next = Array.from(list).map((f) => ({
-      id: `${f.name}-${f.size}-${crypto.randomUUID()}`,
-      name: f.name,
-      size: f.size,
-      type: f.type,
-      preview: f.type.startsWith("image/") ? URL.createObjectURL(f) : null,
-    }));
-    setFiles((prev) => [...prev, ...next]);
+  const addFiles = async (list) => {
+    if (!list || list.length === 0) return;
+    const fileArray = Array.from(list);
+
+    setUploading(true);
+    for (const f of fileArray) {
+      try {
+        const formData = new FormData();
+        formData.append("file", f);
+
+        const res = await fetch("/api/forms/upload-file", {
+          method: "POST",
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "File upload failed");
+        }
+
+        const data = await res.json();
+        const uploadedObj = {
+          id: `${f.name}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          name: data.name || f.name,
+          size: data.size || f.size,
+          type: data.type || f.type,
+          url: data.url,
+          preview: f.type.startsWith("image/") ? data.url : null,
+        };
+
+        setFiles((prev) => [...prev, uploadedObj]);
+      } catch (err) {
+        console.error("Document upload error:", err);
+        alert(`Failed to upload ${f.name}: ${err.message}`);
+      }
+    }
+    setUploading(false);
   };
 
-  const remove = (id) =>
-    setFiles((prev) => {
-      const target = prev.find((f) => f.id === id);
-      if (target?.preview) URL.revokeObjectURL(target.preview);
-      return prev.filter((f) => f.id !== id);
-    });
+  const remove = (id) => setFiles((prev) => prev.filter((f) => f.id !== id));
 
   return (
     <div className="w-full">
@@ -328,6 +540,7 @@ function FileUpload({ files, setFiles }) {
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
+        disabled={uploading}
         onDragOver={(e) => {
           e.preventDefault();
           setDragging(true);
@@ -338,7 +551,7 @@ function FileUpload({ files, setFiles }) {
           setDragging(false);
           addFiles(e.dataTransfer.files);
         }}
-        className="w-full flex flex-col items-center justify-center gap-2 rounded-2xl px-6 py-8 text-center transition-colors"
+        className="w-full flex flex-col items-center justify-center gap-2 rounded-2xl px-6 py-8 text-center transition-colors disabled:opacity-60"
         style={{
           background: dragging ? C.muted : C.bg,
           border: `1.5px dashed ${dragging ? C.primary : C.border}`,
@@ -348,7 +561,7 @@ function FileUpload({ files, setFiles }) {
           <UploadCloud className="h-5 w-5" style={{ color: C.text }} />
         </span>
         <span className="text-[14px] font-semibold" style={{ color: C.text }}>
-          Click to upload or drag &amp; drop
+          {uploading ? "Uploading to Cloudinary..." : "Click to upload or drag & drop"}
         </span>
         <span className="text-[12px]" style={{ color: C.subtext }}>
           Images, PDF or DOCX · up to 10MB each
@@ -493,26 +706,67 @@ function Dropdown({ value, onChange, options, placeholder }) {
   );
 }
 
-/* ---------- Team picker ---------- */
+/* ---------- Team picker with MongoDB Real User Fetching & Team Capacity Limit ---------- */
 
-function TeamPicker({ team, setTeam, onClose }) {
+function TeamPicker({ team, setTeam, maxSize = 4, onClose }) {
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
+  const [mongoUsers, setMongoUsers] = useState([]);
+  const [fetching, setFetching] = useState(false);
+
+  const isTeamFull = team.length >= maxSize;
+
+  useEffect(() => {
+    let ignore = false;
+    const fetchUsers = async () => {
+      setFetching(true);
+      try {
+        const res = await fetch("/api/users");
+        if (res.ok) {
+          const data = await res.json();
+          if (!ignore && Array.isArray(data?.users)) {
+            const formatted = data.users.map((u) => ({
+              roll: u.rollNumber || u._id,
+              name: u.name || "Student",
+              branch: u.branch || "General",
+              year: u.year || "Student",
+              avatar: u.img || "/Profilepic.png",
+            }));
+            setMongoUsers(formatted);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch MongoDB users:", err);
+      } finally {
+        if (!ignore) setFetching(false);
+      }
+    };
+
+    fetchUsers();
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   const q = query.trim().toLowerCase();
   const matches = useMemo(() => {
     if (!q) return [];
-    return USERS.filter(
-      (u) =>
-        !team.some((t) => t.roll === u.roll) &&
-        (u.roll.toLowerCase().includes(q) || u.name.toLowerCase().includes(q)),
-    ).slice(0, 5);
-  }, [q, team]);
+    return mongoUsers
+      .filter(
+        (u) =>
+          !team.some((t) => t.roll === u.roll) &&
+          ((u.roll && String(u.roll).toLowerCase().includes(q)) ||
+            (u.name && u.name.toLowerCase().includes(q)))
+      )
+      .slice(0, 5);
+  }, [q, team, mongoUsers]);
 
   const add = (u) => {
+    if (team.length >= maxSize) return;
     setTeam((prev) => (prev.some((t) => t.roll === u.roll) ? prev : [...prev, u]));
     setQuery("");
   };
+
   const remove = (roll) => setTeam((prev) => prev.filter((t) => t.roll !== roll));
 
   return (
@@ -523,7 +777,9 @@ function TeamPicker({ team, setTeam, onClose }) {
             Add team members
           </div>
           <div className="mt-0.5 text-[12px]" style={{ color: C.subtext }}>
-            Search by roll number or name.
+            {isTeamFull
+              ? `Team completed (${team.length}/${maxSize} members)`
+              : `Search real users by roll number or name (${team.length}/${maxSize} members)`}
           </div>
         </div>
         <button
@@ -536,70 +792,76 @@ function TeamPicker({ team, setTeam, onClose }) {
       </div>
 
       {/* Search */}
-      <div className="mt-4 relative">
-        <div
-          className="flex items-center gap-2 rounded-lg px-3 h-11 transition-colors"
-          style={{ background: C.bg, border: `1px solid ${focused ? C.primary : C.border}` }}
-        >
-          <Search className="h-4 w-4 shrink-0 ml-0.5" style={{ color: C.subtext }} />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setTimeout(() => setFocused(false), 150)}
-            placeholder="e.g. 2023CSE1042 or Ananya"
-            className="flex-1 bg-transparent outline-none text-[14px] font-medium min-w-0"
-            style={{ color: C.text }}
-          />
-        </div>
-
-        {focused && q.length > 0 && (
+      {!isTeamFull && (
+        <div className="mt-4 relative">
           <div
-            className="absolute z-10 mt-1.5 w-full rounded-xl overflow-hidden shadow-lg"
-            style={{ background: C.bg, border: `1px solid ${C.border}` }}
+            className="flex items-center gap-2 rounded-lg px-3 h-11 transition-colors"
+            style={{ background: C.bg, border: `1px solid ${focused ? C.primary : C.border}` }}
           >
-            {matches.length === 0 ? (
-              <div className="px-4 py-3 text-[13px]" style={{ color: C.subtext }}>
-                No students found.
-              </div>
-            ) : (
-              matches.map((u) => (
-                <button
-                  key={u.roll}
-                  onMouseDown={(e) => {
-                    e.preventDefault();
-                    add(u);
-                  }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition"
-                  onMouseEnter={(e) => (e.currentTarget.style.background = C.muted)}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-                >
-                  <img src={u.avatar} alt="" className="h-9 w-9 rounded-full object-cover shrink-0" style={{ background: C.muted }} />
-                  <div className="min-w-0 flex-1">
-                    <div className="text-[14px] font-semibold truncate" style={{ color: C.text }}>
-                      {u.name}
-                    </div>
-                    <div className="flex items-center gap-1.5 text-[12px]" style={{ color: C.subtext }}>
-                      <span className="font-medium" style={{ color: C.text }}>{u.branch}</span>
-                      <span>·</span>
-                      <span>{u.year}</span>
-                    </div>
-                  </div>
-                  <span className="text-[11px] font-medium tabular-nums shrink-0" style={{ color: C.subtext }}>
-                    {u.roll}
-                  </span>
-                </button>
-              ))
-            )}
+            <Search className="h-4 w-4 shrink-0 ml-0.5" style={{ color: C.subtext }} />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onFocus={() => setFocused(true)}
+              onBlur={() => setTimeout(() => setFocused(false), 150)}
+              placeholder="e.g. Roll number or Name"
+              className="flex-1 bg-transparent outline-none text-[14px] font-medium min-w-0"
+              style={{ color: C.text }}
+            />
           </div>
-        )}
-      </div>
+
+          {focused && q.length > 0 && (
+            <div
+              className="absolute z-10 mt-1.5 w-full rounded-xl overflow-hidden shadow-lg"
+              style={{ background: C.bg, border: `1px solid ${C.border}` }}
+            >
+              {fetching ? (
+                <div className="px-4 py-3 text-[13px]" style={{ color: C.subtext }}>
+                  Searching users from MongoDB...
+                </div>
+              ) : matches.length === 0 ? (
+                <div className="px-4 py-3 text-[13px]" style={{ color: C.subtext }}>
+                  No students found.
+                </div>
+              ) : (
+                matches.map((u) => (
+                  <button
+                    key={u.roll}
+                    onMouseDown={(e) => {
+                      e.preventDefault();
+                      add(u);
+                    }}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition"
+                    onMouseEnter={(e) => (e.currentTarget.style.background = C.muted)}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                  >
+                    <img src={u.avatar} alt="" className="h-9 w-9 rounded-full object-cover shrink-0" style={{ background: C.muted }} />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[14px] font-semibold truncate" style={{ color: C.text }}>
+                        {u.name}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[12px]" style={{ color: C.subtext }}>
+                        <span className="font-medium" style={{ color: C.text }}>{u.branch}</span>
+                        <span>·</span>
+                        <span>{u.year}</span>
+                      </div>
+                    </div>
+                    <span className="text-[11px] font-medium tabular-nums shrink-0" style={{ color: C.subtext }}>
+                      {u.roll}
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Selected members */}
       {team.length > 0 && (
         <div className="mt-4">
           <div className="text-[11px] font-semibold uppercase tracking-wide mb-2" style={{ color: C.subtext }}>
-            Team ({team.length})
+            Team ({team.length} / {maxSize})
           </div>
           <div className="flex flex-col gap-2">
             {team.map((u) => (

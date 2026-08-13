@@ -22,7 +22,7 @@ export async function POST(req) {
 
     console.log("Submit Payload:", formId, answers); // DEBUG
 
-    const form = await Form.findById(formId, { isTeamEvent: 1 }).lean();
+    const form = await Form.findById(formId, { _id: 1 }).lean();
 
     if (!form) {
       return Response.json(
@@ -42,17 +42,6 @@ export async function POST(req) {
     if (existing?.isSubmitted || existing?.submittedAt) {
       return Response.json(
         { error: "Already submitted" },
-        { status: 400 }
-      );
-    }
-
-    const hasCompletedTeamFinder = Boolean(
-      existing?.teamFinder?.type || existing?.teamFinderRequest?.kind === "team"
-    );
-
-    if (form.isTeamEvent && !hasCompletedTeamFinder) {
-      return Response.json(
-        { error: "Complete Team Registration by joining an open team or adding your team to Team Finder before submitting." },
         { status: 400 }
       );
     }
