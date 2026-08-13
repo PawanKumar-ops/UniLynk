@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import JsBarcode from 'jsbarcode'
 import { toPng } from 'html-to-image'
 import { jsPDF } from 'jspdf'
 import confetti from 'canvas-confetti'
@@ -40,13 +41,37 @@ const barcode = {
   ].join(', '),
 }
 
-function Ticket({ ref }) {
+function Ticket({ ticket, exportRef }) {
+  const barcodeRef = useRef(null)
+  const eventName = ticket?.eventName || 'HackVerse 2026'
+  const venueLine = ticket?.venueLine || 'Main Auditorium · Tech Park, Bengaluru'
+  const date = ticket?.date || '12 Aug'
+  const time = ticket?.time || '14:35'
+  const teamValue = ticket?.teamValue || '4'
+  const registeredAt = ticket?.registeredAt || '05 Aug'
+  const participantName = ticket?.participantName || 'Megafry MR'
+  const clubName = ticket?.isTeamEvent ? (ticket?.clubName || 'Code Ninjas') : ''
+  const rollNo = ticket?.rollNo || '21BCE1234'
+  const registrationId = ticket?.registrationId || '43596885365490358'
+  const clubLogo = ticket?.clubLogo
+
+  useEffect(() => {
+    if (!barcodeRef.current || !registrationId) return
+    JsBarcode(barcodeRef.current, registrationId, {
+      displayValue: false,
+      margin: 0,
+      width: 1.6,
+      height: 48,
+      background: '#ffffff',
+      lineColor: '#000000',
+    })
+  }, [registrationId])
   return (
     // Wrapper carries the shadow: clip-path on the ticket itself would crop a
     // box-shadow, so drop-shadow filters here trace the exact notched outline —
     // a hairline edge + soft depth make the white card visible on white.
     <div
-      ref={ref}
+      ref={exportRef}
       className="mx-auto w-full max-w-[25rem]"
       style={{
         filter:
@@ -59,9 +84,9 @@ function Ticket({ ref }) {
     >
       <div className="px-8 pt-9 pb-5 sm:px-10">
         <div className="flex items-center justify-between gap-4">
-          {/* Club logo — swap the initials for an <img> when the asset is ready. */}
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f5f5f5] text-xs font-semibold tracking-wide text-[#737373]">
-            CLUB
+          {/* Club logo */}
+          <span className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-[#f5f5f5] text-xs font-semibold tracking-wide text-[#737373]">
+            {clubLogo ? <img src={clubLogo} alt={ticket?.clubName || 'Club'} className="h-full w-full rounded-full object-cover" /> : 'CLUB'}
           </span>
           {/* Three horizontal dots, echoing the plane glyph's tone. */}
           <span className="flex items-center gap-1.5 text-[#d4d4d4]" aria-hidden="true">
@@ -70,8 +95,8 @@ function Ticket({ ref }) {
             <span className="h-1.5 w-1.5 rounded-full bg-current" />
           </span>
           {/* Company / host logo */}
-          <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#f5f5f5] text-xs font-semibold tracking-wide text-[#737373]">
-            CO
+          <span className="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-[#f5f5f5] text-xs font-semibold tracking-wide text-[#737373]">
+            <img src="/ULynk.svg" alt="ULynk" className="h-full w-full rounded-full object-contain" />
           </span>
         </div>
 
@@ -79,16 +104,16 @@ function Ticket({ ref }) {
           <span className="text-[0.65rem] font-semibold uppercase leading-relaxed tracking-[0.12em] text-[#a3a3a3]">
             Event
           </span>
-          <p className="text-lg font-medium leading-tight">HackVerse 2026</p>
-          <p className="mt-1 text-xs text-[#a3a3a3]">Main Auditorium · Tech Park, Bengaluru</p>
+          <p className="text-lg font-medium leading-tight">{eventName}</p>
+          <p className="mt-1 text-xs text-[#a3a3a3]">{venueLine}</p>
         </div>
 
         <dl className="mt-7 grid grid-cols-4 gap-x-1 border-t border-[#f5f5f5] pt-6 text-center">
           {[
-            ['Date', '12 Aug'],
-            ['Time', '14:35'],
-            ['Team', '4'],
-            ['Reg. Date', '05 Aug'],
+            ['Date', date],
+            ['Time', time],
+            [ticket?.isTeamEvent ? 'Team' : 'Type', teamValue],
+            ['Reg. Date', registeredAt],
           ].map(([label, value]) => (
             <div key={label}>
               <dt className="whitespace-nowrap text-[0.6rem] font-semibold uppercase leading-relaxed tracking-[0.06em] text-[#a3a3a3]">
@@ -100,31 +125,44 @@ function Ticket({ ref }) {
         </dl>
 
         <p className="mt-7 flex items-center justify-center gap-2 pt-5 text-xs tracking-[0.1em] text-[#a3a3a3]">
-          <span>Code Ninjas</span>
-          <span className="h-1 w-1 rounded-full bg-[#d4d4d4]" />
-          <span>Megafry MR</span>
+          {clubName ? (
+            <>
+              <span>{clubName}</span>
+              <span className="h-1 w-1 rounded-full bg-[#d4d4d4]" />
+            </>
+          ) : null}
+          <span>{participantName}</span>
         </p>
       </div>
 
       <div className="grid gap-3 border-t-2 border-dashed border-[#e5e5e5] px-10 pt-5 pb-8 text-center">
-        <span className="text-xs tracking-[0.1em] text-[#a3a3a3]">Roll No · 21BCE1234</span>
-        <div className="h-12 rounded-sm text-[#000000]" style={barcode} aria-hidden="true" />
-        <span className="text-sm tracking-[0.2em] text-[#737373]">43596885365490358</span>
+        <span className="text-xs tracking-[0.1em] text-[#a3a3a3]">Roll No · {rollNo}</span>
+        <svg ref={barcodeRef} className="h-12 w-full rounded-sm text-[#000000]" style={barcode} aria-hidden="true" />
+        <span className="text-sm tracking-[0.2em] text-[#737373]">{registrationId}</span>
       </div>
     </div>
     </div>
   )
 }
 
-export default function App() {
-  const [open, setOpen] = useState(true)
+export default function EventTicket({ open, onClose, ticket }) {
+  const [internalOpen, setInternalOpen] = useState(open ?? false)
   const [downloading, setDownloading] = useState(false)
+  const isOpen = open ?? internalOpen
+  const closeModal = () => {
+    setInternalOpen(false)
+    onClose?.()
+  }
   const exportRef = useRef(null)
 
-  // Celebrate whenever the modal opens (including on first load).
   useEffect(() => {
-    if (open) fireRealisticConfetti()
+    setInternalOpen(open ?? false)
   }, [open])
+
+  // Celebrate whenever the modal opens.
+  useEffect(() => {
+    if (isOpen) fireRealisticConfetti()
+  }, [isOpen])
 
   const handleDownload = async () => {
     const node = exportRef.current
@@ -154,72 +192,63 @@ export default function App() {
       const x = (pageW - w) / 2
       const y = (pageH - h) / 2
       pdf.addImage(dataUrl, 'PNG', x, y, w, h)
-      pdf.save('boarding-pass-ZRH-OSL.pdf')
+      pdf.save(`event-ticket-${ticket?.registrationId || 'registration'}.pdf`)
     } finally {
       setDownloading(false)
     }
   }
 
+  if (!isOpen) return null
+
   return (
-    <div className="min-h-screen bg-[#fafafa] text-[#000000]">
+    <>
       {/* Off-screen export node: padding leaves room for the drop-shadow so the
           captured PDF shows the ticket's edge just like the modal. */}
       <div className="pointer-events-none fixed left-[-9999px] top-0" aria-hidden="true">
         <div ref={exportRef} className="bg-[#ffffff] p-16">
-          <Ticket />
+          <Ticket ticket={ticket} />
         </div>
       </div>
 
-      <div className="flex min-h-screen items-center justify-center p-6">
-        <button
-          onClick={() => setOpen(true)}
-          className="rounded-full bg-[#000000] px-6 py-3 text-sm font-medium text-[#ffffff] transition-colors hover:bg-[#262626]"
+      <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+        {/* Backdrop */}
+        <div
+          onClick={closeModal}
+          className="absolute inset-0 bg-[rgba(0,0,0,0.4)] backdrop-blur-[2px]"
+          style={{ animation: 'ticket-fade 0.2s ease-out' }}
+        />
+
+        {/* Panel: bottom drawer on mobile, centered dialog on desktop */}
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="relative w-full max-w-[27rem] rounded-t-3xl bg-[#ffffff] p-5 pb-8 shadow-2xl sm:origin-center sm:scale-[0.88] sm:rounded-3xl sm:p-8"
+          style={{
+            animation: 'ticket-drawer 0.32s cubic-bezier(0.32, 0.72, 0, 1)',
+          }}
         >
-          Show boarding pass
-        </button>
-      </div>
+          {/* Grab handle — mobile drawer affordance */}
+          <div className="mx-auto mb-5 h-1.5 w-10 rounded-full bg-[#e5e5e5] sm:hidden" />
 
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
-          {/* Backdrop */}
-          <div
-            onClick={() => setOpen(false)}
-            className="absolute inset-0 bg-[rgba(0,0,0,0.4)] backdrop-blur-[2px]"
-            style={{ animation: 'ticket-fade 0.2s ease-out' }}
-          />
+          <Ticket ticket={ticket} />
 
-          {/* Panel: bottom drawer on mobile, centered dialog on desktop */}
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="relative w-full max-w-[27rem] rounded-t-3xl bg-[#ffffff] p-5 pb-8 shadow-2xl sm:origin-center sm:scale-[0.88] sm:rounded-3xl sm:p-8"
-            style={{
-              animation: 'ticket-drawer 0.32s cubic-bezier(0.32, 0.72, 0, 1)',
-            }}
-          >
-            {/* Grab handle — mobile drawer affordance */}
-            <div className="mx-auto mb-5 h-1.5 w-10 rounded-full bg-[#e5e5e5] sm:hidden" />
-
-            <Ticket />
-
-            <div className="mt-7 flex gap-3">
-              <button
-                onClick={() => setOpen(false)}
-                className="flex-1 rounded-full border border-[#e5e5e5] bg-[#ffffff] px-6 py-3 text-sm font-medium text-[#000000] transition-colors hover:bg-[#fafafa]"
-              >
-                Done
-              </button>
-              <button
-                onClick={handleDownload}
-                disabled={downloading}
-                className="flex-1 rounded-full bg-[#000000] px-6 py-3 text-sm font-medium text-[#ffffff] transition-colors hover:bg-[#262626] disabled:opacity-60"
-              >
-                {downloading ? 'Preparing…' : 'Download'}
-              </button>
-            </div>
+          <div className="mt-7 flex gap-3">
+            <button
+              onClick={closeModal}
+              className="flex-1 rounded-full border border-[#e5e5e5] bg-[#ffffff] px-6 py-3 text-sm font-medium text-[#000000] transition-colors hover:bg-[#fafafa]"
+            >
+              Done
+            </button>
+            <button
+              onClick={handleDownload}
+              disabled={downloading}
+              className="flex-1 rounded-full bg-[#000000] px-6 py-3 text-sm font-medium text-[#ffffff] transition-colors hover:bg-[#262626] disabled:opacity-60"
+            >
+              {downloading ? 'Preparing…' : 'Download'}
+            </button>
           </div>
         </div>
-      )}
-    </div>
+      </div>
+    </>
   )
 }

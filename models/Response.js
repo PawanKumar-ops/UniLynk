@@ -18,6 +18,12 @@ const ResponseSchema = new mongoose.Schema({
     default: {}
   },
 
+  registrationId: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
+
   isSubmitted: {
     type: Boolean,
     default: false

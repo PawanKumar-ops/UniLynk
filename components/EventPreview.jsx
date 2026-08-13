@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { getDraft } from "@/lib/drafts";
+import EventTicket from "@/components/EventTicket";
 
 const C = {
   bg: "#ffffff",
@@ -69,6 +70,26 @@ function formatTime(timeStr) {
   }
 }
 
+function formatTicketDate(dateStr) {
+  if (!dateStr) return "12 Aug";
+  try {
+    const d = new Date(dateStr.includes("T") ? dateStr : `${dateStr}T00:00:00`);
+    if (isNaN(d.getTime())) return dateStr;
+    return d.toLocaleDateString("en-US", { day: "2-digit", month: "short" });
+  } catch (e) {
+    return dateStr;
+  }
+}
+
+function findAnswerByLabel(questions, answers, matchers) {
+  const q = questions.find((item) => {
+    const label = `${item?.title || ""} ${item?.question || ""}`.toLowerCase();
+    return matchers.some((matcher) => label.includes(matcher));
+  });
+  const value = q ? answers[q.id] : "";
+  return Array.isArray(value) ? value[0] : value;
+}
+
 /* ---------- Page ---------- */
 
 export default function EventPreview({ formId: propFormId, initialData }) {
@@ -80,6 +101,7 @@ export default function EventPreview({ formId: propFormId, initialData }) {
   const [applied, setApplied] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [ticketData, setTicketData] = useState(null);
 
   const [team, setTeam] = useState([]);
   const [teamOpen, setTeamOpen] = useState(false);
@@ -222,6 +244,24 @@ export default function EventPreview({ formId: propFormId, initialData }) {
         throw new Error(err.error || "Submission failed");
       }
 
+      const savedRegistration = await res.json();
+      const participantName = findAnswerByLabel(questions, answers, ["name", "full name"]) || savedRegistration?.userName || savedRegistration?.userEmail || "Participant";
+      const rollNo = findAnswerByLabel(questions, answers, ["roll", "roll no", "roll number"]) || savedRegistration?.rollNo || "—";
+
+      setTicketData({
+        registrationId: savedRegistration?.registrationId,
+        eventName: eventData?.name || eventData?.title || DEFAULT_EVENT.name,
+        venueLine: displayVenue,
+        date: formatTicketDate(rawDate),
+        time: displayTime,
+        teamValue: isTeamEvent ? String(Math.max(team.length, 1)) : "Solo",
+        registeredAt: formatTicketDate(savedRegistration?.submittedAt || new Date().toISOString()),
+        participantName,
+        rollNo,
+        clubName,
+        clubLogo,
+        isTeamEvent,
+      });
       setSubmitted(true);
     } catch (err) {
       console.error(err);
@@ -475,6 +515,7 @@ export default function EventPreview({ formId: propFormId, initialData }) {
             : "Submit registration"}
         </button>
       </div>
+      <EventTicket open={Boolean(ticketData)} onClose={() => setTicketData(null)} ticket={ticketData} />
     </div>
   );
 }
