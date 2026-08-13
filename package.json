@@ -25,6 +25,7 @@
     "html-to-image": "^1.11.13",
     "jsonwebtoken": "^9.0.3",
     "jspdf": "^4.2.1",
+    "jsbarcode": "^3.12.1",
     "lucide-react": "^0.562.0",
     "mongoose": "^9.7.0",
     "next": "16.1.1",
