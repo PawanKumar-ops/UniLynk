@@ -80,7 +80,7 @@ export default function App() {
 
   return (
     <div className="min-h-full w-full" style={{ background: C.bg, color: C.text }}>
-      <div className="mx-auto w-full max-w-[640px] px-5 py-8 sm:py-12">
+      <div className="mx-auto w-full max-w-[640px] px-[10px] py-8 sm:py-12">
         {/* ---------- Banner ---------- */}
         <div style={{ backgroundColor: "rgb(247, 247, 249)", borderRadius: 28, position: "relative", border: `1px solid ${C.border}` }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px 10px" }}>
@@ -165,15 +165,25 @@ export default function App() {
           {/* Paragraph */}
           <Field label="Tell us about your team" required>
             <textarea
-              value={about}
-              onChange={(e) => setAbout(e.target.value)}
-              rows={1}
-              placeholder="A few words about your team's playing style, past wins…"
-              className="autogrow w-full resize-none rounded-lg border px-3 py-2.5 text-sm font-medium outline-none transition-colors leading-relaxed"
-              style={{ background: C.bg, color: C.text, border: `1px solid ${C.border}`, minHeight: 40 }}
-              onFocus={(e) => (e.currentTarget.style.borderColor = C.primary)}
-              onBlur={(e) => (e.currentTarget.style.borderColor = C.border)}
-            />
+  value={about}
+  onChange={(e) => {
+    setAbout(e.target.value);
+    e.currentTarget.style.height = "auto";
+    e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
+  }}
+  rows={1}
+  placeholder="A few words about your team's playing style, past wins…"
+  className="w-full resize-none rounded-lg border px-3 py-2.5 text-sm font-medium outline-none transition-colors leading-relaxed overflow-hidden"
+  style={{
+    background: C.bg,
+    color: C.text,
+    border: `1px solid ${C.border}`,
+    minHeight: 40,
+    height: 40,
+  }}
+  onFocus={(e) => (e.currentTarget.style.borderColor = C.primary)}
+  onBlur={(e) => (e.currentTarget.style.borderColor = C.border)}
+/>
           </Field>
 
           {/* Multiple choice */}
