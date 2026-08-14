@@ -42,6 +42,11 @@ const UserSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  teamFinderDescription: {
+    type: String,
+    default: "",
+    maxlength: 600,
+  },
   blockedUsers: {
     type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     default: [],

@@ -294,6 +294,25 @@ export default function EventPreview({ formId: propFormId, initialData }) {
       }
 
       const savedRegistration = await res.json();
+
+      if (isTeamEvent) {
+        const teamFinderType = team.length > 0 && team.length < maxTeamSize ? "team" : team.length === 0 ? "solo" : null;
+        if (teamFinderType) {
+          await fetch("/api/forms/team-finder", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              formId,
+              type: teamFinderType,
+              teamRegistration: {
+                members: team,
+                maxSize: maxTeamSize,
+              },
+            }),
+          });
+        }
+      }
+
       const participantName = findAnswerByLabel(questions, answers, ["name", "full name"]) || savedRegistration?.userName || savedRegistration?.userEmail || "Participant";
       const rollNo = findAnswerByLabel(questions, answers, ["roll", "roll no", "roll number"]) || savedRegistration?.rollNo || "—";
 

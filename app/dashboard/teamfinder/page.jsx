@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from 'react'
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Icon } from '@iconify/react';
 import { DashboardEventsShell } from '@/components/DashboardEventsShell'
 import '@/app/dashboard/dashboard.css'
@@ -168,30 +168,56 @@ const currentUser = {
 /* ------------------------------------------------------------------ */
 
 
-function TeamFinderPage() {
-  const [view, setView] = useState({ name: 'teams' })
-  const team = view.name === "team" ? teams.find((t) => t.id === view.id) : null;
-  const seeker = view.name === "seeker" ? seekers.find((s) => s.id === view.id) : null;
+export function TeamFinderPage({ initialView = "teams" }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const [teamsData, setTeamsData] = useState([]);
+  const [seekersData, setSeekersData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    let ignore = false;
+    setLoading(true);
+    fetch("/api/forms/team-finder", { cache: "no-store" })
+      .then((res) => res.ok ? res.json() : Promise.reject(new Error("Could not load TeamFinder")))
+      .then((data) => {
+        if (!ignore) {
+          setTeamsData(data.teams || []);
+          setSeekersData(data.solo || []);
+        }
+      })
+      .catch((error) => console.error(error))
+      .finally(() => !ignore && setLoading(false));
+    return () => { ignore = true; };
+  }, [refreshKey]);
+
+  const parts = pathname.split("/").filter(Boolean);
+  const section = parts[2] === "teamfinder" ? parts[3] : initialView;
+  const id = decodeURIComponent(parts[4] || "");
+  const viewName = section === "members" ? (id ? "seeker" : "seekers") : (id ? "team" : "teams");
+  const team = viewName === "team" ? teamsData.find((t) => t.id === id) : null;
+  const seeker = viewName === "seeker" ? seekersData.find((s) => s.id === id) : null;
 
   return (
     <main className="min-h-full w-full bg-[#ffffff] text-[#0a0a0a]">
-      {view.name === 'teams' && (
+      {viewName === 'teams' && (
         <TeamsView
-          onOpen={(id) => setView({ name: 'team', id })}
-          onFindMembers={() => setView({ name: 'seekers' })}
+          teams={teamsData} loading={loading} onRefresh={() => setRefreshKey((k) => k + 1)} onOpen={(id) => router.push(`/dashboard/teamfinder/teams/${encodeURIComponent(id)}`)}
+          onFindMembers={() => router.push('/dashboard/teamfinder/members')}
         />
       )}
-      {view.name === 'team' && team && (
-        <TeamDetailView team={team} onBack={() => setView({ name: 'teams' })} />
+      {viewName === 'team' && team && (
+        <TeamDetailView team={team} onBack={() => router.push('/dashboard/teamfinder/teams')} />
       )}
-      {view.name === 'seekers' && (
+      {viewName === 'seekers' && (
         <SeekersView
-          onOpen={(id) => setView({ name: 'seeker', id })}
-          onBack={() => setView({ name: 'teams' })}
+          seekers={seekersData} loading={loading} onOpen={(id) => router.push(`/dashboard/teamfinder/members/${encodeURIComponent(id)}`)}
+          onBack={() => router.push('/dashboard/teamfinder/teams')}
         />
       )}
-      {view.name === 'seeker' && seeker && (
-        <SeekerDetailView seeker={seeker} onBack={() => setView({ name: 'seekers' })} />
+      {viewName === 'seeker' && seeker && (
+        <SeekerDetailView seeker={seeker} onBack={() => router.push('/dashboard/teamfinder/members')} />
       )}
     </main>
   )
@@ -284,7 +310,7 @@ function PageHeader({
       >
 
         <button
-          onClick={() => router.back()}
+          onClick={onBack || (() => router.back())}
           aria-label="Go back"
           className="mr-6 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition hover:bg-black/5"
         >
@@ -402,13 +428,21 @@ function MessageComposer({
   hint,
   cta,
   kind,
+  formId,
+  target,
 }) {
   const [value, setValue] = useState('')
   const [sent, setSent] = useState(null)
 
-  const send = () => {
-    if (!value.trim()) return
-    setSent(value.trim())
+  const send = async () => {
+    if (!value.trim() || !formId || !target) return
+    const message = value.trim()
+    const res = await fetch('/api/team-finder/requests', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ formId, target, message }),
+    })
+    if (res.ok) setSent(message)
   }
 
   return (
@@ -456,25 +490,24 @@ function MessageComposer({
 /* ------------------------------------------------------------------ */
 
 function TeamsView({
+  teams: teamsList = [],
+  loading = false,
   onOpen,
   onFindMembers,
 }) {
-  const [filter, setFilter] = useState('All')
-  const cats = ['All', 'Hackathon', 'Robotics', 'Creative']
-  const list = filter === 'All' ? teams : teams.filter((t) => t.category === filter)
+  const [profileOpen, setProfileOpen] = useState(false)
+  const list = teamsList
 
   return (
     <div className="view-in">
       <PageHeader
         title="Join a Team"
-        subtitle={`${teams.length} teams are looking for members`}
+        subtitle={loading ? "Loading teams..." : `${teamsList.length} teams are looking for members`}
         action={
           <div className='flex items-center gap-1.5'>
             <div className="group relative">
               <button
-                onClick={() => {
-                  // add description
-                }}
+                onClick={() => setProfileOpen(true)}
                 aria-label="Find members looking for a team"
                 className="rounded-full flex items-center justify-center border h-9 w-9 border-[#e0e0de] bg-[#ffffff] text-[13px] font-semibold transition-colors hover:bg-[#f4f4f3]"
               >
@@ -504,9 +537,39 @@ function TeamsView({
 
 
       <div className="flex flex-col gap-3 sm:px-3.5 pb-1.5">
-        {list.map((t) => (
+        {loading ? <p className="px-4 py-6 text-sm text-[#71717a]">Loading TeamFinder...</p> : list.map((t) => (
           <TeamCard key={t.id} team={t} onOpen={() => onOpen(t.id)} />
         ))}
+      </div>
+      <FinishProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
+    </div>
+  )
+}
+
+function FinishProfileModal({ open, onClose }) {
+  const [description, setDescription] = useState('')
+  const [saving, setSaving] = useState(false)
+  if (!open) return null
+  const save = async () => {
+    setSaving(true)
+    try {
+      const res = await fetch('/api/team-finder/profile', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ description }) })
+      if (!res.ok) throw new Error('Could not save')
+      onClose()
+    } finally {
+      setSaving(false)
+    }
+  }
+  return (
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 p-5 backdrop-blur-[3px]" onClick={onClose}>
+      <div className="w-full max-w-[420px] rounded-[28px] border border-[#eeeeed] bg-white p-6 shadow-[0_40px_80px_-24px_rgba(0,0,0,0.35)]" onClick={(e) => e.stopPropagation()}>
+        <h2 className="text-[21px] font-extrabold tracking-[-0.02em]">Finish TeamFinder profile</h2>
+        <p className="mt-1.5 text-[14px] leading-relaxed text-[#71717a]">Add a short message shown on your member detail page so teams know what you can contribute.</p>
+        <textarea value={description} onChange={(e) => setDescription(e.target.value.slice(0, 600))} rows={5} placeholder="I am looking for a team where I can contribute..." className="mt-5 w-full resize-none rounded-2xl border border-[#e0e0de] bg-white p-3 text-[14px] outline-none focus:border-[#0a0a0a]/50" />
+        <div className="mt-5 flex gap-2">
+          <button onClick={onClose} className="flex-1 rounded-full bg-[#eceef1] py-3 text-[14px] font-semibold">Cancel</button>
+          <button onClick={save} disabled={saving || !description.trim()} className="flex-1 rounded-full bg-black py-3 text-[14px] font-semibold text-white disabled:opacity-40">{saving ? 'Saving...' : 'Save'}</button>
+        </div>
       </div>
     </div>
   )
@@ -591,7 +654,7 @@ function TeamDetailView({ team, onBack }) {
 
         <ul className="mt-3 flex flex-col divide-y divide-[#eeeeed] overflow-hidden rounded-[22px] border border-[#eeeeed]">
           {team.members.map((m) => (
-            <li key={m.id} className="flex items-center gap-3.5 px-4 py-3.5 transition-colors hover:bg-[#f6f6f5]">
+            <li key={m.id} onClick={() => m.userId && window.location.assign(`/dashboard/profile/${m.userId}`)} className="flex cursor-pointer items-center gap-3.5 px-4 py-3.5 transition-colors hover:bg-[#f6f6f5]">
               <Avatar src={m.avatar} alt={m.name} size={46} />
               <div className="min-w-0 flex-1">
                 <p className="truncate text-[15px] font-semibold">{m.name}</p>
@@ -612,6 +675,8 @@ function TeamDetailView({ team, onBack }) {
             label="Introduce yourself"
             placeholder={`Hi ${team.lead.split(' ')[0]}, I'd love to join ${team.name}. Here's what I can bring to the team…`}
             hint="Shared with the team lead."
+            formId={team.formId}
+            target={{ kind: 'team', teamId: team.id }}
           />
         </div>
       </div>
@@ -623,17 +688,17 @@ function TeamDetailView({ team, onBack }) {
 /* View 3 — Members looking for a team                                 */
 /* ------------------------------------------------------------------ */
 
-function SeekersView({ onOpen, onBack }) {
+function SeekersView({ seekers: seekersList = [], loading = false, onOpen, onBack }) {
   return (
     <div className="view-in">
       <PageHeader
         title="Find Members"
-        subtitle={`${seekers.length} students are looking for a team`}
+        subtitle={loading ? "Loading members..." : `${seekersList.length} students are looking for a team`}
         onBack={onBack}
       />
 
       <div className="flex flex-col gap-3 sm:px-3.5 pb-1.5">
-        {seekers.map((s) => (
+        {loading ? <p className="px-4 py-6 text-sm text-[#71717a]">Loading TeamFinder...</p> : seekersList.map((s) => (
           <button
             key={s.id}
             onClick={() => onOpen(s.id)}
@@ -669,9 +734,9 @@ function SeekerDetailView({ seeker, onBack }) {
       <div className="flex flex-col gap-3 sm:px-3.5 pb-1.5">
         <section className="rounded-[28px] border border-[#eeeeed] bg-[#ffffff] p-7">
           <div className="flex items-center gap-4">
-            <Avatar src={seeker.avatar} alt={seeker.name} size={74} />
+            <button onClick={() => seeker.userId && window.location.assign(`/dashboard/profile/${seeker.userId}`)} className="rounded-full"><Avatar src={seeker.avatar} alt={seeker.name} size={74} /></button>
             <div className="min-w-0">
-              <h2 className="text-[21px] font-extrabold tracking-[-0.01em]">{seeker.name}</h2>
+              <button onClick={() => seeker.userId && window.location.assign(`/dashboard/profile/${seeker.userId}`)} className="text-left"><h2 className="text-[21px] font-extrabold tracking-[-0.01em]">{seeker.name}</h2></button>
               <p className="text-[14px] font-medium text-[#71717a]">
                 {seeker.branch} · {seeker.year}
               </p>
@@ -702,6 +767,8 @@ function SeekerDetailView({ seeker, onBack }) {
             label="Invite to your team"
             placeholder={`Hey ${seeker.name.split(' ')[0]}, we think you'd be a great fit for our team. Want to chat about joining?`}
             hint={`Sent directly to ${seeker.name.split(' ')[0]}.`}
+            formId={seeker.formId}
+            target={{ kind: 'users', userIds: [seeker.id] }}
           />
         </div>
       </div>
