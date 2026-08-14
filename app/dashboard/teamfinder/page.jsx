@@ -25,143 +25,13 @@ import {
 /* ------------------------------------------------------------------ */
 
 
-const av = (id, w = 160) =>
-  `https://images.unsplash.com/${id}?w=${w}&h=${w}&fit=crop&auto=format`
-
-const teams = [
-  {
-    id: 't1',
-    name: 'Quantum Loop',
-    project: 'Smart India Hackathon 2026 — AI campus navigator',
-    category: 'Hackathon',
-    needed: 1,
-    lead: 'Ananya Rao',
-    members: [
-      { id: 'm1', name: 'Ananya Rao', branch: 'Computer Science', year: 'Third Year', avatar: av('photo-1494790108377-be9c29b29330'), role: 'Team Lead · ML' },
-      { id: 'm2', name: 'Kabir Menon', branch: 'Electronics & Comm.', year: 'Second Year', avatar: av('photo-1500648767791-00dcc994a43e'), role: 'Backend' },
-      { id: 'm3', name: 'Ishita Verma', branch: 'Computer Science', year: 'Third Year', avatar: av('photo-1534528741775-53994a69daeb'), role: 'Design' },
-    ],
-  },
-  {
-    id: 't2',
-    name: 'Grid Runners',
-    project: 'Formula Student — electric drivetrain telemetry',
-    category: 'Robotics',
-    needed: 2,
-    lead: 'Dev Sharma',
-    members: [
-      { id: 'm4', name: 'Dev Sharma', branch: 'Mechanical', year: 'Fourth Year', avatar: av('photo-1506794778202-cad84cf45f1d'), role: 'Team Lead' },
-      { id: 'm5', name: 'Naina Gupta', branch: 'Electrical', year: 'Third Year', avatar: av('photo-1517841905240-472988babdf9'), role: 'Powertrain' },
-    ],
-  },
-  {
-    id: 't3',
-    name: 'Frame 24',
-    project: 'Inter-college short film · sci-fi anthology',
-    category: 'Creative',
-    needed: 3,
-    lead: 'Rohan Nair',
-    members: [
-      { id: 'm6', name: 'Rohan Nair', branch: 'Architecture', year: 'Fourth Year', avatar: av('photo-1519085360753-af0119f7cbe7'), role: 'Director' },
-      { id: 'm7', name: 'Meera Iyer', branch: 'Humanities', year: 'Second Year', avatar: av('photo-1544005313-94ddf0286df2'), role: 'Writer' },
-    ],
-  },
-  {
-    id: 't4',
-    name: 'Ledger Labs',
-    project: 'ETHIndia — on-chain attendance & credentials',
-    category: 'Hackathon',
-    needed: 1,
-    lead: 'Aditya Bose',
-    members: [
-      { id: 'm8', name: 'Aditya Bose', branch: 'Computer Science', year: 'Third Year', avatar: av('photo-1502685104226-ee32379fefbe'), role: 'Team Lead · Solidity' },
-      { id: 'm9', name: 'Sara Khan', branch: 'Information Tech.', year: 'Second Year', avatar: av('photo-1508214751196-bcfd4ca60f91'), role: 'Frontend' },
-      { id: 'm10', name: 'Yash Pillai', branch: 'Computer Science', year: 'Third Year', avatar: av('photo-1531427186611-ecfd6d936c79'), role: 'Full-stack' },
-    ],
-  },
-  {
-    id: 't5',
-    name: 'Solaris',
-    project: 'Shell Eco-marathon — solar vehicle build',
-    category: 'Robotics',
-    needed: 2,
-    lead: 'Tara Deshmukh',
-    members: [
-      { id: 'm11', name: 'Tara Deshmukh', branch: 'Mechanical', year: 'Fourth Year', avatar: av('photo-1487412720507-e7ab37603c6f'), role: 'Team Lead' },
-      { id: 'm12', name: 'Farhan Ali', branch: 'Electrical', year: 'Third Year', avatar: av('photo-1463453091185-61582044d556'), role: 'Systems' },
-    ],
-  },
-]
-
-const seekers = [
-  {
-    id: 's1',
-    name: 'Aryan Kapoor',
-    branch: 'Computer Science',
-    year: 'Second Year',
-    avatar: av('photo-1500648767791-00dcc994a43e'),
-    headline: 'Full-stack dev looking for a hackathon squad',
-    skills: ['React', 'Node.js', 'PostgreSQL'],
-    looking: 'A hackathon team for Smart India Hackathon 2026. I can own the entire web stack and love shipping fast.',
-  },
-  {
-    id: 's2',
-    name: 'Priya Sundaram',
-    branch: 'Design (B.Des)',
-    year: 'Third Year',
-    avatar: av('photo-1534528741775-53994a69daeb'),
-    headline: 'Product designer — UX, prototyping, motion',
-    skills: ['Figma', 'UX Research', 'Framer'],
-    looking: 'Any team that needs design leadership. I turn rough ideas into polished, usable products.',
-  },
-  {
-    id: 's3',
-    name: 'Nikhil Reddy',
-    branch: 'Electronics & Comm.',
-    year: 'Third Year',
-    avatar: av('photo-1531427186611-ecfd6d936c79'),
-    headline: 'Embedded + robotics enthusiast',
-    skills: ['C/C++', 'PCB Design', 'ROS'],
-    looking: 'A robotics or Formula Student team. Comfortable with firmware, sensors and control systems.',
-  },
-  {
-    id: 's4',
-    name: 'Sanya Malhotra',
-    branch: 'Information Tech.',
-    year: 'Second Year',
-    avatar: av('photo-1508214751196-bcfd4ca60f91'),
-    headline: 'ML student, first hackathon',
-    skills: ['Python', 'PyTorch', 'Pandas'],
-    looking: 'A beginner-friendly team to learn and contribute on an ML-heavy project.',
-  },
-  {
-    id: 's5',
-    name: 'Karan Joshi',
-    branch: 'Mechanical',
-    year: 'Fourth Year',
-    avatar: av('photo-1506794778202-cad84cf45f1d'),
-    headline: 'CAD + manufacturing lead',
-    skills: ['SolidWorks', 'CFD', 'Fabrication'],
-    looking: 'A vehicle or drone build team for a final-year capstone-worthy project.',
-  },
-  {
-    id: 's6',
-    name: 'Zoya Sheikh',
-    branch: 'Humanities',
-    year: 'First Year',
-    avatar: av('photo-1544005313-94ddf0286df2'),
-    headline: 'Writer & content strategist',
-    skills: ['Copywriting', 'Storyboarding', 'Editing'],
-    looking: 'A creative or film team where I can shape narrative and outreach.',
-  },
-]
-
+// Hard‑coded current user for display on TeamFinder page
 const currentUser = {
   name: 'Anime Merch',
-  email: 'animemerch90@gmail.com',
-  year: 'First Year',
-  avatar: 'https://images.unsplash.com/photo-1607746882042-944635dfe10e?w=160&h=160&fit=crop&auto=format',
-}
+  avatar: '/Profilepic.png', // placeholder image path
+};
+// The component now relies entirely on the `data` state populated by the `load` function.
+
 
 /* ------------------------------------------------------------------ */
 /* App                                                                 */
@@ -243,6 +113,9 @@ function Avatar({ src, alt, size = 44 }) {
     </span>
   )
 }
+
+// Mock data removed. Real data is fetched from the API via `/api/forms/team-finder` and stored in state.
+// The component now relies on the `data` state populated by the `load` function.
 
 function AvatarStack({ members }) {
   return (
@@ -591,6 +464,7 @@ function TeamsView({ teams, loading, onRefresh, onOpen, onFindMembers }) {
         }
       />
 
+      <FinishProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
 
       <div className="flex flex-col gap-3 sm:px-3.5 pb-1.5">
         {loading ? <p className='px-4 text-[13px] text-[#71717a]'>Loading teams from MongoDB...</p> : list.map((t) => (
@@ -660,7 +534,7 @@ function TeamDetailView({ team, onBack }) {
               <h2 className="text-[27px] font-extrabold leading-none tracking-[-0.03em]">
                 {team.name}
               </h2>
-              <p className="mt-2.5 text-[15px] leading-snug text-[#71717a]">{team.project}</p>
+                <p className="mt-2.5 text-[15px] leading-snug text-[#71717a]">{team.eventTitle}</p>
             </div>
           </div>
 
@@ -757,7 +631,7 @@ function SeekerDetailView({ seeker, onBack }) {
   const router = useRouter()
   return (
     <div className="view-in">
-      <PageHeader title={seeker.name} subtitle="Looking for a team" onBack={onBack} />
+      <PageHeader title={seeker.name} subtitle={`${seeker.branch} · ${seeker.year}`} onBack={onBack} />
 
       <div className="flex flex-col gap-3 sm:px-3.5 pb-1.5">
         <section className="rounded-[28px] border border-[#eeeeed] bg-[#ffffff] p-7">

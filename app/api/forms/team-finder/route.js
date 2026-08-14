@@ -49,15 +49,37 @@ const buildTeamFinder = async ({ form, response, sessionUser }) => {
   return null;
 };
 
-const serialize = (response, form) => {
+const serialize = (response, form, user = null) => {
   const tf = response.teamFinder || {};
   const id = String(response._id);
+  const userProfile = user || {};
+  const profile = tf.profile || {};
   if (tf.type === "team") {
     const team = tf.team || {};
     const description = form?.description || "Open team looking for members";
-    return { id, formId: String(response.formId), eventTitle: form?.title || form?.name || "Event", name: team.name || `${team.lead || "Lead"}'s Team`, lead: team.lead || tf.profile?.name || "Team Lead", leadEmail: tf.profile?.email || response.userEmail, needed: team.needed || 0, total: team.total || Math.max(team.members?.length || 1, 1), category: form?.title || "Event", project: description.length > 88 ? `${description.slice(0, 88).trim()}...` : description, members: team.members || [], lookingFor: team.lookingFor || ["Teammates"] };
+    return { id, formId: String(response.formId), eventTitle: form?.title || form?.name || "Event", name: team.name || `${team.lead || "Lead"}'s Team`, lead: team.lead || profile.name || "Team Lead", leadEmail: profile.email || response.userEmail, needed: team.needed || 0, total: team.total || Math.max(team.members?.length || 1, 1), category: form?.title || "Event", project: description.length > 88 ? `${description.slice(0, 88).trim()}...` : description, members: team.members || [], lookingFor: team.lookingFor || ["Teammates"] };
   }
-  return { id, formId: String(response.formId), userId: tf.profile?.userId || "", eventTitle: form?.title || form?.name || "Event", name: tf.profile?.name || fallbackName(response.userEmail), email: tf.profile?.email || response.userEmail, branch: tf.profile?.branch || "General", year: tf.profile?.year || "Student", avatar: tf.profile?.avatar || "/Profilepic.png", headline: (tf.profile?.description || form?.description || "Looking for a team").slice(0, 90) + ((tf.profile?.description || form?.description || "").length > 90 ? "..." : ""), looking: tf.profile?.description || "I am looking for a team for this event.", skills: tf.profile?.skills || [] };
+  const name = profile.name || userProfile.name || fallbackName(response.userEmail);
+  const email = profile.email || userProfile.email || response.userEmail;
+  const branch = profile.branch || userProfile.branch || "General";
+  const year = profile.year || userProfile.year || "Student";
+  const avatar = profile.avatar || userProfile.img || "/Profilepic.png";
+  const skills = Array.isArray(profile.skills) && profile.skills.length ? profile.skills : Array.isArray(userProfile.skills) ? userProfile.skills : [];
+  const descriptionText = profile.description || form?.description || "Looking for a team";
+  return {
+    id,
+    formId: String(response.formId),
+    userId: profile.userId || userProfile._id ? String(profile.userId || userProfile._id || "") : "",
+    eventTitle: form?.title || form?.name || "Event",
+    name,
+    email,
+    branch,
+    year,
+    avatar,
+    headline: descriptionText.slice(0, 90) + (descriptionText.length > 90 ? "..." : ""),
+    looking: profile.description || "I am looking for a team for this event.",
+    skills,
+  };
 };
 
 export async function GET(req) {
@@ -71,8 +93,16 @@ export async function GET(req) {
     const formIds = [...new Set(responses.map((r) => String(r.formId)))];
     const forms = await Form.find({ _id: { $in: formIds }, $or: [{ isTeam: true }, { isTeamEvent: true }] }).select("title name description teamSize").lean();
     const byId = new Map(forms.map((f) => [String(f._id), f]));
+    const userEmails = [...new Set(responses.map((r) => emailNorm(r.userEmail || r.teamFinder?.profile?.email || "")).filter(Boolean))];
+    const users = userEmails.length ? await User.find({ email: { $in: userEmails } }).select("_id name email branch year img skills").lean() : [];
+    const byUserEmail = new Map(users.map((u) => [emailNorm(u.email), u]));
     const scoped = responses.filter((r) => byId.has(String(r.formId)));
-    return Response.json({ solo: scoped.filter((r) => r.teamFinder?.type === "solo").map((r) => serialize(r, byId.get(String(r.formId)))), teams: scoped.filter((r) => r.teamFinder?.type === "team").map((r) => serialize(r, byId.get(String(r.formId)))) });
+    return Response.json({
+      solo: scoped.filter((r) => r.teamFinder?.type === "solo").map((r) => serialize(r, byId.get(String(r.formId)), byUserEmail.get(emailNorm(r.userEmail || r.teamFinder?.profile?.email || ""))),
+      ),
+      teams: scoped.filter((r) => r.teamFinder?.type === "team").map((r) => serialize(r, byId.get(String(r.formId)), byUserEmail.get(emailNorm(r.userEmail || r.teamFinder?.profile?.email || ""))),
+      ),
+    });
   } catch (e) { console.error(e); return Response.json({ error: e.message }, { status: 500 }); }
 }
 
