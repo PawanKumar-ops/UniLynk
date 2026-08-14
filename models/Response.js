@@ -36,7 +36,8 @@ const ResponseSchema = new mongoose.Schema({
     },
     profile: {
       name: String,
-      email: String
+      email: String,
+      description: String
     },
     team: {
       name: String,

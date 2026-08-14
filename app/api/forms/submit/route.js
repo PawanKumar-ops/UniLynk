@@ -75,7 +75,7 @@ export async function POST(req) {
     const existing = await FormResponse.findOne({ formId, userEmail }).select("_id isSubmitted submittedAt").lean();
     if (existing?.isSubmitted || existing?.submittedAt) return Response.json({ error: "Already submitted" }, { status: 409 });
 
-    const user = await User.findOne({ email: userEmail }, { name: 1, rollNumber: 1 }).lean();
+    const user = await User.findOne({ email: userEmail }, { name: 1, rollNumber: 1, branch: 1, year: 1, img: 1, skills: 1 }).lean();
     for (let attempt = 0; attempt < 5; attempt += 1) {
       try {
         const registration = registrationId();
@@ -87,6 +87,20 @@ export async function POST(req) {
             )
           : await FormResponse.create({ formId, userEmail, answers: safeAnswers, registrationId: registration, isSubmitted: true, submittedAt: new Date() });
         if (!response) return Response.json({ error: "Already submitted" }, { status: 409 });
+        if (form.isTeam || form.isTeamEvent) {
+          const max = Math.max(1, Number(form.teamSize) || 4);
+          const leadName = user?.name || session.user.name || userEmail.split("@")[0];
+          const lead = { id: String(user?._id || response._id), userId: String(user?._id || ""), name: leadName, email: userEmail, branch: user?.branch || "General", year: user?.year || "Student", avatar: user?.img || "/Profilepic.png", role: "Team Lead", skills: user?.skills || [] };
+          const members = [lead, ...(safeAnswers.team || []).map((m) => ({ ...m, userId: m.id, email: m.email || "", role: m.role || "Member" }))];
+          const uniqueMembers = members.filter((m, index, arr) => arr.findIndex((x) => String(x.userId || x.id || x.email) === String(m.userId || m.id || m.email)) === index);
+          const hasAddedMembers = (safeAnswers.team || []).length > 0;
+          const teamFinder = uniqueMembers.length < max
+            ? (hasAddedMembers
+              ? { type: "team", profile: { name: leadName, email: userEmail }, team: { name: `${leadName}'s Team`, lead: leadName, members: uniqueMembers, needed: max - uniqueMembers.length, total: max, lookingFor: [] }, addedAt: new Date() }
+              : { type: "solo", profile: { userId: String(user?._id || ""), name: leadName, email: userEmail, branch: user?.branch || "General", year: user?.year || "Student", avatar: user?.img || "/Profilepic.png", skills: user?.skills || [], description: "" }, addedAt: new Date() })
+            : undefined;
+          if (teamFinder) await FormResponse.updateOne({ _id: response._id }, { $set: { teamFinder } });
+        }
         return Response.json({ ...response.toObject(), userName: user?.name || session.user.name || "", rollNo: user?.rollNumber || "" }, { status: 201 });
       } catch (error) {
         if (error?.code !== 11000) throw error;
