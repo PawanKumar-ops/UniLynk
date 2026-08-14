@@ -1,20 +1,29 @@
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/user";
+import { auth } from "@/auth";
+
+const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 export async function GET(req) {
   try {
     await connectDB();
 
     const { searchParams } = new URL(req.url);
-    const q = (searchParams.get("q") || "").trim();
-    const limit = Math.min(Number(searchParams.get("limit") || 8), 20);
+    const q = (searchParams.get("q") || "").trim().slice(0, 80);
+    const isTeamSearch = searchParams.get("scope") === "team";
+    const limit = isTeamSearch ? 5 : Math.min(Number(searchParams.get("limit") || 8), 20);
+
+    if (isTeamSearch) {
+      const session = await auth();
+      if (!session?.user?.email) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     // 🚫 Block useless searches
     if (q.length < 2) {
-      return Response.json({ results: [] });
+      return Response.json(isTeamSearch ? { users: [] } : { results: [] });
     }
 
-    const regex = new RegExp(`^${q}`, "i"); // prefix match = MUCH faster
+    const regex = new RegExp(`^${escapeRegex(q)}`, "i"); // prefix match = MUCH faster
 
     const userQuery = {
       $or: [
@@ -32,6 +41,19 @@ export async function GET(req) {
     };
 
     // ⚡ Parallel execution
+    if (isTeamSearch) {
+      const users = await User.find(userQuery)
+        .select("_id name rollNumber branch year img")
+        .limit(5)
+        .lean();
+      return Response.json({
+        users: users.map((user) => ({
+          id: user._id.toString(), name: user.name || "Student", rollNumber: user.rollNumber || "",
+          branch: user.branch || "General", year: user.year || "Student", img: user.img || "/Profilepic.png",
+        })),
+      });
+    }
+
     const [users, clubs] = await Promise.all([
       User.find(userQuery)
         .select("_id name email img provider")

@@ -48,6 +48,7 @@ export async function POST(req) {
       isTeam: Boolean(data.isTeam ?? data.isTeamEvent),
       isTeamEvent: Boolean(data.isTeam ?? data.isTeamEvent),
       teamSize: Number(data.teamSize || 4),
+      registrationDeadline: data.registrationDeadline || data.deadline || null,
       questions: questionsList,
       createdBy: normalizedEmail,
       clubId: data.clubId || null,

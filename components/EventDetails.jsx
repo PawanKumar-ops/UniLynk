@@ -3,6 +3,7 @@
 import { ArrowLeft } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { Icon } from "@iconify/react";
 
 function formatDate(value) {
     if (!value) return "Date TBA";
@@ -111,14 +112,64 @@ export default function EventDetails({ eventId }) {
       `}</style>
             <div style={{ flex: 1, height: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#ffffff", position: "relative", overflow: "hidden" }}>
                 <div className="hide-scrollbar" style={{ flex: 1, overflowY: "auto" }}>
-                    <header className="sticky top-0 z-50 mb-5 flex h-[54px] items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl" style={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
-                        <div className="flex items-center" style={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
-                            <button onClick={() => router.back()} className="mr-6 flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-black/5" aria-label="Back">
+
+
+
+
+                  
+
+
+                    <header
+                        className="sticky top-0 z-50 mb-5 flex h-[54px] items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl"
+                        style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
+                    >
+                        {/* Left */}
+                        <div
+                            className="flex items-center"
+                            style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
+                        >
+                            <button
+                                onClick={() => router.back()}
+                                className="mr-6 flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-black/5"
+                            >
                                 <ArrowLeft size={20} strokeWidth={2.2} />
                             </button>
-                            <div><h1 className="truncate text-[20px] font-bold leading-5 text-black">{title}</h1></div>
+
+                            <div>
+                                <h1 className="truncate text-[20px] font-bold leading-5 text-black">
+                                    {title}
+                                </h1>
+
+                                {/* <p className="mt-0.5 text-[13px] leading-4 text-[#536471]">
+                                    {club.members.toLocaleString()} members
+                                </p> */}
+                            </div>
+                        </div>
+
+                        {/* Right */}
+                        <div className="flex items-center gap-1.5">
+                            {/* Add Members */}
+                            <div className="group relative">
+                                <button
+                                    onClick={() => router.push("/dashboard/teamfinder")}
+                                    className="flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-black/5"
+                                >
+                                    <Icon
+                                        icon="hugeicons:user-search-02"
+                                        className="text-[21px] text-[#171717]"
+                                    />
+                                </button>
+
+                                <div className="pointer-events-none absolute right-1/2 top-full mt-2 translate-x-1/2 rounded-full bg-[#2c2f35] px-3 py-1.5 text-xs font-medium whitespace-nowrap text-white opacity-0 transition-all duration-200 group-hover:translate-y-1 group-hover:opacity-100">
+                                    Team Finder
+                                </div>
+                            </div>
+
                         </div>
                     </header>
+
+
+
 
                     <div className="px-[14px]">
                         <div style={{ backgroundColor: "#f7f7f9", borderRadius: "28px", overflow: "visible", position: "relative" }}>

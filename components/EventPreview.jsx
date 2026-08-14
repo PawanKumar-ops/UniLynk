@@ -1,14 +1,13 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import {
   Calendar,
   Check,
   ChevronDown,
   Clock,
   FileText,
-  ImageIcon,
   MapPin,
   Plus,
   Search,
@@ -32,52 +31,83 @@ const C = {
   accent: "#2c2c2e",
 };
 
-const DEFAULT_EVENT = {
-  club: "Cricket Club",
-  clubLogo:
-    "https://res.cloudinary.com/dpzqayckn/image/upload/v1784122081/club-logos/bxryxmx4jgzivqnixlsn.jpg",
-  cover:
-    "https://res.cloudinary.com/dpzqayckn/image/upload/v1784122921/event-covers/zbfxmye36apeekgxsbkc.webp",
-  date: "Jul 17",
-  name: "Inter-College Cricket Cup",
-  time: "4:00 PM",
-  venue: "Main Campus",
-  isTeam: false,
-  teamSize: 4,
-  questions: [],
-};
-
 function formatDate(dateStr) {
-  if (!dateStr) return "Jul 17";
+  if (!dateStr) return "—";
+
   try {
-    const d = new Date(dateStr.includes("T") ? dateStr : `${dateStr}T00:00:00`);
-    if (isNaN(d.getTime())) return dateStr;
-    return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    const value = String(dateStr).trim();
+
+    // Accept YYYY-MM-DD or ISO date strings
+    const d = new Date(
+      value.includes("T") ? value : `${value}T00:00:00`
+    );
+
+    // Invalid date
+    if (isNaN(d.getTime())) return "—";
+
+    return d.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+    });
   } catch (e) {
-    return dateStr;
+    return "—";
   }
 }
 
 function formatTime(timeStr) {
-  if (!timeStr) return "4:00 PM";
+  if (!timeStr) return "—";
+
   try {
-    if (timeStr.includes("AM") || timeStr.includes("PM")) return timeStr;
+    // Already formatted like "4:00 PM"
+    if (/^\d{1,2}:\d{2}\s?(AM|PM)$/i.test(timeStr.trim())) {
+      return timeStr.trim();
+    }
+
     const [h, m] = timeStr.split(":");
-    const date = new Date(2000, 0, 1, parseInt(h, 10), parseInt(m, 10));
-    return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    const hour = parseInt(h, 10);
+    const minute = parseInt(m, 10);
+
+    // Invalid time
+    if (
+      isNaN(hour) ||
+      isNaN(minute) ||
+      hour < 0 ||
+      hour > 23 ||
+      minute < 0 ||
+      minute > 59
+    ) {
+      return "—";
+    }
+
+    const date = new Date(2000, 0, 1, hour, minute);
+
+    return date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+    });
   } catch (e) {
-    return timeStr;
+    return "—";
   }
 }
 
 function formatTicketDate(dateStr) {
-  if (!dateStr) return "12 Aug";
+  if (!dateStr) return "—";
+
   try {
-    const d = new Date(dateStr.includes("T") ? dateStr : `${dateStr}T00:00:00`);
-    if (isNaN(d.getTime())) return dateStr;
-    return d.toLocaleDateString("en-US", { day: "2-digit", month: "short" });
+    const value = String(dateStr).trim();
+
+    const d = new Date(
+      value.includes("T") ? value : `${value}T00:00:00`
+    );
+
+    if (isNaN(d.getTime())) return "—";
+
+    return d.toLocaleDateString("en-US", {
+      day: "2-digit",
+      month: "short",
+    });
   } catch (e) {
-    return dateStr;
+    return "—";
   }
 }
 
@@ -98,6 +128,7 @@ export default function EventPreview({ formId: propFormId, initialData }) {
 
   const [eventData, setEventData] = useState(initialData || null);
   const [loading, setLoading] = useState(!initialData);
+  const [loadError, setLoadError] = useState("");
   const [applied, setApplied] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -117,7 +148,6 @@ export default function EventPreview({ formId: propFormId, initialData }) {
     }
 
     if (!formId) {
-      setEventData(DEFAULT_EVENT);
       setLoading(false);
       return;
     }
@@ -126,6 +156,7 @@ export default function EventPreview({ formId: propFormId, initialData }) {
 
     const loadForm = async () => {
       setLoading(true);
+      setLoadError("");
       try {
         if (formId.startsWith("draft_")) {
           const draft = getDraft(formId);
@@ -137,12 +168,12 @@ export default function EventPreview({ formId: propFormId, initialData }) {
         }
 
         const res = await fetch(`/api/forms/${formId}`);
-        if (res.ok) {
-          const data = await res.json();
-          if (!ignore) setEventData(data);
-        }
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || "Unable to load event details");
+        if (!ignore) setEventData(data);
       } catch (err) {
         console.error("Failed to load event data:", err);
+        if (!ignore) setLoadError(err.message || "Unable to load event details");
       } finally {
         if (!ignore) setLoading(false);
       }
@@ -169,14 +200,32 @@ export default function EventPreview({ formId: propFormId, initialData }) {
     };
   }, [formId, initialData]);
 
-  const clubName = eventData?.clubId?.clubName || eventData?.club || DEFAULT_EVENT.club;
-  const clubLogo = eventData?.clubId?.logo || eventData?.clubLogo || DEFAULT_EVENT.clubLogo;
-  const coverImage = eventData?.banner || eventData?.image || eventData?.cover || DEFAULT_EVENT.cover;
-  const rawDate = eventData?.date || DEFAULT_EVENT.date;
+  const clubName =
+    eventData?.clubId?.clubName ||
+    eventData?.club ||
+    "";
+
+  const clubLogo =
+    eventData?.clubId?.logo ||
+    eventData?.clubLogo ||
+    "";
+
+  const coverImage =
+    eventData?.banner ||
+    eventData?.image ||
+    eventData?.cover ||
+    "";
+
+  const rawDate = eventData?.date || "";
   const displayDate = formatDate(rawDate);
-  const rawTime = eventData?.time || DEFAULT_EVENT.time;
+
+  const rawTime = eventData?.time || "";
   const displayTime = formatTime(rawTime);
-  const displayVenue = eventData?.venue || eventData?.location || DEFAULT_EVENT.venue;
+
+  const displayVenue =
+    eventData?.venue ||
+    eventData?.location ||
+    "";
 
   const isTeamEvent = Boolean(eventData?.isTeam ?? eventData?.isTeamEvent);
   const maxTeamSize = Number(eventData?.teamSize || 4);
@@ -250,7 +299,10 @@ export default function EventPreview({ formId: propFormId, initialData }) {
 
       setTicketData({
         registrationId: savedRegistration?.registrationId,
-        eventName: eventData?.name || eventData?.title || DEFAULT_EVENT.name,
+        eventName:
+          eventData?.name ||
+          eventData?.title ||
+          "Untitled Event",
         venueLine: displayVenue,
         date: formatTicketDate(rawDate),
         time: displayTime,
@@ -279,6 +331,17 @@ export default function EventPreview({ formId: propFormId, initialData }) {
     );
   }
 
+  if (loadError || !eventData) {
+    return (
+      <div className="min-h-full w-full flex flex-col items-center justify-center gap-3 py-20" style={{ background: C.bg, color: C.subtext }}>
+        <p>{loadError || "Event details are unavailable."}</p>
+        <button className="rounded-full px-4 py-2 text-sm font-semibold" style={{ background: C.primary, color: C.primaryFg }} onClick={() => window.location.reload()}>
+          Try again
+        </button>
+      </div>
+    );
+  }
+
   const infoCards = [
     { icon: Calendar, label: "Date", value: displayDate },
     { icon: Clock, label: "Time", value: displayTime },
@@ -289,31 +352,117 @@ export default function EventPreview({ formId: propFormId, initialData }) {
     <div className="min-h-full w-full" style={{ background: C.bg, color: C.text }}>
       <div className="mx-auto w-full max-w-[640px] px-[10px] py-8 sm:py-12">
         {/* ---------- Banner ---------- */}
-        <div style={{ backgroundColor: "rgb(247, 247, 249)", borderRadius: 28, position: "relative", border: `1px solid ${C.border}` }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px 10px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, backgroundColor: "rgb(235, 235, 237)", borderRadius: 999, padding: "6px 13px 6px 7px" }}>
-              <div style={{ width: 20, height: 20, backgroundColor: "rgb(28, 28, 30)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-                <div className="w-[20px] h-[20px] rounded-full overflow-hidden bg-white flex items-center justify-center">
-                  <img alt={clubName} className="w-full h-full object-cover rounded-full block" src={clubLogo} />
+        {coverImage && (
+          <div
+            style={{
+              backgroundColor: "rgb(247, 247, 249)",
+              borderRadius: 28,
+              position: "relative",
+              border: `1px solid ${C.border}`,
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "12px 14px 10px",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  backgroundColor: "rgb(235, 235, 237)",
+                  borderRadius: 999,
+                  padding: "6px 13px 6px 7px",
+                }}
+              >
+                <div
+                  style={{
+                    width: 20,
+                    height: 20,
+                    backgroundColor: "rgb(28, 28, 30)",
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    flexShrink: 0,
+                  }}
+                >
+                  <div className="w-[20px] h-[20px] rounded-full overflow-hidden bg-white flex items-center justify-center">
+                    <img
+                      alt={clubName}
+                      className="w-full h-full object-cover rounded-full block"
+                      src={clubLogo}
+                    />
+                  </div>
                 </div>
+
+                <span
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 500,
+                    color: "rgb(28, 28, 30)",
+                  }}
+                >
+                  {clubName}
+                </span>
               </div>
-              <span style={{ fontSize: 12, fontWeight: 500, color: "rgb(28, 28, 30)" }}>{clubName}</span>
+            </div>
+
+            <div
+              style={{
+                margin: "0px 10px",
+                borderRadius: 20,
+                overflow: "hidden",
+                height: 250,
+                border: "1px solid rgb(230, 230, 230)",
+                backgroundColor: "#efeff2",
+              }}
+            >
+              <img
+                alt={eventData?.name || "Event cover"}
+                src={coverImage}
+                style={{
+                  width: "100%",
+                  height: "100%",
+                  objectFit: "cover",
+                }}
+              />
+            </div>
+
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "center",
+                position: "relative",
+                zIndex: 2,
+              }}
+            >
+              <div
+                style={{
+                  backgroundColor: "rgb(44, 44, 46)",
+                  color: "rgb(255, 255, 255)",
+                  border: "3px solid rgb(255, 255, 255)",
+                  borderRadius: 999,
+                  padding: "7px 22px",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  margin: "12px 0px -16px",
+                }}
+              >
+                {displayDate}
+              </div>
             </div>
           </div>
-          <div style={{ margin: "0px 10px", borderRadius: 20, overflow: "hidden", height: 250, border: "1px solid rgb(230, 230, 230)", backgroundColor: "#efeff2" }}>
-            <img alt={eventData?.name || "Event cover"} src={coverImage} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
-          </div>
-          <div style={{ display: "flex", justifyContent: "center", position: "relative", zIndex: 2 }}>
-            <div style={{ backgroundColor: "rgb(44, 44, 46)", color: "rgb(255, 255, 255)", border: "3px solid rgb(255, 255, 255)", borderRadius: 999, padding: "7px 22px", fontSize: 13, fontWeight: 500, margin: "12px 0px -16px" }}>
-              {displayDate}
-            </div>
-          </div>
-        </div>
+        )}
 
         {/* ---------- Title ---------- */}
         <div className="mt-8">
           <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight" style={{ color: C.text }}>
-            {eventData?.name || eventData?.title || "Inter-College Cricket Cup"}
+            {eventData?.name || eventData?.title || "Untitled Event"}
           </h1>
           <p className="mt-1.5 text-[14px]" style={{ color: C.subtext }}>
             Register yourself and join the event.
@@ -511,8 +660,8 @@ export default function EventPreview({ formId: propFormId, initialData }) {
           {submitted || applied
             ? "Submitted"
             : submitting
-            ? "Submitting..."
-            : "Submit registration"}
+              ? "Submitting..."
+              : "Submit registration"}
         </button>
       </div>
       <EventTicket open={Boolean(ticketData)} onClose={() => setTicketData(null)} ticket={ticketData} />
@@ -602,7 +751,7 @@ function FileUpload({ files, setFiles }) {
           <UploadCloud className="h-5 w-5" style={{ color: C.text }} />
         </span>
         <span className="text-[14px] font-semibold" style={{ color: C.text }}>
-          {uploading ? "Uploading to Cloudinary..." : "Click to upload or drag & drop"}
+          {uploading ? "Uploading..." : "Click to upload or drag & drop"}
         </span>
         <span className="text-[12px]" style={{ color: C.subtext }}>
           Images, PDF or DOCX · up to 10MB each
@@ -760,13 +909,20 @@ function TeamPicker({ team, setTeam, maxSize = 4, onClose }) {
   useEffect(() => {
     let ignore = false;
     const fetchUsers = async () => {
+      const trimmedQuery = query.trim();
+      if (trimmedQuery.length < 2) {
+        setMongoUsers([]);
+        setFetching(false);
+        return;
+      }
       setFetching(true);
       try {
-        const res = await fetch("/api/users");
+        const res = await fetch(`/api/users/search?scope=team&q=${encodeURIComponent(trimmedQuery)}&limit=5`);
         if (res.ok) {
           const data = await res.json();
           if (!ignore && Array.isArray(data?.users)) {
             const formatted = data.users.map((u) => ({
+              id: u.id,
               roll: u.rollNumber || u._id,
               name: u.name || "Student",
               branch: u.branch || "General",
@@ -787,7 +943,7 @@ function TeamPicker({ team, setTeam, maxSize = 4, onClose }) {
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [query]);
 
   const q = query.trim().toLowerCase();
   const matches = useMemo(() => {
@@ -804,7 +960,7 @@ function TeamPicker({ team, setTeam, maxSize = 4, onClose }) {
 
   const add = (u) => {
     if (team.length >= maxSize) return;
-    setTeam((prev) => (prev.some((t) => t.roll === u.roll) ? prev : [...prev, u]));
+    setTeam((prev) => (prev.some((t) => t.id === u.id || t.roll === u.roll) ? prev : [...prev, u]));
     setQuery("");
   };
 

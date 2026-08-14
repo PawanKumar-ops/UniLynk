@@ -25,6 +25,7 @@ const FormSchema = new mongoose.Schema(
     isTeam: { type: Boolean, default: false },
     isTeamEvent: { type: Boolean, default: false },
     teamSize: { type: Number, default: 4 },
+    registrationDeadline: { type: Date, default: null },
 
     questions: [QuestionSchema],
 

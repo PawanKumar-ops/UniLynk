@@ -53,6 +53,9 @@ export async function PUT(req) {
       isTeam: Boolean(formData.isTeam ?? formData.isTeamEvent),
       isTeamEvent: Boolean(formData.isTeam ?? formData.isTeamEvent),
       teamSize: Number(formData.teamSize || 4),
+      ...(formData.registrationDeadline !== undefined || formData.deadline !== undefined
+        ? { registrationDeadline: formData.registrationDeadline || formData.deadline || null }
+        : {}),
       questions: questionsList,
       ...(formData.clubId !== undefined ? { clubId: formData.clubId } : {}),
       ...(formData.visibility ? { visibility: formData.visibility } : {}),

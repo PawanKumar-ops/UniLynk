@@ -198,70 +198,70 @@ export function MyClubsPage() {
                   onClick={() => router.push(`Club?clubId=${club.id}`)}
                   className="relative w-full overflow-hidden rounded-3xl border border-neutral-200 bg-white p-2 text-left transition hover:border-neutral-300 hover:shadow-sm cursor-pointer"
                 >
-                    <div className="relative h-36 w-full overflow-hidden rounded-2xl bg-neutral-100">
-                      {club?.img ? (
-                        <img
-                          src={club.img}
-                          alt={`${club.name || ''} cover`}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50">
-                          <span className="text-4xl font-bold text-neutral-300">
-                            {initials(club.name)}
-                          </span>
-                        </div>
-                      )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
-
-                      <div className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 backdrop-blur-sm">
-                        <span
-                          className="text-black uppercase"
-                          style={{ fontSize: 10, letterSpacing: "0.08em" }}
-                        >
-                          {club.category || ''}
+                  <div className="relative h-36 w-full overflow-hidden rounded-2xl bg-neutral-100">
+                    {club?.img ? (
+                      <img
+                        src={club.img}
+                        alt={`${club.name || ''} cover`}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50">
+                        <span className="text-4xl font-bold text-neutral-300">
+                          {initials(club.name)}
                         </span>
                       </div>
+                    )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+
+                    <div className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 backdrop-blur-sm">
+                      <span
+                        className="text-black uppercase"
+                        style={{ fontSize: 10, letterSpacing: "0.08em" }}
+                      >
+                        {club.category || ''}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 px-3 pb-3 pt-4">
+                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full ring-2 ring-white shadow-[0_4px_12px_-4px_rgba(0,0,0,0.25)]">
+                      {club?.logo ? (
+                        <img
+                          src={club.logo}
+                          alt={`${club.name} logo`}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : null}
                     </div>
 
-                    <div className="flex items-center gap-3 px-3 pb-3 pt-4">
-                      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full ring-2 ring-white shadow-[0_4px_12px_-4px_rgba(0,0,0,0.25)]">
-                        {club?.logo ? (
-                          <img
-                            src={club.logo}
-                            alt={`${club.name} logo`}
-                            className="h-full w-full object-cover"
-                          />
-                        ) : null}
-                      </div>
-
-                      <div className="min-w-0 flex-1">
-                        <h3 className="truncate text-black leading-tight">{club.name || ''}</h3>
-                        <div className="mt-0.5 flex items-center gap-1.5 text-neutral-500">
-                          <svg
-                            width="14"
-                            height="14"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                            <circle cx="9" cy="7" r="4" />
-                            <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                          </svg>
-                          <span>{club.members.toLocaleString()} members</span>
-                        </div>
-                      </div>
-
-                      <div className="shrink-0 rounded-full bg-black px-4 py-2 text-white transition hover:bg-neutral-800 active:scale-95">
-                        Visit
+                    <div className="min-w-0 flex-1">
+                      <h3 className="truncate text-black leading-tight">{club.name || ''}</h3>
+                      <div className="mt-0.5 flex items-center gap-1.5 text-neutral-500">
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        >
+                          <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                          <circle cx="9" cy="7" r="4" />
+                          <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                        </svg>
+                        <span>{club.members.toLocaleString()} members</span>
                       </div>
                     </div>
-       
+
+                    <div className="shrink-0 rounded-full bg-black px-4 py-2 text-white transition hover:bg-neutral-800 active:scale-95">
+                      Visit
+                    </div>
+                  </div>
+
                 </button>
               ))}
             </div>

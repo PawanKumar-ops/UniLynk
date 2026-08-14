@@ -3,6 +3,12 @@ import { NextResponse } from "next/server";
 import cloudinary from "@/lib/cloudinary";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_TYPES = new Set([
+  "application/pdf", "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.ms-excel", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "text/plain", "image/jpeg", "image/png", "image/webp",
+]);
 
 export async function POST(req) {
   try {
@@ -15,12 +21,16 @@ export async function POST(req) {
     const formData = await req.formData();
     const file = formData.get("file");
 
-    if (!file) {
+    if (!file || typeof file.arrayBuffer !== "function") {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    if (file.size > MAX_FILE_SIZE) {
+    if (!Number.isFinite(file.size) || file.size <= 0 || file.size > MAX_FILE_SIZE) {
       return NextResponse.json({ error: "File must be 10MB or smaller" }, { status: 400 });
+    }
+
+    if (!ALLOWED_TYPES.has(file.type)) {
+      return NextResponse.json({ error: "Unsupported file type" }, { status: 400 });
     }
 
     const bytes = await file.arrayBuffer();
