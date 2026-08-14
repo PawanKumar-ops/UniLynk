@@ -98,6 +98,7 @@ export default function EventDetails({ eventId }) {
     const clubName = event?.clubId?.clubName || event?.createdBy || "UniLynk";
     const image = event?.image || event?.clubId?.logo || "";
     const clubLogo = event?.clubId?.logo || "";
+    const isTeamEvent = Boolean(event?.isTeam || event?.isTeamEvent);
 
     if (loading) return null;
     if (!event) {
@@ -149,7 +150,7 @@ export default function EventDetails({ eventId }) {
                         {/* Right */}
                         <div className="flex items-center gap-1.5">
                             {/* Add Members */}
-                            <div className="group relative">
+                            {isTeamEvent && <div className="group relative">
                                 <button
                                     onClick={() => router.push("/dashboard/teamfinder")}
                                     className="flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-black/5"
@@ -163,7 +164,7 @@ export default function EventDetails({ eventId }) {
                                 <div className="pointer-events-none absolute right-1/2 top-full mt-2 translate-x-1/2 rounded-full bg-[#2c2f35] px-3 py-1.5 text-xs font-medium whitespace-nowrap text-white opacity-0 transition-all duration-200 group-hover:translate-y-1 group-hover:opacity-100">
                                     Team Finder
                                 </div>
-                            </div>
+                            </div>}
 
                         </div>
                     </header>

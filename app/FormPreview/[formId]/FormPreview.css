@@ -818,7 +818,7 @@
   pointer-events: all;
 }
 
-/* Diamond caret — points DOWN toward the TeamFinderCard below */
+/* Diamond caret — points DOWN toward the Team Finder panel below */
 .tfhf-caret {
   position: absolute;
   bottom: -6px;

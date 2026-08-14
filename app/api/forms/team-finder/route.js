@@ -1,166 +1,95 @@
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
+import Form from "@/models/Form";
 import ResponseModel from "@/models/Response";
 import User from "@/models/user";
 
-const toPlainMember = (member = {}) => ({
-  name: member.name || member.fullName || member.email || "Participant",
-  email: member.email || "",
-  ...member,
-});
+const norm = (v = "") => String(v || "").trim();
+const emailNorm = (v = "") => norm(v).toLowerCase();
+const hasText = (v) => norm(v).length > 0;
+const memberFilled = (m = {}) => Object.values(m || {}).some(hasText);
+const fallbackName = (email = "") => email.split("@")[0] || "Participant";
 
-const countFilledMembers = (members = []) =>
-  members.filter((member) =>
-    Object.values(member || {}).some((value) => String(value || "").trim()),
-  ).length;
-
-const buildTeamFinderPayload = ({ type, teamRegistration, user, email }) => {
-  const members = Array.isArray(teamRegistration?.members)
-    ? teamRegistration.members
-        .map(toPlainMember)
-        .filter((member) => member.name || member.email)
-    : [];
-  const fallbackName = user?.name || email.split("@")[0] || "Participant";
-  const profile = {
-    name: members[0]?.name || fallbackName,
-    email: members[0]?.email || email,
-  };
-
-  if (type === "team") {
-    const total = Math.max(
-      members.length,
-      Number(teamRegistration?.maxSize) || members.length || 1,
-    );
-    const filled = countFilledMembers(members);
-
+const hydrateMembers = async (members = []) => {
+  const emails = [...new Set(members.map((m) => emailNorm(m.email)).filter(Boolean))];
+  const ids = [...new Set(members.map((m) => norm(m.id)).filter(Boolean))];
+  const users = await User.find({
+    $or: [emails.length ? { email: { $in: emails } } : null, ids.length ? { _id: { $in: ids } } : null].filter(Boolean),
+  }).select("_id name email rollNumber branch year img skills").lean();
+  const byEmail = new Map(users.map((u) => [emailNorm(u.email), u]));
+  const byId = new Map(users.map((u) => [String(u._id), u]));
+  return members.filter(memberFilled).map((m, i) => {
+    const u = byEmail.get(emailNorm(m.email)) || byId.get(norm(m.id)) || {};
     return {
-      type: "team",
-      profile,
-      team: {
-        name: teamRegistration?.teamName?.trim() || `${fallbackName}'s Team`,
-        lead: profile.name,
-        members,
-        needed: Math.max(total - filled, 0),
-        total,
-        lookingFor: [],
-      },
-      addedAt: new Date(),
+      id: String(u._id || m.id || `${m.email || m.name || i}`),
+      userId: u._id ? String(u._id) : "",
+      name: u.name || m.name || m.fullName || m.email || "Participant",
+      email: u.email || m.email || "",
+      branch: u.branch || m.branch || "General",
+      year: u.year || m.year || "Student",
+      avatar: u.img || m.avatar || "/Profilepic.png",
+      role: i === 0 ? "Team Lead" : m.role || "Member",
+      skills: u.skills || [],
     };
-  }
-
-  return {
-    type: "solo",
-    profile,
-    team: undefined,
-    addedAt: new Date(),
-  };
+  });
 };
 
-const serializeEntry = (response) => {
-  const teamFinder = response.teamFinder || {};
-  const id = response._id.toString();
-
-  if (teamFinder.type === "team") {
-    const team = teamFinder.team || {};
-    const members = team.members || [];
-    return {
-      id,
-      name: team.name || "Open Team",
-      lead: team.lead || teamFinder.profile?.name || "Team Lead",
-      leadEmail:
-        teamFinder.profile?.email || members[0]?.email || response.userEmail,
-      needed: Number.isFinite(team.needed) ? team.needed : 0,
-      total: Number.isFinite(team.total)
-        ? team.total
-        : Math.max(members.length, 1),
-      tags: team.lookingFor?.length ? team.lookingFor : ["Open"],
-      members,
-      lookingFor: team.lookingFor?.length ? team.lookingFor : ["Teammates"],
-    };
+const buildTeamFinder = async ({ form, response, sessionUser }) => {
+  const userEmail = emailNorm(response.userEmail || sessionUser?.email);
+  const user = await User.findOne({ email: userEmail }).select("_id name email branch year img skills").lean();
+  const max = Math.max(1, Number(form.teamSize) || 4);
+  const rawMembers = Array.isArray(response.answers?.team) ? response.answers.team : [];
+  const members = await hydrateMembers(rawMembers);
+  const leadName = user?.name || sessionUser?.name || fallbackName(userEmail);
+  const leadMember = { id: String(user?._id || response._id), userId: user?._id ? String(user._id) : "", name: leadName, email: userEmail, branch: user?.branch || "General", year: user?.year || "Student", avatar: user?.img || "/Profilepic.png", role: "Team Lead", skills: user?.skills || [] };
+  const fullMembers = [leadMember, ...members.filter((m) => emailNorm(m.email) !== userEmail && m.userId !== leadMember.userId)];
+  if (fullMembers.length < max) {
+    return { type: "team", profile: { name: leadName, email: userEmail, description: response.teamFinder?.profile?.description || "" }, team: { name: response.teamFinder?.team?.name || `${leadName}'s Team`, lead: leadName, members: fullMembers, needed: max - fullMembers.length, total: max, lookingFor: response.teamFinder?.team?.lookingFor || [] }, addedAt: response.teamFinder?.addedAt || new Date() };
   }
+  return null;
+};
 
-  return {
-    id,
-    name: teamFinder.profile?.name || response.userEmail.split("@")[0],
-    email: teamFinder.profile?.email || response.userEmail,
-  };
+const serialize = (response, form) => {
+  const tf = response.teamFinder || {};
+  const id = String(response._id);
+  if (tf.type === "team") {
+    const team = tf.team || {};
+    const description = form?.description || "Open team looking for members";
+    return { id, formId: String(response.formId), eventTitle: form?.title || form?.name || "Event", name: team.name || `${team.lead || "Lead"}'s Team`, lead: team.lead || tf.profile?.name || "Team Lead", leadEmail: tf.profile?.email || response.userEmail, needed: team.needed || 0, total: team.total || Math.max(team.members?.length || 1, 1), category: form?.title || "Event", project: description.length > 88 ? `${description.slice(0, 88).trim()}...` : description, members: team.members || [], lookingFor: team.lookingFor || ["Teammates"] };
+  }
+  return { id, formId: String(response.formId), userId: tf.profile?.userId || "", eventTitle: form?.title || form?.name || "Event", name: tf.profile?.name || fallbackName(response.userEmail), email: tf.profile?.email || response.userEmail, branch: tf.profile?.branch || "General", year: tf.profile?.year || "Student", avatar: tf.profile?.avatar || "/Profilepic.png", headline: (tf.profile?.description || form?.description || "Looking for a team").slice(0, 90) + ((tf.profile?.description || form?.description || "").length > 90 ? "..." : ""), looking: tf.profile?.description || "I am looking for a team for this event.", skills: tf.profile?.skills || [] };
 };
 
 export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const formId = searchParams.get("formId");
-
-    if (!formId) {
-      return Response.json({ error: "formId is required" }, { status: 400 });
-    }
-
     await connectDB();
-
-    const responses = await ResponseModel.find({
-      formId,
-      "teamFinder.type": { $in: ["solo", "team"] },
-    })
-      .sort({ "teamFinder.addedAt": -1 })
-      .lean();
-
-    return Response.json({
-      solo: responses
-        .filter((response) => response.teamFinder?.type === "solo")
-        .map(serializeEntry),
-      teams: responses
-        .filter((response) => response.teamFinder?.type === "team")
-        .map(serializeEntry),
-    });
-  } catch (error) {
-    console.error("TEAM FINDER GET ERROR:", error);
-    return Response.json({ error: error.message }, { status: 500 });
-  }
+    const query = { "teamFinder.type": { $in: ["solo", "team"] } };
+    if (formId) query.formId = formId;
+    const responses = await ResponseModel.find(query).sort({ "teamFinder.addedAt": -1, submittedAt: -1 }).lean();
+    const formIds = [...new Set(responses.map((r) => String(r.formId)))];
+    const forms = await Form.find({ _id: { $in: formIds }, $or: [{ isTeam: true }, { isTeamEvent: true }] }).select("title name description teamSize").lean();
+    const byId = new Map(forms.map((f) => [String(f._id), f]));
+    const scoped = responses.filter((r) => byId.has(String(r.formId)));
+    return Response.json({ solo: scoped.filter((r) => r.teamFinder?.type === "solo").map((r) => serialize(r, byId.get(String(r.formId)))), teams: scoped.filter((r) => r.teamFinder?.type === "team").map((r) => serialize(r, byId.get(String(r.formId)))) });
+  } catch (e) { console.error(e); return Response.json({ error: e.message }, { status: 500 }); }
 }
 
 export async function POST(req) {
   try {
     const session = await auth();
-
-    if (!session?.user?.email) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { formId, type, teamRegistration } = await req.json();
-
-    if (!formId || !["solo", "team"].includes(type)) {
-      return Response.json(
-        { error: "A valid formId and type are required" },
-        { status: 400 },
-      );
-    }
-
+    if (!session?.user?.email) return Response.json({ error: "Unauthorized" }, { status: 401 });
+    const { formId, type, teamRegistration, description = "" } = await req.json();
     await connectDB();
-
-    const userEmail = session.user.email.toLowerCase().trim();
-    const user = await User.findOne({ email: userEmail }, { name: 1 }).lean();
-    const teamFinder = buildTeamFinderPayload({
-      type,
-      teamRegistration,
-      user,
-      email: userEmail,
-    });
-
-    const response = await ResponseModel.findOneAndUpdate(
-      { formId, userEmail },
-      {
-        $set: { teamFinder },
-        $setOnInsert: { answers: {}, isSubmitted: false, submittedAt: null },
-      },
-      { upsert: true, new: true, runValidators: true },
-    ).lean();
-
-    return Response.json({
-      entry: serializeEntry(response),
-      type: teamFinder.type,
-    });
-  } catch (error) {
-    console.error("TEAM FINDER POST ERROR:", error);
-    return Response.json({ error: error.message }, { status: 500 });
-  }
+    const userEmail = emailNorm(session.user.email);
+    const form = await Form.findById(formId).lean();
+    if (!form || !(form.isTeam || form.isTeamEvent)) return Response.json({ error: "Team Finder is only available for team events" }, { status: 400 });
+    const user = await User.findOne({ email: userEmail }).select("_id name email branch year img skills").lean();
+    let teamFinder;
+    if (type === "team") teamFinder = { type: "team", profile: { name: user?.name || fallbackName(userEmail), email: userEmail, description }, team: { name: teamRegistration?.teamName?.trim() || `${user?.name || fallbackName(userEmail)}'s Team`, lead: user?.name || fallbackName(userEmail), members: await hydrateMembers(teamRegistration?.members || []), needed: 1, total: Math.max(1, Number(form.teamSize) || 4), lookingFor: [] }, addedAt: new Date() };
+    else teamFinder = { type: "solo", profile: { userId: user?._id ? String(user._id) : "", name: user?.name || fallbackName(userEmail), email: userEmail, branch: user?.branch || "General", year: user?.year || "Student", avatar: user?.img || "/Profilepic.png", skills: user?.skills || [], description }, addedAt: new Date() };
+    const response = await ResponseModel.findOneAndUpdate({ formId, userEmail }, { $set: { teamFinder }, $setOnInsert: { answers: {}, isSubmitted: false, submittedAt: null } }, { upsert: true, new: true, runValidators: true }).lean();
+    return Response.json({ entry: serialize(response, form), type: teamFinder.type });
+  } catch (e) { console.error(e); return Response.json({ error: e.message }, { status: 500 }); }
 }
