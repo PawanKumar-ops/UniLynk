@@ -469,17 +469,36 @@ function TeamsView({
         title="Join a Team"
         subtitle={`${teams.length} teams are looking for members`}
         action={
-          <button
-            onClick={onFindMembers}
-            aria-label="Find members looking for a team"
-            className="inline-flex items-center gap-2 rounded-full border border-[#e0e0de] bg-[#ffffff] py-2 pl-3 pr-3.5 text-[13px] font-semibold transition-colors hover:bg-[#f4f4f3]"
-          >
-            <Icon
-              icon="solar:user-linear"
-              className="text-[18px]"
-            />
-            <span className="hidden sm:inline">Find members</span>
-          </button>
+          <div className='flex items-center gap-1.5'>
+            <div className="group relative">
+              <button
+                onClick={() => {
+                  // add description
+                }}
+                aria-label="Find members looking for a team"
+                className="rounded-full flex items-center justify-center border h-9 w-9 border-[#e0e0de] bg-[#ffffff] text-[13px] font-semibold transition-colors hover:bg-[#f4f4f3]"
+              >
+                <Icon
+                  icon="solar:clipboard-add-linear"
+                  className="text-[18px]"
+                />
+              </button>
+              <div className="pointer-events-none absolute right-1/2 top-full mt-2 translate-x-1/2 rounded-full bg-[#2c2f35] px-3 py-1.5 text-xs font-medium whitespace-nowrap text-white opacity-0 transition-all duration-200 group-hover:translate-y-1 group-hover:opacity-100">
+                Finish Profile
+              </div>
+            </div>
+            <button
+              onClick={onFindMembers}
+              aria-label="Find members looking for a team"
+              className="inline-flex items-center gap-2 rounded-full border border-[#e0e0de] bg-[#ffffff] py-2 pl-3 pr-3.5 text-[13px] font-semibold transition-colors hover:bg-[#f4f4f3]"
+            >
+              <Icon
+                icon="solar:user-linear"
+                className="text-[18px]"
+              />
+              <span className="hidden sm:inline">Find members</span>
+            </button>
+          </div>
         }
       />
 
