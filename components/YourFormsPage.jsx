@@ -133,7 +133,7 @@ function FormCard({ form, onDelete, onDuplicate }) {
           {isPublished ? (
             <button
               className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full bg-[var(--primary)] px-4 py-1.5 text-sm text-[var(--primary-foreground)] transition-opacity hover:opacity-90 sm:flex-none"
-              onClick={() => router.push(`/analytics/${id}`)}
+              onClick={() => router.push("/dashboard/eventanalytics")}
               type="button"
             >
               <BarChart3 className="size-3.5" />
@@ -256,7 +256,7 @@ export function YourFormsPage() {
         (sum, form) => sum + Number(form.responses || form.registered || 0),
         0
       ),
-      icon: "solar:chat-round-dots-bold",
+      icon: "solar:notes-minimalistic-bold",
     },
   ];
 

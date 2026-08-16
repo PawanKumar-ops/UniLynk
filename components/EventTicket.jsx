@@ -6,61 +6,25 @@ import confetti from 'canvas-confetti'
 
 // canvas-confetti's "realistic" recipe: several staggered bursts with varied
 // particle counts, spread, velocity and gravity so the fall looks natural.
-function firePremiumConfetti() {
-  const defaults = {
-    spread: 70,
-    ticks: 180,
-    gravity: 0.9,
-    decay: 0.93,
-    startVelocity: 28,
-    scalar: 0.85,
-    zIndex: 100,
-  };
-
-  // Initial center burst
-  confetti({
-    ...defaults,
-    particleCount: 55,
-    origin: { x: 0.5, y: 0.35 },
-    spread: 100,
-    startVelocity: 34,
-  });
-
-  // Left burst
-  setTimeout(() => {
+function fireRealisticConfetti() {
+  const count = 200
+  const origin = { y: 0.7 }
+  const fire = (particleRatio, opts) => {
     confetti({
-      ...defaults,
-      particleCount: 45,
-      origin: { x: 0.12, y: 0.45 },
-      angle: 55,
-      spread: 55,
-      startVelocity: 32,
-    });
-  }, 120);
+      origin,
+      spread: 60,
+      startVelocity: 45,
+      ticks: 220,
+      particleCount: Math.floor(count * particleRatio),
+      ...opts,
+    })
+  }
 
-  // Right burst
-  setTimeout(() => {
-    confetti({
-      ...defaults,
-      particleCount: 45,
-      origin: { x: 0.88, y: 0.45 },
-      angle: 125,
-      spread: 55,
-      startVelocity: 32,
-    });
-  }, 220);
-
-  // Small finishing burst
-  setTimeout(() => {
-    confetti({
-      ...defaults,
-      particleCount: 30,
-      origin: { x: 0.5, y: 0.25 },
-      spread: 120,
-      startVelocity: 20,
-      scalar: 0.7,
-    });
-  }, 420);
+  fire(0.25, { spread: 26, startVelocity: 55 })
+  fire(0.2, { spread: 60 })
+  fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 })
+  fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 })
+  fire(0.1, { spread: 120, startVelocity: 45 })
 }
 
 // Preserves the original ticket silhouette: the two concave notches carved into
@@ -111,7 +75,7 @@ function Ticket({ ticket, exportRef }) {
       className="mx-auto w-full max-w-[25rem]"
       style={{
         filter:
-  'drop-shadow(0 8px 18px rgba(0,0,0,0.06)) drop-shadow(0 28px 65px rgba(0,0,0,0.12))',
+          'drop-shadow(0 6px 16px rgba(0,0,0,0.05)) drop-shadow(0 18px 50px rgba(0,0,0,0.07))',
       }}
     >
     <div
@@ -197,8 +161,8 @@ export default function EventTicket({ open, onClose, ticket }) {
 
   // Celebrate whenever the modal opens.
   useEffect(() => {
-  if (isOpen) firePremiumConfetti()
-}, [isOpen])
+    if (isOpen) fireRealisticConfetti()
+  }, [isOpen])
 
   const handleDownload = async () => {
     const node = exportRef.current
@@ -242,56 +206,33 @@ export default function EventTicket({ open, onClose, ticket }) {
           captured PDF shows the ticket's edge just like the modal. */}
       <div className="pointer-events-none fixed left-[-9999px] top-0" aria-hidden="true">
         <div ref={exportRef} className="bg-[#ffffff] p-16">
-          <div className="pointer-events-none fixed left-[-9999px] top-0" aria-hidden="true">
-  <div ref={exportRef} className="bg-[#ffffff] p-16">
-    <Ticket ticket={ticket} />
-  </div>
-</div>
+          <Ticket ticket={ticket} />
         </div>
       </div>
 
       <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
         {/* Backdrop */}
         <div
-  onClick={closeModal}
-  className="absolute inset-0 bg-[rgba(0,0,0,0.42)] backdrop-blur-[5px]"
-  style={{
-    animation: 'ticket-fade 450ms ease-out both',
-  }}
-/>
+          onClick={closeModal}
+          className="absolute inset-0 bg-[rgba(0,0,0,0.4)] backdrop-blur-[2px]"
+          style={{ animation: 'ticket-fade 0.2s ease-out' }}
+        />
 
         {/* Panel: bottom drawer on mobile, centered dialog on desktop */}
         <div
-  role="dialog"
-  aria-modal="true"
-  className="relative w-full max-w-[27rem] rounded-t-[28px] bg-[#ffffff] p-5 pb-8 shadow-[0_30px_80px_rgba(0,0,0,0.18)] sm:rounded-[30px] sm:p-8"
-  style={{
-    animation:
-      'ticket-panel-in 650ms cubic-bezier(0.16, 1, 0.3, 1) both',
-    willChange: 'transform, opacity',
-  }}
->
+          role="dialog"
+          aria-modal="true"
+          className="relative w-full max-w-[27rem] rounded-t-3xl bg-[#ffffff] p-5 pb-8 shadow-2xl sm:origin-center sm:scale-[0.88] sm:rounded-3xl sm:p-8"
+          style={{
+            animation: 'ticket-drawer 0.32s cubic-bezier(0.32, 0.72, 0, 1)',
+          }}
+        >
           {/* Grab handle — mobile drawer affordance */}
           <div className="mx-auto mb-5 h-1.5 w-10 rounded-full bg-[#e5e5e5] sm:hidden" />
 
-          <div
-  style={{
-    animation:
-      'ticket-premium-in 800ms cubic-bezier(0.16, 1, 0.3, 1) 120ms both',
-    transformOrigin: '50% 70%',
-    willChange: 'transform, opacity',
-  }}
->
-  <Ticket ticket={ticket} />
-</div>
+          <Ticket ticket={ticket} />
 
-          <div
-  className="mt-7 flex gap-3"
-  style={{
-    animation:
-      'ticket-actions-in 550ms cubic-bezier(0.16, 1, 0.3, 1) 420ms both',
-  }}
->
+          <div className="mt-7 flex gap-3">
             <button
               onClick={closeModal}
               className="flex-1 rounded-full border border-[#e5e5e5] bg-[#ffffff] px-6 py-3 text-sm font-medium text-[#000000] transition-colors hover:bg-[#fafafa]"
@@ -311,105 +252,3 @@ export default function EventTicket({ open, onClose, ticket }) {
     </>
   )
 }
-
-<style jsx global>{`
-  @keyframes ticket-panel-in {
-    0% {
-      opacity: 0;
-      transform: translateY(35px) scale(0.96);
-    }
-
-    60% {
-      opacity: 1;
-    }
-
-    100% {
-      opacity: 1;
-      transform: translateY(0) scale(1);
-    }
-  }
-
-  @keyframes ticket-premium-in {
-    0% {
-      opacity: 0;
-      transform:
-        translateY(55px)
-        scale(0.88)
-        rotateX(8deg)
-        rotateZ(-1.2deg);
-      filter: blur(3px);
-    }
-
-    45% {
-      opacity: 1;
-      filter: blur(0);
-    }
-
-    72% {
-      transform:
-        translateY(-5px)
-        scale(1.015)
-        rotateX(0deg)
-        rotateZ(0.25deg);
-    }
-
-    100% {
-      opacity: 1;
-      transform:
-        translateY(0)
-        scale(1)
-        rotateX(0)
-        rotateZ(0);
-      filter: blur(0);
-    }
-  }
-
-  @keyframes ticket-actions-in {
-    0% {
-      opacity: 0;
-      transform: translateY(14px);
-    }
-
-    100% {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
-  @keyframes ticket-fade {
-    from {
-      opacity: 0;
-    }
-
-    to {
-      opacity: 1;
-    }
-  }
-
-  @media (prefers-reduced-motion: reduce) {
-    @keyframes ticket-panel-in {
-      from,
-      to {
-        opacity: 1;
-        transform: none;
-      }
-    }
-
-    @keyframes ticket-premium-in {
-      from,
-      to {
-        opacity: 1;
-        transform: none;
-        filter: none;
-      }
-    }
-
-    @keyframes ticket-actions-in {
-      from,
-      to {
-        opacity: 1;
-        transform: none;
-      }
-    }
-  }
-`}</style>

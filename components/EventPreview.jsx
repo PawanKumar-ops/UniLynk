@@ -2,19 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
-import {
-  Calendar,
-  Check,
-  ChevronDown,
-  Clock,
-  FileText,
-  MapPin,
-  Plus,
-  Search,
-  Trash2,
-  UploadCloud,
-  X,
-} from "lucide-react";
+import { Icon } from "@iconify/react";
+import { UploadCloud, Plus, X } from "lucide-react";
 import { getDraft } from "@/lib/drafts";
 import EventTicket from "@/components/EventTicket";
 
@@ -343,9 +332,9 @@ export default function EventPreview({ formId: propFormId, initialData }) {
   }
 
   const infoCards = [
-    { icon: Calendar, label: "Date", value: displayDate },
-    { icon: Clock, label: "Time", value: displayTime },
-    { icon: MapPin, label: "Location", value: displayVenue },
+    { icon: "solar:calendar-linear", label: "Date", value: displayDate },
+    { icon: "solar:clock-circle-linear", label: "Time", value: displayTime },
+    { icon: "solar:map-point-linear", label: "Location", value: displayVenue },
   ];
 
   return (
@@ -472,11 +461,15 @@ export default function EventPreview({ formId: propFormId, initialData }) {
         {/* ---------- Info cards (square) ---------- */}
         <div className="mt-6 grid grid-cols-3 gap-2 sm:gap-3">
           {infoCards.map((it) => {
-            const Icon = it.icon;
+
             return (
               <div key={it.label} className="rounded-2xl p-3 sm:p-4" style={{ background: C.bg, border: `1px solid ${C.border}` }}>
                 <div className="h-8 w-8 rounded-full grid place-items-center mb-2 sm:mb-3" style={{ background: C.muted }}>
-                  <Icon className="h-4 w-4" style={{ color: C.text }} />
+                  <Icon
+                    icon={it.icon}
+                    className="text-[17px]"
+                    style={{ color: C.text }}
+                  />
                 </div>
                 <div className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wide" style={{ color: C.subtext }}>
                   {it.label}
@@ -530,23 +523,24 @@ export default function EventPreview({ formId: propFormId, initialData }) {
               <Field key={q.id} label={title} required={q.required}>
                 {(q.type === "paragraph" || q.type === "short" || q.type === "long" || q.type === "text" || q.type === "email" || q.type === "phone" || !q.type) && (
                   <textarea
-                    value={val || ""}
-                    onChange={(e) => {
-                      handleAnswerChange(q.id, e.target.value);
-                      e.currentTarget.style.height = "auto";
-                      e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
-                    }}
-                    rows={2}
-                    placeholder="Your answer…"
-                    className="w-full resize-y rounded-lg border px-3 py-2.5 text-sm font-medium outline-none transition-colors leading-relaxed min-h-[50px]"
-                    style={{
-                      background: C.bg,
-                      color: C.text,
-                      border: `1px solid ${C.border}`,
-                    }}
-                    onFocus={(e) => (e.currentTarget.style.borderColor = C.primary)}
-                    onBlur={(e) => (e.currentTarget.style.borderColor = C.border)}
-                  />
+  value={val || ""}
+  onChange={(e) => {
+    handleAnswerChange(q.id, e.target.value);
+
+    e.currentTarget.style.height = "auto";
+    e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
+  }}
+  rows={1}
+  placeholder="Your answer…"
+  className="w-full resize-none overflow-hidden rounded-lg border px-3 py-2.5 text-sm font-medium outline-none transition-colors leading-relaxed min-h-[50px]"
+  style={{
+    background: C.bg,
+    color: C.text,
+    border: `1px solid ${C.border}`,
+  }}
+  onFocus={(e) => (e.currentTarget.style.borderColor = C.primary)}
+  onBlur={(e) => (e.currentTarget.style.borderColor = C.border)}
+/>
                 )}
 
                 {q.type === "single" && (
@@ -612,7 +606,7 @@ export default function EventPreview({ formId: propFormId, initialData }) {
                 )}
 
                 {q.type === "date" && (
-                  <IconInput icon={Calendar}>
+                  <IconInput icon="solar:calendar-linear">
                     <input
                       type="date"
                       value={val || ""}
@@ -624,7 +618,7 @@ export default function EventPreview({ formId: propFormId, initialData }) {
                 )}
 
                 {q.type === "time" && (
-                  <IconInput icon={Clock}>
+                  <IconInput icon="solar:clock-circle-linear">
                     <input
                       type="time"
                       value={val || ""}
@@ -783,7 +777,11 @@ function FileUpload({ files, setFiles }) {
                 {f.preview ? (
                   <img src={f.preview} alt="" className="h-full w-full object-cover" />
                 ) : (
-                  <FileText className="h-4 w-4" style={{ color: C.subtext }} />
+                  <Icon
+  icon="solar:document-text-linear"
+  className="text-[17px]"
+  style={{ color: C.subtext }}
+/>
                 )}
               </span>
               <div className="min-w-0 flex-1">
@@ -794,7 +792,10 @@ function FileUpload({ files, setFiles }) {
                   <span>{formatSize(f.size)}</span>
                   <span>·</span>
                   <span className="inline-flex items-center gap-1" style={{ color: "#16a34a" }}>
-                    <Check className="h-3 w-3" strokeWidth={3} />
+                    <Icon
+  icon="solar:check-circle-linear"
+  className="text-[13px]"
+/>
                     Uploaded
                   </span>
                 </div>
@@ -805,7 +806,11 @@ function FileUpload({ files, setFiles }) {
                 className="h-8 w-8 rounded-full grid place-items-center transition hover:bg-[#ececef] shrink-0"
                 aria-label={`Remove ${f.name}`}
               >
-                <X className="h-4 w-4" style={{ color: C.subtext }} />
+                <Icon
+  icon="solar:close-circle-linear"
+  className="text-[17px]"
+  style={{ color: C.subtext }}
+/>
               </button>
             </div>
           ))}
@@ -831,7 +836,7 @@ function Field({ label, required, children }) {
 
 /* ---------- Icon input shell ---------- */
 
-function IconInput({ icon: Icon, children }) {
+function IconInput({ icon , children }) {
   const [focused, setFocused] = useState(false);
   return (
     <div
@@ -840,7 +845,11 @@ function IconInput({ icon: Icon, children }) {
       onFocusCapture={() => setFocused(true)}
       onBlurCapture={() => setFocused(false)}
     >
-      <Icon className="h-4 w-4 shrink-0 ml-0.5" style={{ color: C.subtext }} />
+      <Icon
+  icon={icon}
+  className="h-4 w-4 shrink-0 ml-0.5"
+  style={{ color: C.subtext }}
+/>
       {children}
     </div>
   );
@@ -862,7 +871,14 @@ function Dropdown({ value, onChange, options, placeholder }) {
         style={{ background: C.bg, color: value ? C.text : C.subtext, border: `1px solid ${open ? C.primary : C.border}` }}
       >
         {value || placeholder}
-        <ChevronDown className="h-4 w-4 shrink-0 transition-transform" style={{ color: C.subtext, transform: open ? "rotate(180deg)" : "none" }} />
+        <Icon
+  icon="solar:alt-arrow-down-linear"
+  className="text-[17px] shrink-0 transition-transform"
+  style={{
+    color: C.subtext,
+    transform: open ? "rotate(180deg)" : "none",
+  }}
+/>
       </button>
       {open && (
         <div
@@ -886,7 +902,13 @@ function Dropdown({ value, onChange, options, placeholder }) {
                 onMouseLeave={(e) => (e.currentTarget.style.background = active ? C.muted : "transparent")}
               >
                 {opt}
-                {active && <Check className="h-4 w-4" strokeWidth={2.5} style={{ color: C.primary }} />}
+                {active && (
+  <Icon
+    icon="solar:check-circle-linear"
+    className="text-[17px]"
+    style={{ color: C.primary }}
+  />
+)}
               </button>
             );
           })}
@@ -995,7 +1017,11 @@ function TeamPicker({ team, setTeam, maxSize = 4, onClose }) {
             className="flex items-center gap-2 rounded-lg px-3 h-11 transition-colors"
             style={{ background: C.bg, border: `1px solid ${focused ? C.primary : C.border}` }}
           >
-            <Search className="h-4 w-4 shrink-0 ml-0.5" style={{ color: C.subtext }} />
+            <Icon
+  icon="solar:magnifer-linear"
+  className="text-[17px] shrink-0 ml-0.5"
+  style={{ color: C.subtext }}
+/>
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -1085,7 +1111,11 @@ function TeamPicker({ team, setTeam, maxSize = 4, onClose }) {
                   className="h-8 w-8 rounded-full grid place-items-center transition hover:bg-[#ececef] shrink-0"
                   aria-label={`Remove ${u.name}`}
                 >
-                  <Trash2 className="h-3.5 w-3.5" style={{ color: C.subtext }} />
+                  <Icon
+  icon="solar:trash-bin-trash-linear"
+  className="text-[15px]"
+  style={{ color: C.subtext }}
+/>
                 </button>
               </div>
             ))}

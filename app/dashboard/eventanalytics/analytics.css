@@ -1,0 +1,91 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+@import 'tailwindcss';
+
+@theme {
+  --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+
+  /* black & white UI */
+  --color-ink: #111111;
+  --color-ink-2: #333333;
+  --color-ink-3: #6b6b6b;
+  --color-ink-4: #999999;
+
+  /* very light surfaces */
+  --color-line: #e7e7e7;
+  --color-line-2: #f0f0f0;
+  --color-paper: #fafafa;
+  --color-panel: #ffffff;
+
+  /* KEEP THESE — GRAPH COLORS */
+  --color-forest: #0f3d31;
+  --color-forest-2: #1a5344;
+  --color-pine: #2f6f5b;
+  --color-sage: #5f9a86;
+  --color-mint: #a7d3c2;
+  --color-mint-2: #cfe7dd;
+  --color-mint-3: #e6f1ec;
+
+  /* KEEP THESE — GRAPH / STATUS COLORS */
+  --color-gold: #e8b84b;
+  --color-gold-2: #f2cf7a;
+  --color-good: #1f9d6b;
+  --color-serious: #d98b4a;
+  --color-critical: #d15b57;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+}
+
+::selection {
+  background: #111111;
+  color: #ffffff;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+}
+*:hover::-webkit-scrollbar-thumb {
+  background: #d6d6d6;
+}
+
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-up {
+  animation: fade-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}

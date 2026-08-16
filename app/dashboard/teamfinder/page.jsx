@@ -23,16 +23,6 @@ import {
 /* ------------------------------------------------------------------ */
 /* Data                                                                */
 /* ------------------------------------------------------------------ */
-
-
-// Hard‑coded current user for display on TeamFinder page
-const currentUser = {
-  name: 'Anime Merch',
-  avatar: '/Profilepic.png', // placeholder image path
-};
-// The component now relies entirely on the `data` state populated by the `load` function.
-
-
 /* ------------------------------------------------------------------ */
 /* App                                                                 */
 /* ------------------------------------------------------------------ */
@@ -341,7 +331,7 @@ function MessageComposer({
             className="inline-flex items-center gap-2 rounded-full bg-[#0a0a0a] px-5 py-2.5 text-[14px] font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-25"
           >
             {cta}
-            <Send size={16} />
+
           </button>
         </div>
       </div>
@@ -467,9 +457,38 @@ function TeamsView({ teams, loading, onRefresh, onOpen, onFindMembers }) {
       <FinishProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
 
       <div className="flex flex-col gap-3 sm:px-3.5 pb-1.5">
-        {loading ? <p className='px-4 text-[13px] text-[#71717a]'>Loading teams from MongoDB...</p> : list.map((t) => (
-          <TeamCard key={t.id} team={t} onOpen={() => onOpen(t.id)} />
-        ))}
+        {loading ? (
+          <p className="px-4 text-[13px] text-[#71717a]">
+            Loading teams...
+          </p>
+        ) : list.length === 0 ? (
+          <div className="flex min-h-[420px] flex-col items-center justify-center px-4 text-center">
+            <div className="mb-6 flex h-[220px] w-[280px] max-w-[80vw] items-center justify-center">
+              <img
+                src="/illuistrations/noTeam.svg"
+                alt="No teams available"
+                className="h-full w-full object-contain"
+              />
+            </div>
+
+            <h3 className="text-[17px] font-bold tracking-[-0.01em]">
+              No teams yet
+            </h3>
+
+            <p className="mt-1.5 max-w-[320px] text-[13.5px] leading-relaxed text-[#71717a]">
+              There are no teams looking for members right now. Check back later or
+              create your Team.
+            </p>
+          </div>
+        ) : (
+          list.map((t) => (
+            <TeamCard
+              key={t.id}
+              team={t}
+              onOpen={() => onOpen(t.id)}
+            />
+          ))
+        )}
       </div>
     </div>
   )
@@ -534,7 +553,7 @@ function TeamDetailView({ team, onBack }) {
               <h2 className="text-[27px] font-extrabold leading-none tracking-[-0.03em]">
                 {team.name}
               </h2>
-                <p className="mt-2.5 text-[15px] leading-snug text-[#71717a]">{team.eventTitle}</p>
+              <p className="mt-2.5 text-[15px] leading-snug text-[#71717a]">{team.eventTitle}</p>
             </div>
           </div>
 
@@ -599,25 +618,57 @@ function SeekersView({ seekers, onOpen, onBack }) {
       />
 
       <div className="flex flex-col gap-3 sm:px-3.5 pb-1.5">
-        {seekers.map((s) => (
-          <button
-            key={s.id}
-            onClick={() => onOpen(s.id)}
-            className="group flex items-center gap-4 rounded-[22px] border border-neutral-200 hover:border-neutral-300 hover:shadow-sm transition cursor-pointer bg-[#ffffff] p-4 text-left"
-          >
-            <Avatar src={s.avatar} alt={s.name} size={52} />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[15.5px] font-bold tracking-[-0.01em]">{s.name}</p>
-              <p className="truncate text-[13px] text-[#71717a]">
-                {s.branch} · {s.year}
-              </p>
-              <p className="mt-1.5 line-clamp-1 text-[13.5px] text-[#0a0a0a]/70">
-                {s.headline}
-              </p>
-            </div>
-            <ArrowRight size={18} className="shrink-0 text-[#a1a1aa] transition-all group-hover:translate-x-0.5 group-hover:text-[#0a0a0a]" />
-          </button>
-        ))}
+      
+{seekers.length === 0 ? (
+  <div className="flex min-h-[420px] flex-col items-center justify-center px-4 text-center">
+    <div className="mb-6 flex h-[220px] w-[280px] max-w-[80vw] items-center justify-center">
+      <img
+        src="/illuistrations/noMember.svg"
+        alt="No members found"
+        className="h-full w-full object-contain"
+      />
+    </div>
+
+    <h3 className="text-[17px] font-bold tracking-[-0.01em]">
+      No members found
+    </h3>
+
+    <p className="mt-1.5 max-w-[320px] text-[13.5px] leading-relaxed text-[#71717a]">
+      No students are looking for a team right now. Check back later to
+      find members for your team.
+    </p>
+  </div>
+) : (
+            seekers.map((s) => (
+              <button
+                key={s.id}
+                onClick={() => onOpen(s.id)}
+                className="group flex items-center gap-4 rounded-[22px] border border-neutral-200 hover:border-neutral-300 hover:shadow-sm transition cursor-pointer bg-[#ffffff] p-4 text-left"
+              >
+                <Avatar src={s.avatar} alt={s.name} size={52} />
+
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[15.5px] font-bold tracking-[-0.01em]">
+                    {s.name}
+                  </p>
+
+                  <p className="truncate text-[13px] text-[#71717a]">
+                    {s.branch} · {s.year}
+                  </p>
+
+                  <p className="mt-1.5 line-clamp-1 text-[13.5px] text-[#0a0a0a]/70">
+                    {s.headline}
+                  </p>
+                </div>
+
+                <ArrowRight
+                  size={18}
+                  className="shrink-0 text-[#a1a1aa] transition-all group-hover:translate-x-0.5 group-hover:text-[#0a0a0a]"
+                />
+              </button>
+            ))
+          )}
+        
       </div>
     </div>
   )

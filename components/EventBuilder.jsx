@@ -25,6 +25,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { Icon } from "@iconify/react";
 
 /* ---------------- Palette ---------------- */
 
@@ -838,7 +839,7 @@ function BannerUpload({ banner, setBanner }) {
       style={{ background: dragging ? C.muted : C.bg, border: `1.5px dashed ${dragging ? C.ink : C.border}` }}
     >
       <span className="grid h-11 w-11 place-items-center rounded-2xl" style={{ background: C.muted }}>
-        <ImageIcon className="h-5 w-5" style={{ color: C.ink }} />
+        <Icon icon="solar:gallery-linear" className="h-5 w-5" style={{ color: C.ink }} />
       </span>
       <span className="text-[14px] font-semibold" style={{ color: C.ink }}>
         {uploading ? "Uploading to Cloudinary..." : "Add event banner"}
