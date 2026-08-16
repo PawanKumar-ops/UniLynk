@@ -5,12 +5,12 @@ export const EVENT = {
 }
 
 export const BRANCH_DATA = [
-  { label: 'Computer Science', count: 148 },
-  { label: 'Electronics', count: 96 },
-  { label: 'Mechanical', count: 61 },
-  { label: 'Information Tech', count: 84 },
-  { label: 'Electrical', count: 44 },
-  { label: 'Civil', count: 28 },
+  { label: 'CSE', count: 148 },
+  { label: 'ECE', count: 96 },
+  { label: 'PIE', count: 61 },
+  { label: 'IT', count: 84 },
+  { label: 'EE', count: 44 },
+  { label: 'CE', count: 28 },
 ]
 
 export const YEAR_DATA = [
@@ -38,12 +38,12 @@ export const REGISTRATION_TREND = [
 // Branch × Year heatmap matrix
 export const MATRIX_YEARS = ['1st', '2nd', '3rd', '4th', '5th']
 export const BRANCH_YEAR_MATRIX = [
-  { branch: 'Computer Science', values: [44, 52, 38, 20, 6] },
-  { branch: 'Electronics', values: [30, 34, 24, 11, 3] },
-  { branch: 'Information Tech', values: [26, 31, 21, 9, 3] },
-  { branch: 'Mechanical', values: [18, 22, 17, 6, 2] },
-  { branch: 'Electrical', values: [10, 18, 13, 4, 1] },
-  { branch: 'Civil', values: [8, 11, 7, 3, 1] },
+  { branch: 'CSE(Dual)', values: [44, 52, 38, 20, 6] },
+  { branch: 'ECE', values: [30, 34, 24, 11, 3] },
+  { branch: 'IT', values: [26, 31, 21, 9, 3] },
+  { branch: 'PIE', values: [18, 22, 17, 6, 2] },
+  { branch: 'EE', values: [10, 18, 13, 4, 1] },
+  { branch: 'CE', values: [8, 11, 7, 3, 1] },
 ]
 
 export const QUESTIONS = [
@@ -108,7 +108,7 @@ export const QUESTIONS = [
   },
 ]
 
-const BRANCHES = ['Computer Science', 'Electronics', 'Mechanical', 'Information Tech', 'Electrical', 'Civil']
+const BRANCHES = ['CSE', 'ECE', 'PIE', 'IT', 'EE', 'CE']
 const YEARS = ['First Year', 'Second Year', 'Third Year', 'Fourth Year', 'Fifth Year']
 const FIRST = ['Aarav', 'Diya', 'Vivaan', 'Ananya', 'Krishna', 'Ishaan', 'Saanvi', 'Reyansh', 'Myra', 'Arjun', 'Aadhya', 'Kabir', 'Anika', 'Vihaan', 'Pari', 'Rudra', 'Navya', 'Aryan', 'Kiara', 'Dev']
 const LAST = ['Sharma', 'Verma', 'Iyer', 'Reddy', 'Nair', 'Gupta', 'Mehta', 'Rao', 'Singh', 'Bose', 'Joshi', 'Kapoor']

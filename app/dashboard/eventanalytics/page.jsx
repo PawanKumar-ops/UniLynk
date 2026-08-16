@@ -171,9 +171,12 @@ export default function EventAnalyticsPage() {
   const completedTeams = teams.filter((t) => t.status === "completed").length;
   return (
     <DashboardEventsShell>
-      <TopBar title="Analytics" />
+      <TopBar
+  title="Analytics"
+  backPath="/dashboard/events/yourform"
+/>
 
-      <div className="flex flex-col gap-6 px-3.5 sm:gap-8">
+      <div className="flex flex-col gap-2.5 sm:px-3.5 sm:gap-8">
         <div className="animate-fade-up">
           <div className="mb-4 rounded-3xl border border-line bg-panel p-6 shadow-[0_1px_2px_rgba(16,35,28,0.04)] sm:p-7">
             <SectionLabel>Results &amp; Analytics · {EVENT.window}</SectionLabel>
@@ -184,7 +187,7 @@ export default function EventAnalyticsPage() {
             <button
               type="button"
               onClick={() => { }}
-              className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl bg-black px-6 py-4 text-[15px] font-semibold text-white transition hover:bg-[#2a2a2a] active:scale-[0.99]"
+              className="mt-5 flex w-full items-center justify-center cursor-pointer gap-2 rounded-2xl bg-black px-6 py-4 text-[15px] font-semibold text-white transition hover:bg-[#2a2a2a] active:scale-[0.99]"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                 <path
@@ -199,7 +202,7 @@ export default function EventAnalyticsPage() {
             </button>
           </div>
 
-          <div className="mb-6 grid grid-cols-4 gap-2 sm:gap-0">
+          <div className="mb-3 grid grid-cols-4 gap-2 sm:gap-0">
             {STATS.map((s) => (
               <StatCard
                 key={s.label}
@@ -229,12 +232,12 @@ export default function EventAnalyticsPage() {
             />
           </div>
 
-          <Panel className="mb-6 animate-fade-up">
+          <Panel className="mb-2.5 animate-fade-up">
             <CardHead label="Registered users" title="Sign-up momentum" right={<Chip>Daily</Chip>} />
             <RegisteredChart />
           </Panel>
 
-          <div className="mb-6 grid grid-cols-1 gap-6 2xl:grid-cols-2">
+          <div className="mb-2.5 grid grid-cols-1 gap-2.5 2xl:grid-cols-2">
             <Panel className="animate-fade-up">
               <CardHead label="Distribution" title="By Branch" right={<Chip>{BRANCH_DATA.length} branches</Chip>} />
               <BarList data={BRANCH_DATA} />
@@ -255,7 +258,7 @@ export default function EventAnalyticsPage() {
             <div className="h-px flex-1 bg-line" />
             <Chip>{QUESTIONS.length} questions</Chip>
           </div>
-          <div className="grid grid-cols-1 gap-6 2xl:grid-cols-2">
+          <div className="grid grid-cols-1 gap-2.5 2xl:grid-cols-2">
             {QUESTIONS.map((q) => (
               <QuestionBlock key={q.id} q={q} />
             ))}

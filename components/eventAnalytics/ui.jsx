@@ -21,27 +21,26 @@ export function CardTitle({ children }) {
   return <h3 className="font-display text-[17px] font-bold leading-tight text-ink">{children}</h3>
 }
 
-export function Avatar({ name, hue, size = 34 }) {
+export function Avatar({ name, size = 34 }) {
   const initials = name
-    .split(' ')
+    .split(" ")
     .map((p) => p[0])
     .slice(0, 2)
-    .join('')
-  // hue kept for variety but rendered within the green family for cohesion
-  const h = 150 + ((hue % 40) - 20)
+    .join("")
+    .toUpperCase();
+
   return (
     <div
-      className="grid shrink-0 place-items-center rounded-full font-display font-semibold text-white"
+      className="grid shrink-0 place-items-center rounded-full border border-[#e2e2e2] bg-[#f3f3f3] font-display font-semibold text-[#333333]"
       style={{
         width: size,
         height: size,
         fontSize: size * 0.38,
-        background: `linear-gradient(135deg, hsl(${h} 32% 34%), hsl(${h} 42% 18%))`,
       }}
     >
       {initials}
     </div>
-  )
+  );
 }
 
 export function Chip({

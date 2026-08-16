@@ -618,57 +618,57 @@ function SeekersView({ seekers, onOpen, onBack }) {
       />
 
       <div className="flex flex-col gap-3 sm:px-3.5 pb-1.5">
-      
-{seekers.length === 0 ? (
-  <div className="flex min-h-[420px] flex-col items-center justify-center px-4 text-center">
-    <div className="mb-6 flex h-[220px] w-[280px] max-w-[80vw] items-center justify-center">
-      <img
-        src="/illuistrations/noMember.svg"
-        alt="No members found"
-        className="h-full w-full object-contain"
-      />
-    </div>
 
-    <h3 className="text-[17px] font-bold tracking-[-0.01em]">
-      No members found
-    </h3>
+        {seekers.length === 0 ? (
+          <div className="flex min-h-[420px] flex-col items-center justify-center px-4 text-center">
+            <div className="mb-6 flex h-[220px] w-[280px] max-w-[80vw] items-center justify-center">
+              <img
+                src="/illuistrations/noMember.svg"
+                alt="No members found"
+                className="h-full w-full object-contain"
+              />
+            </div>
 
-    <p className="mt-1.5 max-w-[320px] text-[13.5px] leading-relaxed text-[#71717a]">
-      No students are looking for a team right now. Check back later to
-      find members for your team.
-    </p>
-  </div>
-) : (
-            seekers.map((s) => (
-              <button
-                key={s.id}
-                onClick={() => onOpen(s.id)}
-                className="group flex items-center gap-4 rounded-[22px] border border-neutral-200 hover:border-neutral-300 hover:shadow-sm transition cursor-pointer bg-[#ffffff] p-4 text-left"
-              >
-                <Avatar src={s.avatar} alt={s.name} size={52} />
+            <h3 className="text-[17px] font-bold tracking-[-0.01em]">
+              No members found
+            </h3>
 
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[15.5px] font-bold tracking-[-0.01em]">
-                    {s.name}
-                  </p>
+            <p className="mt-1.5 max-w-[320px] text-[13.5px] leading-relaxed text-[#71717a]">
+              No students are looking for a team right now. Check back later to
+              find members for your team.
+            </p>
+          </div>
+        ) : (
+          seekers.map((s) => (
+            <button
+              key={s.id}
+              onClick={() => onOpen(s.id)}
+              className="group flex items-center gap-4 rounded-[22px] border border-neutral-200 hover:border-neutral-300 hover:shadow-sm transition cursor-pointer bg-[#ffffff] p-4 text-left"
+            >
+              <Avatar src={s.avatar} alt={s.name} size={52} />
 
-                  <p className="truncate text-[13px] text-[#71717a]">
-                    {s.branch} · {s.year}
-                  </p>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-[15.5px] font-bold tracking-[-0.01em]">
+                  {s.name}
+                </p>
 
-                  <p className="mt-1.5 line-clamp-1 text-[13.5px] text-[#0a0a0a]/70">
-                    {s.headline}
-                  </p>
-                </div>
+                <p className="truncate text-[13px] text-[#71717a]">
+                  {s.branch} · {s.year}
+                </p>
 
-                <ArrowRight
-                  size={18}
-                  className="shrink-0 text-[#a1a1aa] transition-all group-hover:translate-x-0.5 group-hover:text-[#0a0a0a]"
-                />
-              </button>
-            ))
-          )}
-        
+                <p className="mt-1.5 line-clamp-1 text-[13.5px] text-[#0a0a0a]/70">
+                  {s.headline}
+                </p>
+              </div>
+
+              <ArrowRight
+                size={18}
+                className="shrink-0 text-[#a1a1aa] transition-all group-hover:translate-x-0.5 group-hover:text-[#0a0a0a]"
+              />
+            </button>
+          ))
+        )}
+
       </div>
     </div>
   )

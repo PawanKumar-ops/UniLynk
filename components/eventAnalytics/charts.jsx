@@ -411,7 +411,7 @@ export function Heatmap() {
       {BRANCH_YEAR_MATRIX.map((row) => (
         <div
           key={row.branch}
-          className="mb-1.5 grid grid-cols-[120px_repeat(5,minmax(0,1fr))] items-center gap-1.5"
+          className="mb-1.5 grid grid-cols-[65px_repeat(5,minmax(0,1fr))] items-center gap-1.5"
         >
           <span className="truncate pr-2 text-[12px] font-medium text-ink-2">
             {row.branch}
