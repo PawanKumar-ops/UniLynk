@@ -110,6 +110,7 @@ export function ProfilePage() {
             <div className="group relative">
               <button
                 onClick={() => setEditing(true)}
+                // onClick={() => router.push("/dashboard/UserProfileEdit")}
                 className="flex h-9 w-9 items-center cursor-pointer justify-center rounded-full transition hover:bg-black/5"
               >
                 <Icon

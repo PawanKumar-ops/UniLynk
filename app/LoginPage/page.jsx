@@ -27,7 +27,7 @@ const slides = [
         label: "Clubs",
         title: "Connect with your campus",
         body: "Join clubs, discover communities, and meet students who share your interests.",
-        image: "https://img.magnific.com/free-photo/close-up-young-colleagues-having-meeting_23-2149060255.jpg?t=st=1786106934~exp=1786110534~hmac=45cb14fd2ee4256900ea2877af3144d2a95f541db28846d2b3c4f496ed19f5a7&w=1480",
+        video: "https://res.cloudinary.com/m89jw24l/video/upload/v1787671809/Clubs-basket-ball.mp4",
         alt: "Campus clubs",
     },
     {
@@ -35,7 +35,7 @@ const slides = [
         label: "Events",
         title: "Never miss an opportunity",
         body: "Discover workshops, hackathons, fests, and campus events all in one place.",
-        image: "https://img.magnific.com/free-photo/team-programmers-talking-about-algorithm-running-laptop-screen-pointing-source-code-while-sitting-desk-software-developers-collaborating-data-coding-group-project_482257-33548.jpg?t=st=1786107109~exp=1786110709~hmac=921a643ef98c4e07af62e0ce718e0f9b6e1b9e31ac228b5a7a1107f8dc4b87be&w=1480",
+        video: "https://res.cloudinary.com/m89jw24l/video/upload/v1787673057/Events.mp4",
         alt: "Campus events",
     },
     {
@@ -43,7 +43,7 @@ const slides = [
         label: "Network",
         title: "Build your student network",
         body: "Connect with seniors, alumni, and classmates to learn, collaborate, and grow.",
-        image: "https://img.magnific.com/free-photo/smiling-business-leader-greeting-partner_1262-3306.jpg?t=st=1786107039~exp=1786110639~hmac=d66b811c582f81f464e895f4d91e585474748b1815ce5acb67c2bd79016d8be7&w=1480",
+        video: "https://res.cloudinary.com/m89jw24l/video/upload/v1787673390/network.mp4",
         alt: "Student networking",
     },
     {
@@ -51,7 +51,7 @@ const slides = [
         label: "Posts",
         title: "Share what matters",
         body: "Post updates, ask questions, share achievements, and stay connected with your campus community.",
-        image: "SignInTransitions/PostBannerTransition.png",
+        video: "https://res.cloudinary.com/m89jw24l/video/upload/v1787673649/posts-login.mp4",
         alt: "Campus posts",
     },
     {
@@ -59,7 +59,7 @@ const slides = [
         label: "Get Help",
         title: "Help is always nearby",
         body: "Ask questions, seek guidance, and get support from seniors and fellow students whenever you need it.",
-        image: "https://img.magnific.com/free-photo/i-can-handle-multi-tasks-cropped-shot-successful-girl-typing-keyboard-making-notes-while-looking-computer-screen-studying-new-business-graphic-there-is-no-time-rest_176420-8700.jpg?t=st=1786107326~exp=1786110926~hmac=741ab8f3aa1d1a6d727c5a4021c02ecc617281ed7ccbb98b248adbd7a77aff74&w=1480",
+        video: "https://res.cloudinary.com/m89jw24l/video/upload/v1787673844/help-login.mp4",
         alt: "Student help",
     },
 ];
@@ -184,25 +184,57 @@ function PromoPanel() {
     const slide = slides[active]
 
     return (
-        <div className="relative h-full w-full overflow-hidden bg-[#0b0b0c]">
-            <div className="absolute inset-0">
+        <div
+            className="relative w-full overflow-hidden bg-black"
+            style={{
+                height: "100%",
+                minHeight: "100%",
+            }}
+        >
+
+            {/* VIDEO */}
+            <div className="absolute inset-0 overflow-hidden">
+                {/* VIDEO */}
                 {slides.map((s, i) => (
-                    <img
+                    <video
                         key={s.key}
-                        src={s.image}
-                        alt={s.alt}
-                        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-500 ease-in-out ${i === active ? 'opacity-100' : 'opacity-0'
+                        src={s.video}
+                        muted
+                        loop
+                        playsInline
+                        autoPlay
+                        preload="auto"
+                        className={`absolute left-0 top-0 block transition-opacity duration-500 ease-in-out ${i === active ? "opacity-100" : "opacity-0"
                             }`}
+                        style={{
+                            width: "100%",
+                            height: "100%",
+                            minWidth: "100%",
+                            minHeight: "100%",
+                            maxWidth: "none",
+                            maxHeight: "none",
+                            objectFit: "cover",
+                            objectPosition: "center center",
+                        }}
                     />
                 ))}
             </div>
 
-            <div className="absolute inset-x-0 bottom-0 flex flex-col items-start gap-6 bg-gradient-to-b from-transparent via-black/50 to-black/95 px-8 pt-20 pb-8 text-left">
+            {/* SMALL GRADIENT ONLY AT BOTTOM */}
+            <div className="pointer-events-none absolute inset-x-0 bottom-0 h-[45%] bg-gradient-to-t from-black/90 via-black/50 to-transparent" />
+
+            {/* CONTENT */}
+            <div className="absolute inset-x-0 bottom-0 flex flex-col items-start gap-6 px-8 pb-8 text-left">
                 <div className="flex w-full flex-col gap-2">
-                    <h2 className={`m-0 ${bricolage.className} text-2xl leading-[1.2] font-bold tracking-[-1px] text-white`}>
+                    <h2
+                        className={`m-0 ${bricolage.className} text-2xl leading-[1.2] font-bold tracking-[-1px] text-white`}
+                    >
                         {slide.title}
                     </h2>
-                    <p className="m-0 text-xs font-medium text-white/70">{slide.body}</p>
+
+                    <p className="m-0 text-xs font-medium text-white/70">
+                        {slide.body}
+                    </p>
                 </div>
 
                 <div className="-mb-1 -ml-2 flex w-full gap-2">
@@ -213,17 +245,24 @@ function PromoPanel() {
                             onClick={() => setActive(i)}
                             aria-label={s.label}
                             aria-current={i === active}
-                            className="flex h-auto w-20 flex-col items-stretch gap-2 rounded-md bg-transparent px-2 py-1 text-left text-xs font-medium text-white transition duration-150 ease-in-out hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/40 active:bg-white/20"
+                            className="flex h-auto w-20 flex-col items-stretch gap-2 rounded-md bg-transparent px-2 py-1 text-left text-xs font-medium text-white transition duration-150 ease-in-out hover:bg-white/10"
                         >
                             <span className="truncate text-2xs font-medium tracking-wide text-white uppercase">
                                 {s.label}
                             </span>
+
                             <span className="block h-1 w-full overflow-hidden rounded-full bg-white/25">
                                 <span
                                     className="block h-full bg-white"
                                     style={{
-                                        width: i === active ? `${progress}%` : '0%',
-                                        transition: i === active ? 'width 50ms linear' : 'none',
+                                        width:
+                                            i === active
+                                                ? `${progress}%`
+                                                : "0%",
+                                        transition:
+                                            i === active
+                                                ? "width 50ms linear"
+                                                : "none",
                                     }}
                                 />
                             </span>
@@ -522,7 +561,10 @@ export default function App() {
 
     return (
         <div className={`${inter.className} flex h-screen w-screen overflow-hidden bg-[#ffffff] p-2 text-sm text-[#17181a] antialiased`}>
-            <div className="relative hidden h-full overflow-hidden rounded-[14px] lg:flex lg:w-1/2">
+            <div
+                className="relative hidden min-h-0 overflow-hidden rounded-[14px] lg:flex lg:w-1/2"
+                style={{ height: "calc(100vh - 16px)" }}
+            >
                 <PromoPanel />
             </div>
 
