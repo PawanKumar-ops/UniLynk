@@ -107,6 +107,7 @@ export default function EditProfile({ onClose, saveRef }) {
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState("");
 
@@ -189,20 +190,67 @@ export default function EditProfile({ onClose, saveRef }) {
     addSkill(sName);
   };
 
-  const uploadImageToCloudinary = async (imgData, folder = "profile-images") => {
-    if (!imgData || !imgData.startsWith("data:image/")) return imgData;
-    const res = await fetch("/api/user/upload-image", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ image: imgData, folder }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || "Image upload failed");
-    return data.url;
+  const uploadImageToCloudinary = async (imgData, folder = "profile-images", type = "image") => {
+    if (!imgData) return imgData;
+    if (imgData.startsWith("http://") || imgData.startsWith("https://")) return imgData;
+    if (imgData === "/Background.jpg" || imgData === "/Profilepic.png") return imgData;
+
+    // Handle base64 data URIs
+    if (imgData.startsWith("data:image/")) {
+      const res = await fetch("/api/user/upload-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: imgData, folder, type }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Image upload failed");
+      return data.url;
+    }
+
+    // Handle blob: URIs
+    if (imgData.startsWith("blob:")) {
+      const blobRes = await fetch(imgData);
+      const blob = await blobRes.blob();
+      const formData = new FormData();
+      formData.append("file", blob, `${type}.jpg`);
+      formData.append("folder", folder);
+      formData.append("type", type);
+
+      const res = await fetch("/api/user/upload-image", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Image upload failed");
+      return data.url;
+    }
+
+    return imgData;
+  };
+
+  const handleCropApply = async (croppedUrl) => {
+    const kind = crop?.kind;
+    setCrop(null);
+    setUploading(true);
+    setSaveError("");
+    try {
+      if (kind === "banner") {
+        const cloudinaryUrl = await uploadImageToCloudinary(croppedUrl, "profile-banners", "banner");
+        setBanner(cloudinaryUrl);
+      } else {
+        const cloudinaryUrl = await uploadImageToCloudinary(croppedUrl, "profile-avatars", "avatar");
+        setAvatar(cloudinaryUrl);
+      }
+    } catch (err) {
+      console.error("Cloudinary upload failed:", err);
+      setSaveError("Failed to upload image to Cloudinary. Please try again.");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const handleSaveProfile = async () => {
-    if (saving) return;
+    if (saving || uploading) return;
     try {
       setSaving(true);
       setSaveError("");
@@ -210,12 +258,13 @@ export default function EditProfile({ onClose, saveRef }) {
       let uploadedAvatar = avatar;
       let uploadedBanner = banner;
 
-      if (avatar && avatar.startsWith("data:image/")) {
-        uploadedAvatar = await uploadImageToCloudinary(avatar, "profile-avatars");
+      // Ensure any non-Cloudinary image (data: or blob:) gets uploaded before saving profile
+      if (avatar && (avatar.startsWith("data:image/") || avatar.startsWith("blob:"))) {
+        uploadedAvatar = await uploadImageToCloudinary(avatar, "profile-avatars", "avatar");
       }
 
-      if (banner && banner.startsWith("data:image/")) {
-        uploadedBanner = await uploadImageToCloudinary(banner, "profile-banners");
+      if (banner && (banner.startsWith("data:image/") || banner.startsWith("blob:"))) {
+        uploadedBanner = await uploadImageToCloudinary(banner, "profile-banners", "banner");
       }
 
       const res = await fetch("/api/user/profile", {
@@ -290,6 +339,12 @@ export default function EditProfile({ onClose, saveRef }) {
                 />
               ) : (
                 <div className="size-full bg-gradient-to-br from-neutral-200 to-neutral-100" />
+              )}
+
+              {uploading && (
+                <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/50 backdrop-blur-xs text-white gap-2 text-sm font-medium">
+                  <Loader2 className="size-5 animate-spin" /> Uploading to Cloudinary...
+                </div>
               )}
 
               {/* Banner shadow */}
@@ -664,10 +719,7 @@ export default function EditProfile({ onClose, saveRef }) {
           round={crop.kind === "avatar"}
           title={crop.kind === "banner" ? "Banner image" : "Profile picture"}
           onCancel={() => setCrop(null)}
-          onApply={(url) => {
-            crop.kind === "banner" ? setBanner(url) : setAvatar(url);
-            setCrop(null);
-          }}
+          onApply={handleCropApply}
         />
       )}
     </div>

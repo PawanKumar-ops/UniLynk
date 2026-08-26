@@ -49,7 +49,9 @@ export default function CropModal({ src, aspect, title, round, onCancel, onApply
 
   useEffect(() => {
     const img = new Image();
-    img.crossOrigin = "anonymous";
+    if (src && src.startsWith("http")) {
+      img.crossOrigin = "anonymous";
+    }
     img.onload = () => setNat({ w: img.naturalWidth, h: img.naturalHeight });
     img.src = src;
   }, [src]);
@@ -117,7 +119,9 @@ export default function CropModal({ src, aspect, title, round, onCancel, onApply
     if (!ctx) return onApply(src);
 
     const img = new Image();
-    img.crossOrigin = "anonymous";
+    if (src && src.startsWith("http")) {
+      img.crossOrigin = "anonymous";
+    }
     img.onload = () => {
       const scale = baseScale * zoom;
 

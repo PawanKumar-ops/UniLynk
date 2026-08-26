@@ -57,8 +57,10 @@ export async function PATCH(req) {
       updatePayload.banner = banner.trim();
     }
 
+    const email = session.user.email.toLowerCase().trim();
+
     const user = await User.findOneAndUpdate(
-      { email: session.user.email },
+      { email },
       updatePayload,
       { new: true }
     ).select("-password");

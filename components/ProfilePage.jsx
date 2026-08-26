@@ -47,7 +47,47 @@ export function ProfilePage() {
   const [me, setMe] = useState(null); const [profile, setProfile] = useState(null); const [clubs, setClubs] = useState([]); const [posts, setPosts] = useState([]); const [loading, setLoading] = useState(true); const [error, setError] = useState(""); const [showAllAchievements, setShowAllAchievements] = useState(false);
   const isOwnProfile = !!me && !!profile && String(me._id) === String(profile._id);
 
-  useEffect(() => { if (status !== "authenticated") return; let cancelled = false; (async () => { try { setLoading(true); const meRes = await fetch("/api/user/me", { cache: "no-store" }); const meData = await meRes.json(); if (!meRes.ok) throw new Error(meData.error || "Could not load profile"); const targetRes = routeUserId ? await fetch(`/api/users/${encodeURIComponent(routeUserId)}`, { cache: "no-store" }) : null; const targetData = targetRes ? await targetRes.json() : null; if (targetRes && !targetRes.ok) throw new Error(targetData.error || "Could not load profile"); const active = targetData?.user || meData.user; const postsRes = await fetch("/api/posts?audience=for-you&limit=50", { cache: "no-store" }); const postsData = await postsRes.json(); const clubsRes = active?._id ? await fetch(`/api/users/${active._id}/clubs`, { cache: "no-store" }) : null; const clubsData = clubsRes?.ok ? await clubsRes.json() : { clubs: [] }; if (!cancelled) { setMe(meData.user); setProfile(active); setPosts((postsData.posts || []).filter((post) => normalizeEmail(post.authorEmail) === normalizeEmail(active.email))); setClubs(clubsData.clubs || []); } } catch (e) { if (!cancelled) setError(e.message || "Could not load profile"); } finally { if (!cancelled) setLoading(false); } })(); return () => { cancelled = true; }; }, [routeUserId, status]);
+  useEffect(() => {
+    if (status !== "authenticated") return;
+    let cancelled = false;
+    (async () => {
+      try {
+        setLoading(true);
+        const meRes = await fetch("/api/user/me", {
+          cache: "no-store",
+          headers: { Pragma: "no-cache", "Cache-Control": "no-cache" },
+        });
+        const meData = await meRes.json();
+        if (!meRes.ok) throw new Error(meData.error || "Could not load profile");
+        const targetRes = routeUserId
+          ? await fetch(`/api/users/${encodeURIComponent(routeUserId)}`, {
+              cache: "no-store",
+              headers: { Pragma: "no-cache", "Cache-Control": "no-cache" },
+            })
+          : null;
+        const targetData = targetRes ? await targetRes.json() : null;
+        if (targetRes && !targetRes.ok) throw new Error(targetData.error || "Could not load profile");
+        const active = targetData?.user || meData.user;
+        const postsRes = await fetch("/api/posts?audience=for-you&limit=50", { cache: "no-store" });
+        const postsData = await postsRes.json();
+        const clubsRes = active?._id ? await fetch(`/api/users/${active._id}/clubs`, { cache: "no-store" }) : null;
+        const clubsData = clubsRes?.ok ? await clubsRes.json() : { clubs: [] };
+        if (!cancelled) {
+          setMe(meData.user);
+          setProfile(active);
+          setPosts((postsData.posts || []).filter((post) => normalizeEmail(post.authorEmail) === normalizeEmail(active.email)));
+          setClubs(clubsData.clubs || []);
+        }
+      } catch (e) {
+        if (!cancelled) setError(e.message || "Could not load profile");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [routeUserId, status]);
   const academic = [{ icon: GraduationCap, label: "Branch", value: profile?.branch || "Not available" }, { icon: CalendarDays, label: "Year", value: profile?.year || "Not available" }, { icon: Layers, label: "Batch", value: profile?.year ? "Current batch" : "Not available" }, { icon: BookOpen, label: "Semester", value: profile?.year || "Not available" }];
   const achievements = profile?.achievements || []; const visibleAchievements = showAllAchievements ? achievements : achievements.slice(0, 2);
   const updatePost = (next) => setPosts((current) => current.map((post) => post.id === next.id ? next : post));
@@ -154,13 +194,14 @@ export function ProfilePage() {
         >
           {/* Banner */}
           <div className="relative h-[160px] w-full overflow-hidden bg-[#F2F2F2] sm:h-[200px]">
-            <ReliableImage
-              src={profile.banner || "/Background.jpg"}
-              fallbackSrc="/Background.jpg"
-              alt={`${profile.name} banner`}
-              width={1600}
-              height={512}
+            <img
+              src={profile.banner && profile.banner.trim() ? profile.banner : "/Background.jpg"}
+              alt={`${profile.name || "User"} banner`}
               className="h-full w-full object-cover"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = "/Background.jpg";
+              }}
             />
 
             <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
