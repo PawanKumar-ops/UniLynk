@@ -148,7 +148,8 @@ export default function CropModal({ src, aspect, title, round, onCancel, onApply
         outHeight
       );
 
-      onApply(canvas.toDataURL("image/jpeg", 0.92));
+      // Keep the staged upload comfortably below the API's 10 MB safety limit.
+      onApply(canvas.toDataURL("image/jpeg", 0.86));
     };
     img.onerror = () => onApply(src);
     img.src = src;

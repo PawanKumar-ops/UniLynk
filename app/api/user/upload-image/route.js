@@ -1,14 +1,35 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 import cloudinary from "@/lib/cloudinary";
-import { connectDB } from "@/lib/mongodb";
-import User from "@/models/user";
-import { syncUserClubProfile } from "@/lib/clubProfileSync";
+
+const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
+const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const ALLOWED_DATA_URL_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+const getUploadOptions = (type) => ({
+  folder: type === "banner" ? "profile-banners" : "profile-avatars",
+  resource_type: "image",
+  allowed_formats: ["jpg", "jpeg", "png", "webp"],
+  transformation: [
+    {
+      width: type === "banner" ? 1500 : 800,
+      height: type === "banner" ? 500 : 800,
+      crop: "limit",
+      quality: "auto",
+      fetch_format: "auto",
+    },
+  ],
+});
+
+const getDataUrlMimeType = (image) => image.match(/^data:(image\/[a-z0-9.+-]+);base64,/i)?.[1]?.toLowerCase();
+
+const isDataUrlWithinSizeLimit = (image) => {
+  const base64 = image.split(",")[1] || "";
+  return Math.ceil((base64.length * 3) / 4) <= MAX_IMAGE_SIZE_BYTES;
+};
 
 export async function POST(req) {
   try {
-    await connectDB();
-
     const session = await auth();
 
     if (!session?.user?.email) {
@@ -16,49 +37,43 @@ export async function POST(req) {
     }
 
     let imageUrl = "";
-    let targetFolder = "profile-images";
-    let updateField = null;
 
     const contentType = req.headers.get("content-type") || "";
 
     if (contentType.includes("application/json")) {
-      const { image, folder, type } = await req.json();
+      const { image, type } = await req.json();
+      const mimeType = typeof image === "string" ? getDataUrlMimeType(image) : null;
+      if (!image || !mimeType || !ALLOWED_DATA_URL_TYPES.has(mimeType)) {
+        return NextResponse.json({ error: "Upload a JPG, PNG, or WebP image." }, { status: 400 });
+      }
+      if (!isDataUrlWithinSizeLimit(image)) {
+        return NextResponse.json({ error: "Image must be 10 MB or smaller." }, { status: 413 });
+      }
+      if (type !== "banner" && type !== "avatar") {
+        return NextResponse.json({ error: "Invalid image type." }, { status: 400 });
+      }
       if (!image) {
         return NextResponse.json({ error: "No image provided" }, { status: 400 });
       }
 
-      if (type === "banner" || folder === "profile-banners") {
-        targetFolder = "profile-banners";
-        updateField = "banner";
-      } else if (type === "avatar" || folder === "profile-avatars") {
-        targetFolder = "profile-avatars";
-        updateField = "img";
-      } else {
-        targetFolder = folder || "profile-images";
-      }
-
-      const uploadResult = await cloudinary.uploader.upload(image, {
-        folder: targetFolder,
-      });
+      const uploadResult = await cloudinary.uploader.upload(image, getUploadOptions(type));
       imageUrl = uploadResult.secure_url;
     } else {
       const formData = await req.formData();
       const file = formData.get("file");
       const type = formData.get("type");
-      const folder = formData.get("folder");
 
-      if (!file) {
+      if (!file || typeof file.arrayBuffer !== "function") {
         return NextResponse.json({ error: "No file" }, { status: 400 });
       }
-
-      if (type === "banner" || folder === "profile-banners") {
-        targetFolder = "profile-banners";
-        updateField = "banner";
-      } else if (type === "avatar" || folder === "profile-avatars") {
-        targetFolder = "profile-avatars";
-        updateField = "img";
-      } else {
-        targetFolder = folder || "profile-images";
+      if (type !== "banner" && type !== "avatar") {
+        return NextResponse.json({ error: "Invalid image type." }, { status: 400 });
+      }
+      if (!ALLOWED_MIME_TYPES.has(file.type)) {
+        return NextResponse.json({ error: "Upload a JPG, PNG, or WebP image." }, { status: 400 });
+      }
+      if (file.size > MAX_IMAGE_SIZE_BYTES) {
+        return NextResponse.json({ error: "Image must be 10 MB or smaller." }, { status: 413 });
       }
 
       // Convert file to buffer
@@ -68,7 +83,7 @@ export async function POST(req) {
       // Upload to Cloudinary
       const uploadResult = await new Promise((resolve, reject) => {
         cloudinary.uploader.upload_stream(
-          { folder: targetFolder },
+          getUploadOptions(type),
           (error, result) => {
             if (error) reject(error);
             else resolve(result);
@@ -79,19 +94,9 @@ export async function POST(req) {
       imageUrl = uploadResult.secure_url;
     }
 
-    if (updateField) {
-      const user = await User.findOneAndUpdate(
-        { email: session.user.email },
-        { [updateField]: imageUrl },
-        { new: true }
-      );
-
-      if (user) {
-        await syncUserClubProfile(user);
-      }
-    }
-
-    return NextResponse.json({ url: imageUrl });
+    // This only stages the image. The profile PATCH request persists the URL together
+    // with the rest of the profile, so cancelling the edit screen never changes a user.
+    return NextResponse.json({ url: imageUrl }, { headers: { "Cache-Control": "no-store" } });
 
   } catch (error) {
     console.error("UPLOAD IMAGE ERROR:", error);

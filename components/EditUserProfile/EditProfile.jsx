@@ -59,6 +59,9 @@ const SOCIALS = [
   },
 ];
 
+const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
 function SectionHeader({ index, title, desc }) {
   return (
     <div className="mb-5">
@@ -161,9 +164,20 @@ export default function EditProfile({ onClose, saveRef }) {
   const pick = (kind) => (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    e.target.value = "";
+
+    if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+      setSaveError("Please choose a JPG, PNG, or WebP image.");
+      return;
+    }
+    if (file.size > MAX_IMAGE_SIZE_BYTES) {
+      setSaveError("Image must be 10 MB or smaller.");
+      return;
+    }
+
+    setSaveError("");
     const url = URL.createObjectURL(file);
     setCrop({ kind, src: url });
-    e.target.value = "";
   };
 
   const skillSuggestions = useMemo(() => {
@@ -213,7 +227,6 @@ export default function EditProfile({ onClose, saveRef }) {
       const blob = await blobRes.blob();
       const formData = new FormData();
       formData.append("file", blob, `${type}.jpg`);
-      formData.append("folder", folder);
       formData.append("type", type);
 
       const res = await fetch("/api/user/upload-image", {

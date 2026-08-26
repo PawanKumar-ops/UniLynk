@@ -3,6 +3,9 @@ import { connectDB } from "@/lib/mongodb";
 import User from "@/models/user";
 import { syncUserClubProfile } from "@/lib/clubProfileSync";
 
+const isStoredProfileImage = (value, fallback) =>
+  value === fallback || /^https:\/\/res\.cloudinary\.com\//i.test(value);
+
 export async function PATCH(req) {
   try {
     await connectDB();
@@ -13,6 +16,10 @@ export async function PATCH(req) {
     }
 
     const { name, branch, year, skills, socials, achievements, img, banner } = await req.json();
+
+    if (typeof banner === "string" && banner.trim() && !isStoredProfileImage(banner.trim(), "/Background.jpg")) {
+      return Response.json({ error: "Banner must be uploaded before saving your profile." }, { status: 400 });
+    }
 
     const updatePayload = {
       branch: typeof branch === "string" ? branch.trim() : "",
