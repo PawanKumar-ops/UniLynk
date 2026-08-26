@@ -136,20 +136,47 @@ export default function App() {
     <DashboardEventsShell>
       <main className="min-h-screen w-full bg-white text-ink">
         {/* header */}
+      
         <header
-          className="sticky top-0 z-50 mb-5 flex h-[54px] w-full items-start px-4 border-b border-black/[0.06] bg-white/80 backdrop-blur-xl"
+          className="sticky top-0 z-50 flex mb-5 h-[54px] w-full items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl"
+          style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
         >
-          <div className="flex h-full items-center">
+          {/* Left */}
+          <div
+            className="flex items-center"
+            style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
+          >
             <button
-              onClick={() => router.push("/dashboard/eventanalytics")}
-              className="mr-5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition hover:bg-black/5"
+              onClick={() => router.back()}
+              className="mr-6 flex h-9 w-9 items-center cursor-pointer justify-center rounded-full transition hover:bg-black/5"
             >
               <ArrowLeft size={20} strokeWidth={2.2} />
             </button>
 
-            <h1 className="m-0 whitespace-nowrap text-[20px] font-bold leading-[54px] text-black">
-              Teams
-            </h1>
+            <div>
+              <h1 className="truncate text-[20px] font-bold leading-5 text-black">
+                Teams
+              </h1>
+            </div>
+          </div>
+
+          {/* Right */}
+          <div className="flex items-center gap-1.5">
+            <div className="group relative">
+              <button
+                // onClick={() => saveRef.current?.()}
+                className="flex h-9 gap-1 px-4 items-center cursor-pointer justify-center rounded-full transition hover:bg-black/5"
+              >
+                <Icon
+                  icon="solar:pen-outline"
+                  className="text-[21px] text-[#171717]"
+                />Save
+              </button>
+
+              <div className="pointer-events-none absolute right-1/2 top-full mt-2 translate-x-1/2 rounded-full bg-[#2c2f35] px-3 py-1.5 text-xs font-medium whitespace-nowrap text-white opacity-0 transition-all duration-200 group-hover:translate-y-1 group-hover:opacity-100">
+                Save Teams
+              </div>
+            </div>
           </div>
         </header>
 
