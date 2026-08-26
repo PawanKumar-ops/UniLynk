@@ -82,7 +82,7 @@ function Card({ children }) {
 
 export default function EditProfile({ onClose }) {
   const [banner, setBanner] = useState(
-    "https://images.unsplash.com/photo-1562774053-701939374585?w=1200&h=400&fit=crop&auto=format",
+    "/Background.jpg",
   );
   const [avatar, setAvatar] = useState(
     "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&h=400&fit=crop&auto=format",
@@ -158,16 +158,27 @@ export default function EditProfile({ onClose }) {
     <div className="min-h-full">
       <div className="space-y-3 pt-5">
         {/* Media */}
-        <Card>
+        {/* Media */}
+        <section className="overflow-hidden rounded-[24px] border border-hair bg-white">
           <div className="relative">
-            <div className="group relative h-40 w-full overflow-hidden rounded-2xl bg-neutral-100 sm:h-52">
+
+            {/* Banner */}
+            <div className="group relative h-[160px] w-full overflow-hidden bg-neutral-100 sm:h-[200px]">
               {banner ? (
-                <img src={banner} alt="Profile banner" className="size-full object-cover" />
-              ) : (
-                <div className="size-full bg-gradient-to-br from-neutral-200 to-neutral-100" />
-              )}
-              {/* Centered photo controls */}
-              <div className="absolute inset-0 flex items-center justify-center gap-3 bg-ink/25 opacity-0 transition group-hover:opacity-100 max-sm:opacity-100">
+  <img
+    src={banner}
+    alt="Profile banner"
+    className="size-full object-cover"
+  />
+) : (
+  <div className="size-full bg-gradient-to-br from-neutral-200 to-neutral-100" />
+)}
+
+{/* Same banner shadow as Profile Page */}
+<div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
+
+{/* Banner controls */}
+<div className="absolute inset-0 flex items-center justify-center gap-3 bg-ink/25 opacity-0 transition group-hover:opacity-100 max-sm:opacity-100">
                 <button
                   onClick={() => bannerInput.current?.click()}
                   title="Upload banner"
@@ -175,6 +186,7 @@ export default function EditProfile({ onClose }) {
                 >
                   <Icon icon="solar:camera-outline" className="size-[18px]" />
                 </button>
+
                 {banner && (
                   <button
                     onClick={() => setCrop({ kind: "banner", src: banner })}
@@ -184,6 +196,7 @@ export default function EditProfile({ onClose }) {
                     <Icon icon="solar:pen-outline" className="size-[18px]" />
                   </button>
                 )}
+
                 {banner && (
                   <button
                     onClick={() => setBanner("")}
@@ -196,41 +209,69 @@ export default function EditProfile({ onClose }) {
               </div>
             </div>
 
-            <div className="ml-1 flex items-end gap-4 sm:ml-5">
-              <div className="group relative -mt-12 sm:-mt-14">
-                <div className="size-24 overflow-hidden rounded-full border-4 border-white bg-neutral-100 shadow-sm sm:size-28">
-                  {avatar ? (
-                    <img src={avatar} alt="Profile avatar" className="size-full object-cover" />
-                  ) : (
-                    <div className="size-full bg-neutral-200" />
+            {/* Profile Picture Area */}
+            <div className="relative px-5 pb-5 sm:px-7 sm:pb-7">
+              <div className="flex items-end gap-4">
+                <div className="group relative -mt-10 sm:-mt-13">
+                  {/* Same avatar size as User Profile */}
+                  <div className="w-fit rounded-full bg-white p-0.75 ring-1 ring-white">
+                    <div className="h-[75px] w-[75px] overflow-hidden rounded-full bg-neutral-100 sm:h-[100px] sm:w-[100px]">
+                      {avatar ? (
+                        <img
+                          src={avatar}
+                          alt="Profile avatar"
+                          className="size-full object-cover"
+                        />
+                      ) : (
+                        <div className="size-full bg-neutral-200" />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Change photo */}
+                  <button
+                    onClick={() => avatarInput.current?.click()}
+                    title="Change photo"
+                    className="absolute inset-0 grid place-items-center rounded-full bg-ink/40 text-white opacity-0 transition group-hover:opacity-100 max-sm:opacity-100"
+                  >
+                    <Icon icon="solar:camera-outline" className="size-6" />
+                  </button>
+
+                  {/* Adjust photo */}
+                  {avatar && (
+                    <button
+                      onClick={() => setCrop({ kind: "avatar", src: avatar })}
+                      title="Adjust photo"
+                      className="absolute bottom-0 right-0 grid size-8 place-items-center rounded-full border-2 border-white bg-ink text-white transition hover:opacity-90"
+                    >
+                      <Icon icon="solar:pen-outline" className="size-3.5" />
+                    </button>
                   )}
                 </div>
-                <button
-                  onClick={() => avatarInput.current?.click()}
-                  title="Change photo"
-                  className="absolute inset-0 grid place-items-center rounded-full bg-ink/40 text-white opacity-0 transition group-hover:opacity-100 max-sm:opacity-100"
-                >
-                  <Icon icon="solar:camera-outline" className="size-6" />
-                </button>
-                {avatar && (
-                  <button
-                    onClick={() => setCrop({ kind: "avatar", src: avatar })}
-                    title="Adjust photo"
-                    className="absolute bottom-0 right-0 grid size-8 place-items-center rounded-full border-2 border-white bg-ink text-white transition hover:opacity-90"
-                  >
-                    <Icon icon="solar:pen-outline" className="size-3.5" />
-                  </button>
-                )}
+
+                <p className="pb-2 text-sm text-muted">
+                  Hover a photo to upload, adjust, or remove.
+                </p>
               </div>
-              <p className="pb-2 text-sm text-muted">
-                Hover a photo to upload, adjust, or remove. You can crop and reposition after
-                selecting.
-              </p>
             </div>
           </div>
-          <input ref={bannerInput} type="file" accept="image/*" hidden onChange={pick("banner")} />
-          <input ref={avatarInput} type="file" accept="image/*" hidden onChange={pick("avatar")} />
-        </Card>
+
+          <input
+            ref={bannerInput}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={pick("banner")}
+          />
+
+          <input
+            ref={avatarInput}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={pick("avatar")}
+          />
+        </section>
 
         {/* Basic details */}
         <Card>

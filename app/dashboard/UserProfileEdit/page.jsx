@@ -65,7 +65,7 @@ export default function UserProfileEditPage() {
 
           </div>
         </header>
-        <div className="px-[10px]">
+        <div className="px-[10px] sm:px-[14px]">
           <EditProfile onClose={() => router.push("/dashboard/Userprofile")} />
         </div>
       </DashboardEventsShell>

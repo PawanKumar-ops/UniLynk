@@ -149,9 +149,80 @@ export function ProfilePage() {
 
 
     <div className="flex-1 overflow-y-auto">
-      
+
       <div className="mx-auto flex max-w-3xl flex-col gap-4 px-[14px] py-5 sm:gap-6">
-        <div className="flex flex-col items-center gap-4 rounded-2xl border border-[#0000001A] bg-[#fff] p-6 text-center shadow-sm sm:flex-row sm:items-start sm:text-left"><div className="size-24 shrink-0 overflow-hidden rounded-full ring-2 ring-[#e9ebef]"><ImageWithFallback src={profile.img} alt={profile.name} className="size-full object-cover" /></div><div className="flex flex-1 flex-col items-center gap-1 sm:items-start"><h1 className="text-[1.5rem] font-medium">{profile.name || "UniLynk User"}</h1><div className="text-[#717182]">{profile.branch || "Not available"} · {profile.year || "Not available"}</div><div className="mt-3 flex gap-2">{(profile.socials || []).map((social) => { const SocialIcon = socialIconByPlatform[social.platform] || Globe; return <a key={`${social.platform}-${social.url}`} href={socialUrl(social.url)} target="_blank" rel="noreferrer" aria-label={social.platform} className="flex size-9 items-center justify-center rounded-full border border-[#0000001A] bg-[#fff] text-[#717182] transition-colors hover:bg-[#e9ebef] hover:text-[#0a0a0a]"><SocialIcon className="size-4" /></a>; })}</div></div></div>
+        <article
+          style={{ boxShadow: "var(--shadow-card)" }}
+          className="relative w-full overflow-hidden rounded-[24px] border border-[#0000001A] bg-white shadow-sm"
+        >
+          {/* Banner */}
+          <div className="relative h-[160px] w-full overflow-hidden bg-[#F2F2F2] sm:h-[200px]">
+            <ImageWithFallback
+              src="/Background.jpg"
+              alt={`${profile.name} banner`}
+              width={1600}
+              height={512}
+              className="h-full w-full object-cover"
+            />
+
+            <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
+          </div>
+
+          {/* Body */}
+          <div className="relative px-5 pb-5 sm:px-7 sm:pb-7">
+
+            {/* Profile Picture */}
+            <div className="relative -mt-10 mb-4 sm:-mt-13 sm:mb-5">
+              <div className="rounded-full w-fit bg-white p-0.75 ring-1 ring-white">
+                <ImageWithFallback
+                  src={profile.img}
+                  alt={profile.name}
+                  width={512}
+                  height={512}
+                  className="h-[75px] w-[75px] rounded-full object-cover sm:h-[100px] sm:w-[100px]"
+                />
+              </div>
+            </div>
+
+            {/* User Information */}
+            <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+              {/* User Information */}
+              <div>
+                <h1 className="text-[24px] font-medium leading-tight tracking-tight text-[#171717] sm:text-[28px]">
+                  {profile.name || "UniLynk User"}
+                </h1>
+
+                <p className="mt-1 text-sm text-[#666666]">
+                  {profile.branch || "Not available"}
+                  {profile.year && ` · ${profile.year}`}
+                </p>
+              </div>
+
+              {/* Social Profiles */}
+              {(profile.socials || []).length > 0 && (
+                <div className="flex items-center gap-2">
+                  {(profile.socials || []).map((social) => {
+                    const SocialIcon =
+                      socialIconByPlatform[social.platform] || Globe;
+
+                    return (
+                      <a
+                        key={`${social.platform}-${social.url}`}
+                        href={socialUrl(social.url)}
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label={social.platform}
+                        className="flex size-9 items-center justify-center rounded-full border border-[#0000001A] bg-white text-[#717182] transition-colors hover:bg-[#e9ebef] hover:text-[#0a0a0a]"
+                      >
+                        <SocialIcon className="size-4" />
+                      </a>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </article>
         <SectionCard title="Academic Information" icon={GraduationCap}><div className="grid grid-cols-2 gap-3">{academic.map(({ icon: AcademicIcon, label, value }) => <div key={label} className="rounded-xl border border-[#0000001A] bg-[#fff] p-3"><div className="flex items-center gap-1.5 text-sm text-[#717182]"><AcademicIcon className="size-3.5" /> {label}</div><div className="mt-1 text-[#0a0a0a]">{value}</div></div>)}</div></SectionCard>
         <SectionCard title="Skills" icon={Layers}><div className="grid grid-cols-2 gap-3 sm:grid-cols-4">{(profile.skills || []).map((skill) => <div key={skill} className="flex flex-col items-center gap-2.5 rounded-xl border border-[#0000001A] bg-[#fff] p-4 transition-shadow hover:shadow-md"><span className="flex size-12 items-center justify-center rounded-xl"><Icon icon={getSkillIcon(skill)} className="size-9" /></span><span className="text-sm text-[#0a0a0a]">{skill}</span></div>)}</div></SectionCard>
         <SectionCard title="Clubs" icon={BookOpen}><div className="grid grid-cols-1 gap-3 sm:grid-cols-2">{clubs.map((club) => <div key={club._id} className="flex items-center gap-3 rounded-2xl border border-[#0000001A] bg-[#fff] p-3 transition-shadow hover:shadow-md"><div className="size-12 shrink-0 overflow-hidden rounded-xl"><ImageWithFallback src={club.logo} alt={club.clubName} className="size-full object-cover" /></div><div className="min-w-0 flex-1"><div className="truncate text-[#0a0a0a]">{club.clubName}</div><div className="truncate text-sm text-[#717182]">{club.position || "Member"}</div></div><Button variant="secondary" onClick={() => router.push(`/dashboard/Club?clubId=${club._id}`)} className="shrink-0 rounded-full">Visit</Button></div>)}</div></SectionCard>
