@@ -15,42 +15,44 @@ export async function POST(req) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const formData = await req.formData();
-    const file = formData.get("file");
+    let imageUrl = "";
+    const contentType = req.headers.get("content-type") || "";
 
-    if (!file) {
-      return NextResponse.json({ error: "No file" }, { status: 400 });
+    if (contentType.includes("application/json")) {
+      const { image, folder } = await req.json();
+      if (!image) {
+        return NextResponse.json({ error: "No image provided" }, { status: 400 });
+      }
+      const uploadResult = await cloudinary.uploader.upload(image, {
+        folder: folder || "profile-images",
+      });
+      imageUrl = uploadResult.secure_url;
+    } else {
+      const formData = await req.formData();
+      const file = formData.get("file");
+
+      if (!file) {
+        return NextResponse.json({ error: "No file" }, { status: 400 });
+      }
+
+      // Convert file to buffer
+      const bytes = await file.arrayBuffer();
+      const buffer = Buffer.from(bytes);
+
+      // Upload to Cloudinary
+      const uploadResult = await new Promise((resolve, reject) => {
+        cloudinary.uploader.upload_stream(
+          { folder: "profile-images" },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        ).end(buffer);
+      });
+
+      imageUrl = uploadResult.secure_url;
     }
 
-    // Convert file to buffer
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    // Upload to Cloudinary
-    const uploadResult = await new Promise((resolve, reject) => {
-      cloudinary.uploader.upload_stream(
-        { folder: "profile-images" },
-        (error, result) => {
-          if (error) reject(error);
-          else resolve(result);
-        }
-      ).end(buffer);
-    });
-
-    const imageUrl = uploadResult.secure_url;
-
-    // ✅ Save image in DB
-    const user = await User.findOneAndUpdate(
-      { email: session.user.email },
-      { img: imageUrl },
-      { new: true }
-    );
-
-    if (user) {
-      await syncUserClubProfile(user);
-    }
-
-    // ✅ VERY IMPORTANT
     return NextResponse.json({ url: imageUrl });
 
   } catch (error) {

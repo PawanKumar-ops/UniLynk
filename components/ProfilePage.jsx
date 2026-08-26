@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { getSkillIcon } from "@/lib/skillIcons";
 import ReliableImage from "@/components/ReliableImage";
-import ProfileEditModal from "@/components/ProfileEditModal";
 import { DashboardEventsShell } from "@/components/DashboardEventsShell";
 import { PostCard } from "@/components/PostCard";
 import { ProfileSkeleton } from "./ProfileSkeleton";
@@ -45,14 +44,13 @@ export function ProfilePostCard(props) {
 export function ProfilePage() {
   const router = useRouter(); const pathname = usePathname(); const searchParams = useSearchParams(); const { status } = useSession();
   const routeUserId = useMemo(() => searchParams.get("userId") || pathname?.match(/\/dashboard\/search\/id=(.+)$/)?.[1], [pathname, searchParams]);
-  const [me, setMe] = useState(null); const [profile, setProfile] = useState(null); const [clubs, setClubs] = useState([]); const [posts, setPosts] = useState([]); const [loading, setLoading] = useState(true); const [error, setError] = useState(""); const [editing, setEditing] = useState(false); const [showAllAchievements, setShowAllAchievements] = useState(false);
+  const [me, setMe] = useState(null); const [profile, setProfile] = useState(null); const [clubs, setClubs] = useState([]); const [posts, setPosts] = useState([]); const [loading, setLoading] = useState(true); const [error, setError] = useState(""); const [showAllAchievements, setShowAllAchievements] = useState(false);
   const isOwnProfile = !!me && !!profile && String(me._id) === String(profile._id);
 
   useEffect(() => { if (status !== "authenticated") return; let cancelled = false; (async () => { try { setLoading(true); const meRes = await fetch("/api/user/me", { cache: "no-store" }); const meData = await meRes.json(); if (!meRes.ok) throw new Error(meData.error || "Could not load profile"); const targetRes = routeUserId ? await fetch(`/api/users/${encodeURIComponent(routeUserId)}`, { cache: "no-store" }) : null; const targetData = targetRes ? await targetRes.json() : null; if (targetRes && !targetRes.ok) throw new Error(targetData.error || "Could not load profile"); const active = targetData?.user || meData.user; const postsRes = await fetch("/api/posts?audience=for-you&limit=50", { cache: "no-store" }); const postsData = await postsRes.json(); const clubsRes = active?._id ? await fetch(`/api/users/${active._id}/clubs`, { cache: "no-store" }) : null; const clubsData = clubsRes?.ok ? await clubsRes.json() : { clubs: [] }; if (!cancelled) { setMe(meData.user); setProfile(active); setPosts((postsData.posts || []).filter((post) => normalizeEmail(post.authorEmail) === normalizeEmail(active.email))); setClubs(clubsData.clubs || []); } } catch (e) { if (!cancelled) setError(e.message || "Could not load profile"); } finally { if (!cancelled) setLoading(false); } })(); return () => { cancelled = true; }; }, [routeUserId, status]);
   const academic = [{ icon: GraduationCap, label: "Branch", value: profile?.branch || "Not available" }, { icon: CalendarDays, label: "Year", value: profile?.year || "Not available" }, { icon: Layers, label: "Batch", value: profile?.year ? "Current batch" : "Not available" }, { icon: BookOpen, label: "Semester", value: profile?.year || "Not available" }];
   const achievements = profile?.achievements || []; const visibleAchievements = showAllAchievements ? achievements : achievements.slice(0, 2);
   const updatePost = (next) => setPosts((current) => current.map((post) => post.id === next.id ? next : post));
-  const updatedProfile = (user) => { setMe(user); setProfile((current) => String(current?._id) === String(user._id) ? user : current); };
   if (status === "loading" || loading) return <DashboardEventsShell><ProfileSkeleton /></DashboardEventsShell>;
   if (status !== "authenticated" || error || !profile) return <DashboardEventsShell><div className="p-6 text-sm text-[#717182]">{error || "Please log in to view this profile."}</div></DashboardEventsShell>;
   return <DashboardEventsShell>
@@ -109,8 +107,7 @@ export function ProfilePage() {
             {/* Edit Profile */}
             <div className="group relative">
               <button
-                onClick={() => setEditing(true)}
-                // onClick={() => router.push("/dashboard/UserProfileEdit")}
+                onClick={() => router.push("/dashboard/UserProfileEdit")}
                 className="flex h-9 w-9 items-center cursor-pointer justify-center rounded-full transition hover:bg-black/5"
               >
                 <Icon
@@ -158,7 +155,7 @@ export function ProfilePage() {
           {/* Banner */}
           <div className="relative h-[160px] w-full overflow-hidden bg-[#F2F2F2] sm:h-[200px]">
             <ImageWithFallback
-              src="/Background.jpg"
+              src={profile.banner || "/Background.jpg"}
               alt={`${profile.name} banner`}
               width={1600}
               height={512}
@@ -249,6 +246,6 @@ export function ProfilePage() {
             )}
           </div>
         </div>
-      </div>{editing && <ProfileEditModal user={me} onSave={updatedProfile} onClose={() => setEditing(false)} />}
+      </div>
     </div></DashboardEventsShell>;
 }

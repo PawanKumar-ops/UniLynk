@@ -12,7 +12,7 @@ export async function PATCH(req) {
       return Response.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const { branch, year, skills, socials, achievements, img } = await req.json();
+    const { name, branch, year, skills, socials, achievements, img, banner } = await req.json();
 
     const updatePayload = {
       branch: typeof branch === "string" ? branch.trim() : "",
@@ -31,17 +31,30 @@ export async function PATCH(req) {
             .filter((social) => social.platform && social.url)
         : [],
       achievements: Array.isArray(achievements)
-        ? achievements.map((achievement) => ({
-            title: typeof achievement?.title === "string" ? achievement.title.trim() : "",
-            description: typeof achievement?.description === "string" ? achievement.description.trim() : "",
-            date: typeof achievement?.date === "string" ? achievement.date.trim() : "",
-          })).filter((achievement) => achievement.title && achievement.description)
+        ? achievements.map((achievement) => {
+            if (typeof achievement === "string") {
+              return { title: achievement.trim(), description: "", date: "" };
+            }
+            return {
+              title: typeof achievement?.title === "string" ? achievement.title.trim() : "",
+              description: typeof achievement?.description === "string" ? achievement.description.trim() : "",
+              date: typeof achievement?.date === "string" ? achievement.date.trim() : "",
+            };
+          }).filter((achievement) => achievement.title)
         : [],
       profileCompleted: true,
     };
 
+    if (typeof name === "string" && name.trim()) {
+      updatePayload.name = name.trim();
+    }
+
     if (typeof img === "string" && img.trim()) {
       updatePayload.img = img.trim();
+    }
+
+    if (typeof banner === "string" && banner.trim()) {
+      updatePayload.banner = banner.trim();
     }
 
     const user = await User.findOneAndUpdate(

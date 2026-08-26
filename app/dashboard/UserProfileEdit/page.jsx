@@ -1,19 +1,20 @@
 "use client";
 
+import { useRef } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { Icon } from "@iconify/react";
 import { DashboardEventsShell } from "@/components/DashboardEventsShell";
 import EditProfile from "@/components/EditUserProfile/EditProfile";
 import "@/app/dashboard/dashboard.css";
-import "./UserProfileEdit.css"
+import "./UserProfileEdit.css";
 
 export default function UserProfileEditPage() {
   const router = useRouter();
+  const saveRef = useRef(null);
 
   return (
     <>
-
       <DashboardEventsShell>
         <header
           className="sticky top-0 z-50 flex h-[54px] w-full items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl"
@@ -44,10 +45,9 @@ export default function UserProfileEditPage() {
 
           {/* Right */}
           <div className="flex items-center gap-1.5">
-
             <div className="group relative">
               <button
-                onClick={() => router.push(`/dashboard/chat2/${profile._id}`)}
+                onClick={() => saveRef.current?.()}
                 className="flex h-9 gap-1 px-4 items-center cursor-pointer justify-center rounded-full transition hover:bg-black/5"
               >
                 <Icon
@@ -60,13 +60,10 @@ export default function UserProfileEditPage() {
                 Save Profile
               </div>
             </div>
-
-
-
           </div>
         </header>
         <div className="px-[10px] sm:px-[14px]">
-          <EditProfile onClose={() => router.push("/dashboard/Userprofile")} />
+          <EditProfile saveRef={saveRef} onClose={() => router.push("/dashboard/Userprofile")} />
         </div>
       </DashboardEventsShell>
     </>

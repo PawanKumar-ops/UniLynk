@@ -11,6 +11,10 @@ const UserSchema = new mongoose.Schema({
   },
   rollNumber: String,
   img: String,
+  banner: {
+    type: String,
+    default: "/Background.jpg",
+  },
   provider: String,
   name: String,
   year: String,

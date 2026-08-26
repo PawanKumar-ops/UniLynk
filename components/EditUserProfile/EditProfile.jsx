@@ -1,21 +1,22 @@
+"use client";
+
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import {
   Camera,
   Plus,
   X,
   Check,
-  Globe,
-  AtSign,
-  Hash,
   Code2,
-  Briefcase,
-  Search,
   Trash2,
+  Loader2,
 } from "lucide-react";
 import { Icon } from "@iconify/react";
 import CropModal from "./CropModal";
 import Select from "./Select";
-import { SKILL_CATALOG, skillIcon } from "@/data/skills";
+import { SKILLS } from "@/lib/skillsList";
+import { getSkillIcon } from "@/lib/skillIcons";
 
 const BRANCHES = ["PIE", "CSE", "ECE", "Mechanical", "Civil", "Electrical", "IT", "Chemical"].map(
   (b) => ({ value: b, label: b }),
@@ -27,31 +28,31 @@ const YEARS = ["First Year", "Second Year", "Third Year", "Final Year"].map((y) 
 
 const SOCIALS = [
   {
-    value: "linkedin",
+    value: "LinkedIn",
     label: "LinkedIn",
     icon: "hugeicons:linkedin-02",
     ph: "linkedin.com/in/username",
   },
   {
-    value: "instagram",
+    value: "Instagram",
     label: "Instagram",
     icon: "hugeicons:instagram",
     ph: "instagram.com/username",
   },
   {
-    value: "github",
+    value: "GitHub",
     label: "GitHub",
     icon: "ant-design:github-filled",
     ph: "github.com/username",
   },
   {
-    value: "twitter",
+    value: "Twitter",
     label: "X / Twitter",
     icon: "proicons:x-twitter",
     ph: "x.com/username",
   },
   {
-    value: "website",
+    value: "Website",
     label: "Website",
     icon: "solar:global-linear",
     ph: "yoursite.com",
@@ -80,43 +81,73 @@ function Card({ children }) {
   );
 }
 
-export default function EditProfile({ onClose }) {
-  const [banner, setBanner] = useState(
-    "/Background.jpg",
-  );
-  const [avatar, setAvatar] = useState(
-    "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=400&h=400&fit=crop&auto=format",
-  );
-  const [name, setName] = useState("Anime Merch");
-  const [branch, setBranch] = useState("PIE");
+export default function EditProfile({ onClose, saveRef }) {
+  const router = useRouter();
+  const { update: updateSession } = useSession();
+
+  const [banner, setBanner] = useState("/Background.jpg");
+  const [avatar, setAvatar] = useState("/Profilepic.png");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [branch, setBranch] = useState("CSE");
   const [year, setYear] = useState("First Year");
-  const [bio, setBio] = useState("Curating campus culture, one drop at a time.");
 
-  const [socials, setSocials] = useState([
-    { platform: "linkedin", url: "linkedin.com/in/animemerch" },
-    { platform: "instagram", url: "instagram.com/animemerch" },
-  ]);
-
-  const [skills, setSkills] = useState([
-    SKILL_CATALOG[0],
-    SKILL_CATALOG[5],
-    SKILL_CATALOG[7],
-    SKILL_CATALOG[9],
-  ]);
+  const [socials, setSocials] = useState([]);
+  const [skills, setSkills] = useState([]);
   const [skillQuery, setSkillQuery] = useState("");
   const [skillOpen, setSkillOpen] = useState(false);
   const skillRef = useRef(null);
 
-  const [achievements, setAchievements] = useState([
-    "Winner — Inter-College Design Sprint 2025",
-    "Led a 40-member merchandise team",
-  ]);
+  const [achievements, setAchievements] = useState([]);
   const [achieveInput, setAchieveInput] = useState("");
 
   const [crop, setCrop] = useState(null);
   const bannerInput = useRef(null);
   const avatarInput = useRef(null);
+
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadUserProfile() {
+      try {
+        setLoading(true);
+        const res = await fetch("/api/user/me", { cache: "no-store" });
+        const data = await res.json();
+        if (res.ok && data?.user && isMounted) {
+          setName(data.user.name || "");
+          setEmail(data.user.email || "");
+          setBranch(data.user.branch || "CSE");
+          setYear(data.user.year || "First Year");
+          setAvatar(data.user.img || "/Profilepic.png");
+          setBanner(data.user.banner || "/Background.jpg");
+          setSocials(
+            (data.user.socials || []).map((s) => ({
+              platform: s.platform || "LinkedIn",
+              url: s.url || "",
+            }))
+          );
+          setSkills(data.user.skills || []);
+          setAchievements(
+            (data.user.achievements || []).map((a) =>
+              typeof a === "string" ? { title: a, description: "", date: "" } : a
+            )
+          );
+        }
+      } catch (err) {
+        console.error("Failed to load profile:", err);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    }
+    loadUserProfile();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     const onDoc = (e) => {
@@ -135,29 +166,115 @@ export default function EditProfile({ onClose }) {
   };
 
   const skillSuggestions = useMemo(() => {
-    const chosen = new Set(skills.map((s) => s.slug));
-    return SKILL_CATALOG.filter(
+    const chosen = new Set(skills.map((s) => s.toLowerCase()));
+    return SKILLS.filter(
       (s) =>
-        !chosen.has(s.slug) &&
-        s.name.toLowerCase().includes(skillQuery.trim().toLowerCase()),
+        !chosen.has(s.toLowerCase()) &&
+        s.toLowerCase().includes(skillQuery.trim().toLowerCase()),
     ).slice(0, 8);
   }, [skills, skillQuery]);
 
   const addSkill = (s) => {
-    setSkills((prev) => [...prev, s]);
+    setSkills((prev) => {
+      if (prev.some((skill) => skill.toLowerCase() === s.toLowerCase())) return prev;
+      return [...prev, s];
+    });
     setSkillQuery("");
     setSkillOpen(false);
   };
 
-  const save = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2200);
+  const addCustomSkill = () => {
+    const sName = skillQuery.trim();
+    if (!sName) return;
+    addSkill(sName);
   };
+
+  const uploadImageToCloudinary = async (imgData, folder = "profile-images") => {
+    if (!imgData || !imgData.startsWith("data:image/")) return imgData;
+    const res = await fetch("/api/user/upload-image", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ image: imgData, folder }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Image upload failed");
+    return data.url;
+  };
+
+  const handleSaveProfile = async () => {
+    if (saving) return;
+    try {
+      setSaving(true);
+      setSaveError("");
+
+      let uploadedAvatar = avatar;
+      let uploadedBanner = banner;
+
+      if (avatar && avatar.startsWith("data:image/")) {
+        uploadedAvatar = await uploadImageToCloudinary(avatar, "profile-avatars");
+      }
+
+      if (banner && banner.startsWith("data:image/")) {
+        uploadedBanner = await uploadImageToCloudinary(banner, "profile-banners");
+      }
+
+      const res = await fetch("/api/user/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          branch,
+          year,
+          img: uploadedAvatar,
+          banner: uploadedBanner,
+          skills,
+          socials: socials.filter((s) => s.platform && s.url.trim()),
+          achievements: achievements
+            .map((a) => (typeof a === "string" ? { title: a.trim(), description: "", date: "" } : a))
+            .filter((a) => a.title),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update profile");
+      }
+
+      await updateSession?.();
+      setSaved(true);
+      setTimeout(() => {
+        if (onClose) {
+          onClose();
+        } else {
+          router.push("/dashboard/Userprofile");
+        }
+      }, 500);
+    } catch (err) {
+      console.error("Save profile error:", err);
+      setSaveError(err.message || "Failed to save profile changes");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Expose save handle via saveRef if provided
+  useEffect(() => {
+    if (saveRef) {
+      saveRef.current = handleSaveProfile;
+    }
+  }, [saveRef, handleSaveProfile]);
+
+  if (loading) {
+    return (
+      <div className="flex h-64 w-full items-center justify-center">
+        <Loader2 className="size-8 animate-spin text-muted" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-full">
-      <div className="space-y-3 pt-5">
-        {/* Media */}
+      <div className="space-y-3 pt-5 pb-10">
         {/* Media */}
         <section className="overflow-hidden rounded-[24px] border border-hair bg-white">
           <div className="relative">
@@ -165,20 +282,20 @@ export default function EditProfile({ onClose }) {
             {/* Banner */}
             <div className="group relative h-[160px] w-full overflow-hidden bg-neutral-100 sm:h-[200px]">
               {banner ? (
-  <img
-    src={banner}
-    alt="Profile banner"
-    className="size-full object-cover"
-  />
-) : (
-  <div className="size-full bg-gradient-to-br from-neutral-200 to-neutral-100" />
-)}
+                <img
+                  src={banner}
+                  alt="Profile banner"
+                  className="size-full object-cover"
+                />
+              ) : (
+                <div className="size-full bg-gradient-to-br from-neutral-200 to-neutral-100" />
+              )}
 
-{/* Same banner shadow as Profile Page */}
-<div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
+              {/* Banner shadow */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
 
-{/* Banner controls */}
-<div className="absolute inset-0 flex items-center justify-center gap-3 bg-ink/25 opacity-0 transition group-hover:opacity-100 max-sm:opacity-100">
+              {/* Banner controls */}
+              <div className="absolute inset-0 flex items-center justify-center gap-3 bg-ink/25 opacity-0 transition group-hover:opacity-100 max-sm:opacity-100">
                 <button
                   onClick={() => bannerInput.current?.click()}
                   title="Upload banner"
@@ -197,10 +314,10 @@ export default function EditProfile({ onClose }) {
                   </button>
                 )}
 
-                {banner && (
+                {banner && banner !== "/Background.jpg" && (
                   <button
-                    onClick={() => setBanner("")}
-                    title="Remove banner"
+                    onClick={() => setBanner("/Background.jpg")}
+                    title="Remove custom banner"
                     className="grid size-11 place-items-center rounded-full bg-ink/70 text-white backdrop-blur transition hover:bg-ink"
                   >
                     <X className="size-[18px]" />
@@ -213,7 +330,6 @@ export default function EditProfile({ onClose }) {
             <div className="relative px-5 pb-5 sm:px-7 sm:pb-7">
               <div className="flex items-end gap-4">
                 <div className="group relative -mt-10 sm:-mt-13">
-                  {/* Same avatar size as User Profile */}
                   <div className="w-fit rounded-full bg-white p-0.75 ring-1 ring-white">
                     <div className="h-[75px] w-[75px] overflow-hidden rounded-full bg-neutral-100 sm:h-[100px] sm:w-[100px]">
                       {avatar ? (
@@ -250,7 +366,7 @@ export default function EditProfile({ onClose }) {
                 </div>
 
                 <p className="pb-2 text-sm text-muted">
-                  Hover a photo to upload, adjust, or remove.
+                  Hover a photo to upload or adjust.
                 </p>
               </div>
             </div>
@@ -289,12 +405,13 @@ export default function EditProfile({ onClose }) {
                 placeholder="Your name"
               />
             </Field>
-            <Field label="Bio">
+            <Field label="Email">
               <input
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                className="input"
-                placeholder="A short line about you"
+                value={email}
+                readOnly
+                disabled
+                className="input cursor-not-allowed bg-neutral-100 text-neutral-500 opacity-75"
+                placeholder="Your email"
               />
             </Field>
             <Field label="Branch">
@@ -315,7 +432,7 @@ export default function EditProfile({ onClose }) {
           />
           <div className="space-y-3">
             {socials.map((s, i) => {
-              const meta = SOCIALS.find((x) => x.value === s.platform) ?? SOCIALS[4];
+              const meta = SOCIALS.find((x) => x.value === s.platform) ?? SOCIALS[0];
               return (
                 <div key={i} className="flex flex-col gap-2 sm:flex-row sm:items-center">
                   <Select
@@ -348,7 +465,7 @@ export default function EditProfile({ onClose }) {
             })}
           </div>
           <button
-            onClick={() => setSocials((p) => [...p, { platform: "linkedin", url: "" }])}
+            onClick={() => setSocials((p) => [...p, { platform: "LinkedIn", url: "" }])}
             className="mt-3 flex items-center gap-2 rounded-full border border-hair px-4 py-2.5 text-sm font-medium text-muted transition hover:bg-black/5 hover:text-ink"
           >
             <Plus className="size-4" /> Add social profile
@@ -364,9 +481,10 @@ export default function EditProfile({ onClose }) {
           />
 
           <div ref={skillRef} className="relative">
-            <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-muted">
-              <Icon icon="solar:magnifier-linear" className="size-4" />
+            <div className="pointer-events-none absolute left-3.5 top-1/2 z-10 -translate-y-1/2 text-muted">
+              <Icon icon="solar:magnifer-linear" className="size-4" />
             </div>
+
             <input
               value={skillQuery}
               onChange={(e) => {
@@ -374,43 +492,79 @@ export default function EditProfile({ onClose }) {
                 setSkillOpen(true);
               }}
               onFocus={() => setSkillOpen(true)}
-              placeholder="Search skills — Python, C++, React…"
-              className="input"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  if (skillSuggestions.length > 0) {
+                    addSkill(skillSuggestions[0]);
+                  } else {
+                    addCustomSkill();
+                  }
+                }
+              }}
+              placeholder="Search or add a skill..."
+              className="input pr-20"
               style={{ paddingLeft: "2.75rem" }}
             />
 
-            {skillOpen && (
+            <button
+              type="button"
+              onClick={addCustomSkill}
+              disabled={!skillQuery.trim()}
+              className="absolute right-2 top-1/2 flex h-8 -translate-y-1/2 items-center gap-1.5 rounded-lg bg-ink px-3 text-xs font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Plus className="size-3.5" />
+              Add
+            </button>
+
+            {skillOpen && skillQuery.trim() && (
               <div className="absolute z-40 mt-2 max-h-72 w-full overflow-auto rounded-xl border border-hair bg-white p-1.5 shadow-[0_20px_50px_-16px_rgba(0,0,0,0.25)]">
-                {skillSuggestions.length === 0 ? (
-                  <p className="px-3 py-3 text-sm text-muted">No matches found.</p>
-                ) : (
+                {skillSuggestions.length > 0 ? (
                   skillSuggestions.map((s) => (
                     <button
-                      key={s.slug}
+                      key={s}
                       onClick={() => addSkill(s)}
                       className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm transition hover:bg-neutral-100"
                     >
-                      <img src={skillIcon(s.slug)} alt="" className="size-5" />
-                      <span className="flex-1 font-medium">{s.name}</span>
+                      <Icon icon={getSkillIcon(s)} className="size-5" />
+                      <span className="flex-1 font-medium">{s}</span>
                       <Plus className="size-4 text-muted" />
                     </button>
                   ))
+                ) : (
+                  <button
+                    type="button"
+                    onClick={addCustomSkill}
+                    className="flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left text-sm transition hover:bg-neutral-100"
+                  >
+                    <div className="grid size-7 place-items-center rounded-lg border border-dashed border-hair bg-neutral-50">
+                      <Code2 className="size-4 text-muted" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium">Add "{skillQuery.trim()}"</p>
+                      <p className="mt-0.5 text-xs text-muted">Add this as a custom skill</p>
+                    </div>
+                    <Plus className="size-4 text-muted" />
+                  </button>
                 )}
               </div>
             )}
           </div>
 
           <div className="mt-4 flex flex-wrap gap-2">
-            {skills.length === 0 && <p className="text-sm text-muted">No skills yet.</p>}
+            {skills.length === 0 && (
+              <p className="text-sm text-muted">No skills added yet.</p>
+            )}
+
             {skills.map((s) => (
               <span
-                key={s.slug}
+                key={s}
                 className="flex items-center gap-2 rounded-full border border-hair py-1.5 pl-2.5 pr-1.5 text-sm font-medium"
               >
-                <img src={skillIcon(s.slug)} alt="" className="size-4" />
-                {s.name}
+                <Icon icon={getSkillIcon(s)} className="size-4 text-muted" />
+                {s}
                 <button
-                  onClick={() => setSkills((p) => p.filter((x) => x.slug !== s.slug))}
+                  onClick={() => setSkills((p) => p.filter((x) => x !== s))}
                   className="grid size-5 place-items-center rounded-full text-muted transition hover:bg-ink hover:text-white"
                 >
                   <X className="size-3" />
@@ -428,23 +582,26 @@ export default function EditProfile({ onClose }) {
             desc="Highlight the wins you're proud of."
           />
           <div className="space-y-2.5">
-            {achievements.map((a, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-3 rounded-xl border border-hair px-3.5 py-3"
-              >
-                <span className="grid size-6 shrink-0 place-items-center rounded-md bg-ink font-mono text-[11px] font-semibold text-white">
-                  {i + 1}
-                </span>
-                <span className="flex-1 text-sm">{a}</span>
-                <button
-                  onClick={() => setAchievements((p) => p.filter((_, idx) => idx !== i))}
-                  className="grid size-7 place-items-center rounded-full text-muted transition hover:bg-ink hover:text-white"
+            {achievements.map((a, i) => {
+              const titleText = typeof a === "string" ? a : a.title;
+              return (
+                <div
+                  key={i}
+                  className="flex items-center gap-3 rounded-xl border border-hair px-3.5 py-3"
                 >
-                  <X className="size-3.5" />
-                </button>
-              </div>
-            ))}
+                  <span className="grid size-6 shrink-0 place-items-center rounded-md bg-ink font-mono text-[11px] font-semibold text-white">
+                    {i + 1}
+                  </span>
+                  <span className="flex-1 text-sm">{titleText}</span>
+                  <button
+                    onClick={() => setAchievements((p) => p.filter((_, idx) => idx !== i))}
+                    className="grid size-7 place-items-center rounded-full text-muted transition hover:bg-ink hover:text-white"
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                </div>
+              );
+            })}
           </div>
           <div className="mt-3 flex flex-col gap-2 sm:flex-row">
             <input
@@ -452,7 +609,7 @@ export default function EditProfile({ onClose }) {
               onChange={(e) => setAchieveInput(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && achieveInput.trim()) {
-                  setAchievements((p) => [...p, achieveInput.trim()]);
+                  setAchievements((p) => [...p, { title: achieveInput.trim(), description: "", date: "" }]);
                   setAchieveInput("");
                 }
               }}
@@ -462,7 +619,7 @@ export default function EditProfile({ onClose }) {
             <button
               onClick={() => {
                 if (!achieveInput.trim()) return;
-                setAchievements((p) => [...p, achieveInput.trim()]);
+                setAchievements((p) => [...p, { title: achieveInput.trim(), description: "", date: "" }]);
                 setAchieveInput("");
               }}
               className="flex items-center justify-center gap-2 rounded-xl bg-ink px-5 py-3 text-sm font-medium text-white transition hover:opacity-90"
@@ -472,20 +629,29 @@ export default function EditProfile({ onClose }) {
           </div>
         </Card>
 
-        {/* Mobile action bar */}
-        <div className="flex gap-2 sm:hidden">
+        {saveError && (
+          <p className="px-1 text-sm font-medium text-red-600">{saveError}</p>
+        )}
+
+        {/* Action bar */}
+        <div className="flex gap-3">
           <button
-            onClick={onClose}
-            className="flex-1 rounded-full border border-hair bg-white px-4 py-3 text-sm font-medium"
+            onClick={() => (onClose ? onClose() : router.push("/dashboard/Userprofile"))}
+            className="flex-1 rounded-full border border-hair bg-white px-5 py-3 text-sm font-medium transition hover:bg-neutral-100"
           >
             Cancel
           </button>
           <button
-            onClick={save}
-            className="flex flex-1 items-center justify-center gap-2 rounded-full bg-ink px-4 py-3 text-sm font-medium text-white"
+            onClick={handleSaveProfile}
+            disabled={saving}
+            className="flex flex-1 items-center justify-center gap-2 rounded-full bg-ink px-5 py-3 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
           >
-            {saved ? <Check className="size-4" /> : null}
-            {saved ? "Saved" : "Save changes"}
+            {saving ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : saved ? (
+              <Check className="size-4" />
+            ) : null}
+            {saving ? "Saving..." : saved ? "Saved" : "Save changes"}
           </button>
         </div>
       </div>
