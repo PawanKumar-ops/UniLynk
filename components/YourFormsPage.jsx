@@ -133,7 +133,7 @@ function FormCard({ form, onDelete, onDuplicate }) {
           {isPublished ? (
             <button
               className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-full bg-[var(--primary)] px-4 py-1.5 text-sm text-[var(--primary-foreground)] transition-opacity hover:opacity-90 sm:flex-none"
-              onClick={() => router.push("/dashboard/eventanalytics")}
+              onClick={() => router.push(`/dashboard/eventanalytics?formId=${id}`)}
               type="button"
             >
               <BarChart3 className="size-3.5" />

@@ -1,18 +1,17 @@
-"use client"
+"use client";
 
-import { useEffect, useMemo, useRef, useState } from "react"
-import "@/app/dashboard/dashboard.css"
-import "@/components/events-pages.css"
-import { ArrowLeft } from "lucide-react"
-import { useRouter } from "next/navigation"
-import { Icon } from "@iconify/react"
-import { DashboardEventsShell } from "@/components/DashboardEventsShell"
-
+import { useEffect, useMemo, useRef, useState, Suspense } from "react";
+import "@/app/dashboard/dashboard.css";
+import "@/components/events-pages.css";
+import { ArrowLeft } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Icon } from "@iconify/react";
+import { DashboardEventsShell } from "@/components/DashboardEventsShell";
 
 /* ---------- data model ---------- */
-const TINTS = ["#e8d5c4", "#cfe3d8", "#dcd6f0", "#f2d9dd", "#d7e4f0", "#efe6c9", "#d9ecd6", "#e6d9ea"]
-const tintFor = (seed) => TINTS[[...seed].reduce((a, c) => a + c.charCodeAt(0), 0) % TINTS.length]
-const mk = (name, role) => ({ id: crypto.randomUUID(), name, role, tint: tintFor(name) })
+const TINTS = ["#e8d5c4", "#cfe3d8", "#dcd6f0", "#f2d9dd", "#d7e4f0", "#efe6c9", "#d9ecd6", "#e6d9ea"];
+const tintFor = (seed = "seed") => TINTS[[...String(seed)].reduce((a, c) => a + c.charCodeAt(0), 0) % TINTS.length];
+const mk = (name, role) => ({ id: crypto.randomUUID(), name, role, tint: tintFor(name) });
 
 const INITIAL_TEAMS = [
   { id: "t1", name: "Null Pointers", track: "Web Track", capacity: 5, members: [mk("Aarav Mehta", "Lead"), mk("Diya Sharma", "Frontend"), mk("Kabir Rao", "Backend"), mk("Ishita Nair", "Design"), mk("Vivaan Bose", "ML")] },
@@ -21,122 +20,227 @@ const INITIAL_TEAMS = [
   { id: "t4", name: "Recursion Squad", track: "Web Track", capacity: 5, members: [mk("Yash Gill", "Lead"), mk("Meera Das", "Frontend"), mk("Om Prakash", "Backend"), mk("Zoya Khan", "Design")] },
   { id: "t5", name: "Kernel Panic", track: "Systems", capacity: 4, members: [mk("Dev Anand", "Lead")] },
   { id: "t6", name: "Stack Overflow", track: "AI Track", capacity: 5, members: [mk("Nisha Pillai", "Lead"), mk("Rohit Sen", "ML"), mk("Ananya Ghosh", "Data"), mk("Kunal Joshi", "Backend"), mk("Priya Nanda", "Design")] },
-]
+];
 
 const INITIAL_SOLO = [
   mk("Aditya Rao", "Full-stack"), mk("Simran Kaur", "UI/UX"), mk("Farhan Ali", "ML Engineer"),
   mk("Leela Krishnan", "Backend"), mk("Manav Desai", "Frontend"), mk("Pooja Bhatt", "Data"),
   mk("Sameer Qureshi", "DevOps"), mk("Ira Malhotra", "Product"), mk("Nikhil Bhat", "Systems"),
   mk("Tara Wadhwa", "Design"),
-]
+];
 
-const initials = (n) => n.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()
+const initials = (n = "") => String(n).split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 
 function statusOf(t) {
-  const f = t.members.length
-  if (f >= t.capacity) return { key: "full", label: "Complete", dot: "#111111" }
-  if (f === 0) return { key: "empty", label: "Empty", dot: "#cfcfcf" }
-  return { key: "partial", label: "Recruiting", dot: "#9a9a9a" }
+  const f = t.members?.length || 0;
+  if (f >= (t.capacity || 5)) return { key: "full", label: "Complete", dot: "#111111" };
+  if (f === 0) return { key: "empty", label: "Empty", dot: "#cfcfcf" };
+  return { key: "partial", label: "Recruiting", dot: "#9a9a9a" };
 }
 
 /* ---------- shared bits ---------- */
 function Avatar({ m, size = 34 }) {
+  if (m?.img) {
+    return (
+      <img
+        src={m.img}
+        alt={m.name || "Member"}
+        className="inline-flex shrink-0 rounded-full border border-black/10 object-cover"
+        style={{ width: size, height: size }}
+        title={`${m.name} · ${m.role}`}
+      />
+    );
+  }
+
   return (
     <span
       className="inline-flex shrink-0 items-center justify-center rounded-full bg-black/[0.05] font-semibold tracking-tight text-ink/55"
       style={{ width: size, height: size, fontSize: size * 0.36 }}
-      title={`${m.name} · ${m.role}`}
+      title={`${m?.name || "Member"} · ${m?.role || "Member"}`}
     >
-      {initials(m.name)}
+      {initials(m?.name || "M")}
     </span>
-  )
+  );
 }
 
-/* =========================================================== */
-export default function App() {
-  const [teams, setTeams] = useState(INITIAL_TEAMS)
-  const [solo, setSolo] = useState(INITIAL_SOLO)
-  const [open, setOpen] = useState({ t3: true })
-  const [filter, setFilter] = useState("all")
-  const [filterMenu, setFilterMenu] = useState(false)
-  const [admin, setAdmin] = useState(true)
-  const [dragId, setDragId] = useState(null)
-  const [overTeam, setOverTeam] = useState(null)
-  const [assigning, setAssigning] = useState(null)
-  const filterRef = useRef(null)
-  const router = useRouter()
+function TeamsContent() {
+  const searchParams = useSearchParams();
+  const formId = searchParams.get("formId");
+  const router = useRouter();
+
+  const [teams, setTeams] = useState(INITIAL_TEAMS);
+  const [solo, setSolo] = useState(INITIAL_SOLO);
+  const [open, setOpen] = useState({ t3: true });
+  const [filter, setFilter] = useState("all");
+  const [filterMenu, setFilterMenu] = useState(false);
+  const [admin, setAdmin] = useState(true);
+  const [dragId, setDragId] = useState(null);
+  const [overTeam, setOverTeam] = useState(null);
+  const [assigning, setAssigning] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [saveToast, setSaveToast] = useState("");
+
+  const filterRef = useRef(null);
 
   useEffect(() => {
-    const h = (e) => {
-      if (filterRef.current && e.target instanceof Node && !filterRef.current.contains(e.target)) setFilterMenu(false)
+    let active = true;
+    if (formId) {
+      fetch(`/api/forms/${formId}/analytics`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          if (!active || !data) return;
+
+          if (Array.isArray(data.teams) && data.teams.length > 0) {
+            const mappedTeams = data.teams.map((t, idx) => ({
+              id: t._id || t.id || `t_${idx}`,
+              _id: t._id || t.id,
+              name: t.name || `Team ${idx + 1}`,
+              track: t.track || "Registered",
+              capacity: t.total || t.capacity || 5,
+              members: (t.members || []).map((m, mIdx) => ({
+                id: m.id || m._id || `m_${idx}_${mIdx}`,
+                name: m.name || m.email || "Member",
+                role: mIdx === 0 ? "Lead" : m.role || "Member",
+                email: m.email || "",
+                tint: tintFor(m.name || "Member"),
+                img: m.img || m.avatar || null,
+              })),
+            }));
+            setTeams(mappedTeams);
+          }
+
+          if (data.teamFinder?.soloStudents && Array.isArray(data.teamFinder.soloStudents)) {
+            const mappedSolo = data.teamFinder.soloStudents.map((s, idx) => ({
+              id: s._id || s.id || `s_${idx}`,
+              _id: s._id || s.id,
+              name: s.name || s.email || "Solo Student",
+              role: s.lookingFor || s.branch || "Participant",
+              email: s.email || "",
+              tint: tintFor(s.name || "Solo"),
+              img: s.img || s.avatar || null,
+            }));
+            setSolo(mappedSolo);
+          }
+        })
+        .catch((err) => console.error("Error loading teams analytics:", err));
     }
-    document.addEventListener("mousedown", h)
-    return () => document.removeEventListener("mousedown", h)
-  }, [])
+
+    const h = (e) => {
+      if (filterRef.current && e.target instanceof Node && !filterRef.current.contains(e.target)) setFilterMenu(false);
+    };
+    document.addEventListener("mousedown", h);
+    return () => {
+      active = false;
+      document.removeEventListener("mousedown", h);
+    };
+  }, [formId]);
+
+  const saveTeamsData = async () => {
+    setSaving(true);
+    setSaveToast("");
+
+    try {
+      if (formId) {
+        const res = await fetch(`/api/forms/${formId}/teams`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ teams, solo }),
+        });
+
+        if (res.ok) {
+          setSaveToast("Teams saved successfully!");
+        } else {
+          setSaveToast("Failed to save teams");
+        }
+      } else {
+        // Mock save feedback
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        setSaveToast("Teams saved successfully!");
+      }
+    } catch (err) {
+      console.error("Error saving teams:", err);
+      setSaveToast("Error saving teams");
+    } finally {
+      setSaving(false);
+      setTimeout(() => setSaveToast(""), 3000);
+    }
+  };
 
   const stats = useMemo(() => {
-    const full = teams.filter((t) => t.members.length >= t.capacity).length
-    return { total: teams.length, full, partial: teams.length - full, solo: solo.length }
-  }, [teams, solo])
+    const full = teams.filter((t) => (t.members?.length || 0) >= t.capacity).length;
+    return { total: teams.length, full, partial: teams.length - full, solo: solo.length };
+  }, [teams, solo]);
 
   const FILTERS = [
     { key: "all", label: "All teams", count: stats.total },
     { key: "partial", label: "Recruiting", count: stats.partial },
     { key: "full", label: "Complete", count: stats.full },
-  ]
+  ];
 
-  const activeFilter = FILTERS.find((f) => f.key === filter) ?? FILTERS[0]
+  const activeFilter = FILTERS.find((f) => f.key === filter) ?? FILTERS[0];
 
   const visible = teams.filter((t) =>
-    filter === "full" ? t.members.length >= t.capacity : filter === "partial" ? t.members.length < t.capacity : true,
-  )
+    filter === "full"
+      ? (t.members?.length || 0) >= t.capacity
+      : filter === "partial"
+      ? (t.members?.length || 0) < t.capacity
+      : true
+  );
 
-  const toggle = (id) => setOpen((o) => ({ ...o, [id]: !o[id] }))
+  const toggle = (id) => setOpen((o) => ({ ...o, [id]: !o[id] }));
 
   function assign(teamId, memberId) {
-    const person = solo.find((m) => m.id === memberId)
-    const target = teams.find((t) => t.id === teamId)
-    if (!person || !target || target.members.length >= target.capacity) return
-    setTeams((ts) => ts.map((t) => (t.id === teamId ? { ...t, members: [...t.members, person] } : t)))
-    setSolo((s) => s.filter((m) => m.id !== memberId))
-    setOpen((o) => ({ ...o, [teamId]: true }))
+    const person = solo.find((m) => m.id === memberId);
+    const target = teams.find((t) => t.id === teamId);
+    if (!person || !target || (target.members?.length || 0) >= target.capacity) return;
+    setTeams((ts) =>
+      ts.map((t) => (t.id === teamId ? { ...t, members: [...(t.members || []), person] } : t))
+    );
+    setSolo((s) => s.filter((m) => m.id !== memberId));
+    setOpen((o) => ({ ...o, [teamId]: true }));
   }
 
   function drop(teamId) {
-    if (dragId) assign(teamId, dragId)
-    setDragId(null)
-    setOverTeam(null)
+    if (dragId) assign(teamId, dragId);
+    setDragId(null);
+    setOverTeam(null);
   }
 
   function autoComplete(teamId) {
     setTeams((ts) =>
       ts.map((t) => {
-        if (t.id !== teamId) return t
-        const need = t.capacity - t.members.length
-        if (need <= 0) return t
-        const picks = solo.slice(0, need)
-        if (picks.length) setSolo((s) => s.filter((m) => !picks.includes(m)))
-        return { ...t, members: [...t.members, ...picks] }
-      }),
-    )
-    setOpen((o) => ({ ...o, [teamId]: true }))
+        if (t.id !== teamId) return t;
+        const currentLen = t.members?.length || 0;
+        const need = t.capacity - currentLen;
+        if (need <= 0) return t;
+        const picks = solo.slice(0, need);
+        if (picks.length) setSolo((s) => s.filter((m) => !picks.includes(m)));
+        return { ...t, members: [...(t.members || []), ...picks] };
+      })
+    );
+    setOpen((o) => ({ ...o, [teamId]: true }));
   }
 
   function deleteTeam(teamId) {
-    setTeams((ts) => ts.filter((t) => t.id !== teamId))
+    setTeams((ts) => ts.filter((t) => t.id !== teamId));
   }
 
   function createTeam() {
-    const nt = { id: crypto.randomUUID(), name: `New Team ${teams.length + 1}`, track: "Unassigned", capacity: 5, members: [] }
-    setTeams((ts) => [nt, ...ts])
-    setOpen((o) => ({ ...o, [nt.id]: true }))
+    const nt = {
+      id: crypto.randomUUID(),
+      name: `New Team ${teams.length + 1}`,
+      track: "Unassigned",
+      capacity: 5,
+      members: [],
+    };
+    setTeams((ts) => [nt, ...ts]);
+    setOpen((o) => ({ ...o, [nt.id]: true }));
   }
 
   return (
     <DashboardEventsShell>
       <main className="min-h-screen w-full bg-white text-ink">
-        {/* header */}
-      
+        {/* Header */}
         <header
           className="sticky top-0 z-50 flex mb-5 h-[54px] w-full items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl"
           style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
@@ -147,7 +251,7 @@ export default function App() {
             style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
           >
             <button
-              onClick={() => router.back()}
+              onClick={() => router.push(`/dashboard/eventanalytics${formId ? `?formId=${formId}` : ""}`)}
               className="mr-6 flex h-9 w-9 items-center cursor-pointer justify-center rounded-full transition hover:bg-black/5"
             >
               <ArrowLeft size={20} strokeWidth={2.2} />
@@ -161,16 +265,23 @@ export default function App() {
           </div>
 
           {/* Right */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
+            {saveToast && (
+              <span className="font-mono text-xs font-semibold text-emerald-600 animate-fade-up">
+                {saveToast}
+              </span>
+            )}
             <div className="group relative">
               <button
-                // onClick={() => saveRef.current?.()}
-                className="flex h-9 gap-1 px-4 items-center cursor-pointer justify-center rounded-full transition hover:bg-black/5"
+                onClick={saveTeamsData}
+                disabled={saving}
+                className="flex h-9 gap-1.5 px-4 items-center cursor-pointer justify-center rounded-full bg-black text-white font-semibold text-xs transition hover:bg-black/80 disabled:opacity-50"
               >
                 <Icon
                   icon="solar:pen-outline"
-                  className="text-[21px] text-[#171717]"
-                />Save
+                  className="text-[18px] text-white"
+                />
+                {saving ? "Saving..." : "Save"}
               </button>
 
               <div className="pointer-events-none absolute right-1/2 top-full mt-2 translate-x-1/2 rounded-full bg-[#2c2f35] px-3 py-1.5 text-xs font-medium whitespace-nowrap text-white opacity-0 transition-all duration-200 group-hover:translate-y-1 group-hover:opacity-100">
@@ -181,19 +292,19 @@ export default function App() {
         </header>
 
         <div className="sm:px-3.5 sm:pb-6.5">
-          {/* stat strip — single row, all breakpoints */}
+          {/* Stat strip */}
           <div className="grid grid-cols-4 divide-x divide-black/8 overflow-hidden rounded-2xl border border-black/8 bg-white">
-            {([["Teams", stats.total], ["Complete", stats.full], ["Recruiting", stats.partial], ["Solo", stats.solo]]).map(
+            {[["Teams", stats.total], ["Complete", stats.full], ["Recruiting", stats.partial], ["Solo", stats.solo]].map(
               ([k, v]) => (
                 <div key={k} className="flex flex-col items-center gap-1 px-1.5 py-3.5 text-center sm:items-start sm:px-4 sm:text-left">
                   <span className="font-mono text-[9px] font-medium uppercase tracking-[0.1em] text-ink/40 sm:text-[10px]">{k}</span>
                   <span className="text-xl font-extrabold leading-none tracking-tight sm:text-2xl">{v}</span>
                 </div>
-              ),
+              )
             )}
           </div>
 
-          {/* toolbar: filter dropdown + create */}
+          {/* Toolbar */}
           <div className="mt-6 flex items-center gap-2">
             <div className="relative" ref={filterRef}>
               <button
@@ -215,8 +326,8 @@ export default function App() {
                     <button
                       key={f.key}
                       onClick={() => {
-                        setFilter(f.key)
-                        setFilterMenu(false)
+                        setFilter(f.key);
+                        setFilterMenu(false);
                       }}
                       className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${filter === f.key ? "bg-black/[0.05] font-semibold" : "hover:bg-black/[0.03]"}`}
                     >
@@ -235,30 +346,29 @@ export default function App() {
             )}
           </div>
 
-          {/* ---- team cards (accordion) ---- */}
+          {/* Team cards (accordion) */}
           <div className="mt-4 flex flex-col gap-3">
             {visible.map((t) => {
-              const st = statusOf(t)
-              const isOpen = !!open[t.id]
-              const slots = t.capacity - t.members.length
-              const isOver = overTeam === t.id && slots > 0
-              const pct = Math.round((t.members.length / t.capacity) * 100)
+              const st = statusOf(t);
+              const isOpen = !!open[t.id];
+              const membersList = t.members || [];
+              const slots = t.capacity - membersList.length;
+              const isOver = overTeam === t.id && slots > 0;
+              const pct = Math.round((membersList.length / t.capacity) * 100);
               return (
                 <div
                   key={t.id}
                   onDragOver={(e) => {
                     if (slots > 0) {
-                      e.preventDefault()
-                      setOverTeam(t.id)
+                      e.preventDefault();
+                      setOverTeam(t.id);
                     }
                   }}
                   onDragLeave={() => setOverTeam((o) => (o === t.id ? null : o))}
                   onDrop={() => drop(t.id)}
                   className={`overflow-hidden rounded-2xl border bg-white transition ${isOver ? "border-ink ring-2 ring-black/10" : isOpen ? "border-black/12 shadow-sm shadow-black/[0.03]" : "border-black/8 hover:border-black/16"}`}
                 >
-                  {/* clickable header row */}
                   <button onClick={() => toggle(t.id)} className="flex w-full items-center gap-3.5 px-4 py-4 text-left sm:px-5">
-                    {/* team monogram */}
                     <span className="grid size-11 shrink-0 place-items-center rounded-full bg-black/[0.05] text-sm font-bold tracking-tight text-ink/60">
                       {initials(t.name)}
                     </span>
@@ -267,14 +377,15 @@ export default function App() {
                         <span className="truncate text-[15px] font-bold leading-tight sm:text-base">{t.name}</span>
                         <span className="rounded-md bg-black/[0.05] px-2 py-0.5 text-[11px] font-medium text-ink/55">{t.track}</span>
                         <span
-                          className={`rounded-full px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.06em] ${st.key === "full" ? "bg-ink text-paper" : "border border-black/12 text-ink/45"
-                            }`}
+                          className={`rounded-full px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.06em] ${
+                            st.key === "full" ? "bg-ink text-paper" : "border border-black/12 text-ink/45"
+                          }`}
                         >
                           {st.label}
                         </span>
                       </span>
                       <span className="mt-1 block font-mono text-[11px] text-ink/40">
-                        {t.members.length} / {t.capacity} members
+                        {membersList.length} / {t.capacity} members
                       </span>
                     </span>
                     <Icon
@@ -283,20 +394,18 @@ export default function App() {
                     />
                   </button>
 
-                  {/* progress hairline */}
                   <div className="mx-4 mb-4 h-1 overflow-hidden rounded-full bg-black/[0.06] sm:mx-5">
                     <div className="h-full rounded-full bg-ink/80 transition-all duration-500" style={{ width: `${pct}%` }} />
                   </div>
 
-                  {/* expanded body */}
                   {isOpen && (
                     <div className="animate-row-in border-t border-black/8 bg-black/[0.012] px-4 pb-4 pt-4 sm:px-5">
                       <div className="mb-3 flex items-center justify-between gap-2">
                         <span className="font-mono text-[10px] font-medium uppercase tracking-[0.1em] text-ink/40">
-                          Roster · {t.members.length}/{t.capacity}
+                          Roster · {membersList.length}/{t.capacity}
                         </span>
                         <div className="flex items-center gap-2">
-                          {admin && t.members.length === 0 && (
+                          {admin && membersList.length === 0 && (
                             <button onClick={() => deleteTeam(t.id)} className="flex items-center gap-1.5 rounded-full border border-black/12 px-3 py-1.5 text-[11px] font-semibold text-ink/55 transition hover:border-[#c2453f]/40 hover:bg-[#c2453f]/8 hover:text-[#b23a34]">
                               <Icon icon="solar:trash-bin-trash-linear" className="size-3.5" /> Delete team
                             </button>
@@ -309,7 +418,7 @@ export default function App() {
                         </div>
                       </div>
                       <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                        {t.members.map((m) => (
+                        {membersList.map((m) => (
                           <div key={m.id} className="flex items-center gap-2.5 rounded-xl border border-black/6 bg-white px-3 py-2">
                             <Avatar m={m} />
                             <div className="min-w-0">
@@ -328,11 +437,11 @@ export default function App() {
                     </div>
                   )}
                 </div>
-              )
+              );
             })}
           </div>
 
-          {/* ---- solo pool ---- */}
+          {/* Solo pool */}
           <div className="mt-8">
             <div className="mb-3 flex flex-wrap items-baseline gap-2">
               <h2 className="font-serif text-lg font-semibold">Solo members</h2>
@@ -349,8 +458,8 @@ export default function App() {
                     draggable
                     onDragStart={() => setDragId(m.id)}
                     onDragEnd={() => {
-                      setDragId(null)
-                      setOverTeam(null)
+                      setDragId(null);
+                      setOverTeam(null);
                     }}
                     className={`group flex cursor-grab items-center gap-3 rounded-2xl border border-black/8 bg-white px-4 py-3 transition hover:border-black/16 hover:shadow-sm active:cursor-grabbing ${dragId === m.id ? "opacity-40 ring-2 ring-black/10" : ""}`}
                   >
@@ -378,7 +487,7 @@ export default function App() {
         </div>
       </main>
 
-      {/* ============ ASSIGN-TO-TEAM MODAL ============ */}
+      {/* Assign-to-team modal */}
       {assigning && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-ink/30 p-0 backdrop-blur-sm sm:items-center sm:p-4" onClick={() => setAssigning(null)}>
           <div
@@ -396,31 +505,31 @@ export default function App() {
               </button>
             </div>
             <div className="scroll-area flex-1 overflow-y-auto p-3">
-              {teams.filter((t) => t.members.length < t.capacity).length === 0 ? (
+              {teams.filter((t) => (t.members?.length || 0) < t.capacity).length === 0 ? (
                 <p className="py-10 text-center text-sm text-ink/45">No teams have open slots.</p>
               ) : (
                 <div className="flex flex-col gap-1.5">
                   {teams
-                    .filter((t) => t.members.length < t.capacity)
+                    .filter((t) => (t.members?.length || 0) < t.capacity)
                     .map((t) => {
                       return (
                         <button
                           key={t.id}
                           onClick={() => {
-                            assign(t.id, assigning.id)
-                            setAssigning(null)
+                            assign(t.id, assigning.id);
+                            setAssigning(null);
                           }}
-                          className="group flex items-center Icongap-3 rounded-2xl border border-black/8 bg-white px-4 py-3 text-left transition hover:border-ink hover:bg-black/[0.02]"
+                          className="group flex items-center gap-3 rounded-2xl border border-black/8 bg-white px-4 py-3 text-left transition hover:border-ink hover:bg-black/[0.02]"
                         >
                           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-black/[0.05] text-sm font-bold tracking-tight text-ink/60">
                             {initials(t.name)}
                           </span>
                           <span className="min-w-0 flex-1">
                             <span className="block truncate font-bold leading-tight">{t.name}</span>
-                            <span className="font-mono text-[11px] text-ink/40">{t.track} · {t.capacity - t.members.length} open</span>
+                            <span className="font-mono text-[11px] text-ink/40">{t.track} · {t.capacity - (t.members?.length || 0)} open</span>
                           </span>
                           <span className="flex items-center -space-x-2">
-                            {t.members.slice(0, 3).map((m) => (
+                            {(t.members || []).slice(0, 3).map((m) => (
                               <Avatar key={m.id} m={m} size={24} />
                             ))}
                           </span>
@@ -428,7 +537,7 @@ export default function App() {
                             <Icon icon="lucide:plus" className="size-4" />
                           </span>
                         </button>
-                      )
+                      );
                     })}
                 </div>
               )}
@@ -437,5 +546,13 @@ export default function App() {
         </div>
       )}
     </DashboardEventsShell>
-  )
+  );
+}
+
+export default function TeamsPage() {
+  return (
+    <Suspense fallback={<div className="p-10 text-center font-mono">Loading teams page...</div>}>
+      <TeamsContent />
+    </Suspense>
+  );
 }

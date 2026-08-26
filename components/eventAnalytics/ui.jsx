@@ -21,7 +21,18 @@ export function CardTitle({ children }) {
   return <h3 className="font-display text-[17px] font-bold leading-tight text-ink">{children}</h3>
 }
 
-export function Avatar({ name, size = 34 }) {
+export function Avatar({ name = "User", src, size = 34 }) {
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={name}
+        className="shrink-0 rounded-full border border-[#e2e2e2] object-cover"
+        style={{ width: size, height: size }}
+      />
+    );
+  }
+
   const initials = name
     .split(" ")
     .map((p) => p[0])
