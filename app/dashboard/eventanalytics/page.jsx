@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useMemo, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import "@/app/dashboard/dashboard.css";
 import "@/components/events-pages.css";
 import { Icon } from "@iconify/react";
@@ -17,18 +17,12 @@ import {
   RegisteredChart,
   VerticalBars,
 } from "@/components/eventAnalytics/charts";
-import {
-  BRANCH_DATA,
-  EVENT,
-  QUESTIONS,
-  REGISTRANTS,
-  TOTAL_REGISTRANTS,
-  YEAR_DATA,
-  INITIAL_TEAMS,
-  SOLO_IDS,
-} from "@/data/analytics";
-import { Chip, Panel, SectionLabel, TrendChip } from "@/components/eventAnalytics/ui";
+import { Chip, Panel, SectionLabel } from "@/components/eventAnalytics/ui";
+import { useEventAnalytics, useOwnedForms } from "@/components/eventAnalytics/api";
 import { TopBar } from "@/components/TopBarEvents";
+
+function groupResponses(responses, valueFor) { const counts = new Map(); responses.forEach((r) => { const value = String(valueFor(r) || "Unknown"); counts.set(value, (counts.get(value) || 0) + 1); }); return [...counts].map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count); }
+function buildTrend(responses) { const counts = new Map(); responses.forEach((r) => { const date = new Date(r.submittedAt || r.createdAt); if (!Number.isNaN(date.getTime())) { const day = date.toLocaleDateString(undefined, { month: "short", day: "numeric" }); counts.set(day, (counts.get(day) || 0) + 1); } }); return [...counts].map(([day, registrations]) => ({ day, registrations })); }
 
 const TYPE_LABEL = {
   paragraph: "Paragraph",
@@ -185,74 +179,23 @@ function EventAnalyticsContent() {
   const searchParams = useSearchParams();
   const formIdParam = searchParams.get("formId");
 
-  const [form, setForm] = useState(null);
-  const [responses, setResponses] = useState([]);
-  const [teams, setTeams] = useState([]);
-  const [teamFinder, setTeamFinder] = useState({ incompleteTeams: [], soloStudents: [] });
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let active = true;
-
-    async function loadData() {
-      let targetFormId = formIdParam;
-
-      if (!targetFormId) {
-        try {
-          const mineRes = await fetch("/api/forms/MINE");
-          if (mineRes.ok) {
-            const mineData = await mineRes.json();
-            const list = Array.isArray(mineData) ? mineData : mineData.forms || [];
-            if (list.length > 0) {
-              targetFormId = list[0]._id || list[0].id;
-            }
-          }
-        } catch (e) {
-          console.error("Error fetching user forms:", e);
-        }
-      }
-
-      if (targetFormId) {
-        try {
-          const res = await fetch(`/api/forms/${targetFormId}/analytics`);
-          if (res.ok) {
-            const data = await res.json();
-            if (active) {
-              setForm(data.form || null);
-              setResponses(data.responses || []);
-              setTeams(data.teams || []);
-              setTeamFinder({
-                incompleteTeams: data.teamFinder?.incompleteTeams || [],
-                soloStudents: data.teamFinder?.soloStudents || [],
-              });
-              setLoading(false);
-              return;
-            }
-          }
-        } catch (e) {
-          console.error("Error fetching analytics:", e);
-        }
-      }
-
-      if (active) {
-        setLoading(false);
-      }
-    }
-
-    loadData();
-    return () => {
-      active = false;
-    };
-  }, [formIdParam]);
+  const ownedFormsQuery = useOwnedForms();
+  const activeFormId = formIdParam || ownedFormsQuery.data?.[0]?._id || ownedFormsQuery.data?.[0]?.id || "";
+  const analyticsQuery = useEventAnalytics(activeFormId);
+  const analytics = analyticsQuery.data;
+  const form = analytics?.form || null;
+  const responses = analytics?.responses || [];
+  const teams = analytics?.teams || [];
+  const teamFinder = analytics?.teamFinder || { incompleteTeams: [], soloStudents: [] };
 
   const isTeamEvent = useMemo(() => {
-    if (!form) return true; // Default to true if not loaded
+    if (!form) return false;
     return Boolean(form.isTeamEvent || form.isTeam || form.teamConfig?.enabled);
   }, [form]);
 
   // Dynamic stats computation with 1-day ago trend calculation
   const stats = useMemo(() => {
-    const totalResponses = responses.length || REGISTRANTS.length;
+    const totalResponses = responses.length;
 
     // Filter responses submitted until 1 day ago (24 hours prior)
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -262,20 +205,20 @@ function EventAnalyticsContent() {
     });
 
     const prevCount = prevResponses.length;
-    const regTrend = prevCount > 0 ? ((totalResponses - prevCount) / prevCount) * 100 : 12.4;
+    const regTrend = prevCount > 0 ? ((totalResponses - prevCount) / prevCount) * 100 : 0;
 
     const completed = responses.filter((r) => r.isSubmitted || r.submittedAt).length || totalResponses;
     const prevCompleted = prevResponses.filter((r) => r.isSubmitted || r.submittedAt).length || prevCount;
-    const formRespTrend = prevCompleted > 0 ? ((completed - prevCompleted) / prevCompleted) * 100 : 8.1;
+    const formRespTrend = prevCompleted > 0 ? ((completed - prevCompleted) / prevCompleted) * 100 : 0;
 
-    const currentCompletionRate = totalResponses ? Math.round((completed / totalResponses) * 100) : 86;
-    const prevCompletionRate = prevCount ? Math.round((prevCompleted / prevCount) * 100) : 83;
+    const currentCompletionRate = totalResponses ? Math.round((completed / totalResponses) * 100) : 0;
+    const prevCompletionRate = prevCount ? Math.round((prevCompleted / prevCount) * 100) : 0;
     const rateTrend = currentCompletionRate - prevCompletionRate;
 
-    const currentTeams = teams.length || INITIAL_TEAMS.length;
-    const totalMembers = teams.reduce((s, t) => s + (t.members?.length || 0), 0) || 15;
-    const avgTeamSize = currentTeams ? (totalMembers / currentTeams).toFixed(1) : "3.1";
-    const teamTrend = -1.4;
+    const currentTeams = teams.length;
+    const totalMembers = teams.reduce((s, t) => s + (t.members?.length || 0), 0);
+    const avgTeamSize = currentTeams ? (totalMembers / currentTeams).toFixed(1) : "0";
+    const teamTrend = 0;
 
     return [
       { label: "Registrations", value: totalResponses.toLocaleString(), trend: regTrend },
@@ -355,14 +298,14 @@ function EventAnalyticsContent() {
       });
     }
 
-    return QUESTIONS;
+    return [];
   }, [form, responses]);
 
   const exportExcel = () => {
-    const eventTitle = form?.title || EVENT.title;
-    const questionsList = form?.questions || QUESTIONS;
+    const eventTitle = form?.title || form?.name || "event";
+    const questionsList = form?.questions || [];
 
-    const dataRows = (responses.length > 0 ? responses : REGISTRANTS).map((r, i) => {
+    const dataRows = responses.map((r, i) => {
       const userTeam = teams.find((t) =>
         t.members?.some((m) => m.email === r.email || m.name === r.name)
       );
@@ -395,9 +338,14 @@ function EventAnalyticsContent() {
     );
   };
 
+  const branchData = useMemo(() => groupResponses(responses, (r) => r.user?.branch || r.branch), [responses]);
+  const yearData = useMemo(() => groupResponses(responses, (r) => r.user?.year || r.year), [responses]);
+  const registrationTrend = useMemo(() => buildTrend(responses), [responses]);
+  const matrixYears = useMemo(() => yearData.map((item) => item.label), [yearData]);
+  const branchYearMatrix = useMemo(() => branchData.map(({ label }) => ({ branch: label, values: matrixYears.map((year) => responses.filter((r) => (r.user?.branch || r.branch || "Unknown") === label && (r.user?.year || r.year || "Unknown") === year).length) })), [branchData, matrixYears, responses]);
+
   const completedTeamsCount = teams.filter((t) => t.status === "complete" || t.status === "completed").length;
-  const soloCount = teamFinder.soloStudents?.length || SOLO_IDS.length;
-  const activeFormId = form?._id || formIdParam || "";
+  const soloCount = teamFinder.soloStudents?.length || 0;
 
   return (
     <DashboardEventsShell>
@@ -406,11 +354,11 @@ function EventAnalyticsContent() {
       <div className="flex flex-col gap-2.5 sm:px-3.5 sm:gap-8">
         <div className="animate-fade-up">
           <div className="mb-4 rounded-3xl border border-line bg-panel p-6 shadow-[0_1px_2px_rgba(16,35,28,0.04)] sm:p-7">
-            <SectionLabel>Results &amp; Analytics · {EVENT.window}</SectionLabel>
+            <SectionLabel>Results &amp; Analytics · {form?.date || ""}</SectionLabel>
             <h1 className="mt-2 font-display text-[34px] font-extrabold leading-none tracking-tight text-ink sm:text-[40px]">
-              {form?.title || EVENT.title}
+              {form?.title || form?.name || "event"}
             </h1>
-            <p className="mt-2 text-[14px] text-ink-3">{form?.description || EVENT.subtitle}</p>
+            <p className="mt-2 text-[14px] text-ink-3">{form?.description || ""}</p>
             <button
               type="button"
               onClick={exportExcel}
@@ -444,14 +392,14 @@ function EventAnalyticsContent() {
             <NavCard
               title="Registrants"
               href={`./eventanalytics/registrants${activeFormId ? `?formId=${activeFormId}` : ""}`}
-              count={`${responses.length || REGISTRANTS.length} registrants`}
+              count={`${responses.length} registrants`}
               icon={<Icon icon="solar:user-outline" width="22" height="22" />}
             />
             {isTeamEvent && (
               <NavCard
                 title="Teams"
                 href={`./eventanalytics/teams${activeFormId ? `?formId=${activeFormId}` : ""}`}
-                count={`${completedTeamsCount}/${teams.length || INITIAL_TEAMS.length} · ${soloCount} solo`}
+                count={`${completedTeamsCount}/${teams.length} · ${soloCount} solo`}
                 icon={<Icon icon="solar:widget-5-linear" width="22" height="22" />}
               />
             )}
@@ -459,23 +407,23 @@ function EventAnalyticsContent() {
 
           <Panel className="mb-2.5 animate-fade-up">
             <CardHead label="Registered users" title="Sign-up momentum" right={<Chip>Daily</Chip>} />
-            <RegisteredChart />
+            <RegisteredChart data={registrationTrend} />
           </Panel>
 
           <div className="mb-2.5 grid grid-cols-1 gap-2.5 2xl:grid-cols-2">
             <Panel className="animate-fade-up">
-              <CardHead label="Distribution" title="By Branch" right={<Chip>{BRANCH_DATA.length} branches</Chip>} />
-              <BarList data={BRANCH_DATA} />
+              <CardHead label="Distribution" title="By Branch" right={<Chip>{branchData.length} branches</Chip>} />
+              <BarList data={branchData} />
             </Panel>
             <Panel className="animate-fade-up">
-              <CardHead label="Distribution" title="By Year" right={<Chip>{YEAR_DATA.length} cohorts</Chip>} />
-              <Donut data={YEAR_DATA} centerLabel={YEAR_DATA.reduce((s, y) => s + y.count, 0).toString()} />
+              <CardHead label="Distribution" title="By Year" right={<Chip>{yearData.length} cohorts</Chip>} />
+              <Donut data={yearData} centerLabel={responses.length.toString()} />
             </Panel>
           </div>
 
           <Panel className="mb-6 animate-fade-up">
             <CardHead label="Cross analysis" title="Branch × Year enrolment" />
-            <Heatmap />
+            <Heatmap data={branchYearMatrix} years={matrixYears} />
           </Panel>
 
           <div className="mb-5 flex items-center gap-3 pt-1">

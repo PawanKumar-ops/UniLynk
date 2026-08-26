@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
-import { REGISTRANTS, YEAR_DATA } from "@/data/analytics";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Avatar } from "./ui";
 
-const FILTERS = ["All years", ...YEAR_DATA.map((y) => y.label)];
-
-export function Registrants({ data = REGISTRANTS }) {
+export function Registrants({ data = [] }) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const FILTERS = useMemo(() => ["All years", ...new Set(data.map((r) => r.year || r.user?.year).filter(Boolean))], [data]);
   const [filter, setFilter] = useState("All years");
-  const [selectedUser, setSelectedUser] = useState(null);
 
   const list = useMemo(() => {
     if (filter === "All years") return data;
@@ -52,7 +52,7 @@ export function Registrants({ data = REGISTRANTS }) {
           return (
             <button
               key={r.id || r._id || idx}
-              onClick={() => setSelectedUser(r)}
+              onClick={() => router.push(`/FormPreview/${searchParams.get("formId")}?responseId=${r._id || r.id}`)}
               className="group flex w-full items-center gap-4 rounded-[20px] border border-neutral-200 hover:border-neutral-300 hover:shadow-sm transition bg-white px-4 py-3.5 text-left duration-200"
             >
               {/* Avatar with profile picture */}
@@ -115,74 +115,6 @@ export function Registrants({ data = REGISTRANTS }) {
         })}
       </div>
 
-      {/* User Details Modal */}
-      {selectedUser && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 backdrop-blur-sm"
-          onClick={() => setSelectedUser(null)}
-        >
-          <div
-            className="w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl animate-fade-up"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center gap-4">
-              <Avatar
-                name={selectedUser.name || selectedUser.user?.name || "User"}
-                src={selectedUser.img || selectedUser.avatar || selectedUser.user?.img}
-                size={56}
-              />
-              <div className="min-w-0 flex-1">
-                <h3 className="text-xl font-bold text-black truncate">
-                  {selectedUser.name || selectedUser.user?.name || "Participant"}
-                </h3>
-                <p className="font-mono text-xs text-gray-500 truncate">
-                  {selectedUser.email || selectedUser.userEmail}
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedUser(null)}
-                className="grid size-8 place-items-center rounded-full hover:bg-black/5"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="mt-5 space-y-3 font-sans text-sm">
-              <div className="flex justify-between border-b pb-2">
-                <span className="text-gray-400 font-mono text-xs uppercase">Branch</span>
-                <span className="font-medium text-black">
-                  {selectedUser.branch || selectedUser.user?.branch || selectedUser.department || "N/A"}
-                </span>
-              </div>
-              <div className="flex justify-between border-b pb-2">
-                <span className="text-gray-400 font-mono text-xs uppercase">Year</span>
-                <span className="font-medium text-black">
-                  {selectedUser.year || selectedUser.user?.year || "N/A"}
-                </span>
-              </div>
-              <div className="flex justify-between border-b pb-2">
-                <span className="text-gray-400 font-mono text-xs uppercase">Registered</span>
-                <span className="font-medium text-black">
-                  {selectedUser.registeredAt || (selectedUser.submittedAt ? new Date(selectedUser.submittedAt).toLocaleString() : "Recently")}
-                </span>
-              </div>
-              {selectedUser.answers && Object.keys(selectedUser.answers).length > 0 && (
-                <div className="pt-2">
-                  <span className="block mb-2 text-gray-400 font-mono text-xs uppercase">Responses</span>
-                  <div className="max-h-40 overflow-y-auto space-y-2 rounded-xl bg-gray-50 p-3 text-xs">
-                    {Object.entries(selectedUser.answers).map(([qKey, ans]) => (
-                      <div key={qKey}>
-                        <span className="font-semibold text-gray-700">{qKey}: </span>
-                        <span className="text-gray-900">{Array.isArray(ans) ? ans.join(", ") : String(ans)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
