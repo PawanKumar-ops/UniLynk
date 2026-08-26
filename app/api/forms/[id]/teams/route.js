@@ -3,73 +3,74 @@ import { connectDB } from "@/lib/mongodb";
 import Form from "@/models/Form";
 import FormResponse from "@/models/Response";
 
+const normalizeEmail = (email = "") => String(email).toLowerCase().trim();
+
 export async function PUT(req, context) {
   try {
     await connectDB();
     const session = await auth();
-
-    if (!session?.user?.email) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    if (!session?.user?.email) return Response.json({ error: "Unauthorized" }, { status: 401 });
 
     const { id } = await context.params;
-    const form = await Form.findById(id);
+    const form = await Form.findById(id).lean();
+    if (!form) return Response.json({ error: "Form not found" }, { status: 404 });
+    if (normalizeEmail(form.createdBy) !== normalizeEmail(session.user.email)) return Response.json({ error: "Forbidden" }, { status: 403 });
+    if (!form.isTeam && !form.isTeamEvent) return Response.json({ error: "This event does not support teams" }, { status: 400 });
 
-    if (!form) {
-      return Response.json({ error: "Form not found" }, { status: 404 });
-    }
+    const { teams = [], solo = [] } = await req.json();
+    if (!Array.isArray(teams) || !Array.isArray(solo)) return Response.json({ error: "Invalid team payload" }, { status: 400 });
 
-    const viewerEmail = session.user.email.toLowerCase();
-    const isOwner = form.createdBy && form.createdBy.toLowerCase() === viewerEmail;
-
-    if (!isOwner) {
-      return Response.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    const body = await req.json();
-    const { teams = [], solo = [] } = body;
-
-    // Process updated teams
+    const teamResponseIds = new Set();
+    const assignedEmails = new Set();
     for (const team of teams) {
-      if (team._id || team.id) {
-        const responseId = team._id || team.id;
-        const response = await FormResponse.findById(responseId);
-        if (response) {
-          // If response has teamRegistration answer
-          if (response.answers && response.answers.teamRegistration) {
-            response.answers.teamRegistration.teamName = team.name || response.answers.teamRegistration.teamName;
-            response.answers.teamRegistration.members = team.members || [];
-            response.markModified("answers");
-          }
-          // If response has teamFinder team
-          if (response.teamFinder && response.teamFinder.type === "team") {
-            response.teamFinder.team.name = team.name || response.teamFinder.team.name;
-            response.teamFinder.team.members = team.members || [];
-            response.teamFinder.team.needed = Math.max(0, (team.capacity || team.total || 4) - (team.members?.length || 0));
-            response.markModified("teamFinder");
-          }
-          await response.save();
-        }
+      const responseId = team._id || team.id;
+      if (!responseId) continue;
+      const members = Array.isArray(team.members) ? team.members : [];
+      const capacity = Math.max(1, Number(team.capacity || team.total || form.teamSize || 1));
+      if (members.length > capacity) return Response.json({ error: `Team ${team.name || ""} exceeds its capacity` }, { status: 400 });
+      members.forEach((member) => { const email = normalizeEmail(member.email); if (email) assignedEmails.add(email); });
+      teamResponseIds.add(String(responseId));
+      const response = await FormResponse.findOne({ _id: responseId, formId: id });
+      if (!response) continue;
+      if (response.answers?.teamRegistration) {
+        response.answers.teamRegistration.teamName = team.name || response.answers.teamRegistration.teamName;
+        response.answers.teamRegistration.members = members;
+        response.markModified("answers");
       }
+      if (response.teamFinder?.type === "team") {
+        response.teamFinder.team.name = team.name || response.teamFinder.team.name;
+        response.teamFinder.team.members = members;
+        response.teamFinder.team.total = capacity;
+        response.teamFinder.team.needed = Math.max(0, capacity - members.length);
+        response.markModified("teamFinder");
+      }
+      await response.save();
     }
 
-    // Process solo members
-    for (const soloUser of solo) {
-      if (soloUser._id || soloUser.id) {
-        const responseId = soloUser._id || soloUser.id;
-        const response = await FormResponse.findById(responseId);
-        if (response && response.teamFinder && response.teamFinder.type === "team") {
-          // Move from team to solo if needed
+    const responses = await FormResponse.find({ formId: id }).select("_id userEmail teamFinder");
+    const explicitSoloIds = new Set(solo.map((student) => String(student._id || student.id || "")).filter(Boolean));
+    await Promise.all(responses.map(async (response) => {
+      const responseId = String(response._id);
+      if (teamResponseIds.has(responseId)) return;
+      if (explicitSoloIds.has(responseId)) {
+        if (response.teamFinder?.type === "team") {
           response.teamFinder.type = "solo";
+          response.teamFinder.team = undefined;
           response.markModified("teamFinder");
           await response.save();
         }
+        return;
       }
-    }
+      if (assignedEmails.has(normalizeEmail(response.userEmail)) && response.teamFinder?.type === "solo") {
+        response.teamFinder = undefined;
+        response.markModified("teamFinder");
+        await response.save();
+      }
+    }));
 
-    return Response.json({ success: true, message: "Teams updated successfully" });
+    return Response.json({ success: true });
   } catch (error) {
     console.error("Teams update error:", error);
-    return Response.json({ error: error.message }, { status: 500 });
+    return Response.json({ error: "Unable to update teams" }, { status: 500 });
   }
 }

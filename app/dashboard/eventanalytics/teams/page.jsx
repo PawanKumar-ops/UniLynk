@@ -1,34 +1,18 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, Suspense } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import "@/app/dashboard/dashboard.css";
 import "@/components/events-pages.css";
 import { ArrowLeft } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Icon } from "@iconify/react";
 import { DashboardEventsShell } from "@/components/DashboardEventsShell";
+import { mapSoloStudents, mapTeams, useEventAnalytics } from "@/components/eventAnalytics/api";
 
 /* ---------- data model ---------- */
 const TINTS = ["#e8d5c4", "#cfe3d8", "#dcd6f0", "#f2d9dd", "#d7e4f0", "#efe6c9", "#d9ecd6", "#e6d9ea"];
-const tintFor = (seed = "seed") => TINTS[[...String(seed)].reduce((a, c) => a + c.charCodeAt(0), 0) % TINTS.length];
-const mk = (name, role) => ({ id: crypto.randomUUID(), name, role, tint: tintFor(name) });
-
-const INITIAL_TEAMS = [
-  { id: "t1", name: "Null Pointers", track: "Web Track", capacity: 5, members: [mk("Aarav Mehta", "Lead"), mk("Diya Sharma", "Frontend"), mk("Kabir Rao", "Backend"), mk("Ishita Nair", "Design"), mk("Vivaan Bose", "ML")] },
-  { id: "t2", name: "Segfault Society", track: "Systems", capacity: 5, members: [mk("Rhea Kapoor", "Lead"), mk("Arjun Menon", "Backend"), mk("Sara Iyer", "DevOps")] },
-  { id: "t3", name: "Merge Conflict", track: "AI Track", capacity: 4, members: [mk("Tanya Roy", "Lead"), mk("Neel Verma", "ML")] },
-  { id: "t4", name: "Recursion Squad", track: "Web Track", capacity: 5, members: [mk("Yash Gill", "Lead"), mk("Meera Das", "Frontend"), mk("Om Prakash", "Backend"), mk("Zoya Khan", "Design")] },
-  { id: "t5", name: "Kernel Panic", track: "Systems", capacity: 4, members: [mk("Dev Anand", "Lead")] },
-  { id: "t6", name: "Stack Overflow", track: "AI Track", capacity: 5, members: [mk("Nisha Pillai", "Lead"), mk("Rohit Sen", "ML"), mk("Ananya Ghosh", "Data"), mk("Kunal Joshi", "Backend"), mk("Priya Nanda", "Design")] },
-];
-
-const INITIAL_SOLO = [
-  mk("Aditya Rao", "Full-stack"), mk("Simran Kaur", "UI/UX"), mk("Farhan Ali", "ML Engineer"),
-  mk("Leela Krishnan", "Backend"), mk("Manav Desai", "Frontend"), mk("Pooja Bhatt", "Data"),
-  mk("Sameer Qureshi", "DevOps"), mk("Ira Malhotra", "Product"), mk("Nikhil Bhat", "Systems"),
-  mk("Tara Wadhwa", "Design"),
-];
-
+const tintFor = (seed = "seed") => TINTS[[...String(seed)].reduce((acc, c) => acc + c.charCodeAt(0), 0) % TINTS.length];
 const initials = (n = "") => String(n).split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
 
 function statusOf(t) {
@@ -68,9 +52,9 @@ function TeamsContent() {
   const formId = searchParams.get("formId");
   const router = useRouter();
 
-  const [teams, setTeams] = useState(INITIAL_TEAMS);
-  const [solo, setSolo] = useState(INITIAL_SOLO);
-  const [open, setOpen] = useState({ t3: true });
+  const [teams, setTeams] = useState([]);
+  const [solo, setSolo] = useState([]);
+  const [open, setOpen] = useState({});
   const [filter, setFilter] = useState("all");
   const [filterMenu, setFilterMenu] = useState(false);
   const [admin, setAdmin] = useState(true);
@@ -82,88 +66,41 @@ function TeamsContent() {
 
   const filterRef = useRef(null);
 
+  const analyticsQuery = useEventAnalytics(formId);
+  const queryClient = useQueryClient();
+
   useEffect(() => {
-    let active = true;
-    if (formId) {
-      fetch(`/api/forms/${formId}/analytics`)
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (!active || !data) return;
+    if (!analyticsQuery.data) return;
+    setTeams(mapTeams(analyticsQuery.data));
+    setSolo(mapSoloStudents(analyticsQuery.data));
+  }, [analyticsQuery.data]);
 
-          if (Array.isArray(data.teams) && data.teams.length > 0) {
-            const mappedTeams = data.teams.map((t, idx) => ({
-              id: t._id || t.id || `t_${idx}`,
-              _id: t._id || t.id,
-              name: t.name || `Team ${idx + 1}`,
-              track: t.track || "Registered",
-              capacity: t.total || t.capacity || 5,
-              members: (t.members || []).map((m, mIdx) => ({
-                id: m.id || m._id || `m_${idx}_${mIdx}`,
-                name: m.name || m.email || "Member",
-                role: mIdx === 0 ? "Lead" : m.role || "Member",
-                email: m.email || "",
-                tint: tintFor(m.name || "Member"),
-                img: m.img || m.avatar || null,
-              })),
-            }));
-            setTeams(mappedTeams);
-          }
-
-          if (data.teamFinder?.soloStudents && Array.isArray(data.teamFinder.soloStudents)) {
-            const mappedSolo = data.teamFinder.soloStudents.map((s, idx) => ({
-              id: s._id || s.id || `s_${idx}`,
-              _id: s._id || s.id,
-              name: s.name || s.email || "Solo Student",
-              role: s.lookingFor || s.branch || "Participant",
-              email: s.email || "",
-              tint: tintFor(s.name || "Solo"),
-              img: s.img || s.avatar || null,
-            }));
-            setSolo(mappedSolo);
-          }
-        })
-        .catch((err) => console.error("Error loading teams analytics:", err));
-    }
-
+  useEffect(() => {
     const h = (e) => {
       if (filterRef.current && e.target instanceof Node && !filterRef.current.contains(e.target)) setFilterMenu(false);
     };
     document.addEventListener("mousedown", h);
-    return () => {
-      active = false;
-      document.removeEventListener("mousedown", h);
-    };
-  }, [formId]);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
+
+  const saveMutation = useMutation({
+    mutationFn: async ({ teams: nextTeams, solo: nextSolo }) => {
+      const response = await fetch(`/api/forms/${formId}/teams`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ teams: nextTeams, solo: nextSolo }) });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Failed to save teams");
+      return data;
+    },
+    onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: ["forms", formId, "analytics"] }); setSaveToast("Teams saved successfully!"); },
+    onError: (error) => setSaveToast(error.message || "Failed to save teams"),
+  });
 
   const saveTeamsData = async () => {
     setSaving(true);
     setSaveToast("");
 
-    try {
-      if (formId) {
-        const res = await fetch(`/api/forms/${formId}/teams`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ teams, solo }),
-        });
-
-        if (res.ok) {
-          setSaveToast("Teams saved successfully!");
-        } else {
-          setSaveToast("Failed to save teams");
-        }
-      } else {
-        // Mock save feedback
-        await new Promise((resolve) => setTimeout(resolve, 600));
-        setSaveToast("Teams saved successfully!");
-      }
-    } catch (err) {
-      console.error("Error saving teams:", err);
-      setSaveToast("Error saving teams");
-    } finally {
-      setSaving(false);
-      setTimeout(() => setSaveToast(""), 3000);
-    }
+    if (!formId) { setSaveToast("Select an event before saving teams"); setSaving(false); return; }
+    try { await saveMutation.mutateAsync({ teams, solo }); }
+    finally { setSaving(false); setTimeout(() => setSaveToast(""), 3000); }
   };
 
   const stats = useMemo(() => {

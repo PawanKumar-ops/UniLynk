@@ -1,51 +1,26 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { Suspense } from "react";
 import "@/app/dashboard/dashboard.css";
 import "@/components/events-pages.css";
 import { DashboardEventsShell } from "@/components/DashboardEventsShell";
 import { Registrants } from "@/components/eventAnalytics/Registrants";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { REGISTRANTS } from "@/data/analytics";
+import { useEventAnalytics } from "@/components/eventAnalytics/api";
 
 function RegistrantsContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const formId = searchParams.get("formId");
 
-  const [registrantsData, setRegistrantsData] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const analyticsQuery = useEventAnalytics(formId);
+  const registrantsData = analyticsQuery.data?.responses || [];
+  const loading = analyticsQuery.isLoading;
 
-  useEffect(() => {
-    let active = true;
-
-    if (formId) {
-      fetch(`/api/forms/${formId}/analytics`)
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          if (!active) return;
-          if (data && Array.isArray(data.responses) && data.responses.length > 0) {
-            setRegistrantsData(data.responses);
-          } else {
-            setRegistrantsData(REGISTRANTS);
-          }
-        })
-        .catch(() => {
-          if (active) setRegistrantsData(REGISTRANTS);
-        })
-        .finally(() => {
-          if (active) setLoading(false);
-        });
-    } else {
-      setRegistrantsData(REGISTRANTS);
-      setLoading(false);
-    }
-
-    return () => {
-      active = false;
-    };
-  }, [formId]);
+  if (!formId) {
+    return null;
+  }
 
   return (
     <DashboardEventsShell>

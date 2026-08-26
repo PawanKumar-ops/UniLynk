@@ -111,7 +111,7 @@ function findAnswerByLabel(questions, answers, matchers) {
 
 /* ---------- Page ---------- */
 
-export default function EventPreview({ formId: propFormId, initialData }) {
+export default function EventPreview({ formId: propFormId, initialData, responseId }) {
   const params = useParams();
   const formId = propFormId || params?.formId;
 
@@ -128,6 +128,7 @@ export default function EventPreview({ formId: propFormId, initialData }) {
 
   const [answers, setAnswers] = useState({});
   const [filesByQuestion, setFilesByQuestion] = useState({});
+  const readOnly = Boolean(responseId);
 
   useEffect(() => {
     if (initialData) {
@@ -156,10 +157,10 @@ export default function EventPreview({ formId: propFormId, initialData }) {
           }
         }
 
-        const res = await fetch(`/api/forms/${formId}`);
+        const res = await fetch(responseId ? `/api/forms/${formId}/responses/${responseId}` : `/api/forms/${formId}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Unable to load event details");
-        if (!ignore) setEventData(data);
+        if (!ignore) { setEventData(data.form || data); if (data.response) { setAnswers(data.response.answers || {}); setTeam(data.response.answers?.team || []); } }
       } catch (err) {
         console.error("Failed to load event data:", err);
         if (!ignore) setLoadError(err.message || "Unable to load event details");
@@ -187,7 +188,7 @@ export default function EventPreview({ formId: propFormId, initialData }) {
     return () => {
       ignore = true;
     };
-  }, [formId, initialData]);
+  }, [formId, initialData, responseId]);
 
   const clubName =
     eventData?.clubId?.clubName ||
@@ -483,7 +484,7 @@ export default function EventPreview({ formId: propFormId, initialData }) {
         </div>
 
         {/* ---------- Add Team (Rendered ONLY IF Event is Team-based) ---------- */}
-        {isTeamEvent && (
+        {isTeamEvent && !readOnly && (
           <div className="mt-6">
             {!teamOpen && team.length === 0 ? (
               <div className="rounded-2xl p-4" style={{ background: C.accent }}>
@@ -645,7 +646,7 @@ export default function EventPreview({ formId: propFormId, initialData }) {
         </div>
 
         {/* ---------- Submit ---------- */}
-        <button
+        {!readOnly && <button
           onClick={handleSubmit}
           disabled={applied || submitted || submitting}
           className="mt-10 w-full inline-flex items-center justify-center rounded-full py-3.5 text-[15px] font-semibold transition active:scale-[0.99] hover:opacity-90 disabled:opacity-50"
@@ -656,7 +657,7 @@ export default function EventPreview({ formId: propFormId, initialData }) {
             : submitting
               ? "Submitting..."
               : "Submit registration"}
-        </button>
+        </button>}
       </div>
       <EventTicket open={Boolean(ticketData)} onClose={() => setTicketData(null)} ticket={ticketData} />
     </div>

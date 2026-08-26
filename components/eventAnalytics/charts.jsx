@@ -16,11 +16,6 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import {
-  BRANCH_YEAR_MATRIX,
-  MATRIX_YEARS,
-  REGISTRATION_TREND,
-} from '@/data/analytics'
 import { Chip } from './ui'
 
 // Testora-style green palette for categorical marks
@@ -32,13 +27,13 @@ export function BarList({
   suffix = '',
   denom,
 }) {
-  const max = Math.max(...data.map((d) => d.count))
+  const max = Math.max(...data.map((d) => d.count), 1)
   const total = denom ?? data.reduce((s, d) => s + d.count, 0)
   const [hover, setHover] = useState(null)
   return (
     <div className="flex flex-col gap-3.5">
       {data.map((d) => {
-        const pct = Math.round((d.count / total) * 100)
+        const pct = total ? Math.round((d.count / total) * 100) : 0
         const active = hover === d.label
         return (
           <div key={d.label} onMouseEnter={() => setHover(d.label)} onMouseLeave={() => setHover(null)}>
@@ -134,7 +129,7 @@ export function FileGauge({ q }) {
   const submitted = q.submitted ?? 0
   const missing = q.missing ?? 0
   const total = submitted + missing
-  const pct = Math.round((submitted / total) * 100)
+  const pct = total ? Math.round((submitted / total) * 100) : 0
   return (
     <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-7">
       <div className="relative h-[176px] w-[176px] shrink-0">
@@ -223,7 +218,7 @@ export function RadarChartView({ data }) {
 
 /* ---------- Vertical gradient bars (dropdown pattern) ---------- */
 export function VerticalBars({ data }) {
-  const max = Math.max(...data.map((d) => d.count))
+  const max = Math.max(...data.map((d) => d.count), 1)
   const total = data.reduce((s, d) => s + d.count, 0)
 
   const needsScroll = data.length > 8
@@ -242,7 +237,7 @@ export function VerticalBars({ data }) {
         }`}
       >
         {data.map((d, i) => {
-          const pct = Math.round((d.count / total) * 100)
+          const pct = total ? Math.round((d.count / total) * 100) : 0
 
           return (
             <div
@@ -325,9 +320,9 @@ function RegTooltip({ active, payload, label }) {
   )
 }
 
-export function RegisteredChart() {
-  const total = REGISTRATION_TREND.reduce((s, d) => s + d.registrations, 0)
-  const peak = REGISTRATION_TREND.reduce((a, b) => (b.registrations > a.registrations ? b : a))
+export function RegisteredChart({ data = [] }) {
+  const total = data.reduce((s, d) => s + d.registrations, 0)
+  const peak = data.reduce((a, b) => (!a || b.registrations > a.registrations ? b : a), null)
 
   return (
     <div>
@@ -344,7 +339,7 @@ export function RegisteredChart() {
       </div>
       <div className="h-[240px] w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={REGISTRATION_TREND} margin={{ top: 8, right: 6, left: -20, bottom: 0 }}>
+          <ComposedChart data={data} margin={{ top: 8, right: 6, left: -20, bottom: 0 }}>
             <CartesianGrid vertical={false} stroke="#eef3f1" />
             <XAxis
               dataKey="day"
@@ -372,16 +367,16 @@ export function RegisteredChart() {
         </ResponsiveContainer>
       </div>
       <p className="mt-2 font-mono text-[11px] text-ink-4">
-        Peak day · {peak.day} with {peak.registrations} sign-ups
+        Peak day · {peak ? `${peak.day} with ${peak.registrations} sign-ups` : "No registrations yet"}
       </p>
     </div>
   )
 }
 
 /* ---------- Branch × Year heatmap ---------- */
-export function Heatmap() {
-  const all = BRANCH_YEAR_MATRIX.flatMap((r) => r.values)
-  const max = Math.max(...all)
+export function Heatmap({ data = [], years = [] }) {
+  const all = data.flatMap((r) => r.values)
+  const max = Math.max(...all, 1)
   const [hover, setHover] = useState(null)
 
   const color = (v) => {
@@ -397,7 +392,7 @@ export function Heatmap() {
       <div className="mb-1.5 grid grid-cols-[120px_repeat(5,minmax(0,1fr))] gap-1.5">
         <span />
 
-        {MATRIX_YEARS.map((y) => (
+        {years.map((y) => (
           <span
             key={y}
             className="text-center font-mono text-[10px] uppercase text-ink-4"
@@ -408,7 +403,7 @@ export function Heatmap() {
       </div>
 
       {/* Rows */}
-      {BRANCH_YEAR_MATRIX.map((row) => (
+      {data.map((row) => (
         <div
           key={row.branch}
           className="mb-1.5 grid grid-cols-[65px_repeat(5,minmax(0,1fr))] items-center gap-1.5"
@@ -423,7 +418,7 @@ export function Heatmap() {
               onMouseEnter={() =>
                 setHover({
                   b: row.branch,
-                  y: MATRIX_YEARS[i],
+                  y: years[i],
                   v,
                 })
               }
