@@ -243,6 +243,7 @@ export default function EditProfile({ onClose, saveRef }) {
       await updateSession?.();
       setSaved(true);
       setTimeout(() => {
+        router.refresh();
         if (onClose) {
           onClose();
         } else {

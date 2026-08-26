@@ -154,8 +154,9 @@ export function ProfilePage() {
         >
           {/* Banner */}
           <div className="relative h-[160px] w-full overflow-hidden bg-[#F2F2F2] sm:h-[200px]">
-            <ImageWithFallback
+            <ReliableImage
               src={profile.banner || "/Background.jpg"}
+              fallbackSrc="/Background.jpg"
               alt={`${profile.name} banner`}
               width={1600}
               height={512}
