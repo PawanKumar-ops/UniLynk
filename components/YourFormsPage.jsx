@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Plus,
@@ -159,6 +159,8 @@ export function YourFormsPage() {
   const router = useRouter();
   const [forms, setForms] = useState([]);
   const [tab, setTab] = useState("all");
+  const [filterMenu, setFilterMenu] = useState(false);
+  const filterRef = useRef(null);
   const [loading, setLoading] = useState(true);
 
   const loadForms = async () => {
@@ -182,6 +184,24 @@ export function YourFormsPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (
+        filterRef.current &&
+        e.target instanceof Node &&
+        !filterRef.current.contains(e.target)
+      ) {
+        setFilterMenu(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     loadForms();
@@ -261,17 +281,17 @@ export function YourFormsPage() {
   ];
 
   const tabs = [
-    { id: "all", label: `All (${forms.length})`, items: forms },
-    { id: "published", label: `Published (${published.length})`, items: published },
-    { id: "drafts", label: `Drafts (${drafts.length})`, items: drafts },
-  ];
+  { id: "all", label: "All", items: forms },
+  { id: "published", label: "Published", items: published },
+  { id: "drafts", label: "Drafts", items: drafts },
+];
 
   const visible = tabs.find((item) => item.id === tab)?.items ?? forms;
 
   return (
     <DashboardEventsShell>
       <TopBar showBack />
-      <div className="flex flex-col gap-6 sm:gap-8 px-3.5">    
+      <div className="flex flex-col gap-6 sm:gap-8 px-3.5">
 
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -308,20 +328,63 @@ export function YourFormsPage() {
         </div>
 
         <div>
-          <div className="grid w-full grid-cols-3 gap-1 rounded-full bg-[var(--muted)] p-1 sm:inline-grid sm:w-auto">
-            {tabs.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => setTab(item.id)}
-                className={`rounded-full px-3 py-1.5 text-xs transition-colors sm:text-sm ${tab === item.id
-                    ? "bg-[var(--background)] shadow-sm"
-                    : "text-[var(--muted-foreground)] hover:text-foreground"
+          <div className="relative">
+            <button
+              onClick={() => setFilterMenu((v) => !v)}
+              className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${filterMenu
+                ? "border-black/12 bg-black/[0.03]"
+                : "border-black/12 hover:border-black/25"
+                }`}
+              type="button"
+               ref={filterRef}
+            >
+              <Icon
+                icon="mynaui:filter"
+                className="size-4 text-[var(--muted-foreground)]"
+              />
+
+              {tabs.find((item) => item.id === tab)?.label}
+
+              <Icon
+                icon="solar:alt-arrow-down-linear"
+                className={`size-3.5 text-[var(--muted-foreground)] transition ${filterMenu ? "rotate-180" : ""
                   }`}
-                type="button"
-              >
-                {item.label}
-              </button>
-            ))}
+              />
+            </button>
+
+            {filterMenu && (
+              <div className="absolute left-0 top-[calc(100%+8px)] z-30 w-56 origin-top-left rounded-2xl border border-black/8 bg-white p-1.5 shadow-xl shadow-black/[0.08]">
+                <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--muted-foreground)]">
+                  Filter forms
+                </p>
+                <div className="flex flex-col gap-1">
+                  {tabs.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setTab(item.id);
+                        setFilterMenu(false);
+                      }}
+                      className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${tab === item.id
+                        ? "bg-black/[0.05] font-semibold"
+                        : "hover:bg-black/[0.03]"
+                        }`}
+                      type="button"
+                    >
+                      <span className="flex-1 text-left">{item.label}</span>
+
+<span className="text-xs tabular-nums text-ink/45">
+  {item.items.length}
+</span>
+
+{tab === item.id && (
+  <Icon icon="lucide:check" className="size-4 text-ink" />
+)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="mt-5 flex flex-col gap-3">

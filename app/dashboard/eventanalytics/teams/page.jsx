@@ -120,8 +120,8 @@ function TeamsContent() {
     filter === "full"
       ? (t.members?.length || 0) >= t.capacity
       : filter === "partial"
-      ? (t.members?.length || 0) < t.capacity
-      : true
+        ? (t.members?.length || 0) < t.capacity
+        : true
   );
 
   const toggle = (id) => setOpen((o) => ({ ...o, [id]: !o[id] }));
@@ -212,11 +212,11 @@ function TeamsContent() {
               <button
                 onClick={saveTeamsData}
                 disabled={saving}
-                className="flex h-9 gap-1.5 px-4 items-center cursor-pointer justify-center rounded-full bg-black text-white font-semibold text-xs transition hover:bg-black/80 disabled:opacity-50"
+                className="flex h-9 gap-1 px-4 items-center cursor-pointer justify-center rounded-full transition hover:bg-black/5 bg-white text-[#171717] disabled:opacity-50"
               >
                 <Icon
                   icon="solar:pen-outline"
-                  className="text-[18px] text-white"
+                  className="text-[21px] text-[#171717]"
                 />
                 {saving ? "Saving..." : "Save"}
               </button>
@@ -246,7 +246,7 @@ function TeamsContent() {
             <div className="relative" ref={filterRef}>
               <button
                 onClick={() => setFilterMenu((v) => !v)}
-                className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${filterMenu ? "border-ink bg-black/[0.03]" : "border-black/12 hover:border-black/25"}`}
+                className={`flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition ${filterMenu ? "border-ink/12 bg-black/[0.03]" : "border-black/12 hover:border-black/25"}`}
               >
                 <Icon icon="mynaui:filter" className="size-4 text-ink/60" />
                 {activeFilter.label}
@@ -259,6 +259,7 @@ function TeamsContent() {
               {filterMenu && (
                 <div className="animate-pop absolute left-0 top-[calc(100%+8px)] z-30 w-56 origin-top-left rounded-2xl border border-black/8 bg-white p-1.5 shadow-xl shadow-black/[0.08]">
                   <p className="px-3 py-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-ink/40">Filter by status</p>
+                  <div className="flex flex-col gap-1">
                   {FILTERS.map((f) => (
                     <button
                       key={f.key}
@@ -273,6 +274,7 @@ function TeamsContent() {
                       {filter === f.key && <Icon icon="lucide:check" className="size-4 text-ink" />}
                     </button>
                   ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -314,9 +316,8 @@ function TeamsContent() {
                         <span className="truncate text-[15px] font-bold leading-tight sm:text-base">{t.name}</span>
                         <span className="rounded-md bg-black/[0.05] px-2 py-0.5 text-[11px] font-medium text-ink/55">{t.track}</span>
                         <span
-                          className={`rounded-full px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.06em] ${
-                            st.key === "full" ? "bg-ink text-paper" : "border border-black/12 text-ink/45"
-                          }`}
+                          className={`rounded-full px-2 py-0.5 font-mono text-[10px] font-medium uppercase tracking-[0.06em] ${st.key === "full" ? "bg-ink text-paper" : "border border-black/12 text-ink/45"
+                            }`}
                         >
                           {st.label}
                         </span>
@@ -386,7 +387,23 @@ function TeamsContent() {
               <span className="ml-auto text-xs text-ink/45">Drag onto a team, or tap Add to team</span>
             </div>
             {solo.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-black/12 py-10 text-center text-sm text-ink/40">Everyone has a team 🎉</div>
+              <div className="flex h-[calc(100vh-390px)] min-h-[420px] flex-col items-center justify-center px-4 text-center">
+                <div className="mb-6 flex h-[220px] w-[280px] max-w-[80vw] items-center justify-center">
+                  <img
+                    src="/illuistrations/noParticipants.svg"
+                    alt="No unassigned participants"
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+
+                <h3 className="text-[17px] font-bold tracking-[-0.01em]">
+                  No unassigned participants
+                </h3>
+
+                <p className="mt-1.5 max-w-[320px] text-[13.5px] leading-relaxed text-ink/45">
+                  This space is currently empty.
+                </p>
+              </div>
             ) : (
               <div className="flex flex-col gap-2">
                 {solo.map((m) => (
@@ -420,7 +437,7 @@ function TeamsContent() {
               </div>
             )}
           </div>
-          <div className="h-6" />
+          
         </div>
       </main>
 
