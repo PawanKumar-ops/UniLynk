@@ -398,14 +398,24 @@ export function EventsPage() {
         )}
 
         {!loading && list.length === 0 && (
-          <div className="events-empty-state">
-            <img src="/eventsicons/NoEventsIll.svg" alt="No Events" />
-            <h2>No Events Right Now</h2>
-            <p>
-              The event calendar is currently clear. Check out our vibrant clubs and communities to stay connected with campus life.
-            </p>
-          </div>
-        )}
+  <div className="flex min-h-[420px] flex-col items-center justify-center px-4 text-center">
+    <div className="mb-6 flex h-[220px] w-[280px] max-w-[80vw] items-center justify-center">
+      <img
+        src="/eventsicons/NoEventsIll.svg"
+        alt="No events available"
+        className="h-full w-full object-contain"
+      />
+    </div>
+
+    <h3 className="text-[17px] font-bold tracking-[-0.01em]">
+      No Events Right Now
+    </h3>
+
+    <p className="mt-1.5 max-w-[320px] text-[13.5px] leading-relaxed text-[#71717a]">
+      No events right now. Check back soon!
+    </p>
+  </div>
+)}
 
         <div className="grid grid-cols-1 gap-3">
           {list.map((event) => {

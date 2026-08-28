@@ -281,10 +281,10 @@ export function YourFormsPage() {
   ];
 
   const tabs = [
-  { id: "all", label: "All", items: forms },
-  { id: "published", label: "Published", items: published },
-  { id: "drafts", label: "Drafts", items: drafts },
-];
+    { id: "all", label: "All", items: forms },
+    { id: "published", label: "Published", items: published },
+    { id: "drafts", label: "Drafts", items: drafts },
+  ];
 
   const visible = tabs.find((item) => item.id === tab)?.items ?? forms;
 
@@ -336,7 +336,7 @@ export function YourFormsPage() {
                 : "border-black/12 hover:border-black/25"
                 }`}
               type="button"
-               ref={filterRef}
+              ref={filterRef}
             >
               <Icon
                 icon="mynaui:filter"
@@ -373,13 +373,13 @@ export function YourFormsPage() {
                     >
                       <span className="flex-1 text-left">{item.label}</span>
 
-<span className="text-xs tabular-nums text-ink/45">
-  {item.items.length}
-</span>
+                      <span className="text-xs tabular-nums text-ink/45">
+                        {item.items.length}
+                      </span>
 
-{tab === item.id && (
-  <Icon icon="lucide:check" className="size-4 text-ink" />
-)}
+                      {tab === item.id && (
+                        <Icon icon="lucide:check" className="size-4 text-ink" />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -389,12 +389,25 @@ export function YourFormsPage() {
 
           <div className="mt-5 flex flex-col gap-3">
             {!loading && visible.length === 0 ? (
-              <div className="events-empty-state">
-                <img src="/eventsicons/NoFormsIll.svg" alt="No Forms" />
-                <h2>No forms yet</h2>
-                <p>Create your first form to get started</p>
+              <div className="flex min-h-[420px] flex-col items-center justify-center px-4 text-center">
+                <div className="mb-6 flex h-[220px] w-[280px] max-w-[80vw] items-center justify-center">
+                  <img
+                    src="/eventsicons/NoFormsIll.svg"
+                    alt="No forms available"
+                    className="h-full w-full object-contain"
+                  />
+                </div>
+
+                <h3 className="text-[17px] font-bold tracking-[-0.01em]">
+                  No forms yet
+                </h3>
+
+                <p className="mt-1.5 max-w-[320px] text-[13.5px] leading-relaxed text-[#71717a]">
+                  Create your first form to get started
+                </p>
+
                 <button
-                  className="inline-flex items-center gap-2 rounded-full bg-[var(--primary)] px-4 py-2 text-sm text-[var(--primary-foreground)] transition-opacity hover:opacity-90"
+                  className="mt-5 inline-flex items-center gap-2 rounded-full bg-[var(--primary)] px-4 py-2 text-sm text-[var(--primary-foreground)] transition-opacity hover:opacity-90"
                   onClick={handleCreate}
                   type="button"
                 >

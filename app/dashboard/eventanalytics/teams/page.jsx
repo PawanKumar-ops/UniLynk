@@ -164,10 +164,15 @@ function TeamsContent() {
 
   function createTeam() {
     const capacity = Math.max(1, Number(analyticsQuery.data?.form?.teamSize) || 4);
+    const nextNumber = teams.reduce((highest, team) => {
+      if (team.source !== "admin") return highest;
+      const match = String(team.name || "").match(/^Team\s+(\d+)$/i);
+      return match ? Math.max(highest, Number(match[1])) : highest;
+    }, 0) + 1;
     const newTeam = {
       id: `admin_${crypto.randomUUID()}`,
       source: "admin",
-      name: "Admin Team",
+      name: `Team ${nextNumber}`,
       track: "Admin created",
       capacity,
       members: [],

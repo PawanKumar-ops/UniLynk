@@ -389,7 +389,7 @@ export function Heatmap({ data = [], years = [] }) {
   return (
     <div>
       {/* Header */}
-      <div className="mb-1.5 grid grid-cols-[120px_repeat(5,minmax(0,1fr))] gap-1.5">
+      <div className="mb-1.5 grid grid-cols-[65px_repeat(5,minmax(0,1fr))] gap-1.5">
         <span />
 
         {years.map((y) => (
