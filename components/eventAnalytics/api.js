@@ -41,6 +41,7 @@ export function mapTeams(data) {
   return (data?.teams || []).map((team, index) => ({
     id: team._id || team.id || `team_${index}`,
     _id: team._id || team.id,
+    source: team.source || "response",
     name: team.name || `Team ${index + 1}`,
     track: team.track || "Registered",
     capacity: team.total || team.capacity || 1,

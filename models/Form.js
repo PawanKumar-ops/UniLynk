@@ -9,6 +9,13 @@ const QuestionSchema = new mongoose.Schema({
   options: { type: [String], default: [] },
 });
 
+const EventTeamSchema = new mongoose.Schema({
+  name: { type: String, default: "" },
+  capacity: { type: Number, default: 4 },
+  members: { type: [Object], default: [] },
+  createdAt: { type: Date, default: Date.now },
+}, { _id: true });
+
 const FormSchema = new mongoose.Schema(
   {
     title: { type: String, default: "" },
@@ -25,6 +32,7 @@ const FormSchema = new mongoose.Schema(
     isTeam: { type: Boolean, default: false },
     isTeamEvent: { type: Boolean, default: false },
     teamSize: { type: Number, default: 4 },
+    adminTeams: { type: [EventTeamSchema], default: [] },
     registrationDeadline: { type: Date, default: null },
 
     questions: [QuestionSchema],

@@ -22,6 +22,7 @@ export async function PUT(req, context) {
 
     const teamResponseIds = new Set();
     const assignedEmails = new Set();
+    const adminTeams = [];
     for (const team of teams) {
       const responseId = team._id || team.id;
       if (!responseId) continue;
@@ -29,12 +30,25 @@ export async function PUT(req, context) {
       const capacity = Math.max(1, Number(team.capacity || team.total || form.teamSize || 1));
       if (members.length > capacity) return Response.json({ error: `Team ${team.name || ""} exceeds its capacity` }, { status: 400 });
       members.forEach((member) => { const email = normalizeEmail(member.email); if (email) assignedEmails.add(email); });
+      if (team.source === "admin" || String(team.id || "").startsWith("admin_")) {
+        adminTeams.push({
+          ...(String(team._id || "").match(/^[a-f\d]{24}$/i) ? { _id: team._id } : {}),
+          name: String(team.name || "").trim() || "Admin Team",
+          capacity,
+          members,
+        });
+        continue;
+      }
       teamResponseIds.add(String(responseId));
       const response = await FormResponse.findOne({ _id: responseId, formId: id });
       if (!response) continue;
       if (response.answers?.teamRegistration) {
         response.answers.teamRegistration.teamName = team.name || response.answers.teamRegistration.teamName;
         response.answers.teamRegistration.members = members;
+        response.markModified("answers");
+      }
+      if (Array.isArray(response.answers?.team)) {
+        response.answers.team = members;
         response.markModified("answers");
       }
       if (response.teamFinder?.type === "team") {
@@ -47,6 +61,7 @@ export async function PUT(req, context) {
       await response.save();
     }
 
+    await Form.findByIdAndUpdate(id, { $set: { adminTeams } });
     const responses = await FormResponse.find({ formId: id }).select("_id userEmail teamFinder");
     const explicitSoloIds = new Set(solo.map((student) => String(student._id || student.id || "")).filter(Boolean));
     await Promise.all(responses.map(async (response) => {

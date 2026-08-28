@@ -35,34 +35,63 @@ const normalizeMembers = (members = [], usersByEmail = new Map()) =>
     .map((member) => normalizeMember(member, usersByEmail));
 
 const buildRegisteredTeams = (responses, form, usersByEmail) => {
-  const minSize = Number(form?.teamConfig?.minSize) || 2;
+  const capacity = Math.max(1, Number(form?.teamSize) || Number(form?.teamConfig?.maxSize) || 4);
 
   return responses
     .filter((response) => response.isSubmitted || response.submittedAt)
     .map((response) => {
-      const registration = response.answers?.[TEAM_REGISTRATION_ANSWER_ID];
+      const registration = response.answers?.[TEAM_REGISTRATION_ANSWER_ID] ||
+        (Array.isArray(response.answers?.team) && response.answers.team.length > 0
+          ? { members: response.answers.team }
+          : null);
 
       if (!registration || registration.mode === "solo") return null;
 
-      const members = normalizeMembers(registration.members, usersByEmail);
-      if (!members.length) return null;
+      const registeredMembers = normalizeMembers(registration.members, usersByEmail);
+      const owner = usersByEmail.get(normalizeEmail(response.userEmail));
+      const lead = normalizeMember({
+        id: owner?._id?.toString(),
+        name: owner?.name || response.userEmail.split("@")[0],
+        email: owner?.email || response.userEmail,
+        branch: owner?.branch,
+        year: owner?.year,
+        img: owner?.img,
+      }, usersByEmail);
+      const members = [lead, ...registeredMembers].filter((member, index, all) =>
+        all.findIndex((candidate) => String(candidate.id || candidate._id || candidate.email) === String(member.id || member._id || member.email)) === index
+      );
 
       const id = response._id?.toString();
-      const lead = members[0];
+      const teamLead = members[0];
 
       return {
         _id: id,
         id,
-        name: registration.teamName?.trim() || `${lead.name || response.userEmail.split("@")[0]}'s Team`,
-        status: members.length >= minSize ? "complete" : "incomplete",
+        name: registration.teamName?.trim() || `${teamLead.name || response.userEmail.split("@")[0]}'s Team`,
+        total: capacity,
+        capacity,
+        status: members.length >= capacity ? "complete" : "incomplete",
         members,
-        lead: lead.name || response.userEmail,
+        lead: teamLead.name || response.userEmail,
         createdAt: response.submittedAt || response.createdAt,
         submittedBy: response.userEmail,
       };
     })
     .filter(Boolean);
 };
+
+const buildAdminTeams = (form) => (form?.adminTeams || []).map((team) => ({
+  _id: team._id?.toString(),
+  id: team._id?.toString(),
+  name: String(team.name || "").trim() || "Admin Team",
+  total: Math.max(1, Number(team.capacity) || 4),
+  capacity: Math.max(1, Number(team.capacity) || 4),
+  status: (team.members || []).length >= Math.max(1, Number(team.capacity) || 4) ? "complete" : "incomplete",
+  members: team.members || [],
+  lead: team.members?.[0]?.name || "Team Lead",
+  source: "admin",
+  createdAt: team.createdAt,
+}));
 
 const buildTeamFinderAnalytics = (responses, usersByEmail) => {
   const finderResponses = responses.filter((response) =>
@@ -121,6 +150,32 @@ const buildTeamFinderAnalytics = (responses, usersByEmail) => {
   return { incompleteTeams, soloStudents };
 };
 
+const buildUnclassifiedSoloStudents = (responses, form, usersByEmail, excludedEmails = new Set()) => {
+  if (!form?.isTeam && !form?.isTeamEvent) return [];
+  return responses
+    .filter((response) => (response.isSubmitted || response.submittedAt) &&
+      !excludedEmails.has(normalizeEmail(response.userEmail)) &&
+      !response.teamFinder &&
+      !response.answers?.[TEAM_REGISTRATION_ANSWER_ID] &&
+      !(Array.isArray(response.answers?.team) && response.answers.team.length > 0))
+    .map((response) => {
+      const email = normalizeEmail(response.userEmail);
+      const user = usersByEmail.get(email);
+      return {
+        _id: response._id?.toString(),
+        id: response._id?.toString(),
+        name: user?.name || response.userEmail.split("@")[0],
+        email: user?.email || response.userEmail,
+        year: user?.year || "",
+        branch: user?.branch || "",
+        skills: user?.skills || [],
+        img: user?.img || null,
+        lookingFor: "Team",
+        joinedAt: response.submittedAt || response.createdAt,
+      };
+    });
+};
+
 export async function GET(req, context) {
   try {
     await connectDB();
@@ -148,6 +203,9 @@ export async function GET(req, context) {
     const responses = await FormResponse.find({ formId: id }).lean();
 
     const emails = new Set();
+    (form.adminTeams || []).forEach((team) => (team.members || []).forEach((member) => {
+      if (member?.email) emails.add(normalizeEmail(member.email));
+    }));
     responses.forEach((response) => {
       if (response.userEmail) emails.add(normalizeEmail(response.userEmail));
 
@@ -193,11 +251,28 @@ export async function GET(req, context) {
       };
     });
 
+    const adminAssignedEmails = new Set((form.adminTeams || []).flatMap((team) =>
+      (team.members || []).map((member) => normalizeEmail(member.email)).filter(Boolean)
+    ));
+    const teamFinder = buildTeamFinderAnalytics(responses, usersByEmail);
+    const fallbackSoloStudents = buildUnclassifiedSoloStudents(responses, form, usersByEmail, adminAssignedEmails);
+
     return Response.json({
       form,
       responses: populatedResponses,
-      teams: buildRegisteredTeams(responses, form, usersByEmail),
-      teamFinder: buildTeamFinderAnalytics(responses, usersByEmail),
+      teams: (() => {
+        const registeredTeams = buildRegisteredTeams(responses, form, usersByEmail);
+        const legacyTeams = buildTeamFinderAnalytics(responses, usersByEmail).incompleteTeams;
+        const registeredIds = new Set(registeredTeams.map((team) => team.id));
+        return [...buildAdminTeams(form), ...registeredTeams, ...legacyTeams.filter((team) => !registeredIds.has(team.id))];
+      })(),
+      teamFinder: {
+        ...teamFinder,
+        soloStudents: [
+          ...teamFinder.soloStudents.filter((student) => !adminAssignedEmails.has(normalizeEmail(student.email))),
+          ...fallbackSoloStudents,
+        ],
+      },
     });
 
   } catch (error) {

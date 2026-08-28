@@ -40,12 +40,12 @@ async function validateTeam(rawTeam, maxSize) {
   if (ids.length !== rawTeam.length || new Set(ids.map(String)).size !== ids.length || ids.some((id) => !mongoose.isValidObjectId(id))) {
     throw new Error("Team members must be unique registered users");
   }
-  const users = await User.find({ _id: { $in: ids } }).select("_id name rollNumber branch year img").lean();
+  const users = await User.find({ _id: { $in: ids } }).select("_id name email rollNumber branch year img").lean();
   if (users.length !== ids.length) throw new Error("One or more team members no longer exist");
   const byId = new Map(users.map((user) => [String(user._id), user]));
   return ids.map((id) => {
     const user = byId.get(String(id));
-    return { id: String(user._id), roll: user.rollNumber || String(user._id), name: user.name || "Student", branch: user.branch || "General", year: user.year || "Student", avatar: user.img || "/Profilepic.png" };
+    return { id: String(user._id), roll: user.rollNumber || String(user._id), name: user.name || "Student", email: user.email || "", branch: user.branch || "General", year: user.year || "Student", avatar: user.img || "/Profilepic.png" };
   });
 }
 
@@ -70,7 +70,10 @@ export async function POST(req) {
     }
 
     const safeAnswers = cleanAnswers(form, answers);
-    if (form.isTeam || form.isTeamEvent) safeAnswers.team = await validateTeam(answers?.team || [], Math.max(1, Number(form.teamSize) || 4));
+    if (form.isTeam || form.isTeamEvent) {
+      const teamCapacity = Math.max(1, Number(form.teamSize) || 4);
+      safeAnswers.team = await validateTeam(answers?.team || [], Math.max(0, teamCapacity - 1));
+    }
 
     const existing = await FormResponse.findOne({ formId, userEmail }).select("_id isSubmitted submittedAt").lean();
     if (existing?.isSubmitted || existing?.submittedAt) return Response.json({ error: "Already submitted" }, { status: 409 });

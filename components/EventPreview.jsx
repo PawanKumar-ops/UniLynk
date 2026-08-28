@@ -507,7 +507,7 @@ export default function EventPreview({ formId: propFormId, initialData, response
               <TeamPicker
                 team={team}
                 setTeam={setTeam}
-                maxSize={maxTeamSize}
+                maxSize={Math.max(0, maxTeamSize - 1)}
                 onClose={() => setTeamOpen(false)}
               />
             )}

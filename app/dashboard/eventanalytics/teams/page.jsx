@@ -163,15 +163,17 @@ function TeamsContent() {
   }
 
   function createTeam() {
-    const nt = {
-      id: crypto.randomUUID(),
-      name: `New Team ${teams.length + 1}`,
-      track: "Unassigned",
-      capacity: 5,
+    const capacity = Math.max(1, Number(analyticsQuery.data?.form?.teamSize) || 4);
+    const newTeam = {
+      id: `admin_${crypto.randomUUID()}`,
+      source: "admin",
+      name: "Admin Team",
+      track: "Admin created",
+      capacity,
       members: [],
     };
-    setTeams((ts) => [nt, ...ts]);
-    setOpen((o) => ({ ...o, [nt.id]: true }));
+    setTeams((currentTeams) => [newTeam, ...currentTeams]);
+    setOpen((currentOpen) => ({ ...currentOpen, [newTeam.id]: true }));
   }
 
   return (
@@ -280,7 +282,9 @@ function TeamsContent() {
             </div>
             {admin && (
               <button onClick={createTeam} className="ml-auto flex items-center gap-1.5 rounded-full bg-ink px-4 py-2 text-sm font-semibold text-paper transition hover:bg-ink/85">
-                <Icon icon="lucide:plus" className="size-4" /> <span className="hidden sm:inline">Create team</span><span className="sm:hidden">New</span>
+                <Icon icon="lucide:plus" className="size-4" />
+                <span className="hidden sm:inline">Add team</span>
+                <span className="sm:hidden">New</span>
               </button>
             )}
           </div>
