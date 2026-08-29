@@ -192,23 +192,34 @@ function Stat({ label, value }) {
 /* ---------- Radar (multiple-correct: profile of choices) ---------- */
 export function RadarChartView({ data }) {
   const chartData = data.map((d) => ({ subject: d.label, value: d.count }))
+
   return (
-    <div className="h-[240px] w-full">
+    <div className="h-[360px] w-full">
       <ResponsiveContainer width="100%" height="100%">
-        <RadarChart data={chartData} outerRadius="72%">
+        <RadarChart data={chartData} outerRadius="70%">
           <PolarGrid stroke="#dbe7e1" />
           <PolarAngleAxis
             dataKey="subject"
-            tick={{ fill: '#3a4a44', fontSize: 11, fontFamily: 'Inter' }}
+            tick={{ fill: '#3a4a44', fontSize: 12, fontFamily: 'Inter' }}
           />
-          <Radar dataKey="value" stroke="#0f3d31" strokeWidth={2} fill="#0f3d31" fillOpacity={0.16} />
+          <Radar 
+            dataKey="value" 
+            stroke="#0f3d31" 
+            strokeWidth={2.5} 
+            fill="#0f3d31" 
+            fillOpacity={0.2} 
+            isAnimationActive={true}
+          />
           <Tooltip
             contentStyle={{
               borderRadius: 12,
               border: '1px solid #e6ece9',
               fontSize: 12,
               fontFamily: 'Inter',
+              backgroundColor: '#ffffff',
+              padding: '8px 12px',
             }}
+            formatter={(value) => `${value} responses`}
           />
         </RadarChart>
       </ResponsiveContainer>

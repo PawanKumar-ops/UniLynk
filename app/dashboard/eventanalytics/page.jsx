@@ -115,9 +115,9 @@ function QuestionBlock({ q }) {
         }
       />
       {["paragraph", "long"].includes(type) && <ParagraphCard q={q} />}
-      {["multiple-choice", "multiple"].includes(type) && <Donut data={q.options || []} />}
-      {type === "dropdown" && <VerticalBars data={q.options || []} />}
-      {["multiple-correct", "checkbox"].includes(type) && <RadarChartView data={q.options || []} />}
+      {["multiple-choice"].includes(type) && q.options && q.options.length > 0 && <Donut data={q.options} />}
+      {type === "dropdown" && q.options && q.options.length > 0 && <VerticalBars data={q.options} />}
+      {["multiple-correct", "checkbox"].includes(type) && q.options && q.options.length > 0 && <RadarChartView data={q.options} />}
       {["file-upload", "file"].includes(type) && <FileGauge q={q} />}
       {["short", "email", "phone"].includes(type) && (
         <div className="flex flex-col gap-2">
@@ -237,6 +237,29 @@ function EventAnalyticsContent() {
           .map((r) => r.answers?.[q.id])
           .filter((v) => v !== undefined && v !== null && v !== "");
 
+        // Check if question has options - if so, treat as multiple-choice/dropdown
+        if (q.options && Array.isArray(q.options) && q.options.length > 0) {
+          const counts = {};
+          answerList.forEach((ans) => {
+            const arr = Array.isArray(ans) ? ans : [ans];
+            arr.forEach((val) => {
+              const key = String(val);
+              counts[key] = (counts[key] || 0) + 1;
+            });
+          });
+          const options = q.options.map((opt) => {
+            const label = typeof opt === "object" ? opt.label || opt.text : String(opt);
+            return { label, count: counts[label] || 0 };
+          });
+
+          return {
+            id: q.id,
+            title: q.question || q.title || "Question",
+            type: type === "dropdown" ? "dropdown" : ["multiple-correct", "checkbox", "multiple"].includes(type) ? "multiple-correct" : "multiple-choice",
+            options,
+          };
+        }
+
         if (["paragraph", "long"].includes(type)) {
           return {
             id: q.id,
@@ -262,15 +285,14 @@ function EventAnalyticsContent() {
               counts[key] = (counts[key] || 0) + 1;
             });
           });
-          const options = (q.options || Object.keys(counts)).map((opt) => {
-            const label = typeof opt === "object" ? opt.label || opt.text : String(opt);
+          const options = Object.keys(counts).map((label) => {
             return { label, count: counts[label] || 0 };
           });
 
           return {
             id: q.id,
             title: q.question || q.title || "Question",
-            type: type === "dropdown" ? "dropdown" : type === "checkbox" ? "multiple-correct" : "multiple-choice",
+            type: type === "dropdown" ? "dropdown" : ["multiple-correct", "checkbox", "multiple"].includes(type) ? "multiple-correct" : "multiple-choice",
             options,
           };
         }
