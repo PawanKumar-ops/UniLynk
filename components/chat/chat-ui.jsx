@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { X, Search, Smile, Image as ImageIcon, Video, FileIcon, Mic, Users, Megaphone, Check, Camera, Trash2, Sparkles, Ban } from "lucide-react";
+import { X, Search, Smile, Image as ImageIcon, Video, FileIcon, Users, Megaphone, Check, Camera, Trash2, Sparkles, Ban } from "lucide-react";
 import { gifs, emojis, stickers } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 
@@ -293,39 +293,6 @@ export function MediaPreviewBar({
           <X className="h-4 w-4" />
         </button>
       </div>
-    </div>
-  );
-}
-
-export function VoiceRecorder({ onClose }) {
-  const [s, setS] = useState(0);
-  useEffect(() => {
-    const i = setInterval(() => setS((x) => x + 1), 1000);
-    return () => clearInterval(i);
-  }, []);
-  return (
-    <div className="flex items-center gap-3 border-t bg-[#fff] px-4 py-3 animate-fade-in">
-      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500/10">
-        <Mic className="h-5 w-5 text-red-500 animate-pulse" />
-      </div>
-      <div className="flex-1">
-        <div className="text-sm font-semibold">Recording…</div>
-        <div className="text-xs text-[#62748e]">
-          {Math.floor(s / 60)}:{(s % 60).toString().padStart(2, "0")}
-        </div>
-      </div>
-      <button
-        onClick={onClose}
-        className="rounded-full bg-[#f2f6fa] px-4 py-2 text-sm font-semibold hover:bg-muted/70"
-      >
-        Cancel
-      </button>
-      <button
-        onClick={onClose}
-        className="rounded-full bg-[#1d9bf0] px-4 py-2 text-sm font-semibold text-white"
-      >
-        Send
-      </button>
     </div>
   );
 }

@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
 import EmojiPicker from "emoji-picker-react";
-import { MoreHorizontal, Plus, Smile, Mic, ArrowDown, ArrowLeft, CheckCircle2, Trash2, Undo2 } from "lucide-react";
+import { MoreHorizontal, Plus, Smile, ArrowDown, ArrowLeft, CheckCircle2, Trash2, Undo2 } from "lucide-react";
 import { Icon } from "@iconify/react";
-import { PlusDropdown, ReactionPicker, MediaPreviewBar, VoiceRecorder, CallModal, DotsMenu, BlockUserModal } from "@/components/chat/chat-ui";
+import { PlusDropdown, ReactionPicker, MediaPreviewBar, CallModal, DotsMenu, BlockUserModal } from "@/components/chat/chat-ui";
 import { BlockedModal } from "@/components/BlockedModal";
 import { DeleteMessageModal } from "@/components/DeleteMessageModal";
 import { ForwardMessageModal } from "@/components/ForwardMessageModal";
@@ -76,7 +76,6 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
     const [dots, setDots] = useState(false);
     const [call, setCall] = useState(null);
     const [pendingFile, setPendingFile] = useState(null);
-    const [recording, setRecording] = useState(false);
     const [loading, setLoading] = useState(true);
     const [blockedUsers, setBlockedUsers] = useState([]);
     const [blockedBy, setBlockedBy] = useState([]);
@@ -86,7 +85,9 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
     const [error, setError] = useState("");
     const [deleteTargetMessage, setDeleteTargetMessage] = useState(null);
     const [forwardTargetMessage, setForwardTargetMessage] = useState(null);
+    const [textareaHeight, setTextareaHeight] = useState('auto');
     const scrollRef = useRef(null);
+    const textareaRef = useRef(null);
 
     const activeUser = useMemo(() => users.find((u) => u.id === id), [users, id]);
     const isCommunityRoute = Boolean(communityId && groupId);
@@ -256,7 +257,7 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
             <div className="relative"><button onClick={() => setDots((v) => !v)} className="flex h-10 w-10 items-center justify-center rounded-full border border-[#e5e7eb] bg-white text-[#536471] transition-all duration-200 hover:border-[#1d9bf0] hover:bg-[#e8f5fe] hover:text-[#1d9bf0] active:scale-95"><MoreHorizontal className="h-4 w-4" /></button>{dots && <DotsMenu onClose={() => setDots(false)} items={requestMode ? [{ label: "Report user", danger: true }, { label: "Block user", danger: true, onClick: () => setShowBlockUserModal(true) }] : [{ label: "View profile", onClick: () => !isCommunityRoute && router.push(`/dashboard/Userprofile?userId=${id}`) }, { label: blockedUsers.includes(id) ? "Unblock user" : "Block user", onClick: () => { if (blockedUsers.includes(id)) { handleToggleBlock("unblock"); } else { setShowBlockUserModal(true); } } }, { label: "Report conversation", danger: true }]} />}</div>
         </header>
         <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto"><div className="flex flex-col items-center gap-2 px-6 py-8"><img src={header.avatar} alt={header.name} className="h-20 w-20 rounded-full bg-[#f2f6fa] border object-cover" /><div className="text-center"><div className="text-lg font-extrabold">{header.name}</div><div className="text-sm text-[#62748e]">@{header.handle}</div></div><button className="mt-2 rounded-full bg-[#000] px-5 py-1.5 text-sm font-bold text-[#fff] hover:opacity-90">View Profile</button></div>
-            <div className="flex-1 min-h-0 overflow-y-auto px-4 py-6">{loading ? <div className="space-y-4">{[1, 2, 3].map((i) => <div key={i} className={cn("flex", i % 2 ? "justify-end" : "justify-start")}><div className="h-10 w-40 animate-pulse rounded-2xl bg-[#f2f6fa]" /></div>)}</div> : <div className="space-y-4">{messages.map((m, index) => {
+            <div className="flex-1 min-h-0 overflow-y-auto px-4 py-6">{loading ? <div className="space-y-4">{[1, 2, 3].map((i) => <div key={i} className={cn("flex", i % 2 ? "justify-end" : "justify-start")}><div className="h-10 w-40 animate-pulse rounded-2xl bg-[#f2f6fa]" /></div>)}</div> : <div className="">{messages.map((m, index) => {
                 const mine = m.from === "me" || m.senderId === currentUserId; const showReact = reactingOn === m.id; const showDateCapsule = index === 0 || messages[index - 1]?.dateKey !== m.dateKey; return <div
                     key={m.id}
                     onMouseEnter={() => setActionOpen(m.id)}
@@ -267,7 +268,7 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
                     className="w-full"
                 >{showDateCapsule && <div className="mb-3 mt-2 flex justify-center text-xs text-[#62748e]"><div className="w-fit rounded-full bg-gray-100 px-3 py-1 font-medium">{formatDateCapsule(m.createdAt)}</div></div>}<div className={cn(
                     "group flex w-full items-end gap-2 py-1",
-                    mine ? "justify-end pr-6" : "justify-start pl-6"
+                    mine ? "justify-end" : "justify-start"
                 )}><div
                     className="relative max-w-[70%]">{actionOpen === m.id && <div
                         className={cn(
@@ -305,7 +306,7 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
                                 {m.reactions.map((r) => r.emoji).join(" ")}
                             </div>
                         )}{showReact && <ReactionPicker align={mine ? "right" : "left"} onClose={() => setReactingOn(null)} onPick={(e) => react(m.id, e)} />}</div></div></div>
-            })}<div className="text-center flex justify-center gap-1 text-xs text-[#62748e]"><Icon icon={isSentPendingRequest ? "solar:hourglass-line-duotone" : "solar:lock-linear"} /> {isSentPendingRequest ? "Message request sent. They'll need to accept it first." : "This conversation is now end-to-end encrypted"}</div></div>}</div>
+            })}<div className="text-center mt-4 flex justify-center gap-1 text-xs text-[#62748e]"><Icon icon={isSentPendingRequest ? "solar:hourglass-line-duotone" : "solar:lock-linear"} /> {isSentPendingRequest ? "Message request sent. They'll need to accept it first." : "This conversation is now end-to-end encrypted"}</div></div>}</div>
         </div>
         <button
             onClick={() =>
@@ -326,9 +327,7 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
             />
         )}
 
-        {!requestMode && (recording ? (
-            <VoiceRecorder onClose={() => setRecording(false)} />
-        ) : (
+        {!requestMode && (
             <div className="border-t bg-[#fff] p-3">
                 <div className="flex items-end gap-2 rounded-3xl bg-[#f2f6fa] px-3 py-2">
                     <div className="relative">
@@ -367,14 +366,27 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
                     </button>
 
                     <textarea
+                        ref={textareaRef}
                         value={text}
-                        rows={1}
-                        onChange={(e) => setText(e.target.value)}
+                        onChange={(e) => {
+                            setText(e.target.value);
+                            // Auto-expand textarea height
+                            if (textareaRef.current) {
+                                textareaRef.current.style.height = 'auto';
+                                const scrollHeight = textareaRef.current.scrollHeight;
+                                const maxHeight = 200; // Max height before scrollbar
+                                textareaRef.current.style.height = Math.min(scrollHeight, maxHeight) + 'px';
+                                textareaRef.current.style.overflowY = scrollHeight > maxHeight ? 'auto' : 'hidden';
+                            }
+                        }}
                         onKeyDown={(e) => {
                             if (e.key === "Enter" && !e.shiftKey) {
                                 e.preventDefault();
                                 if (!isConversationBlocked) {
                                     send().catch((err) => setError(err.message));
+                                    if (textareaRef.current) {
+                                        textareaRef.current.style.height = 'auto';
+                                    }
                                 }
                             }
                         }}
@@ -384,32 +396,33 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
                                 : "Start a new message"
                         }
                         disabled={isConversationBlocked}
-                        className="max-h-32 flex-1 resize-none bg-transparent py-2 text-[15px] outline-none"
+                        rows={1}
+                        className="flex-1 resize-none bg-transparent py-2 text-[15px] outline-none scrollbar-thin scrollbar-thumb-rounded-full scrollbar-track-transparent scrollbar-thumb-gray-300 hover:scrollbar-thumb-gray-400"
+                        style={{
+                            height: textareaHeight,
+                            maxHeight: '200px'
+                        }}
                     />
 
                     {text || pendingFile ? (
                         <button
                             disabled={isConversationBlocked}
-                            onClick={() =>
-                                !isConversationBlocked &&
-                                send().catch((err) => setError(err.message))
-                            }
-                            className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"
+                            onClick={() => {
+                                if (!isConversationBlocked) {
+                                    send().catch((err) => setError(err.message));
+                                    if (textareaRef.current) {
+                                        textareaRef.current.style.height = 'auto';
+                                    }
+                                }
+                            }}
+                            className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10 shrink-0"
                         >
                             <Icon
                                 icon="ri:send-ins-line"
                                 className="h-5 w-5"
                             />
                         </button>
-                    ) : (
-                        <button
-                            disabled={isConversationBlocked}
-                            onClick={() => setRecording(true)}
-                            className="rounded-full p-2 text-[#1d9bf0] hover:bg-[#1d9bf0]/10"
-                        >
-                            <Mic className="h-5 w-5" />
-                        </button>
-                    )}
+                    ) : null}
 
                     {picker === "emoji" && (
                         <div className="absolute bottom-20 left-14 z-50 rounded-2xl border bg-white shadow-2xl">
@@ -463,8 +476,7 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
                     </p>
                 )}
             </div>
-            
-        ))}
+        )}
 
         {call && (
             <CallModal

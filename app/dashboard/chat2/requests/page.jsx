@@ -96,18 +96,39 @@ export default function RequestsRoute() {
       {current ? (
         <div className={cn("relative flex min-h-0 min-w-0 flex-1 flex-col border-b md:border-b-0 md:border-r", mobileShowPreview ? "flex" : "hidden md:flex")}>
           <ChatConversation id={current.id} requestMode onBack={() => setMobileShowPreview(false)} onRequestBlock={() => updateRequest("delete").catch((err) => setError(err.message))} />
-          <div className="sticky bottom-0 z-20 shrink-0 border-t bg-white/95 p-4 backdrop-blur-md">
-            <div className="mx-auto max-w-md rounded-2xl border bg-background/90 p-4 shadow-xl">
+          
+
+
+          <div className="absolute bottom-0 left-0 right-0 z-20 p-4 pointer-events-none">
+            <div className="pointer-events-auto mx-auto max-w-md rounded-2xl border bg-background/90 backdrop-blur-md p-4 shadow-xl">
               <div className="mx-auto max-w-md rounded-2xl border p-4 text-center">
-                <p className="text-sm font-semibold">Accept message request from @{current.user.handle}?</p>
+                <p className="text-sm font-semibold">
+                  Accept message request from @{current.user.handle}?
+                </p>
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  <button onClick={() => updateRequest("accept").catch((err) => setError(err.message))} className="col-span-2 rounded-full bg-[#000] py-2.5 text-sm font-bold text-[#fff] hover:opacity-90">Accept</button>
-                  <button onClick={() => blockCurrent().catch((err) => setError(err.message))} className="rounded-full border bg-[#fff] border-red-200 py-2.5 text-sm font-bold text-red-500 hover:bg-red-50 dark:hover:bg-[#fff3f3]">Block</button>
-                  <button onClick={() => updateRequest("delete").catch((err) => setError(err.message))} className="rounded-full bg-[#f2f6fa] py-2.5 text-sm font-bold hover:opacity-80">Delete</button>
+                  <button
+                    onClick={() => updateRequest("accept").catch((err) => setError(err.message))}
+                    className="col-span-2 rounded-full bg-[#000] py-2.5 text-sm font-bold text-[#fff] hover:opacity-90"
+                  >
+                    Accept
+                  </button>
+                  <button
+                    onClick={() => blockCurrent().catch((err) => setError(err.message))}
+                    className="rounded-full border bg-[#fff] border-red-200 py-2.5 text-sm font-bold text-red-500 hover:bg-red-50 dark:hover:bg-[#fff3f3]">
+                    Block
+                  </button>
+                  <button
+                    onClick={() => updateRequest("delete").catch((err) => setError(err.message))}
+                    className="rounded-full bg-[#f2f6fa] py-2.5 text-sm font-bold hover:opacity-80">
+                    Delete
+                  </button>
                 </div>
               </div>
             </div>
           </div>
+
+
+
           <Modal open={accept} onClose={() => setAccept(false)}>
             <div className="p-6 text-center"><h3 className="text-xl font-bold">Request accepted</h3><p className="mt-2 text-sm text-[#62748e]">You can now message @{current.user.handle} directly.</p><button onClick={() => router.push(`/dashboard/chat2/${current.id}`)} className="mt-4 rounded-full bg-[#1d9bf0] px-6 py-2 font-bold text-white">Open conversation</button></div>
           </Modal>
