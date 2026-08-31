@@ -143,7 +143,7 @@ export function PostCard({
             const images = post.images || [];
             const videos = post.videos || [];
             const allMedia = [...(images.map(img => ({ src: img, type: 'image' })) || []), ...(videos.map(vid => ({ src: vid, type: 'video' })) || [])];
-            return !!allMedia.length && <div className="image-post">{allMedia.length === 1 ? <div className="x-single-image"><PostMedia src={allMedia[0].src} isVideo={allMedia[0].type === 'video'} onClick={(event) => { stop(event); openLightbox(allMedia, 0); }} /></div> : <div className={imageGridClass?.(allMedia.length)}>{allMedia.map((media, index) => <PostMedia key={`${post.id}-${index}`} src={media.src} isVideo={media.type === 'video'} onClick={(event) => { stop(event); openLightbox(allMedia, index); }} />)}</div>}</div>;
+            return !!allMedia.length && <div className="image-post">{allMedia.length === 1 ? <div className="x-single-image"><PostMedia src={allMedia[0].src} isVideo={allMedia[0].type === 'video'} onClick={allMedia[0].type === 'image' ? (event) => { stop(event); openLightbox(allMedia, 0); } : undefined} /></div> : <div className={imageGridClass?.(allMedia.length)}>{allMedia.map((media, index) => <PostMedia key={`${post.id}-${index}`} src={media.src} isVideo={media.type === 'video'} onClick={media.type === 'image' ? (event) => { stop(event); openLightbox(allMedia, index); } : undefined} />)}</div>}</div>;
           })()}
           {pollContent}
         </div>
@@ -168,7 +168,7 @@ function BookmarkIcon({ saved }) { return <svg className="post-foot-icon" width=
 const isVideo = (source = "") => /\.(mp4|webm|ogg|mov)(?:[?#]|$)/i.test(source);
 function PostMedia({ src, isVideo: isVideoType, onClick, className = "" }) {
   return isVideoType || isVideo(src) ? (
-    <XStyleVideoPlayer src={src} onClick={onClick} className={className} />
+    <XStyleVideoPlayer src={src} className={className} />
   ) : (
     <img className={className} src={src} alt="" loading="lazy" style={{ cursor: "pointer" }} onClick={onClick} />
   );

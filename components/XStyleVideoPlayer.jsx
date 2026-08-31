@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Icon } from "@iconify/react";
 
-export default function XStyleVideoPlayer({ src, onClick, className = "" }) {
+export default function XStyleVideoPlayer({ src, className = "" }) {
     const videoRef = useRef(null);
     const containerRef = useRef(null);
     const [isPlaying, setIsPlaying] = useState(false);
@@ -185,14 +185,10 @@ export default function XStyleVideoPlayer({ src, onClick, className = "" }) {
         }
     };
 
-    // Handle click on video (play/pause on mobile)
+    // Handle click on video (play/pause on click)
     const handleVideoClick = (e) => {
         e.stopPropagation();
-        if (onClick) {
-            onClick(e);
-        } else {
-            handlePlayPause(e);
-        }
+        handlePlayPause(e);
     };
 
     useEffect(() => {
