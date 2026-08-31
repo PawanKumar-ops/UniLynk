@@ -300,7 +300,7 @@ export function EventsPage() {
     return (
       <DashboardEventsShell>
         <TopBar />
-        <div className="flex flex-col px-3.5 gap-6 sm:gap-8">       
+        <div className="flex flex-col px-3.5 gap-6 sm:gap-8">
           <EventsPageSkeleton />
         </div>
       </DashboardEventsShell>
@@ -311,7 +311,7 @@ export function EventsPage() {
     <DashboardEventsShell>
       <TopBar />
       <div className="flex flex-col gap-6 px-3.5 sm:gap-8">
-        
+
 
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
@@ -398,24 +398,24 @@ export function EventsPage() {
         )}
 
         {!loading && list.length === 0 && (
-  <div className="flex min-h-[420px] flex-col items-center justify-center px-4 text-center">
-    <div className="mb-6 flex h-[220px] w-[280px] max-w-[80vw] items-center justify-center">
-      <img
-        src="/eventsicons/NoEventsIll.svg"
-        alt="No events available"
-        className="h-full w-full object-contain"
-      />
-    </div>
+          <div className="flex min-h-[420px] flex-col items-center justify-center px-4 text-center">
+            <div className="mb-6 flex h-[220px] w-[280px] max-w-[80vw] items-center justify-center">
+              <img
+                src="/eventsicons/NoEventsIll.svg"
+                alt="No events available"
+                className="h-full w-full object-contain"
+              />
+            </div>
 
-    <h3 className="text-[17px] font-bold tracking-[-0.01em]">
-      No Events Right Now
-    </h3>
+            <h3 className="text-[17px] font-bold tracking-[-0.01em]">
+              No Events Right Now
+            </h3>
 
-    <p className="mt-1.5 max-w-[320px] text-[13.5px] leading-relaxed text-[#71717a]">
-      No events right now. Check back soon!
-    </p>
-  </div>
-)}
+            <p className="mt-1.5 max-w-[320px] text-[13.5px] leading-relaxed text-[#71717a]">
+              No events right now. Check back soon!
+            </p>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 gap-3">
           {list.map((event) => {

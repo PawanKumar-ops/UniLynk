@@ -13,16 +13,25 @@ export async function POST(req) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
+    // Detect if it's a video based on MIME type
+    const isVideo = file.type.startsWith("video/");
+    const folder = isVideo ? "post-videos" : "post-images";
+
     const uploadResult = await new Promise((resolve, reject) => {
+      const uploadOptions = {
+        folder,
+        ...(isVideo && { resource_type: "video" }),
+      };
+
       cloudinary.uploader
-        .upload_stream({ folder: "post-images" }, (error, result) => {
+        .upload_stream(uploadOptions, (error, result) => {
           if (error) reject(error);
           else resolve(result);
         })
         .end(buffer);
     });
 
-    return NextResponse.json({ url: uploadResult.secure_url });
+    return NextResponse.json({ url: uploadResult.secure_url, isVideo });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ error: "Upload failed" }, { status: 500 });

@@ -111,6 +111,9 @@ const normalizeCommentForClient = (comment) => ({
 const normalizePostForClient = (post, userId = null) => ({
   ...post,
   id: post.id ?? post._id?.toString?.() ?? String(post._id || ""),
+  videos: Array.isArray(post.videos)
+    ? post.videos.filter((video) => typeof video === "string" && video.trim()).map((video) => video.trim())
+    : [],
   comments: Array.isArray(post.comments) ? post.comments.map(normalizeCommentForClient) : [],
   commentCount: Number(post.commentCount ?? (Array.isArray(post.comments) ? post.comments.length : 0)),
   bookmarkCount: Number(post.bookmarkCount || 0),
@@ -222,7 +225,7 @@ export async function DELETE(_req, { params }) {
       return Response.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const post = await Post.findById(postId, { authorEmail: 1, images: 1, postAs: 1, clubId: 1 }).lean();
+    const post = await Post.findById(postId, { authorEmail: 1, images: 1, videos: 1, postAs: 1, clubId: 1 }).lean();
     if (!post) {
       return Response.json({ error: "Post not found" }, { status: 404 });
     }
@@ -236,7 +239,10 @@ export async function DELETE(_req, { params }) {
       return Response.json({ error: "You are not authorized to delete this post" }, { status: 403 });
     }
 
-    const cloudinaryResult = await deletePostMediaFromCloudinary(post.images);
+    const [imageResult, videoResult] = await Promise.all([
+      deletePostMediaFromCloudinary(post.images || []),
+      deletePostMediaFromCloudinary(post.videos || []),
+    ]);
 
     await Promise.all([
       Comment.deleteMany({ postId }),
@@ -253,8 +259,8 @@ export async function DELETE(_req, { params }) {
       {
         ok: true,
         deletedPostId: post._id.toString(),
-        cloudinaryDeletedCount: cloudinaryResult.deletedCount,
-        cloudinaryFailedCount: cloudinaryResult.failedCount,
+        cloudinaryDeletedCount: imageResult.deletedCount + videoResult.deletedCount,
+        cloudinaryFailedCount: imageResult.failedCount + videoResult.failedCount,
       },
       { status: 200 }
     );

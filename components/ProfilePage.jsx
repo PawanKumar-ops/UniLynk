@@ -5,8 +5,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Icon } from "@iconify/react";
 import {
-  ChevronDown, ArrowLeft, Pencil, Bookmark, MessageSquare, Github, Linkedin,
-  Twitter, Instagram, Globe, GraduationCap, CalendarDays, Layers, BookOpen,
+  ChevronDown, ArrowLeft, Pencil, Bookmark, MessageSquare,
+  GraduationCap, CalendarDays, Layers, BookOpen,
   Trophy, Award, Medal, Star,
 } from "lucide-react";
 import { getSkillIcon } from "@/lib/skillIcons";
@@ -31,7 +31,13 @@ function SectionCard({ title, icon: IconComponent, children }) {
 
 const achievementIcons = [Trophy, Medal, Star];
 const achievementTints = ["bg-amber-100 text-amber-600", "bg-slate-100 text-slate-600", "bg-indigo-100 text-indigo-600", "bg-emerald-100 text-emerald-600", "bg-rose-100 text-rose-600"];
-const socialIconByPlatform = { GitHub: Github, LinkedIn: Linkedin, Twitter, Instagram, Website: Globe };
+const socialIconByPlatform = {
+  LinkedIn: "hugeicons:linkedin-02",
+  Instagram: "hugeicons:instagram",
+  GitHub: "ant-design:github-filled",
+  Twitter: "proicons:x-twitter",
+  Website: "solar:global-linear",
+};
 const normalizeEmail = (email) => typeof email === "string" ? email.trim().toLowerCase() : "";
 const socialUrl = (url) => /^https?:\/\//i.test(url || "") ? url : `https://${url}`;
 const formatPostTime = (date) => date ? new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(Math.round((new Date(date) - Date.now()) / 86_400_000), "day") : "";
@@ -238,8 +244,8 @@ export function ProfilePage() {
               {(profile.socials || []).length > 0 && (
                 <div className="flex items-center gap-2">
                   {(profile.socials || []).map((social) => {
-                    const SocialIcon =
-                      socialIconByPlatform[social.platform] || Globe;
+                    const socialIcon =
+  socialIconByPlatform[social.platform] || "solar:global-linear";
 
                     return (
                       <a
@@ -250,7 +256,7 @@ export function ProfilePage() {
                         aria-label={social.platform}
                         className="flex size-9 items-center justify-center rounded-full border border-[#0000001A] bg-white text-[#717182] transition-colors hover:bg-[#e9ebef] hover:text-[#0a0a0a]"
                       >
-                        <SocialIcon className="size-4" />
+                        <Icon icon={socialIcon} className="size-4" />
                       </a>
                     );
                   })}

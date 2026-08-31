@@ -138,7 +138,12 @@ export function PostCard({
 
         <div className="post-content">
           {post.content}
-          {!!post.images?.length && <div className="image-post">{post.images.length === 1 ? <div className="x-single-image"><PostMedia src={post.images[0]} onClick={(event) => { stop(event); openLightbox(post.images, 0); }} /></div> : <div className={imageGridClass?.(post.images.length)}>{post.images.map((image, index) => <PostMedia key={`${post.id}-${index}`} src={image} onClick={(event) => { stop(event); openLightbox(post.images, index); }} />)}</div>}</div>}
+          {(() => {
+            const images = post.images || [];
+            const videos = post.videos || [];
+            const allMedia = [...(images.map(img => ({ src: img, type: 'image' })) || []), ...(videos.map(vid => ({ src: vid, type: 'video' })) || [])];
+            return !!allMedia.length && <div className="image-post">{allMedia.length === 1 ? <div className="x-single-image"><PostMedia src={allMedia[0].src} isVideo={allMedia[0].type === 'video'} onClick={(event) => { stop(event); openLightbox(allMedia, 0); }} /></div> : <div className={imageGridClass?.(allMedia.length)}>{allMedia.map((media, index) => <PostMedia key={`${post.id}-${index}`} src={media.src} isVideo={media.type === 'video'} onClick={(event) => { stop(event); openLightbox(allMedia, index); }} />)}</div>}</div>;
+          })()}
           {pollContent}
         </div>
 
@@ -160,14 +165,17 @@ function HeartLike({ liked }) { return <svg className={`post-foot-icon ${liked ?
 function BookmarkIcon({ saved }) { return <svg className="post-foot-icon" width="128" height="128" viewBox="0 0 128 128" fill={saved ? "#dbdbdb" : "none"}><path stroke="#3e3e3e" strokeWidth="7" d="M78.978 20.8778C89.5889 23.625 96.9999 33.1992 96.9998 44.16L96.9995 67.8624L96.9997 88.1536C96.9999 100.313 96.9999 106.392 93.1442 108.331C89.2885 110.269 84.4088 106.643 74.6493 99.3908L72.3504 97.6824C68.3276 94.693 66.3161 93.1982 64 93.1982C61.6838 93.1983 59.6724 94.693 55.6495 97.6824L53.3505 99.3909C43.5911 106.643 38.7114 110.27 34.8557 108.331C31 106.393 31 100.313 31 88.1539L31 67.8624L31 44.1599C31 33.1992 38.4111 23.625 49.022 20.8778C58.8454 18.3345 69.1546 18.3345 78.978 20.8778Z" /></svg>; }
 
 const isVideo = (source = "") => /\.(mp4|webm|ogg|mov)(?:[?#]|$)/i.test(source);
-function PostMedia({ src, onClick, className = "" }) {
-  return isVideo(src) ? <video className={className} src={src} muted playsInline preload="metadata" onClick={onClick} style={{ cursor: "pointer" }} /> : <img className={className} src={src} alt="" loading="lazy" style={{ cursor: "pointer" }} onClick={onClick} />;
+function PostMedia({ src, isVideo: isVideoType, onClick, className = "" }) {
+  return isVideoType || isVideo(src) ? <video className={className} src={src} muted playsInline preload="metadata" onClick={onClick} style={{ cursor: "pointer" }} /> : <img className={className} src={src} alt="" loading="lazy" style={{ cursor: "pointer" }} onClick={onClick} />;
 }
 
 function PostLightbox({ images, initialIndex, onClose }) {
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [isVisible, setIsVisible] = useState(false);
   const touchStartRef = useRef(null);
+
+  // Normalize images to objects with src and type
+  const normalizedMedia = Array.isArray(images) ? images.map(img => typeof img === 'object' ? img : { src: img, type: 'image' }) : [];
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => setIsVisible(true));
@@ -176,26 +184,27 @@ function PostLightbox({ images, initialIndex, onClose }) {
   }, []);
 
   const close = () => { setIsVisible(false); setTimeout(onClose, 220); };
-  const goTo = (index) => setCurrentIndex((index + images.length) % images.length);
+  const goTo = (index) => setCurrentIndex((index + normalizedMedia.length) % normalizedMedia.length);
   useEffect(() => {
     const handleKey = (event) => {
       if (event.key === "Escape") close();
-      if (event.key === "ArrowLeft" && images.length > 1) goTo(currentIndex - 1);
-      if (event.key === "ArrowRight" && images.length > 1) goTo(currentIndex + 1);
+      if (event.key === "ArrowLeft" && normalizedMedia.length > 1) goTo(currentIndex - 1);
+      if (event.key === "ArrowRight" && normalizedMedia.length > 1) goTo(currentIndex + 1);
     };
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
-  }, [currentIndex, images.length]);
+  }, [currentIndex, normalizedMedia.length]);
 
-  const currentMedia = images[currentIndex];
+  const currentMedia = normalizedMedia[currentIndex];
+  const isCurrentVideo = currentMedia?.type === 'video' || isVideo(currentMedia?.src);
   return <div className={`lightbox-overlay ${isVisible ? "lightbox-visible" : ""}`} onClick={close}>
     <button className="lightbox-close" onClick={close} type="button" aria-label="Close"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg></button>
-    {images.length > 1 && <div className="lightbox-counter">{currentIndex + 1} / {images.length}</div>}
-    <div className="lightbox-content" onClick={(event) => event.stopPropagation()} onTouchStart={(event) => { touchStartRef.current = event.touches[0].clientX; }} onTouchEnd={(event) => { if (touchStartRef.current === null) return; const difference = touchStartRef.current - event.changedTouches[0].clientX; if (Math.abs(difference) > 40 && images.length > 1) goTo(difference > 0 ? currentIndex + 1 : currentIndex - 1); touchStartRef.current = null; }}>
-      {isVideo(currentMedia) ? <video key={currentMedia} className="lightbox-img" src={currentMedia} controls autoPlay playsInline /> : <img key={currentMedia} className="lightbox-img" src={currentMedia} alt="" draggable={false} />}
+    {normalizedMedia.length > 1 && <div className="lightbox-counter">{currentIndex + 1} / {normalizedMedia.length}</div>}
+    <div className="lightbox-content" onClick={(event) => event.stopPropagation()} onTouchStart={(event) => { touchStartRef.current = event.touches[0].clientX; }} onTouchEnd={(event) => { if (touchStartRef.current === null) return; const difference = touchStartRef.current - event.changedTouches[0].clientX; if (Math.abs(difference) > 40 && normalizedMedia.length > 1) goTo(difference > 0 ? currentIndex + 1 : currentIndex - 1); touchStartRef.current = null; }}>
+      {isCurrentVideo ? <video key={currentMedia?.src} className="lightbox-img" src={currentMedia?.src} controls autoPlay playsInline /> : <img key={currentMedia?.src} className="lightbox-img" src={currentMedia?.src} alt="" draggable={false} />}
     </div>
-    {images.length > 1 && <><button className="lightbox-nav lightbox-nav-left" onClick={(event) => { event.stopPropagation(); goTo(currentIndex - 1); }} type="button" aria-label="Previous media"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg></button><button className="lightbox-nav lightbox-nav-right" onClick={(event) => { event.stopPropagation(); goTo(currentIndex + 1); }} type="button" aria-label="Next media"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg></button></>}
-    {images.length > 1 && <div className="lightbox-thumbs" onClick={(event) => event.stopPropagation()}>{images.map((media, index) => <button key={media} className={`lightbox-thumb-btn ${index === currentIndex ? "lightbox-thumb-active" : ""}`} onClick={() => setCurrentIndex(index)} type="button" aria-label={`View media ${index + 1}`}>{isVideo(media) ? <video src={media} muted playsInline /> : <img src={media} alt="" draggable={false} />}</button>)}</div>}
+    {normalizedMedia.length > 1 && <><button className="lightbox-nav lightbox-nav-left" onClick={(event) => { event.stopPropagation(); goTo(currentIndex - 1); }} type="button" aria-label="Previous media"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg></button><button className="lightbox-nav lightbox-nav-right" onClick={(event) => { event.stopPropagation(); goTo(currentIndex + 1); }} type="button" aria-label="Next media"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg></button></>}
+    {normalizedMedia.length > 1 && <div className="lightbox-thumbs" onClick={(event) => event.stopPropagation()}>{normalizedMedia.map((media, index) => { const isThumbVideo = media.type === 'video' || isVideo(media.src); return <button key={media.src} className={`lightbox-thumb-btn ${index === currentIndex ? "lightbox-thumb-active" : ""}`} onClick={() => setCurrentIndex(index)} type="button" aria-label={`View media ${index + 1}`}>{isThumbVideo ? <video src={media.src} muted playsInline /> : <img src={media.src} alt="" draggable={false} />}</button>; })}</div>}
   </div>;
 }
 
@@ -203,5 +212,5 @@ function CompactPostCard({ post, busy: externallyBusy, onOpenPost, onPostChange 
   const [busy, setBusy] = useState(false);
   const isBusy = externallyBusy || busy;
   const toggle = async (endpoint, optimistic, method = "POST") => { if (isBusy || !post.id) return; setBusy(true); const previous = post; onPostChange?.({ ...post, ...optimistic }); try { const response = await fetch(endpoint, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ postId: post.id }) }); const data = await response.json(); if (!response.ok) throw new Error(); onPostChange?.({ ...post, ...optimistic, ...data, savedByCurrentUser: data.saved ?? optimistic.savedByCurrentUser }); } catch { onPostChange?.(previous); } finally { setBusy(false); } };
-  return <div className="overflow-hidden rounded-2xl border border-[#0000001A] bg-[#fff] shadow-sm"><div className="flex items-center gap-3 p-4"><div className="size-10 shrink-0 overflow-hidden rounded-full"><ReliableImage src={post.authorImage} fallbackSrc="/Profilepic.png" alt={post.authorName} className="size-full object-cover" /></div><div className="flex-1"><div className="text-[#0a0a0a]">{post.authorName}</div><div className="text-sm text-[#717182]">{post.createdAt ? new Date(post.createdAt).toLocaleDateString() : ""}</div></div><button className="text-[#717182] transition-colors hover:text-[#0a0a0a]"><MoreHorizontal className="size-5" /></button></div>{post.content && <p className="px-4 pb-3 text-sm text-[#0a0a0a]">{post.content}</p>}{!!post.images?.length && <div className="aspect-[4/3] w-full overflow-hidden bg-[#ececf0]"><ReliableImage src={post.images[0]} fallbackSrc="/Profilepic.png" alt={post.content || "Post image"} className="size-full object-cover" /></div>}<div className="flex items-center gap-6 px-4 py-3 text-sm text-[#717182]"><button disabled={isBusy} onClick={() => toggle(`/api/posts/${post.id}/like`, { likedByCurrentUser: !post.likedByCurrentUser, likeCount: Math.max(0, Number(post.likeCount || 0) + (post.likedByCurrentUser ? -1 : 1)) }, post.likedByCurrentUser ? "DELETE" : "POST")} className={`flex items-center gap-1.5 transition-colors hover:text-rose-500 ${post.likedByCurrentUser ? "text-rose-500" : ""}`}><Heart className="size-4" fill={post.likedByCurrentUser ? "currentColor" : "none"} /> {post.likeCount || 0}</button><button onClick={() => onOpenPost?.(post.id)} className="flex items-center gap-1.5 transition-colors hover:text-[#0a0a0a]"><MessageCircle className="size-4" /> {post.commentCount || 0}</button><button onClick={() => navigator.share?.({ title: post.authorName, text: post.content, url: window.location.href })} className="flex items-center gap-1.5 transition-colors hover:text-[#0a0a0a]"><Share2 className="size-4" /></button><button disabled={isBusy} onClick={() => toggle("/api/posts/bookmark", { savedByCurrentUser: !post.savedByCurrentUser, bookmarkCount: Math.max(0, Number(post.bookmarkCount || 0) + (post.savedByCurrentUser ? -1 : 1)) })} className="ml-auto transition-colors hover:text-[#0a0a0a]"><Bookmark className="size-4" fill={post.savedByCurrentUser ? "currentColor" : "none"} /></button></div></div>;
+  return <div className="overflow-hidden rounded-2xl border border-[#0000001A] bg-[#fff] shadow-sm"><div className="flex items-center gap-3 p-4"><div className="size-10 shrink-0 overflow-hidden rounded-full"><ReliableImage src={post.authorImage} fallbackSrc="/Profilepic.png" alt={post.authorName} className="size-full object-cover" /></div><div className="flex-1"><div className="text-[#0a0a0a]">{post.authorName}</div><div className="text-sm text-[#717182]">{post.createdAt ? new Date(post.createdAt).toLocaleDateString() : ""}</div></div><button className="text-[#717182] transition-colors hover:text-[#0a0a0a]"><MoreHorizontal className="size-5" /></button></div>{post.content && <p className="px-4 pb-3 text-sm text-[#0a0a0a]">{post.content}</p>}{(() => { const images = post.images || []; const videos = post.videos || []; const firstMedia = images[0] || videos[0]; const isFirstMediaVideo = videos.length > 0 && !images[0]; return !!firstMedia && <div className="aspect-[4/3] w-full overflow-hidden bg-[#ececf0]">{isFirstMediaVideo ? <video src={firstMedia} className="size-full object-cover" muted playsInline preload="metadata" /> : <ReliableImage src={firstMedia} fallbackSrc="/Profilepic.png" alt={post.content || "Post media"} className="size-full object-cover" />}</div>; })()}<div className="flex items-center gap-6 px-4 py-3 text-sm text-[#717182]"><button disabled={isBusy} onClick={() => toggle(`/api/posts/${post.id}/like`, { likedByCurrentUser: !post.likedByCurrentUser, likeCount: Math.max(0, Number(post.likeCount || 0) + (post.likedByCurrentUser ? -1 : 1)) }, post.likedByCurrentUser ? "DELETE" : "POST")} className={`flex items-center gap-1.5 transition-colors hover:text-rose-500 ${post.likedByCurrentUser ? "text-rose-500" : ""}`}><Heart className="size-4" fill={post.likedByCurrentUser ? "currentColor" : "none"} /> {post.likeCount || 0}</button><button onClick={() => onOpenPost?.(post.id)} className="flex items-center gap-1.5 transition-colors hover:text-[#0a0a0a]"><MessageCircle className="size-4" /> {post.commentCount || 0}</button><button onClick={() => navigator.share?.({ title: post.authorName, text: post.content, url: window.location.href })} className="flex items-center gap-1.5 transition-colors hover:text-[#0a0a0a]"><Share2 className="size-4" /></button><button disabled={isBusy} onClick={() => toggle("/api/posts/bookmark", { savedByCurrentUser: !post.savedByCurrentUser, bookmarkCount: Math.max(0, Number(post.bookmarkCount || 0) + (post.savedByCurrentUser ? -1 : 1)) })} className="ml-auto transition-colors hover:text-[#0a0a0a]"><Bookmark className="size-4" fill={post.savedByCurrentUser ? "currentColor" : "none"} /></button></div></div>;
 }

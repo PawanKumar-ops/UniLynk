@@ -204,9 +204,25 @@ export function PostFab({ audience = "for-you", onPosted }) {
   const onFiles = (files) => {
     if (!files) return;
 
-    const remainingSlots = MAX_MEDIA - mediaRef.current.length;
-    const selectedFiles = Array.from(files).slice(0, remainingSlots);
+    const selectedFiles = Array.from(files);
     if (!selectedFiles.length) return;
+
+    const hasVideo = selectedFiles.some(f => f.type.startsWith("video"));
+    const hasNonVideo = selectedFiles.some(f => !f.type.startsWith("video"));
+    const currentHasVideo = mediaRef.current.some(m => m.kind === "video");
+    const currentHasNonVideo = mediaRef.current.some(m => m.kind === "image" || m.kind === "gif");
+
+    // Prevent mixing video with other media
+    if ((hasVideo && currentHasNonVideo) || (hasNonVideo && currentHasVideo)) {
+      alert("Cannot mix videos with images or GIFs. Please choose one type of media.");
+      return;
+    }
+
+    // Prevent adding multiple videos
+    if (hasVideo && currentHasVideo) {
+      alert("Only one video per post is allowed.");
+      return;
+    }
 
     const localMedia = selectedFiles.map((file) => ({
       id: createId(),
@@ -216,7 +232,7 @@ export function PostFab({ audience = "for-you", onPosted }) {
     }));
 
     setMedia((current) => {
-      const next = [...current, ...localMedia].slice(0, MAX_MEDIA);
+      const next = hasVideo ? localMedia : [...current, ...localMedia].slice(0, MAX_MEDIA);
       mediaRef.current = next;
       return next;
     });
@@ -233,7 +249,16 @@ export function PostFab({ audience = "for-you", onPosted }) {
   };
 
   const addGif = (gifUrl) => {
-    if (!gifUrl || mediaRef.current.length >= MAX_MEDIA) return;
+    if (!gifUrl) return;
+    
+    const currentHasVideo = mediaRef.current.some(m => m.kind === "video");
+    if (currentHasVideo) {
+      alert("Cannot add GIF when video is already selected.");
+      return;
+    }
+    
+    if (mediaRef.current.length >= MAX_MEDIA) return;
+    
     setMedia((current) => {
       const next = [...current, { id: createId(), url: gifUrl, kind: "gif" }].slice(0, MAX_MEDIA);
       mediaRef.current = next;
@@ -272,21 +297,42 @@ export function PostFab({ audience = "for-you", onPosted }) {
   const uploadPendingMedia = async () => {
     const currentMedia = mediaRef.current.slice(0, MAX_MEDIA);
     const localMedia = currentMedia.filter((item) => item.file);
+    const hasVideo = currentMedia.some(m => m.kind === "video");
 
     if (localMedia.length === 0) {
-      return currentMedia.map((item) => item.url).filter(Boolean).slice(0, MAX_MEDIA);
+      if (hasVideo) {
+        return {
+          images: [],
+          videos: currentMedia.filter(item => item.kind === "video").map((item) => item.url).filter(Boolean).slice(0, 1),
+        };
+      }
+      return {
+        images: currentMedia.filter(item => !item.kind || item.kind === "image" || item.kind === "gif").map((item) => item.url).filter(Boolean).slice(0, 4),
+        videos: [],
+      };
     }
 
     setIsUploading(true);
     const uploadedUrlsById = await Promise.all(
-      localMedia.map(async (item) => [item.id, await uploadFile(item.file)])
+      localMedia.map(async (item) => [item.id, item.kind, await uploadFile(item.file)])
     );
-    const uploadedUrlMap = new Map(uploadedUrlsById);
+    const uploadedUrlMap = new Map(uploadedUrlsById.map(([id, kind, url]) => [id, { url, kind }]));
 
-    return currentMedia
-      .map((item) => (item.file ? uploadedUrlMap.get(item.id) : item.url))
+    const resultMedia = currentMedia
+      .map((item) => (item.file ? uploadedUrlMap.get(item.id) : { url: item.url, kind: item.kind }))
       .filter(Boolean)
       .slice(0, MAX_MEDIA);
+
+    if (hasVideo) {
+      return {
+        images: [],
+        videos: resultMedia.filter(item => item.kind === "video").map(item => item.url).filter(Boolean).slice(0, 1),
+      };
+    }
+    return {
+      images: resultMedia.filter(item => !item.kind || item.kind === "image" || item.kind === "gif").map(item => item.url).filter(Boolean),
+      videos: [],
+    };
   };
 
   const submitPost = async ({ postAs = "user", clubId = "" } = {}) => {
@@ -295,7 +341,7 @@ export function PostFab({ audience = "for-you", onPosted }) {
     setIsSubmitting(true);
     setShowPostAsDrawer(false);
     try {
-      const postImages = await uploadPendingMedia();
+      const { images, videos } = await uploadPendingMedia();
       setIsUploading(false);
 
       const res = await fetch("/api/posts", {
@@ -304,7 +350,8 @@ export function PostFab({ audience = "for-you", onPosted }) {
         body: JSON.stringify({
           content: text.trim(),
           audience,
-          images: postImages,
+          images,
+          videos,
           authorName: session?.user?.name,
           authorImage: session?.user?.image,
           authorEmail: session?.user?.email,
@@ -329,6 +376,12 @@ export function PostFab({ audience = "for-you", onPosted }) {
 
   const handleSubmit = async () => {
     if (!canPost) return;
+
+    // Disable poll if video is present
+    if (showPoll && mediaRef.current.some(m => m.kind === "video")) {
+      alert("Polls cannot be used with videos.");
+      return;
+    }
 
     if (leadershipClubs.length === 0) {
       await submitPost({ postAs: "user" });
@@ -597,7 +650,7 @@ export function PostFab({ audience = "for-you", onPosted }) {
 
                   <ToolbarBtn
                     label="Poll"
-                    disabled={media.length > 0 || isUploading || isSubmitting}
+                    disabled={media.length > 0 || isUploading || isSubmitting || showPoll}
                     onClick={() => setShowPoll((s) => !s)}
                     active={showPoll}
                   >

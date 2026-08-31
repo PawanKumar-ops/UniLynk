@@ -181,6 +181,10 @@ const normalizePosts = (posts, userId = null) =>
   posts.map((post) => ({
     ...post,
     id: post.id ?? post._id?.toString?.() ?? String(post._id || ""),
+    // Always expose the exact Cloudinary video URLs saved by Post-Fab.
+    videos: Array.isArray(post.videos)
+      ? post.videos.filter((video) => typeof video === "string" && video.trim()).map((video) => video.trim())
+      : [],
     comments: Array.isArray(post.comments)
       ? post.comments.map((comment) => ({
           ...comment,
@@ -332,6 +336,7 @@ export async function POST(req) {
       authorImage,
       authorEmail,
       images = [],
+      videos = [],
       postAs = "user",
       clubId = "",
       poll,
@@ -346,6 +351,22 @@ export async function POST(req) {
           .map((image) => image.trim())
           .slice(0, 4)
       : [];
+    const safeVideos = Array.isArray(videos)
+      ? videos
+          .filter((video) => typeof video === "string" && video.trim())
+          .map((video) => video.trim())
+          .slice(0, 1)
+      : [];
+
+    // Prevent mixing videos with images
+    if (safeVideos.length > 0 && safeImages.length > 0) {
+      return Response.json({ error: "Cannot mix videos with images. Choose one type of media." }, { status: 400 });
+    }
+
+    // Prevent polls with videos
+    if (safeVideos.length > 0 && poll) {
+      return Response.json({ error: "Polls cannot be used with videos." }, { status: 400 });
+    }
 
     const normalizedPollOptions = Array.isArray(poll?.options)
       ? poll.options
@@ -356,8 +377,8 @@ export async function POST(req) {
       : [];
     const hasPoll = normalizedPollOptions.length >= 2;
 
-    if (!safeContent && safeImages.length === 0 && !hasPoll) {
-      return new Response("Post content, image, or poll is required", { status: 400 });
+    if (!safeContent && safeImages.length === 0 && safeVideos.length === 0 && !hasPoll) {
+      return new Response("Post content, image, video, or poll is required", { status: 400 });
     }
 
     if (poll && !hasPoll) {
@@ -439,12 +460,14 @@ export async function POST(req) {
       authorEmail: safeAuthorEmail,
       authorImage: postAuthorImage,
       images: safeImages,
+      videos: safeVideos,
       poll: normalizedPoll,
     });
 
     const normalizedPost = {
       ...post.toObject(),
       id: post._id.toString(),
+      videos: safeVideos,
       authorId: dbUser?._id?.toString?.() || "",
       comments: [],
       commentCount: 0,

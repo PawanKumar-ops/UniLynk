@@ -5,11 +5,14 @@ function hasTextOrImagesOrPoll(content) {
   const safeImages = Array.isArray(this?.images)
     ? this.images.filter((image) => typeof image === "string" && image.trim())
     : [];
+  const safeVideos = Array.isArray(this?.videos)
+    ? this.videos.filter((video) => typeof video === "string" && video.trim())
+    : [];
   const safePollOptions = Array.isArray(this?.poll?.options)
     ? this.poll.options.filter((option) => typeof option?.text === "string" && option.text.trim())
     : [];
 
-  return Boolean(safeContent) || safeImages.length > 0 || safePollOptions.length >= 2;
+  return Boolean(safeContent) || safeImages.length > 0 || safeVideos.length > 0 || safePollOptions.length >= 2;
 }
 
 const PollOptionSchema = new mongoose.Schema(
@@ -92,7 +95,7 @@ const PostSchema = new mongoose.Schema(
       default: "",
       validate: {
         validator: hasTextOrImagesOrPoll,
-        message: "Post content, image, or poll is required",
+        message: "Post content, image, video, or poll is required",
       },
     },
     audience: {
@@ -137,6 +140,10 @@ const PostSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    videos: {
+      type: [String],
+      default: [],
+    },
     commentCount: {
       type: Number,
       default: 0,
@@ -177,7 +184,10 @@ PostSchema.index({ clubId: 1, createdAt: -1, _id: -1 });
 PostSchema.index({ createdAt: -1, _id: -1 });
 PostSchema.index({ trendingScore: -1, _id: -1 });
 
-if (mongoose.models.Post && (!mongoose.models.Post.schema.path("poll") || !mongoose.models.Post.schema.path("trendingScore") || !mongoose.models.Post.schema.path("commentCount") || !mongoose.models.Post.schema.path("bookmarkCount"))) {
+// Recompile the model after schema additions in development. Without the videos
+// check, a hot-reloaded server can retain the old schema and silently discard
+// the Cloudinary video URLs received from Post-Fab.
+if (mongoose.models.Post && (!mongoose.models.Post.schema.path("poll") || !mongoose.models.Post.schema.path("videos") || !mongoose.models.Post.schema.path("trendingScore") || !mongoose.models.Post.schema.path("commentCount") || !mongoose.models.Post.schema.path("bookmarkCount"))) {
   delete mongoose.models.Post;
 }
 
