@@ -1,16 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-    Play,
-    Pause,
-    Volume2,
-    VolumeX,
-    Settings,
-    Maximize,
-    Download,
-    PictureInPicture,
-} from "lucide-react";
+import { Icon } from "@iconify/react";
 
 export default function XStyleVideoPlayer({ src, onClick, className = "" }) {
     const videoRef = useRef(null);
@@ -65,12 +56,10 @@ export default function XStyleVideoPlayer({ src, onClick, className = "" }) {
         const wasPaused = video.paused;
 
         if (wasPaused) {
-            video.play();
-            setIsPlaying(true);
+            video.play().catch(() => { });
             setActionIcon("play");
         } else {
             video.pause();
-            setIsPlaying(false);
             setActionIcon("pause");
         }
 
@@ -235,6 +224,36 @@ export default function XStyleVideoPlayer({ src, onClick, className = "" }) {
         };
     }, []);
 
+    useEffect(() => {
+        const video = videoRef.current;
+        const container = containerRef.current;
+
+        if (!video || !container) return;
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting && entry.intersectionRatio >= 0.5) {
+                    video.muted = true;
+
+                    video.play().catch(() => {
+                        // Browser blocked autoplay
+                    });
+                } else {
+                    video.pause();
+                }
+            },
+            {
+                threshold: [0, 0.5, 1],
+            }
+        );
+
+        observer.observe(container);
+
+        return () => {
+            observer.disconnect();
+        };
+    }, []);
+
     return (
         <div
             ref={containerRef}
@@ -252,6 +271,9 @@ export default function XStyleVideoPlayer({ src, onClick, className = "" }) {
                 onPlay={() => setIsPlaying(true)}
                 onPause={() => setIsPlaying(false)}
                 playsInline
+                autoPlay
+                muted
+                loop
                 preload="metadata"
                 disableRemotePlayback
                 controlsList="nodownload noplaybackrate nofullscreen"
@@ -266,53 +288,53 @@ export default function XStyleVideoPlayer({ src, onClick, className = "" }) {
 
             {/* Play / Pause Action Indicator */}
             {/* Modern Play / Pause Feedback */}
-<div
-    className={`
+            <div
+                className={`
         pointer-events-none absolute inset-0
         flex items-center justify-center
         transition-[opacity,transform]
         duration-150
         ease-out
         ${actionIcon
-            ? "opacity-100 scale-100"
-            : "opacity-0 scale-[0.92]"
-        }
+                        ? "opacity-100 scale-100"
+                        : "opacity-0 scale-[0.92]"
+                    }
     `}
->
-    <div
-        className="
+            >
+                <div
+                    className="
             flex items-center justify-center
             transition-transform
             duration-150
             ease-out
         "
-    >
-        {actionIcon === "play" && (
-            <Play
-                className="
+                >
+                    {actionIcon === "play" && (
+                        <Icon icon="solar:play-bold"
+                            className="
                     size-8
                     translate-x-[1px]
                     fill-white
                     text-white
                     drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]
                 "
-                strokeWidth={2.2}
-            />
-        )}
+                            strokeWidth={2.2}
+                        />
+                    )}
 
-        {actionIcon === "pause" && (
-            <Pause
-                className="
+                    {actionIcon === "pause" && (
+                        <Icon icon="solar:pause-bold"
+                            className="
                     size-8
                     fill-white
                     text-white
                     drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]
                 "
-                strokeWidth={2.2}
-            />
-        )}
-    </div>
-</div>
+                            strokeWidth={2.2}
+                        />
+                    )}
+                </div>
+            </div>
 
             {/* Bottom Controls - Show on hover or when playing */}
             <div
@@ -362,9 +384,9 @@ export default function XStyleVideoPlayer({ src, onClick, className = "" }) {
                             aria-label={isPlaying ? "Pause" : "Play"}
                         >
                             {isPlaying ? (
-                                <Pause className="w-4 h-4 fill-white" />
+                                <Icon icon="solar:pause-bold" className="w-4 h-4 fill-white" />
                             ) : (
-                                <Play className="w-4 h-4 fill-white" />
+                                <Icon icon="solar:play-bold" className="w-4 h-4 fill-white" />
                             )}
                         </button>
 
@@ -376,13 +398,13 @@ export default function XStyleVideoPlayer({ src, onClick, className = "" }) {
                         {/* Volume */}
                         <button
                             onClick={handleMuteToggle}
-                            className="hover:bg-white/20 p-2 rounded transition-colors"
+                            className="hover:bg-white/20 p-2 rounded-full transition-colors"
                             aria-label={isMuted ? "Unmute" : "Mute"}
                         >
                             {isMuted ? (
-                                <VolumeX className="w-4 h-4" />
+                                <Icon icon="solar:volume-cross-linear" className="w-4 h-4" />
                             ) : (
-                                <Volume2 className="w-4 h-4" />
+                                <Icon icon="solar:volume-loud-linear" className="w-4 h-4" />
                             )}
                         </button>
                     </div>
@@ -397,10 +419,10 @@ export default function XStyleVideoPlayer({ src, onClick, className = "" }) {
                                     setShowSettings(!showSettings);
                                     showControlsTemporarily();
                                 }}
-                                className="hover:bg-white/20 p-2 rounded transition-colors"
+                                className="hover:bg-white/20 p-2 rounded-full transition-colors"
                                 aria-label="Settings"
                             >
-                                <Settings className="w-4 h-4" />
+                                <Icon icon="solar:settings-linear" className="w-4 h-4" />
                             </button>
 
                             {/* Settings Menu */}
@@ -438,7 +460,7 @@ export default function XStyleVideoPlayer({ src, onClick, className = "" }) {
                                         }}
                                         className="w-full text-left px-4 py-2 text-sm text-white hover:bg-white/10 transition-colors flex items-center gap-3"
                                     >
-                                        <Download className="w-4 h-4" />
+                                        <Icon icon="solar:download-minimalistic-bold" className="w-4 h-4" />
                                         Download
                                     </button>
                                 </div>
@@ -453,16 +475,23 @@ export default function XStyleVideoPlayer({ src, onClick, className = "" }) {
                             aria-label={isPiP ? "Exit Picture-in-Picture" : "Picture-in-Picture"}
                             title={isPiP ? "Exit Picture-in-Picture" : "Picture-in-Picture"}
                         >
-                            <PictureInPicture className="size-4" />
+                            <Icon icon="solar:to-pip-linear" className="size-4" />
                         </button>
 
                         {/* Fullscreen */}
                         <button
                             onClick={handleFullscreen}
-                            className="hover:bg-white/20 p-2 rounded transition-colors"
+                            className="hover:bg-white/20 p-2 rounded-full transition-colors"
                             aria-label="Fullscreen"
                         >
-                            <Maximize className="w-4 h-4" />
+                            <Icon
+                                icon={
+                                    isFullscreen
+                                        ? "fluent:full-screen-minimize-16-regular"
+                                        : "hugeicons:full-screen"
+                                }
+                                className="w-4 h-4"
+                            />
                         </button>
                     </div>
                 </div>
