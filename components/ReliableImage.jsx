@@ -1,6 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { loreleiAvatar } from "@/lib/avatar";
+
+const resolveFallback = (fallbackSrc) => {
+  const safeFallback = typeof fallbackSrc === "string" ? fallbackSrc.trim() : "";
+  return safeFallback && safeFallback !== "/Profilepic.png" ? safeFallback : loreleiAvatar();
+};
 
 const addCacheBust = (url, seed) => {
   if (!url) return "";
@@ -11,9 +17,11 @@ const addCacheBust = (url, seed) => {
 
 const ReliableImage = ({ src, fallbackSrc, maxRetries = 2, alt = "", ...props }) => {
   const baseSrc = useMemo(() => {
-    if (typeof src === "string" && src.trim()) return src.trim();
-    if (typeof fallbackSrc === "string" && fallbackSrc.trim()) return fallbackSrc.trim();
-    return null;
+    const safeSrc = typeof src === "string" ? src.trim() : "";
+    // Some older records still point at the removed bundled placeholder.
+    // Prefer the caller's generated fallback instead of rendering a broken img.
+    if (safeSrc && safeSrc !== "/Profilepic.png") return safeSrc;
+    return resolveFallback(fallbackSrc);
   }, [src, fallbackSrc]);
   
   const [retryCount, setRetryCount] = useState(0);
@@ -26,7 +34,7 @@ const ReliableImage = ({ src, fallbackSrc, maxRetries = 2, alt = "", ...props })
 
   const handleError = () => {
     const safeSrc = typeof src === "string" ? src.trim() : "";
-    const safeFallback = typeof fallbackSrc === "string" ? fallbackSrc.trim() : "";
+    const safeFallback = resolveFallback(fallbackSrc);
 
     if (retryCount < maxRetries && safeSrc) {
       const nextCount = retryCount + 1;
@@ -35,7 +43,7 @@ const ReliableImage = ({ src, fallbackSrc, maxRetries = 2, alt = "", ...props })
       return;
     }
 
-    setCurrentSrc(safeFallback || null);
+    setCurrentSrc(safeFallback);
   };
 
   if (!currentSrc) return null;

@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import { normalizeEmail } from "@/lib/clubProfileSync";
 import Club from "@/models/Club";
 import User from "@/models/user";
+import { loreleiAvatar } from "@/lib/avatar";
 
 const SUGGESTION_LIMIT = 4;
 
@@ -27,7 +28,7 @@ const toSuggestion = (user, sharedClubCounts = new Map()) => ({
   id: user._id?.toString?.() || String(user._id),
   name: normalizeText(user.name) || normalizeEmail(user.email) || "UniLynk User",
   role: getUserRole(user),
-  avatar: normalizeText(user.img) || "/Profilepic.png",
+  avatar: normalizeText(user.img) || loreleiAvatar(user.email),
   mutual: sharedClubCounts.get(normalizeEmail(user.email)) || 0,
 });
 

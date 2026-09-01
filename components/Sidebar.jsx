@@ -11,6 +11,7 @@ import { X, LogOut } from 'lucide-react'
 import ReliableImage from './ReliableImage';
 import FeedbackModal from './FeedbackModal';
 import { Icon } from "@iconify/react";
+import { profileAvatar } from "@/lib/avatar";
 
 const Sidebar = ({ isOpen = false, onClose }) => {
   const { data: session, status } = useSession()
@@ -18,6 +19,7 @@ const Sidebar = ({ isOpen = false, onClose }) => {
   const [showSignOutModal, setSignoutModal] = useState(false)
   const [showFeedbackModal, setShowFeedbackModal] = useState(false)
   const [userProfile, setUserProfile] = useState(null);
+const [profileLoading, setProfileLoading] = useState(true);
   const pathname = usePathname();
 
   const isActive = (path) => {
@@ -31,22 +33,34 @@ const Sidebar = ({ isOpen = false, onClose }) => {
     if (status !== 'authenticated') return;
 
     const loadProfile = async (attempt = 0) => {
-      try {
-        const res = await fetch('/api/user/me', { cache: 'no-store' });
-        if (!res.ok) {
-          if (attempt < 2) setTimeout(() => loadProfile(attempt + 1), 400);
-          return;
-        }
-        const data = await res.json();
-        if (data?.user) setUserProfile(data.user);
-      } catch (error) {
-        if (attempt < 2) {
-          setTimeout(() => loadProfile(attempt + 1), 400);
-          return;
-        }
-        console.error('Sidebar profile fetch failed:', error);
+  try {
+    const res = await fetch('/api/user/me', { cache: 'no-store' });
+
+    if (!res.ok) {
+      if (attempt < 2) {
+        setTimeout(() => loadProfile(attempt + 1), 400);
+      } else {
+        setProfileLoading(false);
       }
-    };
+      return;
+    }
+
+    const data = await res.json();
+
+    if (data?.user) {
+      setUserProfile(data.user);
+    }
+
+    setProfileLoading(false);
+  } catch (error) {
+    if (attempt < 2) {
+      setTimeout(() => loadProfile(attempt + 1), 400);
+    } else {
+      console.error('Sidebar profile fetch failed:', error);
+      setProfileLoading(false);
+    }
+  }
+};
 
     loadProfile();
   }, [status]);
@@ -55,7 +69,7 @@ const Sidebar = ({ isOpen = false, onClose }) => {
     name: userProfile?.name || session?.user?.name || 'User',
     email: userProfile?.email || session?.user?.email || 'No email available',
     year: userProfile?.year || session?.user?.year || '_',
-    image: userProfile?.img || session?.user?.image || '/Profilepic.png',
+    image: profileAvatar(userProfile?.img || session?.user?.image, userProfile?.email || session?.user?.email),
   }), [userProfile, session]);
 
   const menuItems = [
@@ -156,9 +170,22 @@ const Sidebar = ({ isOpen = false, onClose }) => {
                     <div className="profback">
                       <img src="/Background.jpg" alt="Profile background" />
                     </div>
-                    <div className="profpic">
-                      <ReliableImage src={sidebarUser.image} fallbackSrc="/Profilepic.png" alt="Profile picture" loading="eager" decoding="async" />
-                    </div>
+                    <div
+  className="profpic"
+  style={{
+    backgroundColor: "#f9fafb",
+  }}
+>
+  {!profileLoading && (
+    <ReliableImage
+      src={sidebarUser.image}
+      fallbackSrc={profileAvatar(null, sidebarUser.email)}
+      alt="Profile picture"
+      loading="eager"
+      decoding="async"
+    />
+  )}
+</div>
                     <div className="profinfo">
                       <h2 className="username">{sidebarUser.name}</h2>
                       <div className="branch">{sidebarUser.email}</div>

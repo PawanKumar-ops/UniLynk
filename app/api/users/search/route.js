@@ -1,6 +1,7 @@
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/user";
 import { auth } from "@/auth";
+import { loreleiAvatar } from "@/lib/avatar";
 
 const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -43,13 +44,13 @@ export async function GET(req) {
     // ⚡ Parallel execution
     if (isTeamSearch) {
       const users = await User.find(userQuery)
-        .select("_id name rollNumber branch year img")
+        .select("_id name email rollNumber branch year img")
         .limit(5)
         .lean();
       return Response.json({
         users: users.map((user) => ({
           id: user._id.toString(), name: user.name || "Student", rollNumber: user.rollNumber || "",
-          branch: user.branch || "General", year: user.year || "Student", img: user.img || "/Profilepic.png",
+          branch: user.branch || "General", year: user.year || "Student", img: user.img || loreleiAvatar(user.email),
         })),
       });
     }
@@ -73,7 +74,7 @@ export async function GET(req) {
         id: u._id.toString(),
         type: "user",
         name: u.name,
-        image: u.img || "/Profilepic.png",
+        image: u.img || loreleiAvatar(u.email),
         email: u.email,
         provider: u.provider,
       })),

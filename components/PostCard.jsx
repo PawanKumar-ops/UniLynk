@@ -78,9 +78,9 @@ export function PostCard({
       <div className="post-left">
         {dashboard ? (
           <button className="profilepic profile-link" type="button" disabled={!post.authorId} onClick={(event) => onOpenAuthor?.(event, post)} aria-label={`Open ${post.authorName || "author"} profile`}>
-            <ReliableImage className="profileimg" src={post.authorImage} alt={post.authorName || "User"} fallbackSrc={avatarFallback?.(post.authorName)} maxRetries={3} />
+            <ReliableImage className="profileimg" src={post.authorImage} alt={post.authorName || "User"} fallbackSrc={avatarFallback?.(post.authorName, post.authorEmail)} maxRetries={3} />
           </button>
-        ) : <div className="profilepic"><ReliableImage className="profileimg" src={post.authorImage} alt={post.authorName || "User"} fallbackSrc={avatarFallback?.(post.authorName)} maxRetries={3} /></div>}
+        ) : <div className="profilepic"><ReliableImage className="profileimg" src={post.authorImage} alt={post.authorName || "User"} fallbackSrc={avatarFallback?.(post.authorName, post.authorEmail)} maxRetries={3} /></div>}
       </div>
 
       <div className="post-right">

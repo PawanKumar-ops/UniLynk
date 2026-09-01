@@ -1,11 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,500;12..96,600;12..96,700;12..96,800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 @import 'tailwindcss';
 
 @theme {
-  --font-display: 'Bricolage Grotesque', ui-sans-serif, system-ui, sans-serif;
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
-
   /* black & white UI */
   --color-ink: #111111;
   --color-ink-2: #333333;
@@ -41,7 +36,6 @@ html {
 }
 
 body {
-  font-family: var(--font-sans);
   background-color: var(--color-paper);
   color: var(--color-ink);
 }

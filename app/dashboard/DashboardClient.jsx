@@ -22,6 +22,7 @@ import ImageWithFallback from "../../components/ReliableImage";
 import { NewsLetterCard } from "@/components/NewsLetterCard";
 import { DashboardNotificationItem } from "@/components/DashboardNotificationItem";
 import { PostCard } from "@/components/PostCard";
+import { loreleiAvatar } from "@/lib/avatar";
 
 const DASHBOARD_SCROLL_STORAGE_KEY = "dashboard-feed-scroll-position";
 const DASHBOARD_OPEN_POST_STORAGE_KEY = "dashboard-feed-open-post-id";
@@ -371,10 +372,7 @@ const formatAuthorHandle = (email) => {
   return localPart ? `@${localPart}` : "";
 };
 
-const buildAvatarFallback = (name) => {
-  const safeName = (name || "UniLynk User").trim() || "UniLynk User";
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(safeName)}&background=random&color=fff&size=128&bold=true`;
-};
+const buildAvatarFallback = (_name, email) => loreleiAvatar(email);
 
 const normalizeComment = (comment, index = 0) => {
   if (!comment || typeof comment !== "object") return null;
@@ -1392,7 +1390,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
             className="profileimg"
             src={post.authorImage}
             alt={post.authorName || "User"}
-            fallbackSrc={buildAvatarFallback(post.authorName)}
+            fallbackSrc={buildAvatarFallback(post.authorName, post.authorEmail)}
             maxRetries={3}
           />
         </button>
@@ -1711,7 +1709,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
       formatTime={formatRelativeTime}
       formatHandle={formatAuthorHandle}
       imageGridClass={getImageGridClass}
-      avatarFallback={buildAvatarFallback}
+      avatarFallback={(name, email) => buildAvatarFallback(name, email)}
       onOpenPost={handleOpenThread}
       onOpenAuthor={handleOpenAuthorProfile}
       onToggleMenu={() => {
@@ -1736,7 +1734,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
           className="profileimg"
           src={comment.authorImage}
           alt={comment.authorName || "User"}
-          fallbackSrc={buildAvatarFallback(comment.authorName)}
+          fallbackSrc={buildAvatarFallback(comment.authorName, comment.authorEmail)}
           maxRetries={3}
         />
       </div>
@@ -1814,7 +1812,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
         >
           <img
             className="mobile-header-avatar"
-            src={session?.user?.image || '/Profilepic.png'}
+            src={session?.user?.image || loreleiAvatar(session?.user?.email)}
             alt={session?.user?.name || 'Profile'}
           />
         </button>

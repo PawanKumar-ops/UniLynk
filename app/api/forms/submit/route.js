@@ -6,6 +6,7 @@ import FormResponse from "@/models/Response";
 import Form from "@/models/Form";
 import User from "@/models/user";
 import Club from "@/models/Club";
+import { profileAvatar } from "@/lib/avatar";
 
 const REGISTRATION_CHARS = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
@@ -45,7 +46,7 @@ async function validateTeam(rawTeam, maxSize) {
   const byId = new Map(users.map((user) => [String(user._id), user]));
   return ids.map((id) => {
     const user = byId.get(String(id));
-    return { id: String(user._id), roll: user.rollNumber || String(user._id), name: user.name || "Student", email: user.email || "", branch: user.branch || "General", year: user.year || "Student", avatar: user.img || "/Profilepic.png" };
+    return { id: String(user._id), roll: user.rollNumber || String(user._id), name: user.name || "Student", email: user.email || "", branch: user.branch || "General", year: user.year || "Student", avatar: profileAvatar(user.img, user.email) };
   });
 }
 
@@ -93,14 +94,14 @@ export async function POST(req) {
         if (form.isTeam || form.isTeamEvent) {
           const max = Math.max(1, Number(form.teamSize) || 4);
           const leadName = user?.name || session.user.name || userEmail.split("@")[0];
-          const lead = { id: String(user?._id || response._id), userId: String(user?._id || ""), name: leadName, email: userEmail, branch: user?.branch || "General", year: user?.year || "Student", avatar: user?.img || "/Profilepic.png", role: "Team Lead", skills: user?.skills || [] };
+          const lead = { id: String(user?._id || response._id), userId: String(user?._id || ""), name: leadName, email: userEmail, branch: user?.branch || "General", year: user?.year || "Student", avatar: profileAvatar(user?.img, userEmail), role: "Team Lead", skills: user?.skills || [] };
           const members = [lead, ...(safeAnswers.team || []).map((m) => ({ ...m, userId: m.id, email: m.email || "", role: m.role || "Member" }))];
           const uniqueMembers = members.filter((m, index, arr) => arr.findIndex((x) => String(x.userId || x.id || x.email) === String(m.userId || m.id || m.email)) === index);
           const hasAddedMembers = (safeAnswers.team || []).length > 0;
           const teamFinder = uniqueMembers.length < max
             ? (hasAddedMembers
               ? { type: "team", profile: { name: leadName, email: userEmail }, team: { name: `${leadName}'s Team`, lead: leadName, members: uniqueMembers, needed: max - uniqueMembers.length, total: max, lookingFor: [] }, addedAt: new Date() }
-              : { type: "solo", profile: { userId: String(user?._id || ""), name: leadName, email: userEmail, branch: user?.branch || "General", year: user?.year || "Student", avatar: user?.img || "/Profilepic.png", skills: user?.skills || [], description: "" }, addedAt: new Date() })
+              : { type: "solo", profile: { userId: String(user?._id || ""), name: leadName, email: userEmail, branch: user?.branch || "General", year: user?.year || "Student", avatar: profileAvatar(user?.img, userEmail), skills: user?.skills || [], description: "" }, addedAt: new Date() })
             : undefined;
           if (teamFinder) await FormResponse.updateOne({ _id: response._id }, { $set: { teamFinder } });
         }

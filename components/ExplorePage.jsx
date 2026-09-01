@@ -16,6 +16,7 @@ import { ReportPostModal } from "./ReportPostModal";
 import { DeleteModal } from "./DeleteModal";
 import { AllClubsModal } from "./AllClubsModal";
 import { PostCard } from "./PostCard";
+import { loreleiAvatar } from "@/lib/avatar";
 
 // Random club will be fetched from the API
 
@@ -27,7 +28,7 @@ const ImageWithFallback = ({ src, alt, className = "" }) => (
     alt={alt}
     className={className}
     maxRetries={2}
-    fallbackSrc="/Profilepic.png"
+    fallbackSrc={loreleiAvatar()}
   />
 );
 
@@ -339,10 +340,7 @@ const formatRelativeTime = (dateString) => {
   return `${days}d`;
 };
 
-const buildAvatarFallback = (name) => {
-  const safeName = (name || "UniLynk User").trim() || "UniLynk User";
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(safeName)}&background=random&color=fff&size=128&bold=true`;
-};
+const buildAvatarFallback = (_name, email) => loreleiAvatar(email);
 
 const normalizeEmail = (email) =>
   typeof email === "string" ? email.trim().toLowerCase() : "";
@@ -416,7 +414,7 @@ const ParticipantAvatarStack = ({ event }) => {
           title={avatar.name}
         >
           <ImageWithFallback
-            src={avatar.image || "/Profilepic.png"}
+            src={avatar.image || loreleiAvatar(avatar.email)}
             alt={avatar.name || "Participant"}
             className="w-full h-full object-cover object-center"
           />
@@ -1386,7 +1384,7 @@ export function ExplorePage({ onBack }) {
           }`}
         >
           <ImageWithFallback
-            src={session?.user?.image || "/Profilepic.png"}
+            src={session?.user?.image || loreleiAvatar(session?.user?.email)}
             alt={session?.user?.name || "Profile"}
             className="h-full w-full object-cover"
           />

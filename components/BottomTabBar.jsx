@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { loreleiAvatar } from "@/lib/avatar";
 import { Icon } from "@iconify/react";
 
 const BottomTabBar = () => {
@@ -112,7 +113,7 @@ const BottomTabBar = () => {
     },
   ];
 
-  const avatar = session?.user?.image || "/Profilepic.png";
+  const avatar = session?.user?.image || loreleiAvatar(session?.user?.email);
 
   const isChatRoot =
     pathname === "/dashboard/chat2" ||

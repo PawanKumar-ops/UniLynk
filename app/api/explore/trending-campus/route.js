@@ -2,6 +2,7 @@ import { connectDB } from "@/lib/mongodb";
 import Club from "@/models/Club";
 import FormResponse from "@/models/Response";
 import User from "@/models/user";
+import { loreleiAvatar } from "@/lib/avatar";
 
 const normalizeImage = (image) => (typeof image === "string" ? image.trim() : "");
 const normalizeEmail = (email) => String(email || "").trim().toLowerCase();
@@ -84,7 +85,7 @@ export async function GET() {
         return {
           email,
           name: user?.name || email,
-          image: normalizeImage(user?.img) || "/Profilepic.png",
+          image: normalizeImage(user?.img) || loreleiAvatar(email),
         };
       });
 

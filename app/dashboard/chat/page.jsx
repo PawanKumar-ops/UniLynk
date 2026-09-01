@@ -21,6 +21,7 @@ import CommunityPanel from "@/components/CommunityPanel";
 import { DeleteMessageModal } from "@/components/DeleteMessageModal";
 import { ForwardMessageModal } from "@/components/ForwardMessageModal";
 import { BlockedModal } from "@/components/BlockedModal";
+import { loreleiAvatar } from "@/lib/avatar";
 
 function formatChatTimestamp(dateValue) {
   if (!dateValue) return "";
@@ -590,7 +591,7 @@ export default function ChatPage() {
                   <div className="wa-group-icon wa-group-icon-mega">
                     <ReliableImage
                       src={activeUser.image}
-                      fallbackSrc="/Profilepic.png"
+                      fallbackSrc={loreleiAvatar(activeUser.email)}
                       alt={activeUser.name}
                       width={46}
                       height={46}
@@ -822,7 +823,7 @@ export default function ChatPage() {
                                   <div className="chat-shared-post-avatar">
                                     <ReliableImage
                                       src={msg.sharedPost.authorImage}
-                                      fallbackSrc="/Profilepic.png"
+                                      fallbackSrc={loreleiAvatar(msg.sharedPost.authorEmail)}
                                       alt={msg.sharedPost.authorName || "Post author"}
                                       width={40}
                                       height={40}
@@ -863,7 +864,7 @@ export default function ChatPage() {
                             <ReliableImage
 
                               src={activeUser?.image}
-                              fallbackSrc="/Profilepic.png"
+                              fallbackSrc={loreleiAvatar(activeUser?.email)}
                               alt={activeUser?.name || "Chat user"}
                               width={30}
                               height={30}
@@ -978,7 +979,7 @@ export default function ChatPage() {
                       {chat.image ? (
                         <ReliableImage
                           src={chat.image}
-                          fallbackSrc="/Profilepic.png"
+                          fallbackSrc={loreleiAvatar(chat.email)}
                           alt={chat.name}
                           width={38}
                           height={38}

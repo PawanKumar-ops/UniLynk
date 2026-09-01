@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { X, Search, Smile, Image as ImageIcon, Video, FileIcon, Users, Megaphone, Check, Camera, Trash2, Sparkles, Ban } from "lucide-react";
 import { gifs, emojis, stickers } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
+import { loreleiAvatar } from "@/lib/avatar";
 
 export function PickerPopover({
   type,
@@ -210,7 +211,7 @@ export function NewMessageModal({
             id: user.id,
             name: user.name || user.email || "UniLynk User",
             handle: user.email?.split("@")[0] || "user",
-            avatar: user.image || "/Profilepic.png",
+            avatar: user.image || loreleiAvatar(user.email),
           })));
         }
       })

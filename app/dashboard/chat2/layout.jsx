@@ -20,6 +20,7 @@ import { NewMessageModal, DotsMenu } from "@/components/chat/chat-ui";
 import { CreateGroupModal } from "@/components/CreateGroupModal";
 import { cn } from "@/lib/utils";
 import { getPusherClient } from "@/lib/usePusher";
+import { loreleiAvatar, profileAvatar } from "@/lib/avatar";
 
 const lightTheme = {
     "--radius": "0.625rem",
@@ -331,7 +332,7 @@ export default function MessagesLayout({ children }) {
 
     const conversations = useMemo(() => chatConversations.map((user) => ({
         id: user.id,
-        user: { id: user.id, name: user.name || user.email || "UniLynk User", handle: user.email?.split("@")[0] || "user", avatar: user.image || "/Profilepic.png", verified: false },
+        user: { id: user.id, email: user.email, name: user.name || user.email || "UniLynk User", handle: user.email?.split("@")[0] || "user", avatar: profileAvatar(user.image, user.email), verified: false },
         preview: user.lastMessage || user.email || "Start a conversation",
         time: "",
         unread: user.unreadCount || 0,
@@ -429,7 +430,7 @@ export default function MessagesLayout({ children }) {
                             </button>
                             <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full bg-[#f2f6fa]">
                                 <img
-                                    src={openCommunity.image || "/Profilepic.png"}
+                                    src={openCommunity.image || "/Defaultclublogo.svg"}
                                     alt={openCommunity.name}
                                     className="h-full w-full object-cover border object-center"
                                 />
@@ -512,7 +513,7 @@ export default function MessagesLayout({ children }) {
                                         </span>
                                     ) : (
                                         <img
-                                            src={g.image || openCommunity.image || "/Profilepic.png"}
+                                            src={g.image || openCommunity.image || "/Defaultclublogo.svg"}
                                             alt={g.name}
                                             className="h-12 w-12 shrink-0 border rounded-full bg-[#f2f6fa] object-cover"
                                         />
@@ -659,9 +660,10 @@ export default function MessagesLayout({ children }) {
                                                 )}
                                             >
                                                 <img
-                                                    src={c.user.avatar}
+                                                    src={profileAvatar(c.user.avatar, c.user.email)}
                                                     alt={c.user.name}
                                                     className="h-12 w-12 rounded-full border bg-[#f2f6fa] object-cover"
+                                                    onError={(event) => { event.currentTarget.src = loreleiAvatar(c.user.email); }}
                                                 />
                                                 <div className="min-w-0 flex-1">
                                                     <div className="flex items-center justify-between gap-2">
@@ -707,7 +709,7 @@ export default function MessagesLayout({ children }) {
                                             >
                                                 <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full bg-[#f2f6fa]">
                                                     <img
-                                                        src={c.image || "/Profilepic.png"}
+                                                        src={c.image || "/Defaultclublogo.svg"}
                                                         alt={c.name}
                                                         className="h-full w-full border object-cover object-center"
                                                     />

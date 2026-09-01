@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { X, Crown, Search } from "lucide-react";
+import { profileAvatar } from "@/lib/avatar";
 
 const scrollStyles = `
   .members-scroll::-webkit-scrollbar { width: 6px; }
@@ -41,7 +42,7 @@ export function MembersModal({ MemberModalopen, onClose, clubData }) {
       email: String(leader.email || "").trim().toLowerCase(),
       name: leader.name || String(leader.email || "").split("@")[0] || "Member",
       role: leader.position || "Leader",
-      image: leader.image || leader.profilePicture || "/Profilepic.png",
+      image: profileAvatar(leader.image || leader.profilePicture, leader.email),
       userId: leader.userId || leader.id || null,
       isLeader: true,
     }));
@@ -53,7 +54,7 @@ export function MembersModal({ MemberModalopen, onClose, clubData }) {
         email: String(member.email || "").trim().toLowerCase(),
         name: member.name || String(member.email || "").split("@")[0] || "Member",
         role: "Member",
-        image: member.image || member.profilePicture || "/Profilepic.png",
+        image: profileAvatar(member.image || member.profilePicture, member.email),
         userId: member.userId || member.id || null,
         isLeader: false,
       }));

@@ -17,6 +17,8 @@ import CropModal from "./CropModal";
 import Select from "./Select";
 import { SKILLS } from "@/lib/skillsList";
 import { getSkillIcon } from "@/lib/skillIcons";
+import { profileAvatar } from "@/lib/avatar";
+import ReliableImage from "@/components/ReliableImage";
 
 const BRANCHES = ["PIE", "CSE", "ECE", "Mechanical", "Civil", "Electrical", "IT", "Chemical"].map(
   (b) => ({ value: b, label: b }),
@@ -89,7 +91,7 @@ export default function EditProfile({ onClose, saveRef }) {
   const { update: updateSession } = useSession();
 
   const [banner, setBanner] = useState("/Background.jpg");
-  const [avatar, setAvatar] = useState("/Profilepic.png");
+  const [avatar, setAvatar] = useState("");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [branch, setBranch] = useState("CSE");
@@ -126,7 +128,7 @@ export default function EditProfile({ onClose, saveRef }) {
           setEmail(data.user.email || "");
           setBranch(data.user.branch || "CSE");
           setYear(data.user.year || "First Year");
-          setAvatar(data.user.img || "/Profilepic.png");
+          setAvatar(profileAvatar(data.user.img, data.user.email));
           setBanner(data.user.banner || "/Background.jpg");
           setSocials(
             (data.user.socials || []).map((s) => ({
@@ -207,7 +209,7 @@ export default function EditProfile({ onClose, saveRef }) {
   const uploadImageToCloudinary = async (imgData, folder = "profile-images", type = "image") => {
     if (!imgData) return imgData;
     if (imgData.startsWith("http://") || imgData.startsWith("https://")) return imgData;
-    if (imgData === "/Background.jpg" || imgData === "/Profilepic.png") return imgData;
+    if (imgData === "/Background.jpg") return imgData;
 
     // Handle base64 data URIs
     if (imgData.startsWith("data:image/")) {
@@ -399,35 +401,43 @@ export default function EditProfile({ onClose, saveRef }) {
             <div className="relative px-5 pb-5 sm:px-7 sm:pb-7">
               <div className="flex items-end gap-4">
                 <div className="group relative -mt-10 sm:-mt-13">
-                  <div className="w-fit rounded-full bg-white p-0.75 ring-1 ring-white">
-                    <div className="h-[75px] w-[75px] overflow-hidden rounded-full bg-neutral-100 sm:h-[100px] sm:w-[100px]">
-                      {avatar ? (
-                        <img
-                          src={avatar}
-                          alt="Profile avatar"
-                          className="size-full object-cover"
-                        />
-                      ) : (
-                        <div className="size-full bg-neutral-200" />
-                      )}
+                  <div className="w-fit rounded-full bg-white p-0.75">
+                    <div className="relative h-[75px] w-[75px] sm:h-[100px] sm:w-[100px]">
+
+                      {/* Avatar */}
+                      <div className="absolute inset-0 overflow-hidden rounded-full bg-neutral-100">
+                        {avatar ? (
+                          <ReliableImage
+                            src={avatar}
+                            fallbackSrc={profileAvatar("", email)}
+                            alt="Profile avatar"
+                            className="size-full object-cover"
+                          />
+                        ) : (
+                          <div className="size-full bg-neutral-200" />
+                        )}
+                      </div>
+
+                      {/* Camera overlay - clipped inside avatar */}
+                      <button
+                        onClick={() => avatarInput.current?.click()}
+                        title="Change photo"
+                        className="absolute inset-0 z-10 grid place-items-center overflow-hidden rounded-full bg-ink/40 text-white opacity-0 transition group-hover:opacity-100 max-sm:opacity-100"
+                      >
+                        <Icon icon="solar:camera-outline" className="size-6" />
+                      </button>
+
+                      {/* Inner border - always on top */}
+                      <div className="pointer-events-none absolute inset-0 z-20 rounded-full border border-black/10" />
                     </div>
                   </div>
 
-                  {/* Change photo */}
-                  <button
-                    onClick={() => avatarInput.current?.click()}
-                    title="Change photo"
-                    className="absolute inset-0 grid place-items-center rounded-full bg-ink/40 text-white opacity-0 transition group-hover:opacity-100 max-sm:opacity-100"
-                  >
-                    <Icon icon="solar:camera-outline" className="size-6" />
-                  </button>
-
-                  {/* Adjust photo */}
+                  {/* Adjust photo button */}
                   {avatar && (
                     <button
                       onClick={() => setCrop({ kind: "avatar", src: avatar })}
                       title="Adjust photo"
-                      className="absolute bottom-0 right-0 grid size-8 place-items-center rounded-full border-2 border-white bg-ink text-white transition hover:opacity-90"
+                      className="absolute bottom-0 right-0 z-30 grid size-8 place-items-center rounded-full border-2 border-white bg-ink text-white transition hover:opacity-90"
                     >
                       <Icon icon="solar:pen-outline" className="size-3.5" />
                     </button>

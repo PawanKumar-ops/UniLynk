@@ -1,5 +1,12 @@
 @import "tailwindcss";
 
+/* The neutral canvas is visible only until the opaque white Lorelei SVG has
+   loaded; its border stays as the shared avatar edge. */
+img[src*="api.dicebear.com/9.x/lorelei/svg"] {
+  background-color: #f9fafb;
+  border: 1px solid #e5e7eb;
+}
+
 :root {
   --font-size: 16px;
   --background: #ffffff;
@@ -166,55 +173,4 @@ canvas {
 html,
 body {
   forced-color-adjust: none;
-}
-
-/* Modern scrollbar styling */
-/* Webkit browsers (Chrome, Safari, Edge) */
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 999px;
-  transition: background 0.2s ease;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
-}
-
-::-webkit-scrollbar-thumb:active {
-  background: #6b7280;
-}
-
-/* Firefox */
-* {
-  scrollbar-color: #d1d5db transparent;
-  scrollbar-width: thin;
-}
-
-*:hover {
-  scrollbar-color: #9ca3af transparent;
-}
-
-/* Mobile optimization */
-@media (max-width: 768px) {
-  ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
-  }
-  
-  ::-webkit-scrollbar-thumb {
-    background: #9ca3af;
-  }
-  
-  ::-webkit-scrollbar-thumb:hover {
-    background: #6b7280;
-  }
 }

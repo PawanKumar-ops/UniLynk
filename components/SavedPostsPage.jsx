@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Bookmark } from "lucide-react";
 import { DashboardEventsShell } from "@/components/DashboardEventsShell";
 import { PostCard } from "@/components/PostCard";
+import { loreleiAvatar } from "@/lib/avatar";
 
 const formatPostTime = (date) => date ? new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(Math.round((new Date(date) - Date.now()) / 86_400_000), "day") : "";
 const getImageGridClass = (count) => count === 1 ? "x-single-image" : count === 2 ? "image-grid count-2" : count === 3 ? "image-grid count-3" : "image-grid count-4";
@@ -73,7 +74,7 @@ export function SavedPostsPage() {
                 onComment={(id) => router.push(`/dashboard/post/${id}`)}
                 formatTime={formatPostTime}
                 imageGridClass={getImageGridClass}
-                avatarFallback={() => "/Profilepic.png"}
+                avatarFallback={(_name, email) => loreleiAvatar(email)}
               />
             ))
           ) : (

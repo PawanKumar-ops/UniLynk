@@ -13,6 +13,7 @@ import { ForwardMessageModal } from "@/components/ForwardMessageModal";
 import { cn } from "@/lib/utils";
 import { getPusherClient } from "@/lib/usePusher";
 import ChatGiphyPicker from "@/components/shared/ChatGiphyPicker";
+import { loreleiAvatar } from "@/lib/avatar";
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric", year: "numeric" });
 const weekdayFormatter = new Intl.DateTimeFormat(undefined, { weekday: "long" });
@@ -159,10 +160,10 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
         return () => { mounted = false; if (channel) { channel.unbind_all(); channel.unsubscribe(); } };
     }, [currentUserId, id, isCommunityRoute, communityId, groupId]);
 
-    const user = activeUser ? { id: activeUser.id, name: activeUser.name, handle: activeUser.email?.split("@")[0] || "user", avatar: activeUser.image || "/Profilepic.png", verified: false, followers: 0, joined: "recently" } : null;
+    const user = activeUser ? { id: activeUser.id, name: activeUser.name, handle: activeUser.email?.split("@")[0] || "user", avatar: activeUser.image || loreleiAvatar(activeUser.email), verified: false, followers: 0, joined: "recently" } : null;
     const community = communities.find((c) => c.id === communityId);
     const group = community?.groups?.find((g) => g.id === groupId);
-    const header = isCommunityRoute ? { name: group?.name || community?.name || "Community", handle: community?.name || "community", avatar: community?.image || "/Profilepic.png" } : user;
+    const header = isCommunityRoute ? { name: group?.name || community?.name || "Community", handle: community?.name || "community", avatar: community?.image || "/Defaultclublogo.svg" } : user;
     const isConversationBlocked = !isCommunityRoute && id && (blockedUsers.includes(id) || blockedBy.includes(id));
     const blockedLabel = blockedUsers.includes(id) ? "You have blocked this user. Unblock to message." : "You are blocked by this user. Unblock cannot send messages.";
 

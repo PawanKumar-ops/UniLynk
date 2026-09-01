@@ -3,6 +3,7 @@ import { connectDB } from "@/lib/mongodb";
 import Form from "@/models/Form";
 import ResponseModel from "@/models/Response";
 import User from "@/models/user";
+import { profileAvatar } from "@/lib/avatar";
 
 const norm = (v = "") => String(v || "").trim();
 const emailNorm = (v = "") => norm(v).toLowerCase();
@@ -27,7 +28,7 @@ const hydrateMembers = async (members = []) => {
       email: u.email || m.email || "",
       branch: u.branch || m.branch || "General",
       year: u.year || m.year || "Student",
-      avatar: u.img || m.avatar || "/Profilepic.png",
+      avatar: profileAvatar(u.img || m.avatar, u.email || m.email),
       role: i === 0 ? "Team Lead" : m.role || "Member",
       skills: u.skills || [],
     };
@@ -41,7 +42,7 @@ const buildTeamFinder = async ({ form, response, sessionUser }) => {
   const rawMembers = Array.isArray(response.answers?.team) ? response.answers.team : [];
   const members = await hydrateMembers(rawMembers);
   const leadName = user?.name || sessionUser?.name || fallbackName(userEmail);
-  const leadMember = { id: String(user?._id || response._id), userId: user?._id ? String(user._id) : "", name: leadName, email: userEmail, branch: user?.branch || "General", year: user?.year || "Student", avatar: user?.img || "/Profilepic.png", role: "Team Lead", skills: user?.skills || [] };
+  const leadMember = { id: String(user?._id || response._id), userId: user?._id ? String(user._id) : "", name: leadName, email: userEmail, branch: user?.branch || "General", year: user?.year || "Student", avatar: profileAvatar(user?.img, userEmail), role: "Team Lead", skills: user?.skills || [] };
   const fullMembers = [leadMember, ...members.filter((m) => emailNorm(m.email) !== userEmail && m.userId !== leadMember.userId)];
   if (fullMembers.length < max) {
     return { type: "team", profile: { name: leadName, email: userEmail, description: response.teamFinder?.profile?.description || "" }, team: { name: response.teamFinder?.team?.name || `${leadName}'s Team`, lead: leadName, members: fullMembers, needed: max - fullMembers.length, total: max, lookingFor: response.teamFinder?.team?.lookingFor || [] }, addedAt: response.teamFinder?.addedAt || new Date() };
@@ -63,7 +64,7 @@ const serialize = (response, form, user = null) => {
   const email = profile.email || userProfile.email || response.userEmail;
   const branch = profile.branch || userProfile.branch || "General";
   const year = profile.year || userProfile.year || "Student";
-  const avatar = profile.avatar || userProfile.img || "/Profilepic.png";
+  const avatar = profileAvatar(profile.avatar || userProfile.img, email);
   const skills = Array.isArray(profile.skills) && profile.skills.length ? profile.skills : Array.isArray(userProfile.skills) ? userProfile.skills : [];
   const descriptionText = profile.description || form?.description || "Looking for a team";
   return {
@@ -118,7 +119,7 @@ export async function POST(req) {
     const user = await User.findOne({ email: userEmail }).select("_id name email branch year img skills").lean();
     let teamFinder;
     if (type === "team") teamFinder = { type: "team", profile: { name: user?.name || fallbackName(userEmail), email: userEmail, description }, team: { name: teamRegistration?.teamName?.trim() || `${user?.name || fallbackName(userEmail)}'s Team`, lead: user?.name || fallbackName(userEmail), members: await hydrateMembers(teamRegistration?.members || []), needed: 1, total: Math.max(1, Number(form.teamSize) || 4), lookingFor: [] }, addedAt: new Date() };
-    else teamFinder = { type: "solo", profile: { userId: user?._id ? String(user._id) : "", name: user?.name || fallbackName(userEmail), email: userEmail, branch: user?.branch || "General", year: user?.year || "Student", avatar: user?.img || "/Profilepic.png", skills: user?.skills || [], description }, addedAt: new Date() };
+    else teamFinder = { type: "solo", profile: { userId: user?._id ? String(user._id) : "", name: user?.name || fallbackName(userEmail), email: userEmail, branch: user?.branch || "General", year: user?.year || "Student", avatar: profileAvatar(user?.img, userEmail), skills: user?.skills || [], description }, addedAt: new Date() };
     const response = await ResponseModel.findOneAndUpdate({ formId, userEmail }, { $set: { teamFinder }, $setOnInsert: { answers: {}, isSubmitted: false, submittedAt: null } }, { upsert: true, new: true, runValidators: true }).lean();
     return Response.json({ entry: serialize(response, form), type: teamFinder.type });
   } catch (e) { console.error(e); return Response.json({ error: e.message }, { status: 500 }); }

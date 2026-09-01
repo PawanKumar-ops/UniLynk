@@ -1,5 +1,6 @@
 import { connectDB } from "@/lib/mongodb";
 import User from "@/models/user";
+import { loreleiAvatar } from "@/lib/avatar";
 
 export async function GET(req) {
   try {
@@ -9,14 +10,14 @@ export async function GET(req) {
     const email = (searchParams.get("email") || "").trim().toLowerCase();
 
     if (!email) {
-      return Response.json({ exists: false, image: "/Profilepic.png" }, { status: 400 });
+      return Response.json({ exists: false, image: loreleiAvatar("") }, { status: 400 });
     }
 
     const user = await User.findOne({ email }).select("img").lean();
 
     return Response.json({
       exists: Boolean(user),
-      image: user?.img || "/Profilepic.png",
+      image: user?.img || loreleiAvatar(email),
     });
   } catch (error) {
     console.error("USER PROFILE LOOKUP ERROR:", error);

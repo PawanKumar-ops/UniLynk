@@ -14,6 +14,7 @@ import ReliableImage from "@/components/ReliableImage";
 import { DashboardEventsShell } from "@/components/DashboardEventsShell";
 import { PostCard } from "@/components/PostCard";
 import { ProfileSkeleton } from "./ProfileSkeleton";
+import { loreleiAvatar } from "@/lib/avatar";
 
 function Button({ variant = "default", className = "", children, ...props }) {
   const base = "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 py-2 text-sm transition-colors disabled:pointer-events-none disabled:opacity-50";
@@ -21,8 +22,8 @@ function Button({ variant = "default", className = "", children, ...props }) {
   return <button className={`${base} ${variants[variant] || variants.default} ${className}`} {...props}>{children}</button>;
 }
 
-function ImageWithFallback({ src, alt = "", className = "", ...props }) {
-  return <ReliableImage src={src} fallbackSrc="/Profilepic.png" alt={alt} className={className} {...props} />;
+function ImageWithFallback({ src, email, alt = "", className = "", ...props }) {
+  return <ReliableImage src={src} fallbackSrc={loreleiAvatar(email)} alt={alt} className={className} {...props} />;
 }
 
 function SectionCard({ title, icon: IconComponent, children }) {
@@ -44,7 +45,7 @@ const formatPostTime = (date) => date ? new Intl.RelativeTimeFormat("en", { nume
 const getImageGridClass = (count) => count === 1 ? "x-single-image" : count === 2 ? "image-grid count-2" : count === 3 ? "image-grid count-3" : "image-grid count-4";
 
 export function ProfilePostCard(props) {
-  return <PostCard {...props} variant="dashboard" formatTime={formatPostTime} imageGridClass={getImageGridClass} avatarFallback={() => "/Profilepic.png"} onComment={props.onOpenPost} />;
+  return <PostCard {...props} variant="dashboard" formatTime={formatPostTime} imageGridClass={getImageGridClass} avatarFallback={(_name, email) => loreleiAvatar(email)} onComment={props.onOpenPost} />;
 }
 
 export function ProfilePage() {
@@ -67,9 +68,9 @@ export function ProfilePage() {
         if (!meRes.ok) throw new Error(meData.error || "Could not load profile");
         const targetRes = routeUserId
           ? await fetch(`/api/users/${encodeURIComponent(routeUserId)}`, {
-              cache: "no-store",
-              headers: { Pragma: "no-cache", "Cache-Control": "no-cache" },
-            })
+            cache: "no-store",
+            headers: { Pragma: "no-cache", "Cache-Control": "no-cache" },
+          })
           : null;
         const targetData = targetRes ? await targetRes.json() : null;
         if (targetRes && !targetRes.ok) throw new Error(targetData.error || "Could not load profile");
@@ -218,6 +219,7 @@ export function ProfilePage() {
               <div className="rounded-full w-fit bg-white p-0.75 ring-1 ring-white">
                 <ImageWithFallback
                   src={profile.img}
+                  email={profile.email}
                   alt={profile.name}
                   width={512}
                   height={512}
@@ -245,7 +247,7 @@ export function ProfilePage() {
                 <div className="flex items-center gap-2">
                   {(profile.socials || []).map((social) => {
                     const socialIcon =
-  socialIconByPlatform[social.platform] || "solar:global-linear";
+                      socialIconByPlatform[social.platform] || "solar:global-linear";
 
                     return (
                       <a

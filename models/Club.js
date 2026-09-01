@@ -17,7 +17,7 @@ const LeadershipMemberSchema = new mongoose.Schema(
   {
     email: { type: String, required: true, trim: true, lowercase: true },
     position: { type: String, required: true, trim: true },
-    image: { type: String, default: "/Profilepic.png" },
+    image: { type: String, default: "" },
     joiningYear: { type: String, default: "" },
     joinedAt: { type: Date, default: Date.now },
   },
@@ -28,7 +28,7 @@ const ClubMemberSchema = new mongoose.Schema(
   {
     email: { type: String, required: true, trim: true, lowercase: true },
     name: { type: String, required: true, trim: true },
-    profilePicture: { type: String, default: "/Profilepic.png" },
+    profilePicture: { type: String, default: "" },
     position: { type: String, default: "Member", trim: true },
     joiningYear: { type: String, default: "" },
     joinedAt: { type: Date, default: Date.now },

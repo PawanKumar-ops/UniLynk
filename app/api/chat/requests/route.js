@@ -5,6 +5,7 @@ import User from "@/models/user";
 import ChatMessage from "@/models/chatMessage";
 import MessageRequest from "@/models/messageRequest";
 import { triggerPusher, userChannel } from "@/lib/pusher";
+import { profileAvatar } from "@/lib/avatar";
 
 async function getCurrentUser() {
   const session = await auth();
@@ -36,7 +37,7 @@ export async function GET() {
           id: request.requester._id.toString(),
           name: request.requester.name || request.requester.email || "UniLynk User",
           handle: request.requester.email?.split("@")[0] || "user",
-          avatar: request.requester.img || "/Profilepic.png",
+          avatar: profileAvatar(request.requester.img, request.requester.email),
         },
         preview: latest?.text || "Sent a message request",
         time: formatTime(latest?.createdAt || request.updatedAt),
