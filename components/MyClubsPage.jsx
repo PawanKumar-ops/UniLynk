@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Users, Search, ArrowLeft, Sparkles, Star, Layers } from "lucide-react";
+import { Icon } from "@iconify/react";
 import Link from "next/link";
 
 /* ---------- Inline UI primitives (no external ui/figma imports) ---------- */
@@ -138,7 +139,7 @@ export function MyClubsPage() {
 
   return (
     <div className="relative flex-1">
-      <header
+      {/* <header
         className="sticky top-0 z-50 mb-5 flex h-[54px] items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl"
         style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
       >
@@ -158,6 +159,56 @@ export function MyClubsPage() {
             <p className="mt-0.5 text-[13px] leading-4 text-[#536471]">
               Communities you follow and love
             </p>
+          </div>
+        </div>
+      </header>
+ */}
+
+
+      <header
+        className="sticky top-0 z-50 mb-5 flex h-[54px] items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl"
+        style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
+      >
+        {/* Left */}
+        <div
+          className="flex items-center"
+          style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
+        >
+          <button
+            onClick={() => router.back()}
+            className="mr-6 flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-black/5"
+          >
+            <ArrowLeft size={20} strokeWidth={2.2} />
+          </button>
+
+          <div>
+            <h1 className="truncate text-[20px] font-bold leading-5 text-black">
+              Clubs
+            </h1>
+
+            <p className="mt-0.5 text-[13px] leading-4 text-[#536471]">
+              Communities you follow and love
+            </p>
+          </div>
+        </div>
+
+        {/* Right */}
+        <div className="flex items-center gap-1.5">
+          {/* Add Members */}
+          <div className="group relative">
+            <button
+              onClick={() => router.push('./newsletter')}
+              className="flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-black/5"
+            >
+              <Icon
+                icon="solar:documents-minimalistic-linear"
+                className="text-[21px] text-[#171717]"
+              />
+            </button>
+
+            <div className="pointer-events-none absolute right-1/2 top-full mt-2 translate-x-1/2 rounded-full bg-[#2c2f35] px-3 py-1.5 text-xs font-medium whitespace-nowrap text-white opacity-0 transition-all duration-200 group-hover:translate-y-1 group-hover:opacity-100">
+              Newsletters
+            </div>
           </div>
         </div>
       </header>

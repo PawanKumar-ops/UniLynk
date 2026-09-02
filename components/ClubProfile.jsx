@@ -299,7 +299,7 @@ export function ClubPage() {
                 <div className="mx-auto px-3.5 flex max-w-3xl flex-col gap-4 sm:gap-6">
                     {/* Banner + identity */}
                     <article
-                        style={{ maxWidth: "579.5px", boxShadow: "var(--shadow-card)" }}
+                        style={{ boxShadow: "var(--shadow-card)" }}
                         className="relative w-full overflow-hidden rounded-[24px] bg-white ring-1 ring-[#0000000D] border border-[#0000001A] bg-white shadow-sm"
 
                     >
