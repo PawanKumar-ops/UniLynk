@@ -48,7 +48,7 @@ export async function PATCH(req, { params }) {
     const { id } = await params;
     const club = await Club.findById(id);
     if (!club) return Response.json({ message: "Club not found" }, { status: 404 });
-    if (!club.leaders.some((leader) => normalizeEmail(leader.email) === sessionEmail)) {
+    if (!(club.leaders || []).some((leader) => normalizeEmail(leader?.email) === sessionEmail)) {
       return Response.json({ message: "Only club leaders can edit this profile" }, { status: 403 });
     }
 
@@ -73,8 +73,8 @@ export async function PATCH(req, { params }) {
     }
 
     const eligibleEmails = new Set([
-      ...club.members.map((member) => normalizeEmail(member.email)),
-      ...club.leaders.map((leader) => normalizeEmail(leader.email)),
+      ...(club.members || []).map((member) => normalizeEmail(member?.email)),
+      ...(club.leaders || []).map((leader) => normalizeEmail(leader?.email)),
     ]);
     const leaders = Array.isArray(body.leaders) ? body.leaders : [];
     const leaderMap = new Map();
@@ -90,7 +90,9 @@ export async function PATCH(req, { params }) {
       return Response.json({ message: "You cannot remove your own leadership access" }, { status: 400 });
     }
 
-    const existingLeaders = new Map(club.leaders.map((leader) => [normalizeEmail(leader.email), leader]));
+    const existingLeaders = new Map(
+      (club.leaders || []).map((leader) => [normalizeEmail(leader?.email), leader])
+    );
     const updatedLeaders = [...leaderMap].map(([email, position]) => {
       const existing = existingLeaders.get(email);
       return {
@@ -101,16 +103,32 @@ export async function PATCH(req, { params }) {
         joinedAt: existing?.joinedAt || new Date(),
       };
     });
-    const preservedActivities = club.activities.filter((activity) => activity.date || activity.formId);
+    const preservedActivities = (club.activities || []).filter((activity) => activity?.date || activity?.formId);
     const [banner, logo] = await Promise.all([
       persistImage(body.banner, "club-banners", 1500, 500),
       persistImage(body.logo, "club-logos", 800, 800),
     ]);
 
-    club.set({ clubName, category, description, banner, logo, activities: [...preservedActivities, ...highlights], leaders: updatedLeaders });
-    await club.save();
-    await syncClubCommunity(club);
-    return Response.json({ club }, { headers: { "Cache-Control": "no-store" } });
+    // Use a targeted update so an editable profile can be saved even when an
+    // older club document contains unrelated legacy fields that no longer meet
+    // the current schema's validation rules.
+    const updatedClub = await Club.findByIdAndUpdate(
+      id,
+      {
+        $set: {
+          clubName,
+          category,
+          description,
+          banner,
+          logo,
+          activities: [...preservedActivities, ...highlights],
+          leaders: updatedLeaders,
+        },
+      },
+      { new: true }
+    );
+    await syncClubCommunity(updatedClub);
+    return Response.json({ club: updatedClub }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     console.error("UPDATE CLUB PROFILE ERROR:", error);
     return Response.json({ message: error.message || "Failed to update club profile" }, { status: 500 });
