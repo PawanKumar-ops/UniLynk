@@ -1,4 +1,5 @@
-"use client"
+"use client";
+
 import {
   useEffect,
   useLayoutEffect,
@@ -20,7 +21,18 @@ import {
   ZoomOut,
   Loader2,
 } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { DashboardEventsShell } from "@/components/DashboardEventsShell";
+import "@/app/dashboard/dashboard.css";
+
+/* -------------------------------------------------------------------------- */
+/*  Shared styles                                                              */
+/* -------------------------------------------------------------------------- */
+
+// Matches the EditProfile `.input` styling so the two pages look identical
+// without depending on any external CSS.
+const INPUT =
+  "w-full rounded-xl border border-[#ececec] bg-white px-[14.4px] py-[11.2] text-[15px] leading-6 text-[#171717] outline-none transition placeholder:text-[#b3b7bd] focus:border-[#171717] focus:ring-4 focus:ring-[#171717]/[0.06]";
 
 /* -------------------------------------------------------------------------- */
 /*  Seed data                                                                  */
@@ -68,9 +80,20 @@ function SectionHeader({ index, title, desc }) {
 
 function Card({ children }) {
   return (
-    <section className="rounded-[var(--radius)] border border-[#ececec] bg-white p-5 sm:p-6">
+    <section className="rounded-[20px] border border-[#ececec] bg-white p-5 sm:p-6">
       {children}
     </section>
+  );
+}
+
+function Field({ label, children }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.15em] text-[#8a8f98]">
+        {label}
+      </span>
+      {children}
+    </label>
   );
 }
 
@@ -96,20 +119,8 @@ function AutoTextarea({ value, minRows = 3, className = "", ...rest }) {
   );
 }
 
-function Field({ label, children, hint }) {
-  return (
-    <label className="block">
-      <span className="mb-1.5 block font-mono text-[10px] uppercase tracking-[0.15em] text-[#8a8f98]">
-        {label}
-      </span>
-      {children}
-      {hint && <span className="mt-1.5 block text-xs text-[#8a8f98]">{hint}</span>}
-    </label>
-  );
-}
-
 /* -------------------------------------------------------------------------- */
-/*  Crop modal (adapted from the reference, self-contained, no upload API)     */
+/*  Crop modal (self-contained, no upload API)                                 */
 /* -------------------------------------------------------------------------- */
 
 const MAX_ZOOM = 4;
@@ -250,9 +261,8 @@ function CropModal({ src, aspect, title, round, onCancel, onApply }) {
         onClick={onCancel}
       />
       <div
-        className={`relative max-h-[92vh] w-full overflow-y-auto rounded-[20px] border border-[#ececec] bg-white p-5 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.35)] ${
-          round ? "max-w-[420px]" : "max-w-xl"
-        }`}
+        className={`relative max-h-[92vh] w-full overflow-y-auto rounded-[20px] border border-[#ececec] bg-white p-5 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.35)] ${round ? "max-w-[420px]" : "max-w-xl"
+          }`}
       >
         <div className="mb-4 flex items-center justify-between">
           <div>
@@ -290,14 +300,12 @@ function CropModal({ src, aspect, title, round, onCancel, onApply }) {
             />
           )}
           <div
-            className={`pointer-events-none absolute inset-0 shadow-[0_0_0_2000px_rgba(0,0,0,0.45)] ${
-              round ? "rounded-full" : ""
-            }`}
+            className={`pointer-events-none absolute inset-0 shadow-[0_0_0_2000px_rgba(0,0,0,0.45)] ${round ? "rounded-full" : ""
+              }`}
           />
           <div
-            className={`pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3 overflow-hidden ${
-              round ? "rounded-full" : ""
-            }`}
+            className={`pointer-events-none absolute inset-0 grid grid-cols-3 grid-rows-3 overflow-hidden ${round ? "rounded-full" : ""
+              }`}
           >
             {Array.from({ length: 9 }).map((_, i) => (
               <div key={i} className="border border-white/30" />
@@ -398,7 +406,7 @@ function MemberSearch({ chosenIds, onAdd }) {
         }}
         onFocus={() => setOpen(true)}
         placeholder="Search members by name or username…"
-        className="input"
+        className={INPUT}
         style={{ paddingLeft: "2.75rem" }}
       />
 
@@ -447,7 +455,7 @@ function MemberSearch({ chosenIds, onAdd }) {
 /*  Page                                                                       */
 /* -------------------------------------------------------------------------- */
 
-export default function App() {
+export default function EditClubProfile() {
   const [banner, setBanner] = useState(DEFAULT_BANNER);
   const [avatar, setAvatar] = useState(DEFAULT_AVATAR);
 
@@ -489,10 +497,7 @@ export default function App() {
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
-  const chosenIds = useMemo(
-    () => new Set(leaders.map((l) => l.id)),
-    [leaders]
-  );
+  const chosenIds = useMemo(() => new Set(leaders.map((l) => l.id)), [leaders]);
 
   const pick = (kind) => (e) => {
     const file = e.target.files?.[0];
@@ -518,9 +523,7 @@ export default function App() {
   };
 
   const updateWhatWeDo = (i, key, value) =>
-    setWhatWeDo((p) =>
-      p.map((it, idx) => (idx === i ? { ...it, [key]: value } : it))
-    );
+    setWhatWeDo((p) => p.map((it, idx) => (idx === i ? { ...it, [key]: value } : it)));
 
   const setLeaderRole = (id, role) =>
     setLeaders((p) => p.map((l) => (l.id === id ? { ...l, role } : l)));
@@ -539,291 +542,305 @@ export default function App() {
 
   return (
     <DashboardEventsShell>
-      {/* Sticky header */}
-      <header className="sticky top-0 z-50 flex h-[56px] w-full items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl">
-        <div className="flex items-center">
-          <button
-            onClick={() => window.history.back()}
-            className="mr-5 flex size-9 cursor-pointer items-center justify-center rounded-full transition hover:bg-black/5"
-          >
-            <ArrowLeft size={20} strokeWidth={2.2} />
-          </button>
-          <div>
-            <h1 className="truncate font-display text-[20px] font-semibold leading-5 text-[#171717]">
-              Edit Club Profile
-            </h1>
-            <p className="mt-0.5 text-[13px] leading-4 text-[#8a8f98]">
-              Update how your club appears to everyone
-            </p>
-          </div>
-        </div>
-
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex h-9 items-center gap-2 rounded-full bg-[#171717] px-4 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-60"
-        >
-          {saving ? (
-            <Loader2 className="size-4 animate-spin" />
-          ) : saved ? (
-            <Check className="size-4" />
-          ) : (
-            <Pencil className="size-4" />
-          )}
-          {saving ? "Saving…" : saved ? "Saved" : "Save"}
-        </button>
-      </header>
-
-      <div className="px-[10px] sm:px-[14px]">
-    <div className="mx-auto w-full max-w-3xl">
-        <div className="space-y-3 pt-5 pb-14">
-          {/* Media ------------------------------------------------------- */}
-          <section className="overflow-hidden rounded-[var(--radius)] border border-[#ececec] bg-white">
-            <div className="group relative h-[150px] w-full overflow-hidden bg-neutral-100 sm:h-[190px]">
-              <img
-                src={banner}
-                alt="Club banner"
-                className="size-full object-cover"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
-              <div className="absolute inset-0 flex items-center justify-center gap-3 bg-[#171717]/25 opacity-0 transition group-hover:opacity-100 max-sm:opacity-100">
-                <button
-                  onClick={() => bannerInput.current?.click()}
-                  title="Upload banner"
-                  className="grid size-11 place-items-center rounded-full bg-[#171717]/70 text-white backdrop-blur transition hover:bg-[#171717]"
+      <div className="min-h-full bg-white text-[#171717]">
+        {/* Sticky header */}
+        <header
+                  className="sticky top-0 z-50 flex h-[54px] w-full items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl"
+                  style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
                 >
-                  <Camera className="size-[18px]" />
-                </button>
-                <button
-                  onClick={() => setCrop({ kind: "banner", src: banner })}
-                  title="Adjust banner"
-                  className="grid size-11 place-items-center rounded-full bg-[#171717]/70 text-white backdrop-blur transition hover:bg-[#171717]"
-                >
-                  <Pencil className="size-[18px]" />
-                </button>
-              </div>
-            </div>
-
-            <div className="relative px-5 pb-5 sm:px-7 sm:pb-6">
-              <div className="flex items-end gap-4">
-                <div className="group relative -mt-10 sm:-mt-13">
-                  <div className="w-fit rounded-full bg-white p-[3px]">
-                    <div className="relative h-[78px] w-[78px] sm:h-[104px] sm:w-[104px]">
-                      <div className="absolute inset-0 overflow-hidden rounded-full bg-neutral-100">
-                        <img
-                          src={avatar}
-                          alt="Club avatar"
-                          className="size-full object-cover"
-                        />
-                      </div>
-                      <button
-                        onClick={() => avatarInput.current?.click()}
-                        title="Change photo"
-                        className="absolute inset-0 z-10 grid place-items-center overflow-hidden rounded-full bg-[#171717]/40 text-white opacity-0 transition group-hover:opacity-100 max-sm:opacity-100"
-                      >
-                        <Camera className="size-6" />
-                      </button>
-                      <div className="pointer-events-none absolute inset-0 z-20 rounded-full border border-black/10" />
+                  {/* Left */}
+                  <div
+                    className="flex items-center"
+                    style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
+                  >
+                    <button
+                      onClick={() => router.back()}
+                      className="mr-6 flex h-9 w-9 items-center cursor-pointer justify-center rounded-full transition hover:bg-black/5"
+                    >
+                      <ArrowLeft size={20} strokeWidth={2.2} />
+                    </button>
+        
+                    <div>
+                      <h1 className="truncate text-[20px] font-bold leading-5 text-black">
+                        Edit Club Profile
+                      </h1>
+        
+                      <p className="mt-0.5 text-[13px] leading-4 text-[#536471]">
+                        Update profile
+                      </p>
                     </div>
                   </div>
-                  <button
-                    onClick={() => setCrop({ kind: "avatar", src: avatar })}
-                    title="Adjust photo"
-                    className="absolute bottom-0 right-0 z-30 grid size-8 place-items-center rounded-full border-2 border-white bg-[#171717] text-white transition hover:opacity-90"
-                  >
-                    <Pencil className="size-3.5" />
-                  </button>
+        
+                  {/* Right */}
+                  <div className="flex items-center gap-1.5">
+                    <div className="group relative">
+                      <button
+                       
+                        className="flex h-9 gap-1 px-4 items-center cursor-pointer justify-center rounded-full transition hover:bg-black/5"
+                      >
+                        <Icon
+                          icon="solar:pen-outline"
+                          className="text-[21px] text-[#171717]"
+                        />Save
+                      </button>
+        
+                      <div className="pointer-events-none absolute right-1/2 top-full mt-2 translate-x-1/2 rounded-full bg-[#2c2f35] px-3 py-1.5 text-xs font-medium whitespace-nowrap text-white opacity-0 transition-all duration-200 group-hover:translate-y-1 group-hover:opacity-100">
+                        Save Profile
+                      </div>
+                    </div>
+                  </div>
+                </header>
+
+        <div className="px-[10px] sm:px-[14px]">
+          <div className="mx-auto w-full max-w-3xl">
+            <div className="space-y-3 pt-5 pb-10">
+              {/* Media --------------------------------------------------- */}
+              <section className="overflow-hidden rounded-[24px] border border-[#ececec] bg-white">
+                <div className="relative">
+                  {/* Banner */}
+                  <div className="group relative h-[160px] w-full overflow-hidden bg-neutral-100 sm:h-[200px]">
+                    <img src={banner} alt="Club banner" className="size-full object-cover" />
+
+                    {/* Banner shadow */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
+
+                    {/* Banner controls */}
+                    <div className="absolute inset-0 flex items-center justify-center gap-3 bg-[#171717]/25 opacity-0 transition group-hover:opacity-100 max-sm:opacity-100">
+                      <button
+                        onClick={() => bannerInput.current?.click()}
+                        title="Upload banner"
+                        className="grid size-11 place-items-center rounded-full bg-[#171717]/70 text-white backdrop-blur transition hover:bg-[#171717]"
+                      >
+                        <Camera className="size-[18px]" />
+                      </button>
+                      <button
+                        onClick={() => setCrop({ kind: "banner", src: banner })}
+                        title="Adjust banner"
+                        className="grid size-11 place-items-center rounded-full bg-[#171717]/70 text-white backdrop-blur transition hover:bg-[#171717]"
+                      >
+                        <Pencil className="size-[18px]" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Profile picture area */}
+                  <div className="relative px-5 pb-5 sm:px-7 sm:pb-7">
+                    <div className="flex items-end gap-4">
+                      <div className="group relative -mt-10 sm:-mt-13">
+                        <div className="w-fit rounded-full bg-white p-0.75">
+                          <div className="relative h-[75px] w-[75px] sm:h-[100px] sm:w-[100px]">
+                            {/* Avatar */}
+                            <div className="absolute inset-0 overflow-hidden rounded-full bg-neutral-100">
+                              <img src={avatar} alt="Club avatar" className="size-full object-cover" />
+                            </div>
+
+                            {/* Camera overlay */}
+                            <button
+                              onClick={() => avatarInput.current?.click()}
+                              title="Change photo"
+                              className="absolute inset-0 z-10 grid place-items-center overflow-hidden rounded-full bg-[#171717]/40 text-white opacity-0 transition group-hover:opacity-100 max-sm:opacity-100"
+                            >
+                              <Camera className="size-6" />
+                            </button>
+
+                            {/* Inner border */}
+                            <div className="pointer-events-none absolute inset-0 z-20 rounded-full border border-black/10" />
+                          </div>
+                        </div>
+
+                        {/* Adjust photo button */}
+                        <button
+                          onClick={() => setCrop({ kind: "avatar", src: avatar })}
+                          title="Adjust photo"
+                          className="absolute bottom-0 right-0 z-30 grid size-8 place-items-center rounded-full border-2 border-white bg-[#171717] text-white transition hover:opacity-90"
+                        >
+                          <Pencil className="size-3.5" />
+                        </button>
+                      </div>
+
+                      <p className="pb-2 text-sm text-[#8a8f98]">
+                        Hover a photo to upload or adjust.
+                      </p>
+                    </div>
+                  </div>
                 </div>
 
-                <p className="pb-2 text-sm text-[#8a8f98]">
-                  Hover a photo to upload or adjust.
-                </p>
-              </div>
-            </div>
+                <input ref={bannerInput} type="file" accept="image/*" hidden onChange={pick("banner")} />
+                <input ref={avatarInput} type="file" accept="image/*" hidden onChange={pick("avatar")} />
+              </section>
 
-            <input ref={bannerInput} type="file" accept="image/*" hidden onChange={pick("banner")} />
-            <input ref={avatarInput} type="file" accept="image/*" hidden onChange={pick("avatar")} />
-          </section>
-
-          {/* Basic details ---------------------------------------------- */}
-          <Card>
-            <SectionHeader
-              index="01"
-              title="Basic details"
-              desc="The name and category members see first."
-            />
-            <div className="grid gap-4 sm:grid-cols-2">
-              <Field label="Club name">
-                <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="input"
-                  placeholder="Your club name"
+              {/* Basic details ------------------------------------------ */}
+              <Card>
+                <SectionHeader
+                  index="01"
+                  title="Basic details"
+                  desc="The name and category members see first."
                 />
-              </Field>
-              <Field label="Category">
-                <input
-                  value={category}
-                  onChange={(e) => setCategory(e.target.value)}
-                  className="input"
-                  placeholder="e.g. Innovation"
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <Field label="Club name">
+                    <input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      className={INPUT}
+                      placeholder="Your club name"
+                    />
+                  </Field>
+                  <Field label="Category">
+                    <input
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className={INPUT}
+                      placeholder="e.g. Innovation"
+                    />
+                  </Field>
+                </div>
+              </Card>
+
+              {/* About --------------------------------------------------- */}
+              <Card>
+                <SectionHeader
+                  index="02"
+                  title="About"
+                  desc="Tell people what your club is all about."
                 />
-              </Field>
-            </div>
-          </Card>
-
-          {/* About ------------------------------------------------------ */}
-          <Card>
-            <SectionHeader
-              index="02"
-              title="About"
-              desc="Tell people what your club is all about."
-            />
-            <div className="relative">
-              <AutoTextarea
-                value={about}
-                minRows={4}
-                onChange={(e) => setAbout(e.target.value.slice(0, 600))}
-                className="input leading-relaxed"
-                placeholder="Describe your club, its mission and what makes it special…"
-              />
-              <span className="mt-1.5 block text-right font-mono text-[11px] text-[#8a8f98]">
-                {about.length}/600
-              </span>
-            </div>
-          </Card>
-
-          {/* What we do ------------------------------------------------- */}
-          <Card>
-            <SectionHeader
-              index="03"
-              title="What we do"
-              desc="Four highlights that capture your club at a glance."
-            />
-            <div className="grid gap-3 sm:grid-cols-2">
-              {whatWeDo.map((item, i) => (
-                <div
-                  key={i}
-                  className="rounded-xl border border-[#ececec] p-4 transition focus-within:border-[#171717] focus-within:ring-4 focus-within:ring-[#171717]/[0.06]"
-                >
-                  <input
-                    value={item.title}
-                    onChange={(e) => updateWhatWeDo(i, "title", e.target.value)}
-                    placeholder="Point title"
-                    className="mb-2 w-full bg-transparent text-sm font-semibold text-[#171717] outline-none placeholder:font-normal placeholder:text-[#8a8f98]"
-                  />
+                <div className="relative">
                   <AutoTextarea
-                    value={item.desc}
-                    minRows={2}
-                    onChange={(e) => updateWhatWeDo(i, "desc", e.target.value.slice(0, 150))}
-                    placeholder="Describe this highlight…"
-                    className="w-full bg-transparent text-sm leading-relaxed text-neutral-600 outline-none placeholder:text-[#8a8f98]"
+                    value={about}
+                    minRows={4}
+                    onChange={(e) => setAbout(e.target.value.slice(0, 600))}
+                    className={`${INPUT} leading-relaxed`}
+                    placeholder="Describe your club, its mission and what makes it special…"
                   />
-                  <span className="mt-1.5 block text-right font-mono text-[10px] text-[#8a8f98]">
-                    {item.desc.length}/150
+                  <span className="mt-1.5 block text-right font-mono text-[11px] text-[#8a8f98]">
+                    {about.length}/600
                   </span>
                 </div>
-              ))}
-            </div>
-          </Card>
+              </Card>
 
-          {/* Leadership team -------------------------------------------- */}
-          <Card>
-            <SectionHeader
-              index="04"
-              title="Leadership team"
-              desc="Search members and assign their leadership roles."
-            />
-
-            <MemberSearch
-              chosenIds={chosenIds}
-              onAdd={(u) =>
-                setLeaders((p) => [...p, { ...u, role: "Member" }])
-              }
-            />
-
-            <div className="mt-4 space-y-2.5">
-              {leaders.length === 0 && (
-                <p className="rounded-xl border border-dashed border-[#ececec] px-4 py-6 text-center text-sm text-[#8a8f98]">
-                  No leaders yet. Search above to add your first one.
-                </p>
-              )}
-
-              {leaders.map((l) => (
-                <div
-                  key={l.id}
-                  className="flex items-center gap-3 rounded-xl border border-[#ececec] px-3 py-2.5"
-                >
-                  <img
-                    src={l.img}
-                    alt={l.name}
-                    className="size-11 shrink-0 rounded-full border border-black/10 bg-neutral-100 object-cover"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium text-[#171717]">
-                      {l.name}
-                    </p>
-                    <p className="truncate text-xs text-[#8a8f98]">@{l.handle}</p>
-                  </div>
-                  <input
-                    value={l.role}
-                    onChange={(e) => setLeaderRole(l.id, e.target.value)}
-                    placeholder="Role"
-                    className="w-32 shrink-0 rounded-lg border border-[#ececec] bg-white px-3 py-2 text-sm text-[#171717] outline-none transition focus:border-[#171717] focus:ring-4 focus:ring-[#171717]/[0.06] sm:w-40"
-                  />
-                  <button
-                    onClick={() =>
-                      setLeaders((p) => p.filter((x) => x.id !== l.id))
-                    }
-                    aria-label={`Remove ${l.name}`}
-                    className="grid size-8 shrink-0 place-items-center rounded-full text-[#8a8f98] transition hover:bg-[#171717] hover:text-white"
-                  >
-                    <X className="size-4" />
-                  </button>
+              {/* What we do ---------------------------------------------- */}
+              <Card>
+                <SectionHeader
+                  index="03"
+                  title="What we do"
+                  desc="Four highlights that capture your club at a glance."
+                />
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {whatWeDo.map((item, i) => (
+                    <div
+                      key={i}
+                      className="rounded-xl border border-[#ececec] p-4 transition focus-within:border-[#171717] focus-within:ring-4 focus-within:ring-[#171717]/[0.06]"
+                    >
+                      <input
+                        value={item.title}
+                        onChange={(e) => updateWhatWeDo(i, "title", e.target.value)}
+                        placeholder="Point title"
+                        className="mb-2 w-full bg-transparent text-sm font-semibold text-[#171717] outline-none placeholder:font-normal placeholder:text-[#8a8f98]"
+                      />
+                      <AutoTextarea
+                        value={item.desc}
+                        minRows={2}
+                        onChange={(e) => updateWhatWeDo(i, "desc", e.target.value.slice(0, 150))}
+                        placeholder="Describe this highlight…"
+                        className="w-full bg-transparent text-sm leading-relaxed text-neutral-600 outline-none placeholder:text-[#8a8f98]"
+                      />
+                      <span className="mt-1.5 block text-right font-mono text-[10px] text-[#8a8f98]">
+                        {item.desc.length}/150
+                      </span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </Card>
+
+              {/* Leadership team ---------------------------------------- */}
+              <Card>
+                <SectionHeader
+                  index="04"
+                  title="Leadership team"
+                  desc="Search members and assign their leadership roles."
+                />
+
+                <MemberSearch
+                  chosenIds={chosenIds}
+                  onAdd={(u) => setLeaders((p) => [...p, { ...u, role: "Member" }])}
+                />
+
+                <div className="mt-4 space-y-2.5">
+                  {leaders.length === 0 && (
+                    <p className="rounded-xl border border-dashed border-[#ececec] px-4 py-6 text-center text-sm text-[#8a8f98]">
+                      No leaders yet. Search above to add your first one.
+                    </p>
+                  )}
+
+                  {leaders.map((l) => (
+                    <div
+                      key={l.id}
+                      className="flex items-center gap-3 rounded-xl border border-[#ececec] px-3 py-2.5"
+                    >
+                      <img
+                        src={l.img}
+                        alt={l.name}
+                        className="size-11 shrink-0 rounded-full border border-black/10 bg-neutral-100 object-cover"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium text-[#171717]">{l.name}</p>
+                        <p className="truncate text-xs text-[#8a8f98]">@{l.handle}</p>
+                      </div>
+                      <input
+                        value={l.role}
+                        onChange={(e) => setLeaderRole(l.id, e.target.value)}
+                        placeholder="Role"
+                        className="w-32 shrink-0 rounded-lg border border-[#ececec] bg-white px-3 py-2 text-sm text-[#171717] outline-none transition focus:border-[#171717] focus:ring-4 focus:ring-[#171717]/[0.06] sm:w-40"
+                      />
+                      <button
+                        onClick={() => setLeaders((p) => p.filter((x) => x.id !== l.id))}
+                        aria-label={`Remove ${l.name}`}
+                        className="grid size-8 shrink-0 place-items-center rounded-full text-[#8a8f98] transition hover:bg-[#171717] hover:text-white"
+                      >
+                        <X className="size-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+
+              {error && <p className="px-1 text-sm font-medium text-red-600">{error}</p>}
+
+              {/* Action bar --------------------------------------------- */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => window.history.back()}
+                  className="flex-1 rounded-full border border-[#ececec] bg-white px-5 py-3 text-sm font-medium transition hover:bg-neutral-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#171717] px-5 py-3 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
+                >
+                  {saving ? (
+                    <Loader2 className="size-4 animate-spin" />
+                  ) : saved ? (
+                    <Check className="size-4" />
+                  ) : null}
+                  {saving ? "Saving…" : saved ? "Saved" : "Save changes"}
+                </button>
+              </div>
             </div>
-          </Card>
-
-          {error && (
-            <p className="px-1 text-sm font-medium text-red-600">{error}</p>
-          )}
-
-          {/* Action bar ------------------------------------------------- */}
-          <div className="flex gap-3">
-            <button
-              onClick={() => window.history.back()}
-              className="flex-1 rounded-full border border-[#ececec] bg-white px-5 py-3 text-sm font-medium transition hover:bg-neutral-100"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#171717] px-5 py-3 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-50"
-            >
-              {saving ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : saved ? (
-                <Check className="size-4" />
-              ) : null}
-              {saving ? "Saving…" : saved ? "Saved" : "Save changes"}
-            </button>
           </div>
         </div>
-      </div>
 
-      {crop && (
-        <CropModal
-          src={crop.src}
-          aspect={crop.kind === "banner" ? 3 : 1}
-          round={crop.kind === "avatar"}
-          title={crop.kind === "banner" ? "Banner image" : "Profile picture"}
-          onCancel={() => setCrop(null)}
-          onApply={handleCropApply}
-        />
-      )}
+        {crop && (
+          <CropModal
+            src={crop.src}
+            aspect={crop.kind === "banner" ? 3 : 1}
+            round={crop.kind === "avatar"}
+            title={crop.kind === "banner" ? "Banner image" : "Profile picture"}
+            onCancel={() => setCrop(null)}
+            onApply={handleCropApply}
+          />
+        )}
       </div>
-    </DashboardEventsShell>
-  );
+      </DashboardEventsShell>
+      );
 }
