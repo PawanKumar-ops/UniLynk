@@ -187,6 +187,7 @@ function EventAnalyticsContent() {
   const responses = analytics?.responses || [];
   const teams = analytics?.teams || [];
   const teamFinder = analytics?.teamFinder || { incompleteTeams: [], soloStudents: [] };
+  const [analyticsGeneratedAt] = useState(() => Date.now());
 
   const isTeamEvent = useMemo(() => {
     if (!form) return false;
@@ -198,7 +199,7 @@ function EventAnalyticsContent() {
     const totalResponses = responses.length;
 
     // Filter responses submitted until 1 day ago (24 hours prior)
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const oneDayAgo = new Date(analyticsGeneratedAt - 24 * 60 * 60 * 1000);
     const prevResponses = responses.filter((r) => {
       const date = new Date(r.submittedAt || r.createdAt);
       return !isNaN(date.getTime()) && date < oneDayAgo;
@@ -226,7 +227,7 @@ function EventAnalyticsContent() {
       { label: "Completion rate", value: `${currentCompletionRate}%`, trend: rateTrend },
       { label: "Avg. team size", value: avgTeamSize, trend: teamTrend },
     ];
-  }, [responses, teams]);
+  }, [analyticsGeneratedAt, responses, teams]);
 
   // Questions formatted with allotted graphs
   const questionBlocks = useMemo(() => {

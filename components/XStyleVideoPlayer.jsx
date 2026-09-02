@@ -152,7 +152,7 @@ export default function XStyleVideoPlayer({ src, className = "" }) {
         e.stopPropagation();
         const link = document.createElement("a");
         link.href = src;
-        link.download = `video-${Date.now()}.mp4`;
+        link.download = "video.mp4";
         link.click();
         showControlsTemporarily();
     };

@@ -22,6 +22,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { Icon } from "@iconify/react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { DashboardEventsShell } from "@/components/DashboardEventsShell";
 import "@/app/dashboard/dashboard.css";
 
@@ -35,25 +36,8 @@ const INPUT =
   "w-full rounded-xl border border-[#ececec] bg-white px-[14.4px] py-[11.2] text-[15px] leading-6 text-[#171717] outline-none transition placeholder:text-[#b3b7bd] focus:border-[#171717] focus:ring-4 focus:ring-[#171717]/[0.06]";
 
 /* -------------------------------------------------------------------------- */
-/*  Seed data                                                                  */
+/*  Media validation                                                           */
 /* -------------------------------------------------------------------------- */
-
-const DEFAULT_BANNER =
-  "https://images.unsplash.com/photo-1523580494863-6f3031224c94?w=1500&h=500&fit=crop&auto=format";
-const DEFAULT_AVATAR =
-  "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=400&h=400&fit=crop&auto=format";
-
-// Fake member directory to power the leadership search dropdown.
-const DIRECTORY = [
-  { id: "u1", name: "Pawan Kumar", handle: "pawan01200kumar", img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&h=200&fit=crop&auto=format" },
-  { id: "u2", name: "Pawan Sharma", handle: "pawankumar16108", img: "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=200&h=200&fit=crop&auto=format" },
-  { id: "u3", name: "Aarav Mehta", handle: "aarav.mehta", img: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=200&h=200&fit=crop&auto=format" },
-  { id: "u4", name: "Isha Verma", handle: "isha_verma", img: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=200&h=200&fit=crop&auto=format" },
-  { id: "u5", name: "Rohan Gupta", handle: "rohan.g", img: "https://images.unsplash.com/photo-1502685104226-ee32379fefbe?w=200&h=200&fit=crop&auto=format" },
-  { id: "u6", name: "Neha Kapoor", handle: "neha.kapoor", img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop&auto=format" },
-  { id: "u7", name: "Kabir Singh", handle: "kabirsingh", img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&h=200&fit=crop&auto=format" },
-  { id: "u8", name: "Ananya Rao", handle: "ananya.rao", img: "https://images.unsplash.com/photo-1524250502761-1ac6f2e30d43?w=200&h=200&fit=crop&auto=format" },
-];
 
 const MAX_IMAGE_SIZE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -369,7 +353,7 @@ function CropModal({ src, aspect, title, round, onCancel, onApply }) {
 /*  Leadership member search (dropdown on query)                               */
 /* -------------------------------------------------------------------------- */
 
-function MemberSearch({ chosenIds, onAdd }) {
+function MemberSearch({ directory, chosenIds, onAdd }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
@@ -385,13 +369,13 @@ function MemberSearch({ chosenIds, onAdd }) {
   const results = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) return [];
-    return DIRECTORY.filter(
+    return directory.filter(
       (u) =>
         !chosenIds.has(u.id) &&
         (u.name.toLowerCase().includes(q) ||
           u.handle.toLowerCase().includes(q))
     ).slice(0, 6);
-  }, [query, chosenIds]);
+  }, [query, chosenIds, directory]);
 
   return (
     <div ref={ref} className="relative">
@@ -456,48 +440,80 @@ function MemberSearch({ chosenIds, onAdd }) {
 /* -------------------------------------------------------------------------- */
 
 export default function EditClubProfile() {
-  const [banner, setBanner] = useState(DEFAULT_BANNER);
-  const [avatar, setAvatar] = useState(DEFAULT_AVATAR);
-
-  const [name, setName] = useState("Innovation Cell");
-  const [category, setCategory] = useState("Innovation");
-  const [about, setAbout] = useState(
-    "Innovation Cell is a dynamic community of creative minds passionate about pushing boundaries in arts, technology, and media. We bring together students from diverse backgrounds to collaborate on groundbreaking projects, participate in workshops, and create meaningful impact through innovation."
-  );
-
-  const [whatWeDo, setWhatWeDo] = useState([
-    {
-      title: "Weekly Events",
-      desc: "Join us for exciting weekly events and workshops designed to bring members together and explore new interests.",
-    },
-    {
-      title: "Community Building",
-      desc: "Connect with like-minded individuals and build lasting friendships through our inclusive community programs.",
-    },
-    {
-      title: "Competitions",
-      desc: "Participate in friendly competitions and challenges that showcase your skills and push you to grow.",
-    },
-    {
-      title: "Volunteer Work",
-      desc: "Give back to the community through meaningful volunteer opportunities and service projects.",
-    },
-  ]);
-
-  const [leaders, setLeaders] = useState([
-    { ...DIRECTORY[0], role: "President" },
-    { ...DIRECTORY[1], role: "Vice President" },
-  ]);
-
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const clubId = searchParams.get("clubId");
+  const [banner, setBanner] = useState("");
+  const [avatar, setAvatar] = useState("");
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState("");
+  const [about, setAbout] = useState("");
+  const [whatWeDo, setWhatWeDo] = useState([]);
+  const [leaders, setLeaders] = useState([]);
+  const [directory, setDirectory] = useState([]);
   const [crop, setCrop] = useState(null);
   const bannerInput = useRef(null);
   const avatarInput = useRef(null);
-
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
 
-  const chosenIds = useMemo(() => new Set(leaders.map((l) => l.id)), [leaders]);
+  useEffect(() => {
+    if (!clubId) {
+      setError("A club could not be identified.");
+      return;
+    }
+
+    let cancelled = false;
+    const loadClub = async () => {
+      try {
+        const response = await fetch(`/api/clubs/${clubId}`, { cache: "no-store" });
+        const result = await response.json();
+        if (!response.ok) throw new Error(result?.message || "Unable to load club profile.");
+        if (cancelled) return;
+
+        const club = result.club;
+        const availableMembers = [...(club.members || []), ...(club.leaders || [])]
+          .reduce((items, person) => {
+            const email = typeof person?.email === "string" ? person.email.toLowerCase() : "";
+            if (email && !items.some((item) => item.email === email)) {
+              items.push({
+                id: person.userId || email,
+                email,
+                name: person.name || email,
+                handle: email.split("@")[0],
+                img: person.profilePicture || person.image || "",
+              });
+            }
+            return items;
+          }, []);
+
+        setBanner(club.banner || "");
+        setAvatar(club.logo || "");
+        setName(club.clubName || "");
+        setCategory(club.category || "");
+        setAbout(club.description || "");
+        setWhatWeDo((club.activities || [])
+          .filter((activity) => !activity.date && !activity.formId)
+          .map((activity) => ({ title: activity.title || "", desc: activity.description || "" })));
+        setLeaders((club.leaders || []).map((leader) => ({
+          id: leader.userId || leader.email,
+          email: leader.email,
+          name: leader.name || leader.email,
+          handle: (leader.email || "").split("@")[0],
+          img: leader.image || "",
+          role: leader.position || "",
+        })));
+        setDirectory(availableMembers);
+      } catch (loadError) {
+        if (!cancelled) setError(loadError.message || "Unable to load club profile.");
+      }
+    };
+    loadClub();
+    return () => { cancelled = true; };
+  }, [clubId]);
+
+  const chosenIds = useMemo(() => new Set(leaders.map((leader) => leader.id)), [leaders]);
 
   const pick = (kind) => (e) => {
     const file = e.target.files?.[0];
@@ -528,16 +544,39 @@ export default function EditClubProfile() {
   const setLeaderRole = (id, role) =>
     setLeaders((p) => p.map((l) => (l.id === id ? { ...l, role } : l)));
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (saving) return;
+    if (!clubId) {
+      setError("A club could not be identified.");
+      return;
+    }
     setSaving(true);
     setError("");
-    // Simulated persistence — swap for a real API call.
-    setTimeout(() => {
-      setSaving(false);
+    try {
+      const response = await fetch(`/api/clubs/${clubId}/profile`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          banner,
+          logo: avatar,
+          clubName: name,
+          category,
+          description: about,
+          activities: whatWeDo.map((item) => ({ title: item.title, description: item.desc })),
+          leaders: leaders.map((leader) => ({ email: leader.email, position: leader.role })),
+        }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result?.message || "Unable to save club profile.");
+      setBanner(result.club.banner || "");
+      setAvatar(result.club.logo || "");
       setSaved(true);
-      setTimeout(() => setSaved(false), 1800);
-    }, 700);
+      window.setTimeout(() => setSaved(false), 1800);
+    } catch (saveError) {
+      setError(saveError.message || "Unable to save club profile.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -575,7 +614,8 @@ export default function EditClubProfile() {
                   <div className="flex items-center gap-1.5">
                     <div className="group relative">
                       <button
-                       
+                        onClick={handleSave}
+                        disabled={saving}
                         className="flex h-9 gap-1 px-4 items-center cursor-pointer justify-center rounded-full transition hover:bg-black/5"
                       >
                         <Icon
@@ -760,6 +800,7 @@ export default function EditClubProfile() {
                 />
 
                 <MemberSearch
+                  directory={directory}
                   chosenIds={chosenIds}
                   onAdd={(u) => setLeaders((p) => [...p, { ...u, role: "Member" }])}
                 />
