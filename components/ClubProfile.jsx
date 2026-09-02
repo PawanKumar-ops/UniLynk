@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { DashboardEventsShell } from "@/components/DashboardEventsShell";
 import { PostCard } from "@/components/PostCard";
 import { AddMembersModal } from "@/components/AddMembersFab";
 import { MembersModal } from "@/components/ClubMembersModal";
-import { PublishNewsLetter } from "@/components/PublishNewsLetter";
 import {
     Users,
     UserPlus,
@@ -112,6 +112,7 @@ function SectionCard({
 
 export function ClubPage() {
     const searchParams = useSearchParams();
+    const { data: session } = useSession();
     const [tab, setTab] = useState("about");
     const [lightbox, setLightbox] = useState(null);
     const [showAllLeaders, setShowAllLeaders] = useState(false);
@@ -557,8 +558,6 @@ export function ClubPage() {
                     onClose={() => setMembersOpen(false)}
                     clubData={clubData}
                 />
-                <PublishNewsLetter clubId={clubData?._id || searchParams.get("clubId") || ""} />
-
                 {/* Lightbox */}
                 {lightbox && (
                     <div

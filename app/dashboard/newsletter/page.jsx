@@ -84,28 +84,59 @@ export const INITIAL_NEWSLETTERS = [
 const NewslettersContext = createContext(null)
 
 export function NewslettersProvider({ children }) {
-  const [newsletters, setNewsletters] = useState(INITIAL_NEWSLETTERS)
+  const [newsletters, setNewsletters] = useState([])
+  const [loading, setLoading] = useState(true)
+
+  const fetchNewsletters = async () => {
+    try {
+      setLoading(true)
+      const res = await fetch("/api/newsletter?leadershipOnly=true", { cache: "no-store" })
+      const data = await res.json().catch(() => ({}))
+      if (res.ok && Array.isArray(data?.newsletters)) {
+        setNewsletters(data.newsletters)
+      } else {
+        setNewsletters([])
+      }
+    } catch (err) {
+      console.error("Failed to fetch newsletters:", err)
+      setNewsletters([])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchNewsletters()
+  }, [])
 
   const save = (data, id) => {
     if (id) {
-      setNewsletters((prev) => prev.map((n) => (n.id === id ? { ...n, ...data } : n)))
+      setNewsletters((prev) => prev.map((n) => (n.id === id || n._id === id ? { ...n, ...data } : n)))
     } else {
       const created = {
         ...data,
-        id: crypto.randomUUID(),
-        date: new Date().toISOString().slice(0, 10),
+        id: data.id || data._id || crypto.randomUUID(),
+        date: data.date || new Date().toISOString().slice(0, 10),
       }
       setNewsletters((prev) => [created, ...prev])
     }
   }
 
-  const remove = (id) =>
-    setNewsletters((prev) => prev.filter((n) => n.id !== id))
+  const remove = async (id) => {
+    try {
+      const res = await fetch(`/api/newsletter?id=${id}`, { method: "DELETE" })
+      if (res.ok) {
+        setNewsletters((prev) => prev.filter((n) => n.id !== id && n._id !== id))
+      }
+    } catch (err) {
+      console.error("Failed to delete newsletter:", err)
+    }
+  }
 
-  const get = (id) => newsletters.find((n) => n.id === id)
+  const get = (id) => newsletters.find((n) => n.id === id || n._id === id)
 
   return (
-    <NewslettersContext.Provider value={{ newsletters, save, remove, get }}>
+    <NewslettersContext.Provider value={{ newsletters, loading, fetchNewsletters, save, remove, get }}>
       {children}
     </NewslettersContext.Provider>
   )
@@ -269,14 +300,22 @@ function formatDate(iso) {
 }
 
 function NewslettersContent() {
-  const { newsletters, remove } = useNewsletters();
+  const { newsletters, loading, remove } = useNewsletters();
   const router = useRouter();
   const [toDelete, setToDelete] = useState(null);
 
   const confirmDelete = () => {
     if (!toDelete) return
-    remove(toDelete.id)
+    remove(toDelete.id || toDelete._id)
     setToDelete(null)
+  }
+
+  if (loading) {
+    return (
+      <div className="mx-auto flex max-w-2xl flex-col items-center justify-center py-20 text-center">
+        <div className="size-8 animate-spin rounded-full border-2 border-[#171717] border-t-transparent" />
+      </div>
+    )
   }
 
   return (
@@ -288,17 +327,17 @@ function NewslettersContent() {
           <div className="mx-auto flex max-w-2xl flex-col gap-4">
             {newsletters.map((n) => (
               <article
-                key={n.id}
+                key={n.id || n._id}
                 className="group relative flex gap-4 overflow-hidden rounded-3xl border border-[#e5e5e5]/70 bg-[#ffffff] p-3 transition-all hover:border-neutral-300 hover:shadow-sm sm:gap-5 sm:p-4"
               >
                 <button
-                  onClick={() => router.push(`/dashboard/newsletter/editor?id=${n.id}`)}
+                  onClick={() => router.push(`/dashboard/newsletter/editor?id=${n.id || n._id}`)}
                   className="relative w-24 shrink-0 overflow-hidden rounded-2xl bg-[#f5f5f5] sm:w-32"
                   style={{ aspectRatio: "325 / 475" }}
                 >
                   <img
-                    src={n.image}
-                    alt={n.club}
+                    src={n.coverImage || n.image}
+                    alt={n.clubName || n.club}
                     className="h-full w-full object-cover"
                   />
                 </button>
@@ -306,10 +345,10 @@ function NewslettersContent() {
                 <div className="flex min-w-0 flex-1 flex-col">
                   <div className="flex items-center gap-2">
                     <span className="truncate text-sm font-bold tracking-tight text-[#171717]">
-                      {n.club}
+                      {n.clubName || n.club}
                     </span>
                     <span className="size-1 shrink-0 rounded-full bg-[#d4d4d4]" />
-                    <span className="shrink-0 text-xs text-[#a3a3a3]">{formatDate(n.date)}</span>
+                    <span className="shrink-0 text-xs text-[#a3a3a3]">{formatDate(n.date || n.createdAt)}</span>
                   </div>
 
                   <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-[#525252] sm:line-clamp-4">
@@ -322,7 +361,7 @@ function NewslettersContent() {
                     </span>
                     <div className="flex items-center gap-1.5">
                       <button
-                        onClick={() => router.push(`/dashboard/newsletter/editor?id=${n.id}`)}
+                        onClick={() => router.push(`/dashboard/newsletter/editor?id=${n.id || n._id}`)}
                         className="inline-flex items-center gap-1.5 rounded-full border border-[#e5e5e5] px-3.5 py-1.5 text-xs font-semibold text-[#404040] transition-colors hover:border-[#171717] hover:bg-[#171717] hover:text-[#ffffff]"
                       >
                         <EditIcon className="size-3.5" /> Edit
@@ -353,9 +392,9 @@ function NewslettersContent() {
         preview={
           toDelete ? (
             <div className="flex items-center gap-3 rounded-2xl border border-[#f5f5f5] bg-[#fafafa] p-3 text-left">
-              <img src={toDelete.image} alt="" className="size-12 shrink-0 rounded-lg object-cover" />
+              <img src={toDelete.coverImage || toDelete.image} alt="" className="size-12 shrink-0 rounded-lg object-cover" />
               <div className="min-w-0">
-                <p className="truncate text-sm font-semibold text-[#171717]">{toDelete.club}</p>
+                <p className="truncate text-sm font-semibold text-[#171717]">{toDelete.clubName || toDelete.club}</p>
                 <p className="line-clamp-1 text-xs text-[#737373]">{toDelete.description}</p>
               </div>
             </div>

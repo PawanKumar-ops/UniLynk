@@ -58,8 +58,8 @@ export function NewsLetterCard() {
       setNewsletters(
         Array.isArray(data?.newsletters)
           ? data.newsletters
-              .map((newsletter, index) => normalizeNewsletter(newsletter, index))
-              .filter(Boolean)
+            .map((newsletter, index) => normalizeNewsletter(newsletter, index))
+            .filter(Boolean)
           : []
       );
       if (resetIndex) setIndex(0);
@@ -103,13 +103,13 @@ export function NewsLetterCard() {
 
   const posts = liveNewsletters;
 
-    useEffect(() => {
-  if (posts.length === 0) return;
+  useEffect(() => {
+    if (posts.length === 0) return;
 
-  setIndex((currentIndex) =>
-    Math.min(currentIndex, posts.length - 1)
-  );
-}, [posts.length]);
+    setIndex((currentIndex) =>
+      Math.min(currentIndex, posts.length - 1)
+    );
+  }, [posts.length]);
 
   useEffect(() => {
     if (posts.length <= 1) return undefined;
@@ -122,22 +122,22 @@ export function NewsLetterCard() {
   }, [index, posts.length]);
 
   if (posts.length === 0) {
-  return (
-    <div
-      className="flex flex-col items-center justify-center rounded-[20px] border border-[#e4eaec] bg-white"
-      style={{ width: 325, height: 475 }}
-    >
-      <img
-        src="/dashboard/NoNewsLetter.svg"
-        alt="No newsletters"
-        className="w-52 h-52 object-contain"
-      />
-      <p className="mt-4 text-sm text-neutral-500 font-medium">
-        No newsletters available
-      </p>
-    </div>
-  );
-}
+    return (
+      <div
+        className="flex flex-col items-center justify-center rounded-[20px] border border-[#e4eaec] bg-white"
+        style={{ width: 325, height: 475 }}
+      >
+        <img
+          src="/dashboard/NoNewsLetter.svg"
+          alt="No newsletters"
+          className="w-52 h-52 object-contain"
+        />
+        <p className="mt-4 text-sm text-neutral-500 font-medium">
+          No newsletters available
+        </p>
+      </div>
+    );
+  }
 
 
   const post = posts[index] || posts[0];
@@ -203,9 +203,8 @@ export function NewsLetterCard() {
         {posts.map((item, i) => (
           <span
             key={item.id || i}
-            className={`w-1.5 h-1.5 rounded-full transition-colors ${
-              i === index ? "bg-white" : "bg-white/50"
-            }`}
+            className={`w-1.5 h-1.5 rounded-full transition-colors ${i === index ? "bg-white" : "bg-white/50"
+              }`}
           />
         ))}
       </div>
@@ -243,7 +242,15 @@ export function NewsLetterCard() {
               </div>
             </div>
 
-            <p className="text-white/90" style={{ fontSize: 14, lineHeight: 1.45 }}>
+            <p
+              className="min-w-0 max-w-full break-words whitespace-normal text-white/90"
+              style={{
+                fontSize: 14,
+                lineHeight: 1.45,
+                overflowWrap: "anywhere",
+                wordBreak: "break-word",
+              }}
+            >
               {post.description}
             </p>
           </motion.div>

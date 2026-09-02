@@ -196,14 +196,21 @@ export function MyClubsPage() {
         <div className="flex items-center gap-1.5">
           {/* Add Members */}
           <div className="group relative">
+
+
+
+
+
             <button
               onClick={() => router.push('./newsletter')}
-              className="flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-black/5"
+              aria-label="Find members looking for a team"
+              className="inline-flex items-center gap-2 rounded-full border border-[#e0e0de] bg-[#ffffff] py-2 pl-3 pr-3.5 text-[13px] font-semibold transition-colors hover:bg-[#f4f4f3]"
             >
               <Icon
                 icon="solar:documents-minimalistic-linear"
                 className="text-[21px] text-[#171717]"
               />
+              <span className="hidden sm:inline">Newsletters</span>
             </button>
 
             <div className="pointer-events-none absolute right-1/2 top-full mt-2 translate-x-1/2 rounded-full bg-[#2c2f35] px-3 py-1.5 text-xs font-medium whitespace-nowrap text-white opacity-0 transition-all duration-200 group-hover:translate-y-1 group-hover:opacity-100">
