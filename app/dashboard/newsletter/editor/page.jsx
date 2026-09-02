@@ -95,6 +95,7 @@ function ImageCropperModal({
   const [zoom, setZoom] = useState(1)
   const [offset, setOffset] = useState({ x: 0, y: 0 })
   const [saving, setSaving] = useState(false)
+  const [isDragging, setIsDragging] = useState(false)
   const drag = useRef(null)
 
   useEffect(() => {
@@ -133,6 +134,7 @@ function ImageCropperModal({
   const onPointerDown = (e) => {
     e.target.setPointerCapture(e.pointerId)
     drag.current = { px: e.clientX, py: e.clientY, ox: offset.x, oy: offset.y }
+    setIsDragging(true)
   }
   const onPointerMove = (e) => {
     if (!drag.current) return
@@ -145,6 +147,7 @@ function ImageCropperModal({
   }
   const onPointerUp = () => {
     drag.current = null
+    setIsDragging(false)
   }
 
   const handleSave = async () => {
@@ -178,7 +181,7 @@ function ImageCropperModal({
         className="relative mx-auto w-60 overflow-hidden rounded-2xl bg-[#0a0a0a] select-none"
         style={{
           aspectRatio: String(ASPECT),
-          cursor: drag.current ? "grabbing" : "grab",
+          cursor: isDragging ? "grabbing" : "grab",
           touchAction: "none",
         }}
       >
