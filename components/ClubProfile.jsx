@@ -277,9 +277,7 @@ export function ClubPage() {
                         {/* Edit Club */}
                         <div className="group relative">
                             <button
-                                onClick={() => {
-                                    // edit
-                                }}
+                                onClick={() => router.push('./ClubProfileEdit')}
                                 className="flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-black/5"
                             >
                                 <Icon
