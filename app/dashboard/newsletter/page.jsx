@@ -7,6 +7,8 @@ import {
   useState,
 } from "react"
 import { useRouter } from "next/navigation"
+import { Icon } from "@iconify/react"
+import { ArrowLeft } from "lucide-react"
 import { DashboardEventsShell } from "@/components/DashboardEventsShell"
 import "@/app/dashboard/dashboard.css"
 import "@/components/events-pages.css"
@@ -267,9 +269,9 @@ function formatDate(iso) {
 }
 
 function NewslettersContent() {
-  const { newsletters, remove } = useNewsletters()
-  const router = useRouter()
-  const [toDelete, setToDelete] = useState(null)
+  const { newsletters, remove } = useNewsletters();
+  const router = useRouter();
+  const [toDelete, setToDelete] = useState(null);
 
   const confirmDelete = () => {
     if (!toDelete) return
@@ -279,7 +281,7 @@ function NewslettersContent() {
 
   return (
     <div>
-      <div className="px-[14px] py-6 sm:px-8 sm:py-8">
+      <div className="mx-auto sm:px-3.5 pb-5">
         {newsletters.length === 0 ? (
           <EmptyState onCreate={() => router.push("/dashboard/newsletter/editor")} />
         ) : (
@@ -287,7 +289,7 @@ function NewslettersContent() {
             {newsletters.map((n) => (
               <article
                 key={n.id}
-                className="group relative flex gap-4 overflow-hidden rounded-3xl border border-[#e5e5e5]/70 bg-[#ffffff] p-3 transition-all hover:border-[#d4d4d4] hover:shadow-[0_16px_44px_-28px_rgba(0,0,0,0.4)] sm:gap-5 sm:p-4"
+                className="group relative flex gap-4 overflow-hidden rounded-3xl border border-[#e5e5e5]/70 bg-[#ffffff] p-3 transition-all hover:border-neutral-300 hover:shadow-sm sm:gap-5 sm:p-4"
               >
                 <button
                   onClick={() => router.push(`/dashboard/newsletter/editor?id=${n.id}`)}
@@ -297,7 +299,7 @@ function NewslettersContent() {
                   <img
                     src={n.image}
                     alt={n.club}
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+                    className="h-full w-full object-cover"
                   />
                 </button>
 
@@ -385,11 +387,55 @@ function EmptyState({ onCreate }) {
 }
 
 export default function Page() {
+  const router = useRouter();
   return (
+
     <DashboardEventsShell>
+      <header
+        className="sticky top-0 z-50 flex h-[54px] mb-5 w-full items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl"
+        style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
+      >
+        {/* Left */}
+        <div
+          className="flex items-center"
+          style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
+        >
+          <button
+            onClick={() => router.back()}
+            className="mr-6 flex h-9 w-9 items-center cursor-pointer justify-center rounded-full transition hover:bg-black/5"
+          >
+            <ArrowLeft size={20} strokeWidth={2.2} />
+          </button>
+
+          <div>
+            <h1 className="truncate text-[20px] font-bold leading-5 text-black">
+              Newsletters
+            </h1>
+
+            <p className="mt-0.5 text-[13px] leading-4 text-[#536471]">
+              Create and manage your newsletters
+            </p>
+          </div>
+        </div>
+        <div className='flex items-center gap-1.5'>
+          <button
+            onClick={() => router.push('./newsletter/editor')}
+            aria-label="Find members looking for a team"
+            className="inline-flex items-center gap-2 rounded-full border cursor-pointer border-[#e0e0de] bg-[#ffffff] py-2 pl-3 pr-3.5 text-[13px] font-semibold transition-colors hover:bg-[#f4f4f3]"
+          >
+            <Icon
+              icon="solar:add-linear"
+              className="text-[18px]"
+            />
+            <span className="hidden sm:inline">Publish New</span>
+          </button>
+        </div>
+      </header>
+
       <NewslettersProvider>
         <NewslettersContent />
       </NewslettersProvider>
     </DashboardEventsShell>
+
   )
 }

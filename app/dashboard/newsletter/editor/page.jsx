@@ -13,7 +13,8 @@ import {
   TrashIcon,
   useNewsletters,
   NewslettersProvider,
-} from "../page"
+} from "../page";
+import { ArrowLeft } from "lucide-react"
 
 const WORD_LIMIT = 120
 const ASPECT = 325 / 475
@@ -272,9 +273,8 @@ function ClubPickerModal({
             <button
               key={c.name}
               onClick={() => setSelected(c.name)}
-              className={`flex w-full items-center gap-3 rounded-2xl border p-2.5 text-left transition-all ${
-                active ? "border-[#171717] bg-[#fafafa]" : "border-transparent hover:bg-[#fafafa]"
-              }`}
+              className={`flex w-full items-center gap-3 rounded-2xl border p-2.5 text-left transition-all ${active ? "border-[#171717] bg-[#fafafa]" : "border-transparent hover:bg-[#fafafa]"
+                }`}
             >
               <img
                 src={c.avatar}
@@ -286,9 +286,8 @@ function ClubPickerModal({
                 <p className="truncate text-xs text-[#a3a3a3]">{c.handle}</p>
               </div>
               <span
-                className={`flex size-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${
-                  active ? "border-[#171717] bg-[#171717]" : "border-[#d4d4d4]"
-                }`}
+                className={`flex size-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${active ? "border-[#171717] bg-[#171717]" : "border-[#d4d4d4]"
+                  }`}
               >
                 {active && (
                   <svg
@@ -382,27 +381,37 @@ function EditorContent() {
 
   return (
     <div>
-      <header className="sticky top-0 z-10 flex items-center gap-2.5 border-b border-[#e5e5e5]/70 bg-[#ffffff]/85 px-[14px] py-4 backdrop-blur-md sm:gap-3 sm:py-5">
-        <button
-          onClick={() => router.push("/dashboard/newsletter")}
-          className="flex size-9 shrink-0 items-center justify-center rounded-full text-[#525252] transition-colors hover:bg-[#f5f5f5] hover:text-[#171717]"
-          aria-label="Back"
+      <header
+        className="sticky top-0 z-50 flex h-[54px] mb-5 w-full items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl"
+        style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
+      >
+        {/* Left */}
+        <div
+          className="flex items-center"
+          style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
         >
-          <ArrowLeftIcon className="size-5" strokeWidth={2} />
-        </button>
-        <div className="min-w-0">
-          <h1 className="truncate text-lg font-bold tracking-tight text-[#171717] sm:text-xl">
-            {isEdit ? "Edit newsletter" : "Publish a newsletter"}
-          </h1>
-          <p className="truncate text-xs text-[#a3a3a3] sm:text-sm">
-            {isEdit ? "Update and republish" : "Share updates with your campus"}
-          </p>
+          <button
+            onClick={() => router.back()}
+            className="mr-6 flex h-9 w-9 items-center cursor-pointer justify-center rounded-full transition hover:bg-black/5"
+          >
+            <ArrowLeft size={20} strokeWidth={2.2} />
+          </button>
+
+          <div>
+            <h1 className="truncate text-[20px] font-bold leading-5 text-black">
+              Newsletters
+            </h1>
+
+            <p className="mt-0.5 text-[13px] leading-4 text-[#536471]">
+              Create and manage your newsletters
+            </p>
+          </div>
         </div>
       </header>
 
       <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleFile} />
 
-      <div className="@container mx-auto max-w-3xl px-[14px] py-6 sm:py-8">
+      <div className="@container mx-auto max-w-3xl px-[14px] pb-20 pt-6 sm:pb-24 sm:pt-8">
         <div className="grid grid-cols-1 gap-7 @md:grid-cols-[270px_minmax(0,1fr)] @md:gap-8 @lg:grid-cols-[290px_minmax(0,1fr)]">
           <div className="@md:sticky @md:top-24 @md:self-start">
             {image ? (
@@ -411,16 +420,17 @@ function EditorContent() {
                 style={{ aspectRatio: "325 / 475" }}
               >
                 <img src={image} alt="Cover" className="h-full w-full object-cover" />
-                <div className="absolute inset-0 flex items-end justify-center gap-2 bg-gradient-to-t from-[#000000]/60 via-transparent to-transparent p-4 opacity-0 transition-opacity group-hover:opacity-100">
+                <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-2 bg-gradient-to-t from-black/60 via-black/20 to-transparent p-4 pt-12 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
                   <button
                     onClick={() => fileRef.current?.click()}
-                    className="rounded-full bg-[#ffffff] px-4 py-2 text-xs font-semibold text-[#171717] shadow-sm transition-transform hover:scale-105"
+                    className="rounded-full bg-white px-4 py-2 text-xs font-semibold text-[#171717] shadow-sm transition-transform hover:scale-105"
                   >
                     Replace
                   </button>
+
                   <button
                     onClick={() => setImage("")}
-                    className="rounded-full bg-[#ffffff]/90 px-4 py-2 text-xs font-semibold text-[#dc2626] shadow-sm transition-transform hover:scale-105"
+                    className="rounded-full bg-white/90 px-4 py-2 text-xs font-semibold text-[#dc2626] shadow-sm transition-transform hover:scale-105"
                   >
                     Remove
                   </button>
@@ -429,9 +439,8 @@ function EditorContent() {
             ) : (
               <button
                 onClick={() => fileRef.current?.click()}
-                className={`group relative mx-auto flex w-full max-w-[290px] flex-col items-center justify-center gap-3 overflow-hidden rounded-3xl border-2 border-dashed bg-[#fafafa] text-center transition-colors hover:border-[#a3a3a3] hover:bg-[#f5f5f5]/70 @md:max-w-none ${
-                  touched && !image ? "border-[#fca5a5]" : "border-[#d4d4d4]"
-                }`}
+                className={`group relative mx-auto flex w-full max-w-[290px] flex-col items-center justify-center gap-3 overflow-hidden rounded-3xl border-2 border-dashed bg-[#fafafa] text-center transition-colors hover:border-[#a3a3a3] hover:bg-[#f5f5f5]/70 @md:max-w-none ${touched && !image ? "border-[#fca5a5]" : "border-[#d4d4d4]"
+                  }`}
                 style={{ aspectRatio: "325 / 475" }}
               >
                 <span className="flex size-14 items-center justify-center rounded-2xl bg-[#ffffff] text-[#a3a3a3] shadow-sm ring-1 ring-[#e5e5e5]/70 transition-transform group-hover:scale-105">
@@ -453,7 +462,7 @@ function EditorContent() {
                   onChange={(e) => setDescription(e.target.value)}
                   rows={7}
                   placeholder="What is this newsletter about? Keep it under 120 words."
-                  className="w-full resize-none bg-transparent text-sm leading-relaxed text-[#171717] outline-none placeholder:text-[#a3a3a3]"
+                  className="w-full resize-none overflow-y-auto bg-transparent text-[14px] leading-6 text-[#171717] outline-none placeholder:text-[#b0b0b0] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
                 />
                 <div className="mt-2 flex items-center justify-between border-t border-[#f5f5f5] pt-2.5">
                   <span className="text-xs text-[#a3a3a3]">Keep it short and clear.</span>
@@ -493,18 +502,21 @@ function EditorContent() {
           </div>
         </div>
 
-        <div className="mt-8 grid grid-cols-2 items-stretch gap-3 border-t border-[#e5e5e5]/70 pt-6">
+        {/* Bottom publish action */}
+        <div className="bottom-0 z-40 -mx-[14px] mt-6 px-[14px] pb-4 pt-12 sm:pb-5">
+          <div
+            className="pointer-events-none absolute inset-0"
+          />
+
           <button
             onClick={attemptPublish}
-            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-full bg-[#171717] text-sm font-semibold whitespace-nowrap text-[#ffffff] transition-all hover:bg-[#262626] active:scale-[0.98]"
+            className="relative z-10 mx-auto flex h-12 w-full max-w-3xl items-center justify-center gap-2 rounded-full bg-[#171717] px-4 text-sm font-semibold text-white transition-all hover:bg-[#292929] active:scale-[0.99]"
           >
-            <SendIcon className="size-4 shrink-0" /> {isEdit ? "Save changes" : "Publish"}
-          </button>
-          <button
-            onClick={() => router.push("/dashboard/newsletter")}
-            className="inline-flex h-12 w-full items-center justify-center rounded-full border border-[#e5e5e5] text-sm font-semibold whitespace-nowrap text-[#404040] transition-colors hover:bg-[#fafafa]"
-          >
-            Cancel
+            <SendIcon className="size-4 shrink-0" />
+
+            <span className="truncate">
+              {isEdit ? "Save changes" : "Publish newsletter"}
+            </span>
           </button>
         </div>
       </div>
