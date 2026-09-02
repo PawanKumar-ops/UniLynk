@@ -5,6 +5,7 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  Suspense,
   useState,
 } from "react";
 import {
@@ -408,11 +409,18 @@ function MemberSearch({ directory, chosenIds, onAdd }) {
                 }}
                 className="flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition hover:bg-neutral-100"
               >
-                <img
-                  src={u.img}
-                  alt={u.name}
-                  className="size-9 shrink-0 rounded-full border border-black/10 bg-neutral-100 object-cover"
-                />
+                {u.img ? (
+                  <img
+                    src={u.img}
+                    alt={u.name}
+                    className="size-9 shrink-0 rounded-full border border-black/10 bg-neutral-100 object-cover"
+                  />
+                ) : (
+                  <div
+                    aria-hidden="true"
+                    className="size-9 shrink-0 rounded-full border border-black/10 bg-neutral-100"
+                  />
+                )}
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-medium text-[#171717]">
                     {u.name}
@@ -439,7 +447,7 @@ function MemberSearch({ directory, chosenIds, onAdd }) {
 /*  Page                                                                       */
 /* -------------------------------------------------------------------------- */
 
-export default function EditClubProfile() {
+function EditClubProfile() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const clubId = searchParams.get("clubId");
@@ -496,14 +504,20 @@ export default function EditClubProfile() {
         setWhatWeDo((club.activities || [])
           .filter((activity) => !activity.date && !activity.formId)
           .map((activity) => ({ title: activity.title || "", desc: activity.description || "" })));
-        setLeaders((club.leaders || []).map((leader) => ({
-          id: leader.userId || leader.email,
-          email: leader.email,
-          name: leader.name || leader.email,
-          handle: (leader.email || "").split("@")[0],
-          img: leader.image || "",
-          role: leader.position || "",
-        })));
+        const uniqueLeaders = new Map();
+        (club.leaders || []).forEach((leader) => {
+          const email = typeof leader?.email === "string" ? leader.email.toLowerCase() : "";
+          if (!email || uniqueLeaders.has(email)) return;
+          uniqueLeaders.set(email, {
+            id: leader.userId || email,
+            email,
+            name: leader.name || email,
+            handle: email.split("@")[0],
+            img: leader.image || "",
+            role: leader.position || "",
+          });
+        });
+        setLeaders([...uniqueLeaders.values()]);
         setDirectory(availableMembers);
       } catch (loadError) {
         if (!cancelled) setError(loadError.message || "Unable to load club profile.");
@@ -639,7 +653,7 @@ export default function EditClubProfile() {
                 <div className="relative">
                   {/* Banner */}
                   <div className="group relative h-[160px] w-full overflow-hidden bg-neutral-100 sm:h-[200px]">
-                    <img src={banner} alt="Club banner" className="size-full object-cover" />
+                    {banner ? <img src={banner} alt="Club banner" className="size-full object-cover" /> : null}
 
                     {/* Banner shadow */}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
@@ -654,8 +668,9 @@ export default function EditClubProfile() {
                         <Camera className="size-[18px]" />
                       </button>
                       <button
-                        onClick={() => setCrop({ kind: "banner", src: banner })}
+                        onClick={() => banner && setCrop({ kind: "banner", src: banner })}
                         title="Adjust banner"
+                        disabled={!banner}
                         className="grid size-11 place-items-center rounded-full bg-[#171717]/70 text-white backdrop-blur transition hover:bg-[#171717]"
                       >
                         <Pencil className="size-[18px]" />
@@ -671,7 +686,7 @@ export default function EditClubProfile() {
                           <div className="relative h-[75px] w-[75px] sm:h-[100px] sm:w-[100px]">
                             {/* Avatar */}
                             <div className="absolute inset-0 overflow-hidden rounded-full bg-neutral-100">
-                              <img src={avatar} alt="Club avatar" className="size-full object-cover" />
+                              {avatar ? <img src={avatar} alt="Club avatar" className="size-full object-cover" /> : null}
                             </div>
 
                             {/* Camera overlay */}
@@ -690,8 +705,9 @@ export default function EditClubProfile() {
 
                         {/* Adjust photo button */}
                         <button
-                          onClick={() => setCrop({ kind: "avatar", src: avatar })}
+                          onClick={() => avatar && setCrop({ kind: "avatar", src: avatar })}
                           title="Adjust photo"
+                          disabled={!avatar}
                           className="absolute bottom-0 right-0 z-30 grid size-8 place-items-center rounded-full border-2 border-white bg-[#171717] text-white transition hover:opacity-90"
                         >
                           <Pencil className="size-3.5" />
@@ -817,11 +833,18 @@ export default function EditClubProfile() {
                       key={l.id}
                       className="flex items-center gap-3 rounded-xl border border-[#ececec] px-3 py-2.5"
                     >
-                      <img
-                        src={l.img}
-                        alt={l.name}
-                        className="size-11 shrink-0 rounded-full border border-black/10 bg-neutral-100 object-cover"
-                      />
+                      {l.img ? (
+                        <img
+                          src={l.img}
+                          alt={l.name}
+                          className="size-11 shrink-0 rounded-full border border-black/10 bg-neutral-100 object-cover"
+                        />
+                      ) : (
+                        <div
+                          aria-hidden="true"
+                          className="size-11 shrink-0 rounded-full border border-black/10 bg-neutral-100"
+                        />
+                      )}
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-medium text-[#171717]">{l.name}</p>
                         <p className="truncate text-xs text-[#8a8f98]">@{l.handle}</p>
@@ -884,4 +907,12 @@ export default function EditClubProfile() {
       </div>
       </DashboardEventsShell>
       );
+}
+
+export default function EditClubProfilePage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-white" />}>
+      <EditClubProfile />
+    </Suspense>
+  );
 }

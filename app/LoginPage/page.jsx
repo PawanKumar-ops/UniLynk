@@ -2,18 +2,10 @@
 import { useEffect, useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { Inter, Bricolage_Grotesque } from "next/font/google";
 import { Icon } from '@iconify/react';
 
-const inter = Inter({
-    subsets: ["latin"],
-    weight: ["400", "500", "600"],
-});
-
-const bricolage = Bricolage_Grotesque({
-    subsets: ["latin"],
-    weight: ["600", "700"],
-});
+const interClass = "font-sans";
+const displayFontClass = "font-sans";
 
 /* ------------------------------------------------------------------ *
  * Promo carousel (left panel)
@@ -227,7 +219,7 @@ function PromoPanel() {
             <div className="absolute inset-x-0 bottom-0 flex flex-col items-start gap-6 px-8 pb-8 text-left">
                 <div className="flex w-full flex-col gap-2">
                     <h2
-                        className={`m-0 ${bricolage.className} text-2xl leading-[1.2] font-bold tracking-[-1px] text-white`}
+                        className={`m-0 ${displayFontClass} text-2xl leading-[1.2] font-bold tracking-[-1px] text-white`}
                     >
                         {slide.title}
                     </h2>
@@ -356,7 +348,7 @@ function OtpField({ value, onChange }) {
                         onChange(pasted)
                         focusBox(Math.min(pasted.length, OTP_LENGTH - 1))
                     }}
-                    className={`h-12 w-full min-w-0 rounded-lg border border-[rgba(0,0,0,0.14)] bg-[#ffffff] text-center ${bricolage.className} text-lg font-bold text-[#17181a] tabular-nums transition duration-150 ease-in-out focus:border-[#17181a] focus:ring-2 focus:ring-[rgba(23,24,26,0.2)] focus:outline-none`}
+                    className={`h-12 w-full min-w-0 rounded-lg border border-[rgba(0,0,0,0.14)] bg-[#ffffff] text-center ${displayFontClass} text-lg font-bold text-[#17181a] tabular-nums transition duration-150 ease-in-out focus:border-[#17181a] focus:ring-2 focus:ring-[rgba(23,24,26,0.2)] focus:outline-none`}
                 />
             ))}
         </div>
@@ -560,7 +552,7 @@ export default function App() {
 
 
     return (
-        <div className={`${inter.className} flex h-screen w-screen overflow-hidden bg-[#ffffff] p-2 text-sm text-[#17181a] antialiased`}>
+        <div className={`${interClass} flex h-screen w-screen overflow-hidden bg-[#ffffff] p-2 text-sm text-[#17181a] antialiased`}>
             <div
                 className="relative hidden min-h-0 overflow-hidden rounded-[14px] lg:flex lg:w-1/2"
                 style={{ height: "calc(100vh - 16px)" }}
@@ -605,7 +597,7 @@ export default function App() {
                         {view === 'sign-up' && (
                             <div className="flex w-full flex-col gap-6 text-[#17181a]">
                                 <header className="flex flex-col gap-2 text-center">
-                                    <h1 className={`${bricolage.className} text-3xl leading-tight font-bold tracking-[-1px] text-[#17181a]`}>
+                                    <h1 className={`${displayFontClass} text-3xl leading-tight font-bold tracking-[-1px] text-[#17181a]`}>
                                         Create an account
                                     </h1>
                                 </header>
@@ -703,7 +695,7 @@ export default function App() {
                         {view === 'sign-up-password' && (
                             <div className="flex w-full flex-col gap-6 text-[#17181a]">
                                 <header className="flex flex-col gap-2 text-center">
-                                    <h1 className={`${bricolage.className} text-3xl leading-tight font-bold tracking-[-1px] text-[#17181a]`}>
+                                    <h1 className={`${displayFontClass} text-3xl leading-tight font-bold tracking-[-1px] text-[#17181a]`}>
                                         Create an account
                                     </h1>
                                 </header>
@@ -782,7 +774,7 @@ export default function App() {
                         {view === 'log-in' && (
                             <div className="flex w-full flex-col gap-6 text-[#17181a]">
                                 <header className="flex flex-col gap-2 text-center">
-                                    <h1 className={`${bricolage.className} text-3xl leading-tight font-bold tracking-tight text-[#17181a]`}>
+                                    <h1 className={`${displayFontClass} text-3xl leading-tight font-bold tracking-tight text-[#17181a]`}>
                                         Welcome to Unilynk
                                     </h1>
                                 </header>
@@ -854,7 +846,7 @@ export default function App() {
                         {view === 'log-in-password' && (
                             <div className="flex w-full flex-col gap-6 text-[#17181a]">
                                 <header className="flex flex-col gap-2 text-center">
-                                    <h1 className={`${bricolage.className} text-3xl leading-tight font-bold tracking-tight text-[#17181a]`}>
+                                    <h1 className={`${displayFontClass} text-3xl leading-tight font-bold tracking-tight text-[#17181a]`}>
                                         Welcome to Unilynk
                                     </h1>
                                 </header>
@@ -940,7 +932,7 @@ export default function App() {
                         {view === 'verify' && (
                             <div className="flex w-full flex-col gap-6 text-[#17181a]">
                                 <header className="flex flex-col gap-2 text-center">
-                                    <h1 className={`${bricolage.className} text-3xl leading-tight font-bold tracking-tight text-[#17181a]`}>
+                                    <h1 className={`${displayFontClass} text-3xl leading-tight font-bold tracking-tight text-[#17181a]`}>
                                         {verifyReason === 'reset' ? 'Reset your password' : 'Verify your email'}
                                     </h1>
                                     <p className="text-xs leading-normal font-medium text-[#5b5f66]">
@@ -1008,7 +1000,7 @@ export default function App() {
                         {view === 'reset-password' && (
                             <div className="flex w-full flex-col gap-6 text-[#17181a]">
                                 <header className="flex flex-col gap-2 text-center">
-                                    <h1 className={`${bricolage.className} text-3xl leading-tight font-bold tracking-tight text-[#17181a]`}>Create new password</h1>
+                                    <h1 className={`${displayFontClass} text-3xl leading-tight font-bold tracking-tight text-[#17181a]`}>Create new password</h1>
                                 </header>
                                 <form className="flex flex-col gap-4" onSubmit={(e) => { e.preventDefault(); handleResetPassword() }}>
                                     <PasswordField label="New password" value={newPassword} onChange={setNewPassword} maxLength={72} />
