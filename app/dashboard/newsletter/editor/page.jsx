@@ -8,7 +8,6 @@ import "@/components/events-pages.css"
 import {
   ImageIcon,
   Modal,
-  SendIcon,
 } from "../page"
 import { ArrowLeft } from "lucide-react"
 
@@ -478,7 +477,7 @@ function EditorContent() {
           <div className="@md:sticky @md:top-24 @md:self-start">
             {image ? (
               <div
-                className="group relative mx-auto w-full max-w-[290px] overflow-hidden rounded-3xl bg-[#f5f5f5] shadow-[0_10px_40px_-16px_rgba(0,0,0,0.35)] ring-1 ring-[#e5e5e5] @md:max-w-none"
+                className="group relative mx-auto w-full max-w-[290px] overflow-hidden rounded-3xl bg-[#f5f5f5] ring-1 ring-[#e5e5e5] @md:max-w-none"
                 style={{ aspectRatio: "325 / 475" }}
               >
                 <img src={image} alt="Cover" className="h-full w-full object-cover" />
@@ -575,7 +574,6 @@ function EditorContent() {
             disabled={submitting}
             className="relative z-10 mx-auto flex h-12 w-full max-w-3xl items-center justify-center gap-2 rounded-full bg-[#171717] px-4 text-sm font-semibold text-white transition-all hover:bg-[#292929] active:scale-[0.99] disabled:opacity-50"
           >
-            <SendIcon className="size-4 shrink-0" />
 
             <span className="truncate">
               {submitting

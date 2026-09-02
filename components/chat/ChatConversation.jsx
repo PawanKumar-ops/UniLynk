@@ -94,6 +94,28 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
     const isCommunityRoute = Boolean(communityId && groupId);
 
     useEffect(() => {
+        const paramText = searchParams?.get("text");
+        if (paramText) {
+            setText(paramText);
+        }
+        const mediaUrl = searchParams?.get("mediaUrl");
+        if (mediaUrl) {
+            const mediaName = searchParams.get("mediaName") || "Newsletter image";
+            const mediaType = searchParams.get("mediaType") || "image/*";
+            setPendingFile({
+                url: mediaUrl,
+                type: mediaType,
+                name: mediaName,
+                upload: {
+                    url: mediaUrl,
+                    fileName: mediaName,
+                    mimeType: mediaType,
+                },
+            });
+        }
+    }, [searchParams]);
+
+    useEffect(() => {
         async function bootstrap() {
             const [userRes, communityRes] = await Promise.all([fetch("/api/chat/users", { cache: "no-store" }), fetch("/api/communities", { cache: "no-store" })]);
             const userData = await userRes.json();

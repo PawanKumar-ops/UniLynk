@@ -149,14 +149,13 @@ export function NewsLetterCard() {
     if (!post?.leaderUserId) return;
 
     const params = new URLSearchParams({
-      userId: post.leaderUserId,
       text: "I want to buy this NewsLetter",
       mediaUrl: post.coverImage,
       mediaName: `${post.clubName || "Club"} newsletter`,
       mediaType: "image/*",
     });
 
-    router.push(`/dashboard/chat?${params.toString()}`);
+    router.push(`/dashboard/chat2/${post.leaderUserId}?${params.toString()}`);
   };
 
   return (

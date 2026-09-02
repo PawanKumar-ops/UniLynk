@@ -14,70 +14,6 @@ import "@/app/dashboard/dashboard.css"
 import "@/components/events-pages.css"
 
 /* ------------------------------------------------------------------ *
- * Types & seed data
- * ------------------------------------------------------------------ */
-
-export const CLUBS = [
-  {
-    name: "Cricket Club",
-    handle: "@nit.cricket",
-    avatar:
-      "https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?w=120&h=120&fit=crop&auto=format",
-  },
-  {
-    name: "Coding Club",
-    handle: "@devdomain",
-    avatar:
-      "https://images.unsplash.com/photo-1517180102446-f3ece451e9d8?w=120&h=120&fit=crop&auto=format",
-  },
-  {
-    name: "Music Society",
-    handle: "@nit.music",
-    avatar:
-      "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=120&h=120&fit=crop&auto=format",
-  },
-  {
-    name: "Photography Club",
-    handle: "@nit.lens",
-    avatar:
-      "https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=120&h=120&fit=crop&auto=format",
-  },
-]
-
-export const INITIAL_NEWSLETTERS = [
-  {
-    id: "n1",
-    club: "Cricket Club",
-    description:
-      "Open trials for the winter squad begin next week. Fresh kit, revised training slots and a new bowling machine arrive this season. Members get priority booking and a discounted merchandise bundle. Slots are limited, so reserve early through the members portal.",
-    price: 299,
-    image:
-      "https://images.unsplash.com/photo-1531415074968-036ba1b575da?w=650&h=950&fit=crop&auto=format",
-    date: "2026-08-24",
-  },
-  {
-    id: "n2",
-    club: "Coding Club",
-    description:
-      "A twelve-hour build sprint with mentors from the alumni network. Form a team, ship a working prototype and demo it live. Snacks, stickers and cloud credits included for every registered participant. Winning teams take home a hardware kit.",
-    price: 149,
-    image:
-      "https://images.unsplash.com/photo-1504384308090-c894fdcc538d?w=650&h=950&fit=crop&auto=format",
-    date: "2026-08-19",
-  },
-  {
-    id: "n3",
-    club: "Music Society",
-    description:
-      "Six intimate sessions across the semester featuring student performers and visiting artists. The season pass covers all evenings, front-row access and a curated playlist. Bring an instrument to the open-mic finale and share the stage.",
-    price: 199,
-    image:
-      "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=650&h=950&fit=crop&auto=format",
-    date: "2026-08-11",
-  },
-]
-
-/* ------------------------------------------------------------------ *
  * Store
  * ------------------------------------------------------------------ */
 
@@ -152,56 +88,39 @@ export function useNewsletters() {
  * Icons
  * ------------------------------------------------------------------ */
 
-const iconBase = (className = "size-5", strokeWidth = 1.75) => ({
-  className,
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth,
-  strokeLinecap: "round",
-  strokeLinejoin: "round",
-  viewBox: "0 0 24 24",
-})
-
-export const PlusIcon = ({ className, strokeWidth }) => (
-  <svg {...iconBase(className, strokeWidth)}>
-    <path d="M12 5v14M5 12h14" />
-  </svg>
+export const PlusIcon = ({ className = "size-5" }) => (
+  <Icon
+    icon="solar:add-linear"
+    className={className}
+  />
 )
 
-export const EditIcon = ({ className, strokeWidth }) => (
-  <svg {...iconBase(className, strokeWidth)}>
-    <path d="M12 20h9" />
-    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
-  </svg>
+export const EditIcon = ({ className = "size-5" }) => (
+  <Icon
+    icon="solar:pen-linear"
+    className={className}
+  />
 )
 
-export const TrashIcon = ({ className, strokeWidth }) => (
-  <svg {...iconBase(className, strokeWidth)}>
-    <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m2 0v14a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6" />
-    <path d="M10 11v6M14 11v6" />
-  </svg>
+export const TrashIcon = ({ className = "size-5" }) => (
+  <Icon
+    icon="solar:trash-bin-trash-linear"
+    className={className}
+  />
 )
 
-export const MailIcon = ({ className, strokeWidth }) => (
-  <svg {...iconBase(className, strokeWidth)}>
-    <rect x="2" y="4" width="20" height="16" rx="2" />
-    <path d="m22 7-10 6L2 7" />
-  </svg>
+export const MailIcon = ({ className = "size-5" }) => (
+  <Icon
+    icon="solar:letter-linear"
+    className={className}
+  />
 )
 
-export const ImageIcon = ({ className, strokeWidth }) => (
-  <svg {...iconBase(className, strokeWidth)}>
-    <rect x="3" y="3" width="18" height="18" rx="2" />
-    <circle cx="9" cy="9" r="2" />
-    <path d="m21 15-4.5-4.5L5 21" />
-  </svg>
-)
-
-export const SendIcon = ({ className, strokeWidth }) => (
-  <svg {...iconBase(className, strokeWidth)}>
-    <path d="m22 2-7 20-4-9-9-4Z" />
-    <path d="M22 2 11 13" />
-  </svg>
+export const ImageIcon = ({ className = "size-5" }) => (
+  <Icon
+    icon="solar:gallery-wide-linear"
+    className={className}
+  />
 )
 
 /* ------------------------------------------------------------------ *
