@@ -9,25 +9,16 @@ import { AddMembersModal } from "@/components/AddMembersFab";
 import { MembersModal } from "@/components/ClubMembersModal";
 import {
     Users,
-    UserPlus,
-    Pencil,
-    MapPin,
-    Calendar,
-    CheckCircle2,
     Info,
     Sparkles,
     Rocket,
-    Target,
-    Lightbulb,
-    Handshake,
-    MessageCircle,
-    Newspaper,
     ArrowLeft,
     X,
-    Clock,
     Ticket,
 } from "lucide-react";
 import { Icon } from "@iconify/react";
+import ReliableImage from "./ReliableImage";
+import { profileAvatar } from "@/lib/avatar";
 import { useRouter } from "next/navigation";
 // --- Inline: Button ---
 
@@ -178,6 +169,7 @@ export function ClubPage() {
         name: leader.name || leader.email || "",
         role: leader.position || "",
         img: leader.image || "",
+        email: leader.email || "",
     }));
     const pastActivities = (clubData?.activities || [])
         .filter((activity) => activity.date || activity.formId)
@@ -437,8 +429,8 @@ export function ClubPage() {
                                 <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
                                     {visibleLeaders.map((m, index) => (
                                         <div key={`${m.key || m.id || "leader"}-${index}`} className="flex flex-col items-center gap-1.5 rounded-xl border border-[#0000001A] bg-[#ffffff] p-2.5 text-center">
-                                            <div className="size-12 overflow-hidden rounded-full ring-2 ring-[#e9ebef]">
-                                                <ImageWithFallback src={m.img} alt={m.name} className="size-full object-cover" />
+                                            <div className="size-12 overflow-hidden rounded-full bg-[#f4f4f3] ring-1 ring-black/[0.06]">
+                                                <ReliableImage src={m.img} fallbackSrc={profileAvatar(null, m.email)} alt={m.name} className="h-full w-full object-cover" />
                                             </div>
                                             <div className="min-w-0">
                                                 <div className="truncate text-sm text-[#0a0a0a]">{m.name}</div>

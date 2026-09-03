@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
-import { Camera, Check, ImagePlus, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Plus, X } from "lucide-react";
 import { Icon } from "@iconify/react";
 
 const CATEGORIES = [
@@ -348,7 +348,7 @@ function ProfileStep({ data, setData }) {
           ) : (
             <span className="absolute inset-0 grid place-items-center">
               <span className="flex flex-col items-center gap-1.5" style={{ color: C.subtext }}>
-                <ImagePlus className="h-6 w-6" />
+                <Icon icon="solar:gallery-wide-linear" className="h-6 w-6" />
                 <span className="text-[12px] font-semibold">Add a banner image</span>
               </span>
             </span>
@@ -357,7 +357,7 @@ function ProfileStep({ data, setData }) {
             className="absolute top-3 right-3 h-8 w-8 rounded-full grid place-items-center shadow-md group-active:scale-95 transition"
             style={{ background: C.primary }}
           >
-            {data.banner ? <Pencil className="h-3.5 w-3.5 text-white" /> : <Plus className="h-4 w-4 text-white" strokeWidth={3} />}
+            {data.banner ? <Icon icon="solar:pen-linear" className="h-3.5 w-3.5 text-white" /> : <Plus className="h-4 w-4 text-white" strokeWidth={3} />}
           </span>
         </button>
 
@@ -369,7 +369,7 @@ function ProfileStep({ data, setData }) {
             aria-label="Upload profile picture"
           >
             <div
-              className="h-24 w-24 rounded-2xl overflow-hidden grid place-items-center transition ring-4 ring-white"
+              className="h-24 w-24 rounded-full overflow-hidden grid place-items-center transition ring-4 ring-white"
               style={{ background: C.muted }}
             >
               {data.photo ? (
@@ -379,22 +379,22 @@ function ProfileStep({ data, setData }) {
                   {initial}
                 </span>
               ) : (
-                <Camera className="h-7 w-7" style={{ color: C.subtext }} />
+                <Icon icon="solar:camera-linear" className="h-7 w-7" style={{ color: C.subtext }} />
               )}
             </div>
             <span
               className="absolute bottom-0 right-0 h-8 w-8 rounded-full grid place-items-center shadow-md group-active:scale-95 transition"
               style={{ background: C.primary }}
             >
-              {data.photo ? <Pencil className="h-3.5 w-3.5 text-white" /> : <Plus className="h-4 w-4 text-white" strokeWidth={3} />}
+              {data.photo ? <Icon icon="solar:pen-linear" className="h-3.5 w-3.5 text-white" /> : <Plus className="h-4 w-4 text-white" strokeWidth={3} />}
             </span>
           </button>
           <div className="flex flex-col gap-0.5 pb-1">
             <div className="text-[13px] font-semibold" style={{ color: C.text }}>
               {data.photo ? "Looking sharp!" : "Add a club logo"}
             </div>
-            <div className="text-[12px]" style={{ color: C.subtext }}>
-              PNG or JPG, up to 5MB.
+            <div className="text-[12px]" style={{ color: C.subtext }}>     
+              {data.photo ? "" : "PNG or JPG, up to 5MB."}
             </div>
             {(data.photo || data.banner) && (
               <div className="mt-1 flex gap-3">
@@ -405,7 +405,7 @@ function ProfileStep({ data, setData }) {
                     className="inline-flex items-center gap-1.5 text-[12px] font-semibold"
                     style={{ color: C.subtext }}
                   >
-                    <Trash2 className="h-3 w-3" />
+                    <Icon icon="solar:trash-bin-trash-linear" className="h-3 w-3" />
                     Logo
                   </button>
                 )}
@@ -416,7 +416,7 @@ function ProfileStep({ data, setData }) {
                     className="inline-flex items-center gap-1.5 text-[12px] font-semibold"
                     style={{ color: C.subtext }}
                   >
-                    <Trash2 className="h-3 w-3" />
+                    <Icon icon="solar:trash-bin-trash-linear" className="h-3 w-3" />
                     Banner
                   </button>
                 )}
