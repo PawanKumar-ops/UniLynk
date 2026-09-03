@@ -196,11 +196,6 @@ export function MyClubsPage() {
         <div className="flex items-center gap-1.5">
           {/* Add Members */}
           <div className="group relative">
-
-
-
-
-
             <button
               onClick={() => router.push('./newsletter')}
               aria-label="Find members looking for a team"
@@ -283,7 +278,7 @@ export function MyClubsPage() {
                   </div>
 
                   <div className="flex items-center gap-3 px-3 pb-3 pt-4">
-                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-[#f4f4f3] ring-1 ring-black/[0.06]">
+                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-[#f4f4f3] ring-1 ring-black/[0.06]+">
                       {club?.logo ? (
                         <img
                           src={club.logo}

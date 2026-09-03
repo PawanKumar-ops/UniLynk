@@ -1893,19 +1893,29 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
                     className="thread-view"
                     aria-label="Post thread view"
                   >
-                    <div className="thread-view-header">
-                      <button
-                        type="button"
-                        className="w-9 h-9 shrink-0 grid place-items-center rounded-full hover:bg-neutral-100 transition"
-                        onClick={handleBackToFeed}
-                      >
-                        <ArrowLeft size={18} />
+                    <header
+        className="sticky top-0 z-50 mb-1 flex h-[54px] items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl"
+        style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
+      >
+        {/* Left */}
+        <div
+          className="flex items-center"
+          style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
+        >
+          <button
+            onClick={() => router.back()}
+            className="mr-6 flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-black/5"
+          >
+            <ArrowLeft size={20} strokeWidth={2.2} />
+          </button>
 
-                      </button>
-                      <div>
-                        <h2 className="thread-view-title">Post</h2>
-                      </div>
-                    </div>
+          <div>
+            <h1 className="truncate text-[20px] font-bold leading-5 text-black">
+              Post
+            </h1>
+          </div>
+        </div>
+      </header>
 
                     <div className="thread-view-content">
                       {renderPostCard(selectedThreadPost, { isThread: true })}
