@@ -43,9 +43,9 @@ const ClubSchema = new mongoose.Schema(
     clubName: { type: String, required: true, trim: true },
     category: { type: String, required: true, trim: true },
     description: { type: String, required: true, trim: true },
-    memberCount: { type: Number, required: true, min: 1 },
-    foundedDate: { type: String, required: true },
-    email: { type: String, required: true, trim: true },
+    memberCount: { type: Number, default: 1 },
+    foundedDate: { type: String, default: "" },
+    email: { type: String, default: "", trim: true },
     website: { type: String, default: "", trim: true },
     activities: { type: [ActivitySchema], default: [] },
     leaders: { type: [LeadershipMemberSchema], default: [] },
@@ -54,4 +54,9 @@ const ClubSchema = new mongoose.Schema(
   { timestamps: true, strict: true }
 );
 
-export default mongoose.models.Club || mongoose.model("Club", ClubSchema, "clubs");
+// Clear model cache in dev mode so updated schema takes effect immediately
+if (mongoose.models && mongoose.models.Club) {
+  delete mongoose.models.Club;
+}
+
+export default mongoose.model("Club", ClubSchema, "clubs");

@@ -16,40 +16,65 @@ const uploadDataUrlToCloudinary = async (dataUrl, folder) => {
   return typeof result?.secure_url === "string" ? result.secure_url : "";
 };
 
-const sanitizeClubPayload = (data = {}) => ({
-  banner: typeof data.banner === "string" ? data.banner : "",
-  logo: typeof data.logo === "string" ? data.logo : "",
-  clubName: typeof data.clubName === "string" ? data.clubName.trim() : "",
-  category: typeof data.category === "string" ? data.category.trim() : "",
-  description: typeof data.description === "string" ? data.description.trim() : "",
-  memberCount: Number.isFinite(Number(data.memberCount)) ? Number(data.memberCount) : 0,
-  foundedDate: typeof data.foundedDate === "string" ? data.foundedDate : "",
-  email: typeof data.email === "string" ? data.email.trim() : "",
-  website: typeof data.website === "string" ? data.website.trim() : "",
-  activities: Array.isArray(data.activities)
-    ? data.activities
-        .filter((item) => item && typeof item === "object")
-        .map((item) => ({
-          title: typeof item.title === "string" ? item.title.trim() : "",
-          description: typeof item.description === "string" ? item.description.trim() : "",
-        }))
-        .filter((item) => item.title && item.description)
-    : [],
-  leaders: Array.isArray(data.leaders)
+const sanitizeClubPayload = (data = {}) => {
+  const leaders = Array.isArray(data.leaders)
     ? data.leaders
         .filter((item) => item && typeof item === "object")
-        .map((item) => ({
-          email: typeof item.email === "string" ? item.email.trim().toLowerCase() : "",
-          position: typeof item.position === "string" ? item.position.trim() : "",
-          image: typeof item.image === "string" ? item.image.trim() : "/Profilepic.png",
-          joiningYear: typeof item.joiningYear === "string" && item.joiningYear.trim()
-            ? item.joiningYear.trim()
-            : String(new Date().getFullYear()),
-          joinedAt: item.joinedAt ? new Date(item.joinedAt) : new Date(),
-        }))
+        .map((item) => {
+          const email = typeof item.email === "string" ? item.email.trim().toLowerCase() : "";
+          const dicebearAvatar = email
+            ? `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(email)}&backgroundColor=ffffff`
+            : "/Profilepic.png";
+          return {
+            email,
+            position: typeof item.position === "string" ? item.position.trim() : "",
+            image: typeof item.image === "string" && item.image.trim() && item.image !== "/Profilepic.png"
+              ? item.image.trim()
+              : dicebearAvatar,
+            joiningYear: typeof item.joiningYear === "string" && item.joiningYear.trim()
+              ? item.joiningYear.trim()
+              : String(new Date().getFullYear()),
+            joinedAt: item.joinedAt ? new Date(item.joinedAt) : new Date(),
+          };
+        })
         .filter((item) => item.email && item.position)
-    : [],
-});
+    : [];
+
+  const rawMemberCount = Number(data.memberCount);
+  const memberCount = Number.isFinite(rawMemberCount) && rawMemberCount > 0
+    ? rawMemberCount
+    : Math.max(1, leaders.length);
+
+  const email = typeof data.email === "string" && data.email.trim()
+    ? data.email.trim()
+    : (leaders[0]?.email || "contact@unilynk.edu");
+
+  const foundedDate = typeof data.foundedDate === "string" && data.foundedDate.trim()
+    ? data.foundedDate.trim()
+    : String(new Date().getFullYear());
+
+  return {
+    banner: typeof data.banner === "string" ? data.banner : "",
+    logo: typeof data.logo === "string" ? data.logo : "",
+    clubName: typeof data.clubName === "string" ? data.clubName.trim() : "",
+    category: typeof data.category === "string" ? data.category.trim() : "",
+    description: typeof data.description === "string" ? data.description.trim() : "",
+    memberCount,
+    foundedDate,
+    email,
+    website: typeof data.website === "string" ? data.website.trim() : "",
+    activities: Array.isArray(data.activities)
+      ? data.activities
+          .filter((item) => item && typeof item === "object")
+          .map((item) => ({
+            title: typeof item.title === "string" ? item.title.trim() : "",
+            description: typeof item.description === "string" ? item.description.trim() : "",
+          }))
+          .filter((item) => item.title && item.description)
+      : [],
+    leaders,
+  };
+};
 
 export async function GET(req) {
   const session = await auth();
@@ -127,9 +152,6 @@ export async function POST(req) {
       !payload.clubName ||
       !payload.category ||
       !payload.description ||
-      payload.memberCount < 1 ||
-      !payload.foundedDate ||
-      !payload.email ||
       payload.activities.length === 0
     ) {
       return Response.json(

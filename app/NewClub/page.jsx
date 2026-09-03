@@ -1,5 +1,6 @@
 "use client"
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { Camera, Check, ImagePlus, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Icon } from "@iconify/react";
@@ -17,17 +18,6 @@ const CATEGORIES = [
   "Other",
 ];
 
-// Directory used for leadership email suggestions.
-const DIRECTORY = [
-  { name: "Ananya Sharma", email: "ananya.sharma@unilynk.edu", role: "Third Year · CSE" },
-  { name: "Rohan Mehta", email: "rohan.mehta@unilynk.edu", role: "Fourth Year · ECE" },
-  { name: "Isha Verma", email: "isha.verma@unilynk.edu", role: "Second Year · IT" },
-  { name: "Karan Nair", email: "karan.nair@unilynk.edu", role: "Third Year · ME" },
-  { name: "Meera Iyer", email: "meera.iyer@unilynk.edu", role: "First Year · AIML" },
-  { name: "Aditya Rao", email: "aditya.rao@unilynk.edu", role: "Fourth Year · PIE" },
-  { name: "Sara Khan", email: "sara.khan@unilynk.edu", role: "Second Year · B.Arch." },
-  { name: "Vivek Joshi", email: "vivek.joshi@unilynk.edu", role: "Third Year · VLSI" },
-];
 
 const STEPS = ["profile", "category", "about", "impact", "leadership"];
 
@@ -57,10 +47,11 @@ const emptyPoints = [
 ];
 
 export default function App() {
+  const router = useRouter();
   const [step, setStep] = useState(0);
   const [direction, setDirection] = useState(1);
   const [loading, setLoading] = useState(false);
-  const [completed, setCompleted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [visited, setVisited] = useState(new Set([0]));
   const [data, setData] = useState({
     photo: null,
@@ -73,7 +64,7 @@ export default function App() {
   });
 
   const current = STEPS[step];
-  const progress = completed ? 100 : (step / STEPS.length) * 100;
+  const progress = (step / STEPS.length) * 100;
 
   const canContinue = useMemo(() => {
     if (current === "profile") return data.name.trim().length > 1;
@@ -105,12 +96,47 @@ export default function App() {
     advance();
   };
 
-  const createClub = () => {
+  const createClub = async () => {
     if (loading) return;
-    setCompleted(true);
     setLoading(true);
-    // Simulated persistence — swap for your API call.
-    window.setTimeout(() => setLoading(false), 4200);
+    setSubmitError("");
+
+    const payload = {
+      logo: data.photo || "",
+      banner: data.banner || "",
+      clubName: data.name.trim(),
+      category: data.category,
+      description: data.about.trim(),
+      activities: data.points
+        .filter((p) => p.heading.trim() && p.description.trim())
+        .map((p) => ({
+          title: p.heading.trim(),
+          description: p.description.trim(),
+        })),
+      leaders: data.leaders.map((l) => ({
+        email: l.email.trim().toLowerCase(),
+        position: l.position.trim(),
+        name: l.name?.trim() || "Unknown",
+      })),
+    };
+
+    try {
+      const res = await fetch("/api/clubs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || errData.message || "Failed to create club. Please try again.");
+      }
+
+      router.push("/?registered=true");
+    } catch (err) {
+      setLoading(false);
+      setSubmitError(err.message || "Something went wrong while creating the club.");
+    }
   };
 
   const back = () => {
@@ -145,6 +171,12 @@ export default function App() {
       {/* Content */}
       <main className="flex flex-1 items-center justify-center overflow-y-auto">
         <div className="flex w-full max-w-[640px] flex-col items-start gap-8 px-5 pt-3 pb-20">
+          {submitError && (
+            <div className="w-full rounded-xl bg-red-50 p-3 text-center text-sm font-medium text-red-600 border border-red-200">
+              {submitError}
+            </div>
+          )}
+
           <AnimatePresence mode="wait" custom={direction}>
             <motion.div
               key={current}
@@ -170,17 +202,18 @@ export default function App() {
             {(step > 0 || canContinue) && (
               <button
                 onClick={next}
-                disabled={!canContinue}
+                disabled={!canContinue || loading}
                 className="inline-flex items-center justify-center bg-[#506bf2] rounded-full px-6 py-3 text-sm font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#344ce7]"
                 style={{ color: C.primaryFg }}
               >
-                {isLastStep ? "Create club" : "Continue"}
+                {isLastStep ? (loading ? "Creating..." : "Create club") : "Continue"}
               </button>
             )}
             {step > 0 && (
               <button
                 onClick={back}
-                className="inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition hover:bg-[#f5f5f5]"
+                disabled={loading}
+                className="inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition hover:bg-[#f5f5f5] disabled:opacity-40"
                 style={{ color: C.text }}
               >
                 Back
@@ -191,7 +224,6 @@ export default function App() {
       </main>
 
       <AnimatePresence>{loading && <LoadingScreen name={data.name} />}</AnimatePresence>
-      <AnimatePresence>{completed && !loading && <DoneScreen data={data} />}</AnimatePresence>
     </div>
   );
 }
@@ -271,50 +303,6 @@ function LoadingScreen({ name }) {
           transition={{ repeat: Infinity, duration: 1.3, ease: "easeInOut" }}
         />
       </div>
-    </motion.div>
-  );
-}
-
-/* ---------- Done screen ---------- */
-
-function DoneScreen({ data }) {
-  const initial = data.name.trim().charAt(0).toUpperCase();
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-      className="fixed inset-0 z-[60] flex flex-col items-center justify-center px-6 text-center"
-      style={{ background: C.bg, color: C.text, fontFamily: "Inter, ui-sans-serif, system-ui, sans-serif" }}
-    >
-      <motion.div
-        initial={{ scale: 0.7, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ type: "spring", stiffness: 220, damping: 16 }}
-        className="h-20 w-20 rounded-full grid place-items-center overflow-hidden"
-        style={{ background: C.muted }}
-      >
-        {data.photo ? (
-          <img src={data.photo} alt="" className="h-full w-full object-cover" />
-        ) : (
-          <span className="text-[36px] font-black" style={{ color: C.subtext }}>
-            {initial}
-          </span>
-        )}
-      </motion.div>
-      <h1 className="mt-6 text-2xl md:text-3xl font-bold">{data.name || "Your club"} is live!</h1>
-      <p className="mt-2 text-[14px] max-w-[380px]" style={{ color: C.subtext }}>
-        {data.leaders.length} leadership member{data.leaders.length === 1 ? "" : "s"} invited. Share it with your campus
-        and start building your community.
-      </p>
-      <button
-        onClick={() => window.location.reload()}
-        className="mt-8 inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold"
-        style={{ background: C.accent, color: C.primaryFg }}
-      >
-        Go to club
-      </button>
     </motion.div>
   );
 }
@@ -614,28 +602,57 @@ function LeadershipStep({ data, setData }) {
   const [email, setEmail] = useState("");
   const [position, setPosition] = useState("");
   const [focused, setFocused] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
 
-  const query = email.trim().toLowerCase();
-  const matches = query
-    ? DIRECTORY.filter(
-        (u) =>
-          (u.email.toLowerCase().includes(query) || u.name.toLowerCase().includes(query)) &&
-          !data.leaders.some((l) => l.email === u.email),
-      ).slice(0, 5)
-    : [];
-  const showDropdown = focused && query.length > 1 && matches.length > 0;
+  useEffect(() => {
+    const query = email.trim();
+    if (query.length < 2) {
+      setSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/users/search?q=${encodeURIComponent(query)}&scope=team`);
+        if (res.ok) {
+          const resData = await res.json();
+          const list = Array.isArray(resData.users) ? resData.users : [];
+          setSuggestions(list.filter((u) => u.email && !data.leaders.some((l) => l.email.toLowerCase() === u.email.toLowerCase())));
+        }
+      } catch (err) {
+        console.error("User search failed:", err);
+      }
+    }, 200);
+
+    return () => clearTimeout(timer);
+  }, [email, data.leaders]);
+
+  const showDropdown = focused && suggestions.length > 0;
 
   const addLeader = (leader) => {
-    if (!leader.email.trim() || !leader.position.trim()) return;
-    if (data.leaders.some((l) => l.email === leader.email)) return;
-    setData((d) => ({ ...d, leaders: [...d.leaders, leader] }));
+    const cleanEmail = leader.email.trim().toLowerCase();
+    if (!cleanEmail || !leader.position.trim()) return;
+    if (data.leaders.some((l) => l.email.toLowerCase() === cleanEmail)) return;
+
+    const newLeader = {
+      email: cleanEmail,
+      position: leader.position.trim(),
+      name: leader.name && leader.name.trim() ? leader.name.trim() : "Unknown",
+    };
+
+    setData((d) => ({ ...d, leaders: [...d.leaders, newLeader] }));
     setEmail("");
     setPosition("");
+    setSuggestions([]);
   };
 
-  const remove = (mail) => setData((d) => ({ ...d, leaders: d.leaders.filter((l) => l.email !== mail) }));
+  const remove = (mail) =>
+    setData((d) => ({ ...d, leaders: d.leaders.filter((l) => l.email.toLowerCase() !== mail.toLowerCase()) }));
 
   const canAdd = /\S+@\S+\.\S+/.test(email.trim()) && position.trim().length > 0;
+
+  const getDicebearAvatar = (mail) =>
+    `https://api.dicebear.com/9.x/lorelei/svg?seed=${encodeURIComponent(mail || "user")}&backgroundColor=ffffff`;
 
   return (
     <div>
@@ -657,7 +674,7 @@ function LeadershipStep({ data, setData }) {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               onFocus={() => setFocused(true)}
-              onBlur={() => setTimeout(() => setFocused(false), 150)}
+              onBlur={() => setTimeout(() => setFocused(false), 200)}
               placeholder="name@unilynk.edu"
               className="flex-1 bg-transparent outline-none text-[14px] py-2 min-w-0 font-medium"
               style={{ color: C.text }}
@@ -671,33 +688,29 @@ function LeadershipStep({ data, setData }) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -4 }}
                 transition={{ duration: 0.15 }}
-                className="absolute z-10 mt-1.5 w-full rounded-xl overflow-hidden shadow-lg"
-                style={{ background: C.bg, border: `1px solid ${C.border}` }}
+                className="absolute z-10 mt-1.5 w-full rounded-xl overflow-hidden shadow-lg bg-white border border-gray-200"
               >
-                {matches.map((u) => (
+                {suggestions.map((u) => (
                   <button
-                    key={u.email}
+                    key={u.id || u.email}
                     onMouseDown={(e) => {
                       e.preventDefault();
-                      setEmail(u.email);
-                      setFocused(false);
+                      const matchedName = u.name && u.name !== "Student" ? u.name : "Unknown";
+                      addLeader({ email: u.email, position: position || "Member", name: matchedName });
                     }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition"
-                    onMouseEnter={(e) => (e.currentTarget.style.background = C.muted)}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+                    className="w-full flex items-center gap-3 px-3 py-2.5 text-left transition hover:bg-gray-50"
                   >
-                    <span
-                      className="h-8 w-8 rounded-full grid place-items-center text-[13px] font-black shrink-0"
-                      style={{ background: C.muted, color: C.text }}
-                    >
-                      {u.name.charAt(0)}
-                    </span>
+                    <img
+                      src={getDicebearAvatar(u.email)}
+                      alt=""
+                      className="h-8 w-8 rounded-full object-cover shrink-0 bg-gray-100"
+                    />
                     <span className="min-w-0">
                       <span className="block text-[13px] font-semibold truncate" style={{ color: C.text }}>
-                        {u.name}
+                        {u.name || "Unknown"}
                       </span>
                       <span className="block text-[11.5px] truncate" style={{ color: C.subtext }}>
-                        {u.email} · {u.role}
+                        {u.email}
                       </span>
                     </span>
                   </button>
@@ -718,16 +731,16 @@ function LeadershipStep({ data, setData }) {
           onKeyDown={(e) => {
             if (e.key === "Enter" && canAdd) {
               e.preventDefault();
-              const known = DIRECTORY.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
-              addLeader({ email: email.trim(), position: position.trim(), name: known?.name });
+              const matched = suggestions.find((s) => s.email.toLowerCase() === email.trim().toLowerCase());
+              addLeader({ email: email.trim(), position: position.trim(), name: matched?.name || "Unknown" });
             }
           }}
         />
 
         <button
           onClick={() => {
-            const known = DIRECTORY.find((u) => u.email.toLowerCase() === email.trim().toLowerCase());
-            addLeader({ email: email.trim(), position: position.trim(), name: known?.name });
+            const matched = suggestions.find((s) => s.email.toLowerCase() === email.trim().toLowerCase());
+            addLeader({ email: email.trim(), position: position.trim(), name: matched?.name || "Unknown" });
           }}
           disabled={!canAdd}
           className="h-10 inline-flex items-center justify-center gap-1.5 rounded-full px-4 text-sm font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed shrink-0"
@@ -759,22 +772,17 @@ function LeadershipStep({ data, setData }) {
                   className="flex items-center gap-3 rounded-2xl px-3 py-2.5"
                   style={{ background: C.primarySoft, border: "1px solid #10101014" }}
                 >
-                  <span
-                    className="h-9 w-9 rounded-full grid place-items-center text-[14px] font-black shrink-0"
-                    style={{ background: C.primary, color: C.primaryFg }}
-                  >
-                    {(l.name ?? l.email).charAt(0).toUpperCase()}
-                  </span>
+                  <img
+                    src={getDicebearAvatar(l.email)}
+                    alt=""
+                    className="h-9 w-9 rounded-full object-cover shrink-0 bg-white border border-gray-200"
+                  />
                   <span className="min-w-0 flex-1">
-                    <span className="flex items-center gap-1.5">
-                      <span className="text-[13.5px] font-bold truncate" style={{ color: C.text }}>
-                        {l.name ?? l.email}
-                      </span>
-                      {l.name && <Check className="h-3.5 w-3.5 shrink-0" strokeWidth={3} style={{ color: C.accent }} />}
+                    <span className="block text-[13.5px] font-bold truncate" style={{ color: C.text }}>
+                      {l.name || "Unknown"}
                     </span>
                     <span className="block text-[11.5px] truncate" style={{ color: C.subtext }}>
-                      {l.position}
-                      {l.name ? ` · ${l.email}` : ""}
+                      {l.position} · {l.email}
                     </span>
                   </span>
                   <button

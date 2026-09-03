@@ -119,7 +119,7 @@ export default function TeamPlansSection() {
                   </p>
                 </div>
                 <a
-                  href="/NewClubForm"
+                  href="/NewClub"
                   className="inline-flex h-12 w-fit items-center justify-center rounded-lg border border-[#ffffff33] px-6 text-base font-medium text-[#ffffff] transition-colors hover:bg-[#ffffff]/5"
                 >
                   Create Club

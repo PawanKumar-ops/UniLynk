@@ -50,7 +50,7 @@ export async function GET(req) {
       return Response.json({
         users: users.map((user) => ({
           id: user._id.toString(), name: user.name || "Student", rollNumber: user.rollNumber || "",
-          branch: user.branch || "General", year: user.year || "Student", img: user.img || loreleiAvatar(user.email),
+          branch: user.branch || "General", year: user.year || "Student", img: user.img || loreleiAvatar(user.email), email: user.email,
         })),
       });
     }
