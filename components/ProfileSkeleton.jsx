@@ -57,18 +57,48 @@ export function ProfileSkeleton() {
 
       <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-4 px-[14px] py-5 sm:gap-6">
         {/* Hero card */}
-        <div className="flex flex-col items-center gap-4 rounded-2xl border border-[#0000001A] bg-[#ffffff] p-6 text-center shadow-sm sm:flex-row sm:items-start sm:text-left">
-          <Skeleton className="size-24 shrink-0 rounded-full ring-2 ring-[#e9ebef]" />
-          <div className="flex w-full flex-1 flex-col items-center gap-2 sm:items-start">
-            <Skeleton className="h-7 w-40" />
-            <Skeleton className="h-4 w-56" />
-            <div className="mt-3 flex gap-2">
-              <Skeleton className="size-9 rounded-full" />
-              <Skeleton className="size-9 rounded-full" />
-              <Skeleton className="size-9 rounded-full" />
-            </div>
-          </div>
-        </div>
+        {/* Hero card */}
+<article
+  style={{ boxShadow: "var(--shadow-card)" }}
+  className="relative w-full overflow-hidden rounded-[24px] border border-[#0000001A] bg-white"
+>
+  {/* Banner */}
+  <Skeleton className="h-[160px] w-full rounded-none sm:h-[200px]" />
+
+  {/* Body */}
+  <div className="relative px-5 pb-5 sm:px-7 sm:pb-7">
+    {/* Profile Picture */}
+    {/* Profile Picture */}
+<div className="relative -mt-10 mb-4 sm:-mt-13 sm:mb-5">
+  <div
+    className="flex size-[75px] items-center justify-center bg-white p-[3px] ring-1 ring-white sm:size-[100px]"
+    style={{ borderRadius: "50%" }}
+  >
+    <Skeleton
+      className="size-full"
+      style={{ borderRadius: "50%" }}
+    />
+  </div>
+</div>
+
+    {/* User Information */}
+    <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+      <div className="min-w-0">
+        {/* Name */}
+        <Skeleton className="h-7 w-40 sm:h-8 sm:w-52" />
+
+        {/* Branch + Year */}
+        <Skeleton className="mt-2 h-4 w-32 sm:w-40" />
+      </div>
+
+      {/* Social Profiles */}
+      <div className="flex items-center gap-2">
+        <Skeleton className="size-9 rounded-full" />
+        <Skeleton className="size-9 rounded-full" />
+      </div>
+    </div>
+  </div>
+</article>
 
         {/* Academic Information */}
         <SectionCardSkeleton title="Academic Information" icon={GraduationCap}>

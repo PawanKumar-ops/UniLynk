@@ -19,7 +19,7 @@ const Sidebar = ({ isOpen = false, onClose }) => {
   const [showSignOutModal, setSignoutModal] = useState(false)
   const [showFeedbackModal, setShowFeedbackModal] = useState(false)
   const [userProfile, setUserProfile] = useState(null);
-const [profileLoading, setProfileLoading] = useState(true);
+  const [profileLoading, setProfileLoading] = useState(true);
   const pathname = usePathname();
 
   const isActive = (path) => {
@@ -33,34 +33,34 @@ const [profileLoading, setProfileLoading] = useState(true);
     if (status !== 'authenticated') return;
 
     const loadProfile = async (attempt = 0) => {
-  try {
-    const res = await fetch('/api/user/me', { cache: 'no-store' });
+      try {
+        const res = await fetch('/api/user/me', { cache: 'no-store' });
 
-    if (!res.ok) {
-      if (attempt < 2) {
-        setTimeout(() => loadProfile(attempt + 1), 400);
-      } else {
+        if (!res.ok) {
+          if (attempt < 2) {
+            setTimeout(() => loadProfile(attempt + 1), 400);
+          } else {
+            setProfileLoading(false);
+          }
+          return;
+        }
+
+        const data = await res.json();
+
+        if (data?.user) {
+          setUserProfile(data.user);
+        }
+
         setProfileLoading(false);
+      } catch (error) {
+        if (attempt < 2) {
+          setTimeout(() => loadProfile(attempt + 1), 400);
+        } else {
+          console.error('Sidebar profile fetch failed:', error);
+          setProfileLoading(false);
+        }
       }
-      return;
-    }
-
-    const data = await res.json();
-
-    if (data?.user) {
-      setUserProfile(data.user);
-    }
-
-    setProfileLoading(false);
-  } catch (error) {
-    if (attempt < 2) {
-      setTimeout(() => loadProfile(attempt + 1), 400);
-    } else {
-      console.error('Sidebar profile fetch failed:', error);
-      setProfileLoading(false);
-    }
-  }
-};
+    };
 
     loadProfile();
   }, [status]);
@@ -171,21 +171,21 @@ const [profileLoading, setProfileLoading] = useState(true);
                       <img src="/Background.jpg" alt="Profile background" />
                     </div>
                     <div
-  className="profpic"
-  style={{
-    backgroundColor: "#f9fafb",
-  }}
->
-  {!profileLoading && (
-    <ReliableImage
-      src={sidebarUser.image}
-      fallbackSrc={profileAvatar(null, sidebarUser.email)}
-      alt="Profile picture"
-      loading="eager"
-      decoding="async"
-    />
-  )}
-</div>
+                      className="profpic"
+                      style={{
+                        backgroundColor: "#f9fafb",
+                      }}
+                    >
+                      {!profileLoading && (
+                        <ReliableImage
+                          src={sidebarUser.image}
+                          fallbackSrc={profileAvatar(null, sidebarUser.email)}
+                          alt="Profile picture"
+                          loading="eager"
+                          decoding="async"
+                        />
+                      )}
+                    </div>
                     <div className="profinfo">
                       <h2 className="username">{sidebarUser.name}</h2>
                       <div className="branch">{sidebarUser.email}</div>

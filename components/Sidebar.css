@@ -281,54 +281,121 @@ header {
 
 
 
-@media (max-width: 1024px) {
+/* ===== Icon-only rail, exactly like X/Twitter =====
+   Below the desktop label width, X collapses the nav to a narrow icon rail.
+   Applies 481px–1366px so every tablet (incl. 12.9" iPad landscape) gets the
+   rail. Below 481px the mobile component / drawer takes over.
+   `!important` is used so the fixed 270px widths in the base rules above can't
+   blow the rail back out. */
+@media (min-width: 481px) and (max-width: 1366px) {
     .menu {
-        position: sticky;
-        top: 0;
-        width: 100%;
-        height: auto;
-        border-right: none;
-        border-bottom: 1px solid rgb(230, 230, 230);
-        padding: 12px 16px;
-        align-items: stretch;
+        /* keeps the desktop `position: fixed`, just narrows to a rail */
+        width: 72px !important;
+        min-width: 72px !important;
+        max-width: 72px !important;
+        padding: 10px 6px !important;
+        padding-right: 6px !important;
+        align-items: center !important;
     }
 
     .menuhead {
-        width: 100%;
-        gap: 16px;
-        justify-content: space-between;
-        align-items: center;
+        width: 100% !important;
+        justify-content: center !important;
+    }
+
+    /* Drop the settings/close actions to keep the rail clean */
+    .menuhead-actions {
+        display: none !important;
+    }
+
+    .logo {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+
+    .logo img {
+        height: 30px;
     }
 
     .dashboard,
+    .options,
     .dashboardsettings {
-        width: 100%;
-        height: auto;
-        align-items: stretch;
+        width: 100% !important;
+        height: auto !important;
+        align-items: center !important;
     }
 
-    .dashboard {
-        margin: 12px 0 0;
-    }
-
-    .options {
-        height: auto;
-        margin: 12px 0;
-    }
-
-    .profile {
-        width: 100%;
-        max-width: 420px;
-        margin: 12px auto 0;
-    }
-
+    /* Icon-only nav pills. font-size:0 hides the bare text label; the SVG
+       icons keep their own width/height so they stay visible and centered. */
     .dashbutton {
-        width: 100%;
+        width: 48px !important;
+        height: 48px;
+        padding: 0 !important;
+        gap: 0 !important;
+        justify-content: center !important;
+        font-size: 0 !important;
+        border-radius: 999px;
+        margin: 0 auto;
+    }
+
+    .dashbutton svg {
+        width: 24px;
+        height: 24px;
+    }
+
+    /* Like X: no filled pill on the active item in rail mode — the bold icon
+       carries the active state, and a soft circle appears only on hover. */
+    .dashbutton.active,
+    .dashbutton.active:hover {
+        background-color: transparent;
+    }
+
+    .dashbutton:hover {
+        background-color: #e7e7e8;
+    }
+
+    /* Profile card collapses down to just the avatar */
+    .profile {
+        width: 48px !important;
+        height: 48px !important;
+        border: none;
+        border-radius: 999px;
+        margin: 14px auto !important;
+    }
+
+    .profback,
+    .profinfo,
+    .post {
+        display: none !important;
+    }
+
+    .profpic {
+        position: static !important;
+        bottom: auto !important;
+        left: auto !important;
+        height: 44px;
+        width: 44px;
+        margin: 0 auto !important;
+        border-width: 2px;
+    }
+
+    /* Sign-out becomes an icon-only round button too */
+    .signout {
+        width: 100% !important;
     }
 
     .signoutb {
-        width: 100%;
-        max-width: 320px;
+        width: 48px !important;
+        height: 48px;
+        padding: 0 !important;
+        gap: 0 !important;
+        font-size: 0 !important;
+        border-radius: 999px;
+    }
+
+    .signoutb svg {
+        width: 22px;
+        height: 22px;
     }
 }
 
@@ -378,7 +445,7 @@ header {
     background: #f0f0f0;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 480px) {
 
     /* Override 1024px horizontal-bar behaviour — use fixed drawer instead */
     .menu {

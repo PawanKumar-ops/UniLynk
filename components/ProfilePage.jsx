@@ -27,7 +27,7 @@ function ImageWithFallback({ src, email, alt = "", className = "", ...props }) {
 }
 
 function SectionCard({ title, icon: IconComponent, children }) {
-  return <section className="rounded-2xl border border-[#0000001A] bg-[#fff] p-5 shadow-sm"><div className="mb-4 flex items-center gap-2"><div className="flex size-8 items-center justify-center rounded-lg bg-[#e9ebef]"><IconComponent className="size-4 text-[#0a0a0a]" /></div><h3 className="text-[1.125rem] font-normal">{title}</h3></div>{children}</section>;
+  return <section className="rounded-2xl border border-[#0000001A] bg-[#fff] p-5"><div className="mb-4 flex items-center gap-2"><div className="flex size-8 items-center justify-center rounded-lg bg-[#e9ebef]"><IconComponent className="size-4 text-[#0a0a0a]" /></div><h3 className="text-[1.125rem] font-normal">{title}</h3></div>{children}</section>;
 }
 
 const achievementIcons = [Trophy, Medal, Star];
@@ -192,12 +192,12 @@ export function ProfilePage() {
 
 
 
-    <div className="flex-1 overflow-y-auto">
+    <div className="min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
 
-      <div className="mx-auto flex max-w-3xl flex-col gap-4 px-[14px] py-5 sm:gap-6">
+      <div className="mx-auto flex min-w-0 w-full max-w-3xl flex-col gap-4 px-2.5 sm:px-3.5 py-5 sm:gap-3">
         <article
           style={{ boxShadow: "var(--shadow-card)" }}
-          className="relative w-full overflow-hidden rounded-[24px] border border-[#0000001A] bg-white shadow-sm"
+          className="relative w-full overflow-hidden rounded-[24px] border border-[#0000001A] bg-white "
         >
           {/* Banner */}
           <div className="relative h-[160px] w-full overflow-hidden bg-[#F2F2F2] sm:h-[200px]">
