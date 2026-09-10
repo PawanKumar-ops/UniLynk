@@ -1,6 +1,9 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
+import { Icon } from "@iconify/react";
 import { DashboardEventsShell } from "@/components/DashboardEventsShell"
 import "@/app/dashboard/dashboard.css"
 import "@/components/events-pages.css"
@@ -332,23 +335,36 @@ const MILESTONES = [
  * Small building blocks
  * ------------------------------------------------------------------------- */
 function VerifyBadge({ verified }) {
-    return verified ? (
-        <span
-            title="Verified"
-            aria-label="Verified"
-            className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#0a0a0a] text-white"
-        >
-            <Icons.verified className="h-3.5 w-3.5" />
-        </span>
-    ) : (
-        <span
-            title="Self-added"
-            aria-label="Self-added"
-            className="grid h-6 w-6 shrink-0 place-items-center rounded-full border border-[#dcdcdc] bg-white text-[#5c5c5c]"
-        >
-            <Icons.self className="h-3.5 w-3.5" />
-        </span>
-    )
+  return verified ? (
+    <span
+      title="Verified"
+      aria-label="Verified"
+      className="relative inline-flex h-[17px] w-[17px] shrink-0 items-center justify-center"
+    >
+      <Icon
+        icon="ri:verified-badge-fill"
+        className="absolute inset-0 h-full w-full text-[#D4AF37]"
+      />
+
+      {/* subtle golden shine */}
+      <span
+        className="pointer-events-none absolute left-[3px] top-[2px] h-[5px] w-[5px] rounded-full bg-white/35 blur-[1px]"
+      />
+
+      <Icon
+        icon="mdi:check"
+        className="relative z-10 h-[9px] w-[9px] text-white"
+        strokeWidth={3}
+      />
+    </span>
+  ) : (
+    <Icon
+      icon="solar:user-id-outline"
+      title="Self-added"
+      aria-label="Self-added"
+      className="h-[17px] w-[17px] shrink-0 text-[#8A8A8A]"
+    />
+  );
 }
 
 /* ----------------------------------------------------------------------------
@@ -377,7 +393,7 @@ function MilestoneCard({ m }) {
             </div>
 
             {/* card — clean, compact, static */}
-            <div className="rounded-2xl border border-[#ececec] bg-white px-4 py-4 transition-all duration-200 hover:-translate-y-px hover:border-[#dcdcdc] hover:shadow-[0_16px_36px_-30px_rgba(0,0,0,0.5)]">
+            <div className="rounded-2xl border border-[#ececec] bg-white px-4 py-4 transition-all duration-200 hover:border-[#dcdcdc]">
                 <div className="flex items-center justify-between gap-3">
                     <span className="font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-[#a1a1a1]">
                         {meta.label}
@@ -428,6 +444,7 @@ const EVENTS = [
  * Page
  * ------------------------------------------------------------------------- */
 function PassportPage() {
+    const router = useRouter();
     const groups = useMemo(() => {
         const order = []
         const map = new Map()
@@ -447,21 +464,35 @@ function PassportPage() {
     return (
         <div className="min-h-full bg-[#ffffff] text-[#0a0a0a]">
             {/* top bar */}
-            <div className="sticky top-0 z-30 flex items-center gap-4 border-b border-[#ececec] bg-white/85 px-4 py-4 backdrop-blur-md sm:px-8">
-                <button className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-[#0a0a0a] transition-colors hover:bg-[#f7f7f7]">
-                    <Icons.arrowLeft className="h-5 w-5" />
-                </button>
-                <div className="min-w-0">
-                    <h2 className="truncate text-[17px] font-semibold tracking-tight text-[#0a0a0a]">
-                        Student Journey
-                    </h2>
-                    <p className="truncate text-[12.5px] text-[#5c5c5c]">
-                        Production &amp; Industrial Engineering · First Year → Final Year
-                    </p>
-                </div>
-            </div>
+            <header
+                className="sticky top-0 z-50 mb-5 flex h-[54px] items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl"
+                style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
+            >
+                {/* Left */}
+                <div
+                    className="flex items-center"
+                    style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
+                >
+                    <button
+                        onClick={() => router.back()}
+                        className="mr-6 flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-black/5"
+                    >
+                        <ArrowLeft size={20} strokeWidth={2.2} />
+                    </button>
 
-            <div className="px-4 py-6 sm:px-8 sm:py-8">
+                    <div>
+                        <h1 className="truncate text-[20px] font-bold leading-5 text-black">
+                            Passport
+                        </h1>
+
+                        <p className="mt-0.5 text-[13px] leading-4 text-[#536471]">
+                            Your journey at a glance
+                        </p>
+                    </div>
+                </div>
+            </header>
+
+            <div className="px-3.5 pb-5">
                 {/* header — clean profile identity card */}
                 <header className="overflow-hidden rounded-3xl border border-[#ececec] bg-white">
                     <div className="p-6 sm:p-8">
@@ -522,7 +553,7 @@ function PassportPage() {
                         <div key={g.year} className="relative">
                             {/* year label — centered pill */}
                             <div className="mb-5 flex justify-center">
-                                <div className="inline-flex items-center gap-2.5 rounded-full border border-[#ececec] bg-white px-4 py-1.5 shadow-[0_6px_20px_-14px_rgba(0,0,0,0.5)]">
+                                <div className="inline-flex items-center gap-2.5 rounded-full border border-[#ececec] bg-white px-4 py-1.5">
                                     <span className="font-mono text-[11px] font-semibold text-[#a1a1a1]">
                                         {String(gi + 1).padStart(2, "0")}
                                     </span>
