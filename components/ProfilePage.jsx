@@ -215,7 +215,8 @@ export function ProfilePage() {
           <div className="relative px-5 pb-5 sm:px-7 sm:pb-7">
 
             {/* Profile Picture */}
-            <div className="relative -mt-10 mb-4 sm:-mt-13 sm:mb-5">
+            {/* Profile Picture + Passport */}
+            <div className="relative -mt-10 mb-4 flex items-end justify-between gap-3 sm:-mt-13 sm:mb-5">
               <div className="rounded-full w-fit bg-white p-0.75 ring-1 ring-white">
                 <ImageWithFallback
                   src={profile.img}
@@ -226,6 +227,21 @@ export function ProfilePage() {
                   className="h-[75px] w-[75px] rounded-full object-cover sm:h-[100px] sm:w-[100px]"
                 />
               </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  router.push(
+                    "/dashboard/passport"
+                  )
+                }
+                className="mb-1 inline-flex h-9 shrink-0 cursor-pointer items-center justify-center gap-2 rounded-full bg-[#f0f0f3] px-4 text-[12px] font-medium tracking-[-0.01em] text-[#030213] transition-all duration-200 hover:bg-[#f0f0f3]/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#171717] focus-visible:ring-offset-2 sm:h-10 sm:px-5 sm:text-sm"              >
+                <Icon
+                  icon="solar:document-text-linear"
+                  className="size-4 sm:size-[17px]"
+                />
+                <span>View passport</span>
+              </button>
             </div>
 
             {/* User Information */}

@@ -3,11 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  CalendarDays,
-  MapPin,
-  Users,
   Ticket,
-  FileText,
   ArrowRight,
   X,
 } from "lucide-react";
