@@ -67,7 +67,11 @@ export function BarList({
 export function Donut({ data, centerLabel }) {
   const [active, setActive] = useState(0)
   const total = data.reduce((s, d) => s + d.count, 0)
-  const cur = data[active]
+  // Analytics renders once before the request completes, when distributions
+  // are empty. Keep the center label safe for that initial render (and for
+  // events that genuinely have no registrations) instead of dereferencing an
+  // absent chart item.
+  const cur = data[active] || { label: 'No data', count: 0 }
   return (
     <div className="flex flex-col items-center gap-5 sm:flex-row sm:gap-7">
       <div className="relative h-[176px] w-[176px] shrink-0">
@@ -94,7 +98,7 @@ export function Donut({ data, centerLabel }) {
         <div className="pointer-events-none absolute inset-0 grid place-items-center text-center">
           <div>
             <div className="font-display text-[26px] font-bold leading-none text-ink">
-              {centerLabel ?? `${Math.round((cur.count / total) * 100)}%`}
+              {centerLabel ?? `${total ? Math.round((cur.count / total) * 100) : 0}%`}
             </div>
             <div className="mt-1 max-w-[96px] truncate font-mono text-[9px] uppercase tracking-wider text-ink-4">
               {centerLabel ? 'total' : cur.label}

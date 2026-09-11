@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, Suspense } from "react";
+import { useMemo, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import "@/app/dashboard/dashboard.css";
 import "@/components/events-pages.css";
@@ -35,6 +35,8 @@ const TYPE_LABEL = {
   checkbox: "Checkboxes",
   "file-upload": "File upload",
 };
+
+const EMPTY_ARRAY = [];
 
 function StatCard({ label, value, trend, hint }) {
   const up = trend >= 0;
@@ -184,8 +186,11 @@ function EventAnalyticsContent() {
   const analyticsQuery = useEventAnalytics(activeFormId);
   const analytics = analyticsQuery.data;
   const form = analytics?.form || null;
-  const responses = analytics?.responses || [];
-  const teams = analytics?.teams || [];
+  // Always provide arrays to the presentation layer. This keeps the page
+  // renderable while the request is pending or when an older API response is
+  // missing one of these optional fields.
+  const responses = Array.isArray(analytics?.responses) ? analytics.responses : EMPTY_ARRAY;
+  const teams = Array.isArray(analytics?.teams) ? analytics.teams : EMPTY_ARRAY;
   const teamFinder = analytics?.teamFinder || { incompleteTeams: [], soloStudents: [] };
   const [analyticsGeneratedAt] = useState(() => Date.now());
 
@@ -414,14 +419,14 @@ function EventAnalyticsContent() {
           <div className={`mb-6 grid gap-2.5 sm:gap-4 ${isTeamEvent ? "grid-cols-2" : "grid-cols-1"}`}>
             <NavCard
               title="Registrants"
-              href={`./eventanalytics/registrants${activeFormId ? `?formId=${activeFormId}` : ""}`}
+              href={`/dashboard/eventanalytics/registrants${activeFormId ? `?formId=${activeFormId}` : ""}`}
               count={`${responses.length} registrants`}
               icon={<Icon icon="solar:user-outline" width="22" height="22" />}
             />
             {isTeamEvent && (
               <NavCard
                 title="Teams"
-                href={`./eventanalytics/teams${activeFormId ? `?formId=${activeFormId}` : ""}`}
+                href={`/dashboard/eventanalytics/teams${activeFormId ? `?formId=${activeFormId}` : ""}`}
                 count={`${completedTeamsCount}/${teams.length} · ${soloCount} solo`}
                 icon={<Icon icon="solar:widget-5-linear" width="22" height="22" />}
               />
