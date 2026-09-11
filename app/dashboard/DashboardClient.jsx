@@ -1802,7 +1802,8 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
 
   return (
     <div className="homebody">
-      {/* ── Mobile Header (hidden on desktop via CSS) ── */}
+      {/* ── Mobile Header (hidden on desktop via CSS, and on the post-detail view) ── */}
+      {!isThreadRoute && (
       <div className={`mobile-header${headerHidden ? ' mobile-header-hidden' : ''}`}>
         <button
           className="mobile-header-avatar-btn"
@@ -1839,6 +1840,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
           </button>
         </div>}
       </div>
+      )}
 
       <main className="dashmain">
         {dashboardView === "explore" ? (
@@ -1871,7 +1873,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
 
             <div className="feed" ref={feedRef} onScroll={handleFeedScroll}>
               <div
-                className={`userposts ${selectedThreadPost ? "thread-userposts" : ""}`}
+                className={`userposts ${selectedThreadPost ? "thread-userposts !pt-0 !mt-0 !pb-4 !mb-0" : ""}`}
               >
                 {(loadingPosts || !posts) && <Loading />}
 
@@ -1894,7 +1896,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
                     aria-label="Post thread view"
                   >
                     <header
-        className="sticky top-0 z-50 mb-1 flex h-[54px] items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl"
+        className="sticky top-0 z-50 mb-0 flex h-[54px] items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl"
         style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
       >
         {/* Left */}

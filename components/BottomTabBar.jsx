@@ -129,7 +129,11 @@ const BottomTabBar = () => {
     !isChatRoot &&
     !isRequestsRoute;
 
-  const shouldHide = hidden || shouldHideOnChatRoute;
+  // Hide the tab bar entirely while viewing a single post on mobile
+  const shouldHideOnPostRoute =
+    isMobile && pathname?.startsWith("/dashboard/post");
+
+  const shouldHide = hidden || shouldHideOnChatRoute || shouldHideOnPostRoute;
 
   return (
     <nav
