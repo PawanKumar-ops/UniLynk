@@ -1382,7 +1382,7 @@ body {
 
 @media (max-width: 768px) {
   .thread-view-content {
-    padding: 0 10px 84px;
+    padding: 0 10px 4px;
     margin-top: 10px;
     gap: 10px;
   }
