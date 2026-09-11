@@ -1489,7 +1489,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
                     type="button"
                     onClick={() => handleDeleteClick(post)}
                   >
-                    <Icon icon="solar:trash-bin-trash-linear" width={18} strokeWidth={2}/>
+                    <Icon icon="solar:trash-bin-trash-linear" width={18} strokeWidth={2} />
                     Delete Post
                   </button>
                 )}
@@ -1804,42 +1804,42 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
     <div className="homebody">
       {/* ── Mobile Header (hidden on desktop via CSS, and on the post-detail view) ── */}
       {!isThreadRoute && (
-      <div className={`mobile-header${headerHidden ? ' mobile-header-hidden' : ''}`}>
-        <button
-          className="mobile-header-avatar-btn"
-          type="button"
-          aria-label="Open menu"
-          onClick={() => window.dispatchEvent(new CustomEvent('open-mobile-sidebar'))}
-        >
-          <img
-            className="mobile-header-avatar"
-            src={session?.user?.image || loreleiAvatar(session?.user?.email)}
-            alt={session?.user?.name || 'Profile'}
-          />
-        </button>
-
-        {dashboardView === "explore" ? (
-          <div id="explore-mobile-search-slot" className="explore-mobile-search-slot" />
-        ) : (
-          <img src="/ULynk.svg" alt="ULynk" className="mobile-header-logo" />
-        )}
-
-        {dashboardView !== "explore" && <div className="mobile-header-right">
+        <div className={`mobile-header${headerHidden ? ' mobile-header-hidden' : ''}`}>
           <button
-            className="mobile-header-notif-btn"
+            className="mobile-header-avatar-btn"
             type="button"
-            aria-label="Notifications"
-            onClick={() => setMobileMsgOpen(true)}
+            aria-label="Open menu"
+            onClick={() => window.dispatchEvent(new CustomEvent('open-mobile-sidebar'))}
           >
-            <Icon icon={"solar:bell-line-duotone"} width={22} height={22} />
-            {pendingNotifications.length > 0 && (
-              <span className="mobile-notif-badge">
-                {pendingNotifications.length > 9 ? '9+' : pendingNotifications.length}
-              </span>
-            )}
+            <img
+              className="mobile-header-avatar"
+              src={session?.user?.image || loreleiAvatar(session?.user?.email)}
+              alt={session?.user?.name || 'Profile'}
+            />
           </button>
-        </div>}
-      </div>
+
+          {dashboardView === "explore" ? (
+            <div id="explore-mobile-search-slot" className="explore-mobile-search-slot" />
+          ) : (
+            <img src="/ULynk.svg" alt="ULynk" className="mobile-header-logo" />
+          )}
+
+          {dashboardView !== "explore" && <div className="mobile-header-right">
+            <button
+              className="mobile-header-notif-btn"
+              type="button"
+              aria-label="Notifications"
+              onClick={() => setMobileMsgOpen(true)}
+            >
+              <Icon icon={"solar:bell-line-duotone"} width={22} height={22} />
+              {pendingNotifications.length > 0 && (
+                <span className="mobile-notif-badge">
+                  {pendingNotifications.length > 9 ? '9+' : pendingNotifications.length}
+                </span>
+              )}
+            </button>
+          </div>}
+        </div>
       )}
 
       <main className="dashmain">
@@ -1895,29 +1895,38 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
                     className="thread-view"
                     aria-label="Post thread view"
                   >
-                    <header
-        className="sticky top-0 z-50 mb-0 flex h-[54px] items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl"
-        style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
-      >
-        {/* Left */}
-        <div
-          className="flex items-center"
-          style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
-        >
-          <button
-            onClick={() => router.back()}
-            className="mr-6 flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-black/5"
-          >
-            <ArrowLeft size={20} strokeWidth={2.2} />
-          </button>
+<header
+  className="sticky top-0 z-50 mb-5 flex h-[54px] w-full items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl"
+  style={{
+    position: "sticky",
+    top: 0,
+    zIndex: 50,
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+  }}
+>
+  <div
+    className="flex items-center"
+    style={{
+      display: "flex",
+      flexDirection: "row",
+      alignItems: "center",
+    }}
+  >
+    <button
+      onClick={() => router.back()}
+      className="mr-6 flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-black/5"
+      aria-label="Go back"
+    >
+      <ArrowLeft size={20} strokeWidth={2.2} />
+    </button>
 
-          <div>
-            <h1 className="truncate text-[20px] font-bold leading-5 text-black">
-              Post
-            </h1>
-          </div>
-        </div>
-      </header>
+    <h1 className="truncate text-[20px] font-bold leading-5 text-black">
+      Post
+    </h1>
+  </div>
+</header>
 
                     <div className="thread-view-content">
                       {renderPostCard(selectedThreadPost, { isThread: true })}

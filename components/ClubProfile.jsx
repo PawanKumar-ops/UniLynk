@@ -77,8 +77,8 @@ function ImageWithFallback({
 
 const TABS = [
     { key: "about", label: "About" },
-    { key: "past", label: "Past Activities" },
-    { key: "upcoming", label: "Upcoming Events" },
+    { key: "past", label: "History" },
+    { key: "upcoming", label: "Upcoming" },
 ];
 
 function SectionCard({
@@ -287,7 +287,7 @@ export function ClubPage() {
                 </header>
 
 
-                <div className="mx-auto px-3.5 flex max-w-3xl flex-col gap-4 sm:gap-6">
+                <div className="mx-auto flex max-w-3xl flex-col gap-4 sm:gap-6">
                     {/* Banner + identity */}
                     <article
                         style={{ boxShadow: "var(--shadow-card)" }}
@@ -391,20 +391,21 @@ export function ClubPage() {
 
 
                     {/* Tabs */}
-                    <div className="mx-auto mb-8 flex w-full max-w-[850px] gap-1 rounded-full border border-[#E1E1E1] bg-[#F3F3F3] p-1">
-                        {TABS.map((t) => (
-                            <button
-                                key={t.key}
-                                onClick={() => setTab(t.key)}
-                                className={`flex-1 whitespace-nowrap rounded-full px-3 py-2 text-sm transition-colors ${tab === t.key
-                                    ? "bg-[#030213] text-white"
-                                    : "text-[#717182] hover:text-[#0a0a0a]"
-                                    }`}
-                            >
-                                {t.label}
-                            </button>
-                        ))}
-                    </div>
+                    <div className="mx-auto mb-2 flex w-full max-w-[850px] gap-1 rounded-full border border-[#E1E1E1] bg-[#F3F3F3] p-1">
+    {TABS.map((t) => (
+        <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`min-w-0 flex-1 rounded-full px-2 py-2 text-center text-xs transition-colors sm:px-3 sm:py-2 sm:text-sm ${
+                tab === t.key
+                    ? "bg-[#030213] text-white"
+                    : "text-[#717182] hover:text-[#0a0a0a]"
+            }`}
+        >
+            {t.label}
+        </button>
+    ))}
+</div>
 
                     {/* ---------- ABOUT TAB ---------- */}
                     {tab === "about" && (
