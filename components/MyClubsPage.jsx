@@ -215,7 +215,7 @@ export function MyClubsPage() {
         </div>
       </header>
 
-      <div className="mx-auto px-3.5 flex max-w-3xl flex-col gap-4 pb-5 sm:gap-6">
+      <div className="mx-auto sm:px-3.5 flex max-w-3xl flex-col gap-4 pb-5 sm:gap-6">
         {/* Summary strip */}
         <div className="flex items-center justify-between gap-3 rounded-2xl border border-[rgba(0,0,0,0.1)] bg-white p-4 sm:gap-4 sm:p-5">
           <div className="flex items-center gap-3 sm:gap-4">
@@ -229,7 +229,7 @@ export function MyClubsPage() {
           </div>
           <div className="flex shrink-0 -space-x-3">
             {clubCards.slice(0, 4).map((club) => (
-              <div key={club.id} className="size-8 overflow-hidden rounded-full ring-2 ring-white sm:size-10">
+              <div key={club.id} className="size-8 overflow-hidden rounded-full border-2 border-[#EEEEEE] sm:size-10">
                 <ImageWithFallback src={club.logo} alt={club.name} className="size-full object-cover" />
               </div>
             ))}
@@ -278,7 +278,7 @@ export function MyClubsPage() {
                   </div>
 
                   <div className="flex items-center gap-3 px-3 pb-3 pt-4">
-                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-[#f4f4f3] ring-1 ring-black/[0.06]+">
+                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full bg-[#f4f4f3] border-1 border-[#EEEEEE]">
                       {club?.logo ? (
                         <img
                           src={club.logo}
@@ -320,7 +320,7 @@ export function MyClubsPage() {
                 key={club.id}
                 className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white p-3 transition hover:border-neutral-300 hover:shadow-sm sm:gap-4"
               >
-                <div className="size-14 shrink-0 overflow-hidden rounded-full sm:size-16">
+                <div className="size-14 shrink-0 overflow-hidden rounded-full border-1 border-[#EEEEEE] sm:size-16">
                   <ImageWithFallback src={club.img} alt={club.name} className="size-full object-cover" />
                 </div>
                 <div className="min-w-0 flex-1">

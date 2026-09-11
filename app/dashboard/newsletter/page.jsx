@@ -359,7 +359,7 @@ export default function Page() {
           style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
         >
           <button
-            onClick={() => router.back()}
+            onClick={() => router.push("/dashboard/my-clubs")}
             className="mr-6 flex h-9 w-9 items-center cursor-pointer justify-center rounded-full transition hover:bg-black/5"
           >
             <ArrowLeft size={20} strokeWidth={2.2} />
