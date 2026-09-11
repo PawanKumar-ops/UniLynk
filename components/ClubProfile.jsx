@@ -88,7 +88,7 @@ function SectionCard({
     children,
 }) {
     return (
-        <section className="rounded-2xl border border-[#0000001A] bg-white p-4 shadow-sm sm:p-5">
+        <section className="rounded-2xl border border-[#0000001A] bg-white p-4 sm:p-5">
             <div className="mb-4 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
 
@@ -287,7 +287,7 @@ export function ClubPage() {
                 </header>
 
 
-                <div className="mx-auto flex max-w-3xl flex-col gap-4 sm:gap-6">
+                <div className="mx-auto flex max-w-3xl sm:px-3.5 flex-col gap-4 sm:gap-6">
                     {/* Banner + identity */}
                     <article
                         style={{ boxShadow: "var(--shadow-card)" }}

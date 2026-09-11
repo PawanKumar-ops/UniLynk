@@ -1895,38 +1895,29 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
                     className="thread-view"
                     aria-label="Post thread view"
                   >
-<header
-  className="sticky top-0 z-50 mb-5 flex h-[54px] w-full items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl"
-  style={{
-    position: "sticky",
-    top: 0,
-    zIndex: 50,
-    display: "flex",
-    flexDirection: "row",
-    alignItems: "center",
-  }}
->
-  <div
-    className="flex items-center"
-    style={{
-      display: "flex",
-      flexDirection: "row",
-      alignItems: "center",
-    }}
-  >
-    <button
-      onClick={() => router.back()}
-      className="mr-6 flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-black/5"
-      aria-label="Go back"
-    >
-      <ArrowLeft size={20} strokeWidth={2.2} />
-    </button>
+                    <header
+                      className="sticky top-0 z-50 mb-0 flex h-[54px] items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl"
+                      style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
+                    >
+                      {/* Left */}
+                      <div
+                        className="flex items-center"
+                        style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
+                      >
+                        <button
+                          onClick={() => router.back()}
+                          className="mr-6 flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-black/5"
+                        >
+                          <ArrowLeft size={20} strokeWidth={2.2} />
+                        </button>
 
-    <h1 className="truncate text-[20px] font-bold leading-5 text-black">
-      Post
-    </h1>
-  </div>
-</header>
+                        <div>
+                          <h1 className="truncate text-[20px] font-bold leading-5 text-black">
+                            Post
+                          </h1>
+                        </div>
+                      </div>
+                    </header>
 
                     <div className="thread-view-content">
                       {renderPostCard(selectedThreadPost, { isThread: true })}
