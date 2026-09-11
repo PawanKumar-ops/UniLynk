@@ -254,7 +254,7 @@ function ClubPickerModal({
               <button
                 key={c._id}
                 onClick={() => setSelected(String(c._id))}
-                className={`flex w-full items-center gap-3 rounded-2xl border p-2.5 text-left transition-all ${active ? "border-[#171717] bg-[#fafafa]" : "border-transparent hover:bg-[#fafafa]"
+                className={`flex w-full items-center gap-3 rounded-2xl p-2.5 text-left transition-all ${active ? "border-[#171717] bg-[#fafafa]" : "border-transparent hover:bg-[#fafafa]"
                   }`}
               >
                 <img
@@ -269,7 +269,7 @@ function ClubPickerModal({
                   </p>
                 </div>
                 <span
-                  className={`flex size-5 shrink-0 items-center justify-center rounded-full border-2 transition-colors ${active ? "border-[#171717] bg-[#171717]" : "border-[#d4d4d4]"
+                  className={`flex size-5 shrink-0 items-center justify-center rounded-full border-1 transition-colors ${active ? "border-[#d4d4d4] bg-[#171717]" : "border-[#d4d4d4]"
                     }`}
                 >
                   {active && (
@@ -466,7 +466,7 @@ function EditorContent() {
 
       <input ref={fileRef} type="file" accept="image/*" hidden onChange={handleFile} />
 
-      <div className="@container mx-auto max-w-3xl px-[14px] pb-20 pt-6 sm:pb-24 sm:pt-8">
+      <div className="@container mx-auto max-w-3xl sm:px-[14px] sm:pt-6 sm:pb-24 sm:pt-8">
         {errorMsg && (
           <div className="mb-5 rounded-2xl bg-red-50 p-4 border border-red-200 text-sm font-medium text-red-600">
             {errorMsg}

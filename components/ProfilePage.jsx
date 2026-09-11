@@ -214,7 +214,6 @@ export function ProfilePage() {
           {/* Body */}
           <div className="relative px-5 pb-5 sm:px-7 sm:pb-7">
 
-            {/* Profile Picture */}
             {/* Profile Picture + Passport */}
             <div className="relative -mt-10 mb-4 flex items-end justify-between gap-3 sm:-mt-13 sm:mb-5">
               <div className="rounded-full w-fit bg-white p-0.75 ring-1 ring-white">

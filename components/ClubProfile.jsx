@@ -311,13 +311,13 @@ export function ClubPage() {
                         <div className="relative px-5 pb-5 sm:px-7 sm:pb-7">
                             {/* Avatar */}
                             <div className="relative -mt-10 mb-4 flex items-end justify-between gap-3 sm:-mt-13 sm:mb-5">
-                                <div className="rounded-full bg-[#fff] p-0.75 ring-1 ring-[#fff] sm:rounded-full">
+                                <div className="rounded-full w-fit bg-white p-0.75 ring-1 ring-white">
                                     <ImageWithFallback
                                         src={club.logo}
                                         alt={club.name}
                                         width={512}
                                         height={512}
-                                        className="h-[75px] w-[75px] rounded-full object-cover sm:h-[100px] sm:w-[100px] sm:rounded-full"
+                                        className="h-[75px] w-[75px] rounded-full object-cover border-1 border-[#EEEEEE] sm:h-[100px] sm:w-[100px] sm:rounded-full"
                                     />
                                 </div>
                                 <div className="mb-1 flex items-center gap-2">
