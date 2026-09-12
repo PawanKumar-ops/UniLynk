@@ -227,6 +227,22 @@ export function ProfilePage() {
                 />
               </div>
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{/* 
               <button
                 type="button"
                 onClick={() =>
@@ -240,7 +256,29 @@ export function ProfilePage() {
                   className="size-4 sm:size-[17px]"
                 />
                 <span>View passport</span>
-              </button>
+              </button> */}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+              
             </div>
 
             {/* User Information */}

@@ -501,7 +501,7 @@ function PassportPage() {
                             <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-full ring-1 ring-[#ececec] sm:h-[76px] sm:w-[76px]">
                                 <img
                                     src="https://images.unsplash.com/photo-1633332755192-727a05c4013d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400"
-                                    alt="Pawan Kumar"
+                                    alt="Your Name"
                                     className="h-full w-full object-cover grayscale"
                                 />
                             </div>

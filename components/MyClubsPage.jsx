@@ -333,7 +333,7 @@ export function MyClubsPage() {
                 <Button
                   variant="secondary"
                   className="shrink-0 rounded-full px-3 sm:px-4"
-                  onClick={() => router.push(`/Club?clubId=${club.id}`)}
+                  onClick={() => router.push(`./Club?clubId=${club.id}`)}
                 >
                   <span className="hidden sm:inline">Visit</span>
                 </Button>
