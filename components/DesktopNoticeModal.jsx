@@ -1,10 +1,10 @@
 import { useEffect } from "react";
 
-export default function DesktopNoticeModal({ open, onClose }) {
+export default function DesktopNoticeModal({ open, onContinue, onRemindLater }) {
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onRemindLater();
     };
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
@@ -12,7 +12,7 @@ export default function DesktopNoticeModal({ open, onClose }) {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
     };
-  }, [open, onClose]);
+  }, [open, onRemindLater]);
 
   if (!open) return null;
 
@@ -27,7 +27,7 @@ export default function DesktopNoticeModal({ open, onClose }) {
       {/* Backdrop */}
       <button
         aria-label="Close"
-        onClick={onClose}
+        onClick={onRemindLater}
         className="absolute inset-0 bg-black/40 backdrop-blur-md"
       />
 
@@ -38,7 +38,7 @@ export default function DesktopNoticeModal({ open, onClose }) {
       >
         {/* Close */}
         <button
-          onClick={onClose}
+          onClick={onRemindLater}
           aria-label="Dismiss"
           className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-black/40 transition-colors hover:bg-black/5 hover:text-black"
         >
@@ -89,13 +89,13 @@ export default function DesktopNoticeModal({ open, onClose }) {
 
           <div className="flex w-full flex-col gap-2.5">
             <button
-              onClick={onClose}
+              onClick={onContinue}
               className="w-full rounded-full bg-black py-3.5 text-sm font-medium text-white transition-transform duration-200 hover:scale-[0.99] active:scale-[0.97]"
             >
               Continue on mobile
             </button>
             <button
-              onClick={onClose}
+              onClick={onRemindLater}
               className="w-full rounded-full py-2.5 text-sm font-medium text-black/45 transition-colors hover:text-black"
             >
               Remind me later
