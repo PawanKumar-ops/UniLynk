@@ -48,7 +48,7 @@ export default function UseCasesSection() {
           </div>
           <div className="lg:shrink-0">
             <a
-              href="https://www.magnific.com/sign-up?client_id=magnific&lang=en#from_element=home_use_cases"
+              href="/LoginPage"
               className="group inline-flex w-fit items-center gap-2 rounded-lg bg-[#101010] px-6 py-3 text-base font-medium text-white transition-colors hover:bg-[#1a1a1a]"
             >
               Explore now
