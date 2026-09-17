@@ -5,6 +5,11 @@ import { useSearchParams } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { DashboardEventsShell } from "@/components/DashboardEventsShell";
 import { PostCard } from "@/components/PostCard";
+import PollCard from "@/components/PollCard";
+import CommentModal from "@/components/CommentModal";
+import ShareModal from "@/components/ShareModal";
+import { ReportPostModal } from "@/components/ReportPostModal";
+import { DeleteModal } from "@/components/DeleteModal";
 import { AddMembersModal } from "@/components/AddMembersFab";
 import { MembersModal } from "@/components/ClubMembersModal";
 import {
@@ -112,7 +117,145 @@ export function ClubPage() {
     const [upcomingEvents, setUpcomingEvents] = useState([]);
     const [addMembersOpen, setAddMembersOpen] = useState(false);
     const [membersOpen, setMembersOpen] = useState(false);
+    const [activePostId, setActivePostId] = useState(null);
+    const [sharePost, setSharePost] = useState(null);
+    const [openShare, setOpenShare] = useState(false);
+    const [reportPostId, setReportPostId] = useState(null);
+    const [deletePost, setDeletePost] = useState(null);
+    const [isDeletingPost, setIsDeletingPost] = useState(false);
+    const [menuPostId, setMenuPostId] = useState(null);
     const router = useRouter();
+
+    const formatAuthorHandle = (email) => (email && typeof email === "string" ? `@${email.split("@")[0]}` : "");
+
+    const handleOpenAuthorProfile = async (event, item) => {
+        event?.stopPropagation?.();
+        if (item?.postAs === "club" && item?.clubId) {
+            router.push(`/dashboard/Club?clubId=${item.clubId}`);
+            return;
+        }
+        let authorId =
+            typeof item?.authorId === "string"
+                ? item.authorId.trim()
+                : typeof item?.author?._id === "string"
+                    ? item.author._id.trim()
+                    : "";
+
+        if (!authorId && typeof item?.authorEmail === "string" && item.authorEmail.trim()) {
+            try {
+                const res = await fetch(`/api/user/lookup?email=${encodeURIComponent(item.authorEmail)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    authorId = data.userId || "";
+                }
+            } catch (err) {
+                console.error("Failed to lookup user by email:", err);
+            }
+        }
+
+        if (!authorId) return;
+        router.push(`/dashboard/Userprofile?userId=${authorId}`);
+    };
+
+    const handleLike = async (postId) => {
+        if (!postId) return;
+        const post = clubPosts.find((p) => String(p.id || p._id) === String(postId));
+        if (!post) return;
+        const currentlyLiked = Boolean(post.likedByCurrentUser);
+        const nextLiked = !currentlyLiked;
+        const nextLikeCount = Math.max(0, Number(post.likeCount || 0) + (nextLiked ? 1 : -1));
+
+        updatePost({ ...post, likedByCurrentUser: nextLiked, likeCount: nextLikeCount });
+
+        try {
+            const res = await fetch(`/api/posts/${postId}/like`, {
+                method: currentlyLiked ? "DELETE" : "POST",
+                headers: { "Content-Type": "application/json" },
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data?.error || "Failed to update like");
+            updatePost({
+                ...post,
+                likedByCurrentUser: Boolean(data.likedByCurrentUser),
+                likeCount: Number(data.likeCount ?? nextLikeCount),
+            });
+        } catch (err) {
+            console.error(err);
+            updatePost(post);
+        }
+    };
+
+    const handleSave = async (postId) => {
+        if (!postId) return;
+        const post = clubPosts.find((p) => String(p.id || p._id) === String(postId));
+        if (!post) return;
+        const wasSaved = Boolean(post.savedByCurrentUser);
+        const optimisticSaved = !wasSaved;
+        const optimisticCount = Math.max(0, Number(post.bookmarkCount || 0) + (optimisticSaved ? 1 : -1));
+
+        updatePost({ ...post, savedByCurrentUser: optimisticSaved, bookmarkCount: optimisticCount });
+
+        try {
+            const res = await fetch("/api/posts/bookmark", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ postId }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error("Failed to save post");
+            updatePost({
+                ...post,
+                savedByCurrentUser: Boolean(data.saved),
+                bookmarkCount: Number(data.bookmarkCount ?? optimisticCount),
+            });
+        } catch (err) {
+            console.error(err);
+            updatePost(post);
+        }
+    };
+
+    const handleCommentSubmit = async (postId, payload) => {
+        try {
+            const res = await fetch(`/api/posts/${postId}/comments`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data?.error || "Failed to add comment");
+
+            const targetPost = clubPosts.find((p) => String(p.id || p._id) === String(postId));
+            if (targetPost) {
+                updatePost({ ...targetPost, commentCount: Number(targetPost.commentCount || 0) + 1 });
+            }
+            setActivePostId(null);
+        } catch (err) {
+            console.error(err);
+            alert("Could not publish comment");
+        }
+    };
+
+    const handleDeletePost = async () => {
+        if (!deletePost?.id && !deletePost?._id) return;
+        const pId = deletePost.id || deletePost._id;
+        setIsDeletingPost(true);
+        try {
+            const res = await fetch(`/api/posts/${pId}`, { method: "DELETE" });
+            if (!res.ok) throw new Error("Failed to delete post");
+            setClubPosts((prev) => prev.filter((p) => String(p.id || p._id) !== String(pId)));
+            setDeletePost(null);
+        } catch (err) {
+            console.error(err);
+            alert("Could not delete post");
+        } finally {
+            setIsDeletingPost(false);
+        }
+    };
+
+    const handlePollChange = (postId, nextPoll) => {
+        const post = clubPosts.find((p) => String(p.id || p._id) === String(postId));
+        if (post) updatePost({ ...post, poll: nextPoll });
+    };
 
     useEffect(() => {
         const clubId = searchParams.get("clubId");
@@ -459,17 +602,44 @@ export function ClubPage() {
                                     <h3 className="text-[1.125rem] font-bold">Recent Posts</h3>
                                 </div>
                                 <div className="flex flex-col gap-4">
-                                    {clubPosts.map((post, index) => (
-                                        <PostCard
-                                            key={post.id || post._id || `post-${index}`}
-                                            post={post}
-                                            variant="dashboard"
-                                            formatTime={formatPostTime}
-                                            imageGridClass={getImageGridClass}
-                                            avatarFallback={() => club.logo || "/Defaultclublogo.svg"}
-                                            onPostChange={updatePost}
-                                        />
-                                    ))}
+                                    {clubPosts.map((post, index) => {
+                                        const pId = post.id || post._id || `post-${index}`;
+                                        const currentUser = session?.user;
+                                        const isLeader = Boolean(
+                                            currentUser?.email &&
+                                            Array.isArray(clubData?.leaders) &&
+                                            clubData.leaders.some((l) => l.email?.toLowerCase() === currentUser.email?.toLowerCase())
+                                        );
+                                        const canDelete = Boolean(
+                                            currentUser &&
+                                            (post.authorId === currentUser.id ||
+                                             post.authorEmail?.toLowerCase() === currentUser.email?.toLowerCase() ||
+                                             isLeader)
+                                        );
+                                        return (
+                                            <PostCard
+                                                key={pId}
+                                                post={post}
+                                                variant="dashboard"
+                                                formatTime={formatPostTime}
+                                                formatHandle={formatAuthorHandle}
+                                                imageGridClass={getImageGridClass}
+                                                avatarFallback={() => club.logo || "/Defaultclublogo.svg"}
+                                                onOpenPost={(id) => router.push(`/dashboard/post/${id}`)}
+                                                onOpenAuthor={handleOpenAuthorProfile}
+                                                onToggleMenu={() => setMenuPostId(menuPostId === pId ? null : pId)}
+                                                menuOpen={menuPostId === pId}
+                                                onReport={(id) => { setMenuPostId(null); setReportPostId(id); }}
+                                                onDelete={(p) => { setMenuPostId(null); setDeletePost(p); }}
+                                                canDelete={canDelete}
+                                                onLike={handleLike}
+                                                onComment={(id) => setActivePostId(id)}
+                                                onShare={(p) => { setMenuPostId(null); setSharePost(p); setOpenShare(true); }}
+                                                onSave={handleSave}
+                                                pollContent={post.poll && <PollCard postId={post.id || post._id} poll={post.poll} onPollChange={(nextPoll) => handlePollChange(post.id || post._id, nextPoll)} />}
+                                            />
+                                        );
+                                    })}
                                 </div>
                             </div>
 
@@ -573,6 +743,40 @@ export function ClubPage() {
                     </div>
                 )}
             </div>
+
+            <CommentModal
+                isOpen={Boolean(activePostId)}
+                onClose={() => setActivePostId(null)}
+                onSubmit={(payload) => {
+                    if (!activePostId) return;
+                    handleCommentSubmit(activePostId, payload);
+                }}
+                currentUser={session?.user}
+            />
+
+            <ShareModal
+                isOpen={openShare}
+                post={sharePost}
+                onClose={() => {
+                    setOpenShare(false);
+                    setSharePost(null);
+                }}
+            />
+
+            <ReportPostModal
+                isOpen={Boolean(reportPostId)}
+                postId={reportPostId}
+                onClose={() => setReportPostId(null)}
+            />
+
+            <DeleteModal
+                open={Boolean(deletePost)}
+                onOpenChange={(open) => {
+                    if (!open && !isDeletingPost) setDeletePost(null);
+                }}
+                onDelete={handleDeletePost}
+                isDeleting={isDeletingPost}
+            />
         </DashboardEventsShell>
     );
 }

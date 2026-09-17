@@ -13,6 +13,11 @@ import { getSkillIcon } from "@/lib/skillIcons";
 import ReliableImage from "@/components/ReliableImage";
 import { DashboardEventsShell } from "@/components/DashboardEventsShell";
 import { PostCard } from "@/components/PostCard";
+import PollCard from "@/components/PollCard";
+import CommentModal from "@/components/CommentModal";
+import ShareModal from "@/components/ShareModal";
+import { ReportPostModal } from "@/components/ReportPostModal";
+import { DeleteModal } from "@/components/DeleteModal";
 import { ProfileSkeleton } from "./ProfileSkeleton";
 import { loreleiAvatar } from "@/lib/avatar";
 
@@ -43,15 +48,24 @@ const normalizeEmail = (email) => typeof email === "string" ? email.trim().toLow
 const socialUrl = (url) => /^https?:\/\//i.test(url || "") ? url : `https://${url}`;
 const formatPostTime = (date) => date ? new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(Math.round((new Date(date) - Date.now()) / 86_400_000), "day") : "";
 const getImageGridClass = (count) => count === 1 ? "x-single-image" : count === 2 ? "image-grid count-2" : count === 3 ? "image-grid count-3" : "image-grid count-4";
+const formatAuthorHandle = (email) => (email && typeof email === "string" ? `@${email.split("@")[0]}` : "");
 
 export function ProfilePostCard(props) {
   return <PostCard {...props} variant="dashboard" formatTime={formatPostTime} imageGridClass={getImageGridClass} avatarFallback={(_name, email) => loreleiAvatar(email)} onComment={props.onOpenPost} />;
 }
 
 export function ProfilePage() {
-  const router = useRouter(); const pathname = usePathname(); const searchParams = useSearchParams(); const { status } = useSession();
+  const router = useRouter(); const pathname = usePathname(); const searchParams = useSearchParams(); const { data: session, status } = useSession();
   const routeUserId = useMemo(() => searchParams.get("userId") || pathname?.match(/\/dashboard\/search\/id=(.+)$/)?.[1], [pathname, searchParams]);
   const [me, setMe] = useState(null); const [profile, setProfile] = useState(null); const [clubs, setClubs] = useState([]); const [posts, setPosts] = useState([]); const [loading, setLoading] = useState(true); const [error, setError] = useState(""); const [showAllAchievements, setShowAllAchievements] = useState(false);
+  const [activePostId, setActivePostId] = useState(null);
+  const [sharePost, setSharePost] = useState(null);
+  const [openShare, setOpenShare] = useState(false);
+  const [reportPostId, setReportPostId] = useState(null);
+  const [deletePost, setDeletePost] = useState(null);
+  const [isDeletingPost, setIsDeletingPost] = useState(false);
+  const [menuPostId, setMenuPostId] = useState(null);
+
   const isOwnProfile = !!me && !!profile && String(me._id) === String(profile._id);
 
   useEffect(() => {
@@ -98,6 +112,134 @@ export function ProfilePage() {
   const academic = [{ icon: GraduationCap, label: "Branch", value: profile?.branch || "Not available" }, { icon: CalendarDays, label: "Year", value: profile?.year || "Not available" }, { icon: Layers, label: "Batch", value: profile?.year ? "Current batch" : "Not available" }, { icon: BookOpen, label: "Semester", value: profile?.year || "Not available" }];
   const achievements = profile?.achievements || []; const visibleAchievements = showAllAchievements ? achievements : achievements.slice(0, 2);
   const updatePost = (next) => setPosts((current) => current.map((post) => post.id === next.id ? next : post));
+
+  const handleOpenAuthorProfile = async (event, item) => {
+    event?.stopPropagation?.();
+    if (item?.postAs === "club" && item?.clubId) {
+      router.push(`/dashboard/Club?clubId=${item.clubId}`);
+      return;
+    }
+    let authorId =
+      typeof item?.authorId === "string"
+        ? item.authorId.trim()
+        : typeof item?.author?._id === "string"
+          ? item.author._id.trim()
+          : "";
+
+    if (!authorId && typeof item?.authorEmail === "string" && item.authorEmail.trim()) {
+      try {
+        const res = await fetch(`/api/user/lookup?email=${encodeURIComponent(item.authorEmail)}`);
+        if (res.ok) {
+          const data = await res.json();
+          authorId = data.userId || "";
+        }
+      } catch (err) {
+        console.error("Failed to lookup user by email:", err);
+      }
+    }
+
+    if (!authorId) return;
+    router.push(`/dashboard/Userprofile?userId=${authorId}`);
+  };
+
+  const handleLike = async (postId) => {
+    if (!postId) return;
+    const post = posts.find((p) => p.id === postId);
+    if (!post) return;
+    const currentlyLiked = Boolean(post.likedByCurrentUser);
+    const nextLiked = !currentlyLiked;
+    const nextLikeCount = Math.max(0, Number(post.likeCount || 0) + (nextLiked ? 1 : -1));
+
+    updatePost({ ...post, likedByCurrentUser: nextLiked, likeCount: nextLikeCount });
+
+    try {
+      const res = await fetch(`/api/posts/${postId}/like`, {
+        method: currentlyLiked ? "DELETE" : "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Failed to update like");
+      updatePost({
+        ...post,
+        likedByCurrentUser: Boolean(data.likedByCurrentUser),
+        likeCount: Number(data.likeCount ?? nextLikeCount),
+      });
+    } catch (err) {
+      console.error(err);
+      updatePost(post);
+    }
+  };
+
+  const handleSave = async (postId) => {
+    if (!postId) return;
+    const post = posts.find((p) => p.id === postId);
+    if (!post) return;
+    const wasSaved = Boolean(post.savedByCurrentUser);
+    const optimisticSaved = !wasSaved;
+    const optimisticCount = Math.max(0, Number(post.bookmarkCount || 0) + (optimisticSaved ? 1 : -1));
+
+    updatePost({ ...post, savedByCurrentUser: optimisticSaved, bookmarkCount: optimisticCount });
+
+    try {
+      const res = await fetch("/api/posts/bookmark", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ postId }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error("Failed to save post");
+      updatePost({
+        ...post,
+        savedByCurrentUser: Boolean(data.saved),
+        bookmarkCount: Number(data.bookmarkCount ?? optimisticCount),
+      });
+    } catch (err) {
+      console.error(err);
+      updatePost(post);
+    }
+  };
+
+  const handleCommentSubmit = async (postId, payload) => {
+    try {
+      const res = await fetch(`/api/posts/${postId}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || "Failed to add comment");
+
+      const targetPost = posts.find((p) => p.id === postId);
+      if (targetPost) {
+        updatePost({ ...targetPost, commentCount: Number(targetPost.commentCount || 0) + 1 });
+      }
+      setActivePostId(null);
+    } catch (err) {
+      console.error(err);
+      alert("Could not publish comment");
+    }
+  };
+
+  const handleDeletePost = async () => {
+    if (!deletePost?.id) return;
+    setIsDeletingPost(true);
+    try {
+      const res = await fetch(`/api/posts/${deletePost.id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete post");
+      setPosts((prev) => prev.filter((p) => p.id !== deletePost.id));
+      setDeletePost(null);
+    } catch (err) {
+      console.error(err);
+      alert("Could not delete post");
+    } finally {
+      setIsDeletingPost(false);
+    }
+  };
+
+  const handlePollChange = (postId, nextPoll) => {
+    const post = posts.find((p) => p.id === postId);
+    if (post) updatePost({ ...post, poll: nextPoll });
+  };
   if (status === "loading" || loading) return <DashboardEventsShell><ProfileSkeleton /></DashboardEventsShell>;
   if (status !== "authenticated" || error || !profile) return <DashboardEventsShell><div className="p-6 text-sm text-[#717182]">{error || "Please log in to view this profile."}</div></DashboardEventsShell>;
   return <DashboardEventsShell>
@@ -330,14 +472,32 @@ export function ProfilePage() {
           </div>
 
           <div className="space-y-4">
-            {posts.map((post) => (
-              <ProfilePostCard
-                key={post.id}
-                post={post}
-                onPostChange={updatePost}
-                onOpenPost={(id) => router.push(`/dashboard/post/${id}`)}
-              />
-            ))}
+            {posts.map((post) => {
+              const canDelete = Boolean(me && (post.authorId === me._id || normalizeEmail(post.authorEmail) === normalizeEmail(me.email)));
+              return (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  variant="dashboard"
+                  formatTime={formatPostTime}
+                  formatHandle={formatAuthorHandle}
+                  imageGridClass={getImageGridClass}
+                  avatarFallback={(_name, email) => loreleiAvatar(email)}
+                  onOpenPost={(id) => router.push(`/dashboard/post/${id}`)}
+                  onOpenAuthor={handleOpenAuthorProfile}
+                  onToggleMenu={() => setMenuPostId(menuPostId === post.id ? null : post.id)}
+                  menuOpen={menuPostId === post.id}
+                  onReport={(id) => { setMenuPostId(null); setReportPostId(id); }}
+                  onDelete={(p) => { setMenuPostId(null); setDeletePost(p); }}
+                  canDelete={canDelete}
+                  onLike={handleLike}
+                  onComment={(id) => setActivePostId(id)}
+                  onShare={(p) => { setMenuPostId(null); setSharePost(p); setOpenShare(true); }}
+                  onSave={handleSave}
+                  pollContent={post.poll && <PollCard postId={post.id} poll={post.poll} onPollChange={(nextPoll) => handlePollChange(post.id, nextPoll)} />}
+                />
+              );
+            })}
 
             {posts.length === 0 && (
               <div className="rounded-2xl border border-[#0000001A] bg-white p-8 text-center text-sm text-[#717182]">
@@ -347,5 +507,40 @@ export function ProfilePage() {
           </div>
         </div>
       </div>
-    </div></DashboardEventsShell>;
+    </div>
+
+    <CommentModal
+      isOpen={Boolean(activePostId)}
+      onClose={() => setActivePostId(null)}
+      onSubmit={(payload) => {
+        if (!activePostId) return;
+        handleCommentSubmit(activePostId, payload);
+      }}
+      currentUser={session?.user}
+    />
+
+    <ShareModal
+      isOpen={openShare}
+      post={sharePost}
+      onClose={() => {
+        setOpenShare(false);
+        setSharePost(null);
+      }}
+    />
+
+    <ReportPostModal
+      isOpen={Boolean(reportPostId)}
+      postId={reportPostId}
+      onClose={() => setReportPostId(null)}
+    />
+
+    <DeleteModal
+      open={Boolean(deletePost)}
+      onOpenChange={(open) => {
+        if (!open && !isDeletingPost) setDeletePost(null);
+      }}
+      onDelete={handleDeletePost}
+      isDeleting={isDeletingPost}
+    />
+  </DashboardEventsShell>;
 }

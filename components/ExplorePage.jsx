@@ -16,6 +16,7 @@ import { ReportPostModal } from "./ReportPostModal";
 import { DeleteModal } from "./DeleteModal";
 import { AllClubsModal } from "./AllClubsModal";
 import { PostCard } from "./PostCard";
+import PollCard from "./PollCard";
 import { loreleiAvatar } from "@/lib/avatar";
 
 // Random club will be fetched from the API
@@ -172,7 +173,7 @@ const ImageLightbox = ({ images, initialIndex, onClose }) => {
   );
 };
 
-const PollCard = ({ postId, poll, onPollChange }) => {
+const InlinePollCard = ({ postId, poll, onPollChange }) => {
   const [votedOptionId, setVotedOptionId] = useState(poll.votedOptionId ?? null);
   const [options, setOptions] = useState(Array.isArray(poll.options) ? poll.options : []);
   const [totalVotes, setTotalVotes] = useState(Number(poll.totalVotes || 0));
@@ -1265,6 +1266,9 @@ export function ExplorePage({ onBack }) {
     <PostCard
       key={post.id}
       post={post}
+      variant="dashboard"
+      formatHandle={(email) => (email && typeof email === "string" ? `@${email.split("@")[0]}` : "")}
+      onOpenAuthor={handleOpenAuthorProfile}
       isThread={isThread}
       menuOpen={menuPostId === post.id}
       postRef={isThread ? undefined : (node) => { if (node) postRefs.current[post.id] = node; else delete postRefs.current[post.id]; }}
@@ -1277,13 +1281,44 @@ export function ExplorePage({ onBack }) {
       onDelete={handleDeleteClick}
       canDelete={isPostAuthor(post)}
       onLike={(id) => queueLikeToggle(id, Boolean(post.likedByCurrentUser))}
-      onComment={(id) => router.push(`/dashboard/post/${id}`)}
+      onComment={(id) => setActivePostId(id)}
       onShare={(nextPost) => { setSharePost(nextPost); setOpenShare(true); }}
       onSave={toggleSavePost}
       pollContent={post.poll && <PollCard postId={post.id} poll={post.poll} onPollChange={(nextPoll) => handlePollChange(post.id, nextPoll)} />}
     />
   );
   const renderPostCard = sharedPostCard;
+
+  const handleOpenAuthorProfile = async (event, item) => {
+    event?.stopPropagation?.();
+    if (item?.postAs === "club" && item?.clubId) {
+      router.push(`/dashboard/Club?clubId=${item.clubId}`);
+      return;
+    }
+    let authorId =
+      typeof item?.authorId === "string"
+        ? item.authorId.trim()
+        : typeof item?.author?.id === "string"
+          ? item.author.id.trim()
+          : typeof item?.author?._id === "string"
+            ? item.author._id.trim()
+            : "";
+
+    if (!authorId && typeof item?.authorEmail === "string" && item.authorEmail.trim()) {
+      try {
+        const res = await fetch(`/api/user/lookup?email=${encodeURIComponent(item.authorEmail)}`);
+        if (res.ok) {
+          const data = await res.json();
+          authorId = data.userId || "";
+        }
+      } catch (err) {
+        console.error("Failed to lookup user by email:", err);
+      }
+    }
+
+    if (!authorId) return;
+    router.push(`/dashboard/Userprofile?userId=${authorId}`);
+  };
 
   const handleOpenCommentAuthorProfile = async (event, comment) => {
     event.stopPropagation();

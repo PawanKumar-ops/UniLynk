@@ -681,7 +681,7 @@ export default function App() {
                                             <button
                                                 type="button"
                                                 onClick={() => goto('log-in')}
-                                                className="text-black font-bold hover:underline"
+                                                className="text-black font-boldX hover:underline"
                                             >
                                                 Log in
                                             </button>
