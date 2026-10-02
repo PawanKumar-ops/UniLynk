@@ -8,7 +8,7 @@
   background-color: rgba(15, 23, 42, 0.36);
   backdrop-filter: blur(2px);
   z-index: 2000;
-  animation: fadeIn 0.2s ease-in-out;
+  animation: shareModalFadeIn 0.2s ease-in-out;
 }
 
 @keyframes shareModalFadeIn {
@@ -540,48 +540,263 @@
 }
 
 /* Responsive Design */
-@media (max-width: 600px) {
+
+/* Small tablets / narrow windows: keep side-by-side but tighten */
+@media (max-width: 700px) and (min-width: 641px) {
   .share-modal-shell {
+    gap: 12px;
+  }
+}
+
+/* Mobile: one unified bottom sheet, quick panel becomes a horizontal contact strip */
+@media (max-width: 640px) {
+  .share-modal-overlay {
+    background-color: rgba(15, 23, 42, 0.45);
+  }
+
+  .share-modal-shell {
+    top: auto;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    transform: none;
+    width: 100%;
+    max-height: 92dvh;
     flex-direction: column;
-    width: calc(100vw - 24px);
-    gap: 14px;
+    gap: 0;
+    background-color: #ffffff;
+    border-radius: 20px 20px 0 0;
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.18);
+    overflow: hidden;
+    animation: shareModalSheetUp 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  /* Grab handle */
+  .share-modal-shell::before {
+    content: '';
+    flex: 0 0 auto;
+    align-self: center;
+    width: 40px;
+    height: 4px;
+    margin-top: 8px;
+    border-radius: 999px;
+    background-color: #d4d4d4;
   }
 
   .share-modal {
-    width: 100%;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
     max-width: none;
-    max-height: 90vh;
-  }
-
-  .share-modal-side-box {
-    width: 100%;
-    height: 180px;
-    max-height: 180px;
-    min-width: 0;
-    min-height: 120px;
-  }
-
-  .share-apps {
-    grid-template-columns: repeat(2, 1fr);
+    max-height: none;
+    border-radius: 0;
+    box-shadow: none;
   }
 
   .share-modal-header {
-    padding: 16px 20px;
+    padding: 10px 16px 6px 20px;
+  }
+
+  .share-modal-header h2 {
+    font-size: 18px;
+  }
+
+  .share-modal-close-button {
+    width: 40px;
+    height: 40px;
   }
 
   .share-modal-body {
-    padding: 20px;
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: none;
+    padding: 12px 20px 16px;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
   }
 
-  .app-button {
-    padding: 14px 8px;
+  .share-section {
+    margin-bottom: 22px;
   }
 
-  .copy-link-container {
-    flex-direction: column;
+  .share-section h3 {
+    margin-bottom: 12px;
+    font-size: 12px;
   }
 
-  .copy-button {
+  .share-apps {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .share-modal-app-button {
+    padding: 12px 4px;
+    font-size: 12px;
+    gap: 6px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .share-modal-app-button:hover {
+    box-shadow: none;
+  }
+
+  .share-modal-app-button:active {
+    background-color: #f3f4f6;
+  }
+
+  .share-modal-app-icon {
+    width: 36px;
+    height: 36px;
+  }
+
+  .share-modal-app-icon svg {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* 16px inputs prevent iOS zoom-on-focus */
+  .link-input,
+  .chat-input {
+    min-width: 0;
+    font-size: 16px;
+    padding: 10px 12px;
+  }
+
+  .copy-button,
+  .send-button {
+    padding: 10px 16px;
+    min-height: 44px;
     justify-content: center;
+  }
+
+  /* Quick panel -> horizontal contact strip docked at the bottom, under the search */
+  .share-modal-side-box {
+    flex: 0 0 auto;
+    width: 100%;
+    height: auto;
+    max-height: none;
+    min-width: 0;
+    min-height: 0;
+    border: none;
+    border-top: 1px solid #eeeeee;
+    border-radius: 0;
+    box-shadow: none;
+    background-color: #fafafa;
+  }
+
+  .share-modal-side-box-content {
+    gap: 8px;
+    padding: 12px 0 14px;
+  }
+
+  .share-modal-side-box-label {
+    justify-content: flex-start;
+    margin: 0;
+    padding: 0 20px;
+  }
+
+  .share-modal-top-users {
+    height: auto;
+    flex-direction: row;
+    gap: 4px;
+    padding: 4px 20px 2px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x proximity;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .share-modal-top-users::-webkit-scrollbar {
+    display: none;
+  }
+
+  .share-modal-top-user {
+    flex: 0 0 72px;
+    scroll-snap-align: start;
+  }
+
+  .share-modal-top-user-hover-card {
+    min-height: 0;
+  }
+
+  .share-modal-top-user-avatar {
+    width: 52px;
+    height: 52px;
+    box-shadow: 0 6px 16px rgba(17, 24, 39, 0.14);
+  }
+
+  .share-modal-top-user-check {
+    top: 34px;
+    left: calc(50% + 12px);
+  }
+
+  .share-modal-top-user-name {
+    min-height: 0;
+    font-size: 11px;
+    -webkit-line-clamp: 1;
+    line-clamp: 1;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    display: block;
+  }
+
+  /* Hover tooltips don't make sense on touch */
+  .share-modal-top-user-tooltip {
+    display: none;
+  }
+
+  .share-modal-side-box-empty {
+    height: 76px;
+    flex-direction: row;
+    font-size: 13px;
+  }
+
+  .share-modal-side-box-empty svg {
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* Very small phones */
+@media (max-width: 360px) {
+  .share-modal-body {
+    padding: 10px 14px 14px;
+  }
+
+  .share-modal-side-box-label,
+  .share-modal-top-users {
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .copy-button span {
+    display: none;
+  }
+}
+
+/* Short landscape screens: let the sheet use the full height */
+@media (max-width: 900px) and (max-height: 500px) and (orientation: landscape) {
+  .share-modal-shell {
+    max-height: 100dvh;
+  }
+}
+
+@keyframes shareModalSheetUp {
+  from {
+    transform: translateY(100%);
+  }
+
+  to {
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .share-modal-overlay,
+  .share-modal-shell {
+    animation: none;
   }
 }
