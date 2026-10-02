@@ -115,9 +115,20 @@ export default function EventDetails({ eventId }) {
         .event-details-root { overflow-x: clip; touch-action: pan-y pinch-zoom; overscroll-behavior-x: none; }
         .event-details-root * { min-width: 0; }
         .event-details-text { overflow-wrap: anywhere; word-break: break-word; }
+        /*
+         * Scoped spacing. Global CSS from other pages (loaded during client-side navigation
+         * and kept until a full reload) can add padding/margins to this page — these
+         * higher-specificity rules always win, so spacing is the same with or without a refresh.
+         */
+        .event-details-root.event-details-root { margin: 0 !important; padding: 0 !important; box-sizing: border-box; }
+        .event-details-root .event-details-column { margin: 0 !important; padding: 0 !important; }
+        .event-details-root .event-details-gutter { padding-left: 10px !important; padding-right: 10px !important; margin-left: 0 !important; margin-right: 0 !important; box-sizing: border-box; }
+        @media (min-width: 640px) {
+          .event-details-root .event-details-gutter { padding-left: 14px !important; padding-right: 14px !important; }
+        }
       `}</style>
-            <div style={{ flex: 1, minWidth: 0, minHeight: "100dvh", display: "flex", flexDirection: "column", backgroundColor: "#ffffff", position: "relative" }}>
-                <div className="hide-scrollbar" style={{ flex: 1, minWidth: 0 }}>
+            <div className="event-details-column" style={{ flex: 1, minWidth: 0, minHeight: "100dvh", display: "flex", flexDirection: "column", backgroundColor: "#ffffff", position: "relative" }}>
+                <div className="hide-scrollbar event-details-column" style={{ flex: 1, minWidth: 0 }}>
 
 
 
@@ -177,7 +188,7 @@ export default function EventDetails({ eventId }) {
                     </header>
                     {/* Spacer for the fixed mobile header */}
                     <div aria-hidden="true" className="h-[calc(54px+env(safe-area-inset-top)+16px)] sm:hidden" />
-                    <div className="sm:px-[14px]">
+                    <div className="event-details-gutter">
                         <div style={{ backgroundColor: "#f7f7f9", borderRadius: "28px", overflow: "visible", position: "relative" }}>
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px 10px" }}>
                                 <div style={{ display: "flex", alignItems: "center", gap: "8px", backgroundColor: "#ebebed", borderRadius: "999px", padding: "6px 13px 6px 7px", maxWidth: "100%" }}>
@@ -198,7 +209,7 @@ export default function EventDetails({ eventId }) {
                         </div>
                     </div>
 
-                    <div className="event-details-text px-1 sm:px-[14px]" style={{ paddingTop: "30px", paddingBottom: "16px" }}>
+                    <div className="event-details-text event-details-gutter" style={{ paddingTop: "30px", paddingBottom: "16px" }}>
                         <h1 style={{ fontSize: "clamp(22px, 6.4vw, 28px)", fontWeight: 700, color: "#1c1c1e", lineHeight: 1.2, margin: 0 }}>{title}</h1>
                         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px", marginTop: "8px" }}>
                             <span style={{ fontSize: "13px", color: "#888", fontWeight: 400 }}>By</span>
