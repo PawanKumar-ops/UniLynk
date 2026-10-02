@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Ticket,
@@ -61,21 +61,125 @@ function getEventImage(event) {
 function Modal({ open, onClose, children, className = "" }) {
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
       <div
-        className={`relative z-10 w-full max-w-[calc(100%-2rem)] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--background)] shadow-lg ${className}`}
+        role="dialog"
+        aria-modal="true"
+        className={`relative z-10 w-full overflow-hidden rounded-t-3xl border pb-[env(safe-area-inset-bottom)] sm:max-w-[calc(100%-2rem)] sm:rounded-2xl sm:pb-0 border-[var(--border)] bg-[var(--background)] shadow-lg ${className}`}
       >
         <button
           onClick={onClose}
           className="absolute right-3 top-3 z-20 grid size-8 place-items-center rounded-full bg-black/40 text-white transition-colors hover:bg-black/60"
           type="button"
+          aria-label="Close"
         >
           <X className="size-4" />
         </button>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/*
+ * Ticket scale per viewport width. Mirrored in CSS (ticketStyles) so the very first
+ * paint — including server-rendered HTML — is already at the final size, with no jump.
+ */
+const TICKET_SCALES = [
+  { maxWidth: 340, scale: 0.7 },
+  { maxWidth: 400, scale: 0.78 },
+  { maxWidth: 640, scale: 0.86 },
+];
+
+function getBaseTicketScale(viewportWidth) {
+  return TICKET_SCALES.find((bp) => viewportWidth <= bp.maxWidth)?.scale ?? 1;
+}
+
+/* EventCard and TicketSkeleton are both 7em tall. */
+const TICKET_HEIGHT_EM = 7;
+
+const ticketStyles = `
+  .ticket-fit { --ticket-scale: 1; position: relative; width: 100%; min-width: 0; height: calc(${TICKET_HEIGHT_EM}em * var(--ticket-scale)); }
+  .ticket-fit-inner { width: calc(100% / var(--ticket-scale)); transform: scale(var(--ticket-scale)); transform-origin: top left; }
+  ${[...TICKET_SCALES]
+    .reverse()
+    .map((bp) => `@media (max-width: ${bp.maxWidth}px) { .ticket-fit { --ticket-scale: ${bp.scale}; } }`)
+    .join("\n  ")}
+  .ticket-fit-inner.ticket-fit-overlay { transform: none; }
+  .events-scroll-x { scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .events-scroll-x::-webkit-scrollbar { display: none; }
+`;
+
+/*
+ * Shrinks a ticket uniformly, so the EventCard design (including its circular
+ * cut-outs) stays identical — just smaller. Sizing comes from CSS; JS only
+ * steps in if the content is still too wide for the column.
+ */
+function TicketFit({ children }) {
+  const outerRef = useRef(null);
+  const innerRef = useRef(null);
+  const [override, setOverride] = useState(null); // { scale, width } when CSS sizing isn't enough
+  const [overlayOpen, setOverlayOpen] = useState(false);
+
+  // EventCard renders its poster lightbox with `position: fixed`. A transformed
+  // ancestor would trap it inside the ticket, so drop the transform while it's open.
+  useEffect(() => {
+    const inner = innerRef.current;
+    if (!inner) return;
+    const sync = () => setOverlayOpen(Boolean(inner.querySelector('[role="dialog"]')));
+    const observer = new MutationObserver(sync);
+    observer.observe(inner, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
+
+  useLayoutEffect(() => {
+    const outer = outerRef.current;
+    const inner = innerRef.current;
+    if (!outer || !inner) return;
+
+    const measure = () => {
+      const containerWidth = outer.clientWidth;
+      if (!containerWidth) return;
+      const layoutWidth = containerWidth / getBaseTicketScale(window.innerWidth);
+
+      const previousWidth = inner.style.width;
+      inner.style.width = `${layoutWidth}px`;
+      const contentWidth = inner.scrollWidth;
+      inner.style.width = previousWidth;
+
+      // The right cut-out intentionally sits 0.5em outside the card — don't count it as overflow.
+      const tolerance = parseFloat(getComputedStyle(inner).fontSize) * 0.75;
+      if (contentWidth > layoutWidth + tolerance) {
+        const scale = containerWidth / contentWidth;
+        setOverride((prev) =>
+          prev && prev.width === contentWidth && prev.scale === scale ? prev : { scale, width: contentWidth }
+        );
+      } else {
+        setOverride((prev) => (prev ? null : prev));
+      }
+    };
+
+    measure(); // synchronous: runs before the first paint
+    const observer = new ResizeObserver(measure);
+    observer.observe(outer);
+    return () => observer.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={outerRef}
+      className="ticket-fit"
+      style={override ? { "--ticket-scale": override.scale } : undefined}
+    >
+      <div
+        ref={innerRef}
+        className={`ticket-fit-inner${overlayOpen ? " ticket-fit-overlay" : ""}`}
+        style={override ? { width: `${override.width}px` } : undefined}
+      >
         {children}
       </div>
     </div>
@@ -92,9 +196,56 @@ function SkeletonPulse({ className = "" }) {
   );
 }
 
+/* Placeholder that mirrors EventCard's geometry: avatar, info, dashed separator with cuts, date, poster. */
+function TicketSkeleton() {
+  return (
+    <div className="w-full">
+      <div className="relative ml-[40px] h-[7em] rounded-2xl border border-[#dfe3e8] bg-white">
+        {/* user profile */}
+        <div className="absolute left-[-2.5em] top-1/2 z-[2] flex h-[82px] w-[82px] -translate-y-1/2 items-center justify-center overflow-hidden rounded-full border-2 border-[#e5e7eb] bg-white p-1">
+          <SkeletonPulse className="h-full w-full rounded-full" />
+        </div>
+
+        {/* separator */}
+        <div className="absolute right-[5.5em] top-[-0.5em] flex h-[calc(100%+1em)] w-[1.5em] flex-col">
+          <div
+            className="absolute left-[0.5em] top-[1em] h-[calc(100%-2em)] border-l border-dashed"
+            style={{ borderColor: "#33333385" }}
+          />
+          <div className="h-[1em] w-[1em] rounded-full border-b border-[#dfe3e8] bg-white" />
+          <div className="flex-1" />
+          <div className="h-[1em] w-[1em] rounded-full border-t border-[#dfe3e8] bg-white" />
+        </div>
+
+        {/* right cut-out */}
+        <div className="absolute right-[-0.5em] top-[3em] h-[1em] w-[1em] rounded-full border-l border-[#dfe3e8] bg-white" />
+
+        {/* info block */}
+        <div className="absolute bottom-[0.8em] left-[3.8em] right-[8.4em] top-[0.8em] flex flex-col justify-center gap-2">
+          <SkeletonPulse className="h-4 w-20 rounded-full" />
+          <SkeletonPulse className="h-6 w-4/5 max-w-[260px]" />
+          <SkeletonPulse className="h-3 w-2/5 max-w-[140px]" />
+        </div>
+
+        {/* date */}
+        <div className="absolute right-[7.35rem] top-1/2 flex -translate-y-1/2 flex-col items-center gap-1.5">
+          <SkeletonPulse className="h-2.5 w-6" />
+          <SkeletonPulse className="h-6 w-7" />
+        </div>
+
+        {/* event poster */}
+        <div className="absolute bottom-[0.9em] right-[0.9em] top-[0.9em] w-[4.6em] overflow-hidden rounded-lg border border-[#e5e7eb]">
+          <SkeletonPulse className="absolute inset-0 rounded-none" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function EventsPageSkeleton() {
   return (
-    <div className="flex flex-col gap-6 sm:gap-8">
+    <div className="flex min-w-0 flex-col gap-5 pb-6 sm:gap-8">
+      <style>{ticketStyles}</style>
       <style>{`
         @keyframes skeleton-shimmer {
           100% { transform: translateX(100%); }
@@ -121,16 +272,16 @@ function EventsPageSkeleton() {
         }
       `}</style>
 
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex items-end justify-between gap-3">
         <div className="space-y-2">
-          <SkeletonPulse className="h-3 w-32" />
-          <SkeletonPulse className="h-8 w-48" />
+          <SkeletonPulse className="h-3 w-28 sm:w-32" />
+          <SkeletonPulse className="h-7 w-40 sm:h-8 sm:w-48" />
         </div>
-        <SkeletonPulse className="h-10 w-36 rounded-full" />
+        <SkeletonPulse className="h-9 w-28 rounded-full sm:h-10 sm:w-36" />
       </div>
 
       <div className="relative overflow-hidden rounded-3xl border border-[var(--border)]">
-        <div className="relative h-72 w-full sm:h-64">
+        <div className="relative h-60 w-full sm:h-64">
           <SkeletonPulse className="absolute inset-0 rounded-none" />
         </div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
@@ -141,45 +292,24 @@ function EventsPageSkeleton() {
             <SkeletonPulse className="h-4 w-32" />
             <SkeletonPulse className="h-4 w-36" />
           </div>
-          <div className="mt-1 flex flex-col gap-2 sm:flex-row">
-            <SkeletonPulse className="h-10 w-full rounded-full sm:w-32" />
-            <SkeletonPulse className="h-10 w-full rounded-full sm:w-32" />
+          <div className="mt-1 grid grid-cols-2 gap-2 sm:flex">
+            <SkeletonPulse className="h-10 rounded-full sm:w-32" />
+            <SkeletonPulse className="h-10 rounded-full sm:w-32" />
           </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-2">
+      <div className="flex gap-2 overflow-hidden sm:flex-wrap">
         {Array.from({ length: 5 }).map((_, i) => (
-          <SkeletonPulse key={i} className="h-9 w-20 rounded-full" />
+          <SkeletonPulse key={i} className="h-9 w-20 shrink-0 rounded-full" />
         ))}
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {Array.from({ length: 6 }).map((_, i) => (
-          <article
-            key={i}
-            className="flex flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)]"
-          >
-            <div className="relative h-44 overflow-hidden">
-              <SkeletonPulse className="absolute inset-0 rounded-none" />
-              <SkeletonPulse className="absolute left-3 top-3 h-6 w-20 rounded-full" />
-              <SkeletonPulse className="absolute right-3 top-3 h-6 w-14 rounded-full" />
-            </div>
-            <div className="flex flex-1 flex-col gap-3 p-4">
-              <div className="space-y-2">
-                <SkeletonPulse className="h-5 w-3/4" />
-                <SkeletonPulse className="h-4 w-1/2" />
-              </div>
-              <div className="flex flex-col gap-2">
-                <SkeletonPulse className="h-4 w-40" />
-                <SkeletonPulse className="h-4 w-32" />
-              </div>
-              <div className="flex gap-2 pt-1">
-                <SkeletonPulse className="h-10 flex-1 rounded-full" />
-                <SkeletonPulse className="h-10 flex-1 rounded-full" />
-              </div>
-            </div>
-          </article>
+      <div className="grid min-w-0 grid-cols-1 gap-2.5 sm:gap-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <TicketFit key={i}>
+            <TicketSkeleton />
+          </TicketFit>
         ))}
       </div>
     </div>
@@ -296,7 +426,7 @@ export function EventsPage() {
     return (
       <DashboardEventsShell>
         <TopBar />
-        <div className="flex flex-col px-3.5 gap-6 sm:gap-8">
+        <div className="flex flex-col sm:px-3.5 gap-6 sm:gap-8">
           <EventsPageSkeleton />
         </div>
       </DashboardEventsShell>
@@ -306,21 +436,21 @@ export function EventsPage() {
   return (
     <DashboardEventsShell>
       <TopBar />
-      <div className="flex flex-col gap-6 px-3.5 sm:gap-8">
+      <style>{ticketStyles}</style>
+      <div className="flex min-w-0 flex-col gap-5 sm:px-3.5 pb-6 sm:gap-8">
 
-
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
+        <div className="flex items-end justify-between gap-3">
+          <div className="min-w-0">
             <div className="mb-1 flex items-center gap-2 text-[var(--muted-foreground)]">
-              <span className="text-xs uppercase tracking-wider">
+              <span className="text-[11px] uppercase tracking-wider sm:text-xs">
                 Happening on Campus
               </span>
             </div>
-            <h1 className="text-[1.5rem] font-bold">Discover Events</h1>
+            <h1 className="text-[1.3rem] font-bold leading-tight sm:text-[1.5rem]">Discover Events</h1>
           </div>
           <button
             onClick={() => router.push("/dashboard/events/yourform")}
-            className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] px-4 py-2 text-sm transition-colors hover:bg-[var(--accent)]"
+            className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-[var(--border)] px-3 py-1.5 text-[13px] transition-colors hover:bg-[var(--accent)] sm:gap-2 sm:px-4 sm:py-2 sm:text-sm"
             type="button"
           >
             <Icon icon="solar:file-linear" className="size-4" />
@@ -331,7 +461,7 @@ export function EventsPage() {
 
         {featured && (
           <div className="relative overflow-hidden rounded-3xl border border-[var(--border)]">
-            <div className="relative h-72 w-full sm:h-64 overflow-hidden">
+            <div className="relative h-60 w-full overflow-hidden sm:h-64">
               <ReliableImage
                 src={getEventImage(featured)}
                 fallbackSrc={DEFAULT_EVENT_IMAGE}
@@ -340,22 +470,22 @@ export function EventsPage() {
               />
             </div>
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent" />
-            <div className="absolute inset-x-0 bottom-0 flex flex-col gap-2.5 p-4 text-white sm:gap-3 sm:p-6">
+            <div className="absolute inset-x-0 bottom-0 flex flex-col gap-2 p-4 text-white sm:gap-3 sm:p-6">
               <span className="w-fit rounded-full bg-white/20 px-3 py-1 text-xs backdrop-blur">
                 Featured - {featured.genre || "Event"}
               </span>
-              <h2 className="text-white">{featured.title || "Untitled Event"}</h2>
-              <div className="flex flex-col gap-1.5 text-sm text-white/80 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
+              <h2 className="line-clamp-2 text-lg font-semibold leading-snug text-white sm:text-2xl">{featured.title || "Untitled Event"}</h2>
+              <div className="flex flex-col gap-1 text-[13px] text-white/80 sm:flex-row sm:text-sm sm:flex-wrap sm:items-center sm:gap-4">
                 <span className="flex items-center gap-1.5">
                   <Icon icon="solar:calendar-outline" className="size-4 shrink-0" />
                   {formatDate(featured.date)}
                 </span>
-                <span className="flex items-center gap-1.5">
+                <span className="flex min-w-0 items-center gap-1.5">
                   <Icon icon="solar:map-point-linear" className="size-4 shrink-0" />
-                  {featured.location || "Venue TBA"}
+                  <span className="truncate">{featured.location || "Venue TBA"}</span>
                 </span>
               </div>
-              <div className="mt-1 flex flex-col gap-2 sm:flex-row">
+              <div className="mt-1 grid grid-cols-2 gap-2 sm:flex">
                 <button
                   onClick={() => openApply(featured)}
                   className="w-full rounded-full bg-white px-5 py-2 text-sm text-black transition-colors hover:bg-white/90 sm:w-auto"
@@ -376,12 +506,12 @@ export function EventsPage() {
         )}
 
         {filters.length > 1 && (
-          <div className="flex flex-wrap gap-2">
+          <div className="events-scroll-x -mx-3.5 flex gap-2 overflow-x-auto px-3.5 sm:mx-0 sm:flex-wrap sm:overflow-visible sm:px-0">
             {filters.map((filter) => (
               <button
                 key={filter}
                 onClick={() => setActive(filter)}
-                className={`rounded-full border px-4 py-1.5 text-sm transition-colors ${active === filter
+                className={`shrink-0 whitespace-nowrap rounded-full border px-3.5 py-1.5 text-[13px] transition-colors sm:px-4 sm:text-sm ${active === filter
                   ? "border-[var(--primary)] bg-[var(--primary)] text-[var(--primary-foreground)]"
                   : "border-[var(--border)] text-foreground/70 hover:bg-[var(--accent)]"
                   }`}
@@ -394,8 +524,8 @@ export function EventsPage() {
         )}
 
         {!loading && list.length === 0 && (
-          <div className="flex min-h-[420px] flex-col items-center justify-center px-4 text-center">
-            <div className="mb-6 flex h-[220px] w-[280px] max-w-[80vw] items-center justify-center">
+          <div className="flex min-h-[340px] flex-col sm:min-h-[420px] items-center justify-center px-4 text-center">
+            <div className="mb-6 flex h-[170px] w-[220px] max-w-[80vw] sm:h-[220px] sm:w-[280px] items-center justify-center">
               <img
                 src="/eventsicons/NoEventsIll.svg"
                 alt="No events available"
@@ -413,14 +543,14 @@ export function EventsPage() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-3">
+        <div className="grid min-w-0 grid-cols-1 gap-2.5 sm:gap-3">
           {list.map((event) => {
             const id = getEventId(event);
             const eventDate = getDateParts(event.date);
 
             return (
+              <TicketFit key={id}>
               <EventCard
-                key={id}
                 userAvatarUrl={event.clubId?.logo || DEFAULT_EVENT_IMAGE}
                 userAvatarAlt={`${event.clubId?.clubName || "Club"} logo`}
                 posterUrl={getEventImage(event)}
@@ -432,6 +562,7 @@ export function EventsPage() {
                 bookingMonth={eventDate.month}
                 onClick={() => openDetails(event)}
               />
+              </TicketFit>
             );
           })}
         </div>
@@ -439,7 +570,7 @@ export function EventsPage() {
         <Modal
           open={!!details}
           onClose={() => setDetails(null)}
-          className="max-h-[90vh] overflow-y-auto sm:max-w-lg"
+          className="max-h-[90dvh] overflow-y-auto sm:max-w-lg"
         >
           {details && (
             <>

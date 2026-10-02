@@ -31,26 +31,33 @@ const BottomTabBar = () => {
 
   // Fallback scroll behavior
   useEffect(() => {
-    let lastY = window.scrollY || 0;
+    let lastScrollPosition = window.scrollY || 0;
 
-    const onScroll = () => {
-      const currentY = window.scrollY || 0;
+    const onScroll = (event) => {
+      const scrollTarget = event.target;
+      const currentScrollPosition =
+        scrollTarget === document ||
+        scrollTarget === document.documentElement ||
+        scrollTarget === document.body
+          ? window.scrollY || 0
+          : scrollTarget.scrollTop || 0;
 
-      if (currentY > lastY && currentY > 60) {
+      if (
+        currentScrollPosition > lastScrollPosition &&
+        currentScrollPosition > 60
+      ) {
         setHidden(true);
-      } else if (currentY < lastY) {
+      } else if (currentScrollPosition < lastScrollPosition) {
         setHidden(false);
       }
 
-      lastY = currentY;
+      lastScrollPosition = currentScrollPosition;
     };
 
-    window.addEventListener("scroll", onScroll, {
-      passive: true,
-    });
+    document.addEventListener("scroll", onScroll, { passive: true, capture: true });
 
     return () => {
-      window.removeEventListener("scroll", onScroll);
+      document.removeEventListener("scroll", onScroll, true);
     };
   }, []);
 
