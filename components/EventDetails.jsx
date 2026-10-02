@@ -106,13 +106,18 @@ export default function EventDetails({ eventId }) {
     }
 
     return (
-        <div style={{ display: "flex", height: "100vh", overflow: "hidden", backgroundColor: "#f5f5f7" }}>
+        <div className="event-details-root" style={{ display: "flex", minHeight: "100dvh", width: "100%", maxWidth: "100%", backgroundColor: "#f5f5f7" }}>
             <style>{`
         .hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
         .hide-scrollbar::-webkit-scrollbar { display: none; }
+        /* Stop the page from panning sideways on mobile. clip (unlike hidden) keeps sticky working. */
+        html, body { overflow-x: clip; max-width: 100%; }
+        .event-details-root { overflow-x: clip; touch-action: pan-y pinch-zoom; overscroll-behavior-x: none; }
+        .event-details-root * { min-width: 0; }
+        .event-details-text { overflow-wrap: anywhere; word-break: break-word; }
       `}</style>
-            <div style={{ flex: 1, height: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#ffffff", position: "relative", overflow: "hidden" }}>
-                <div className="hide-scrollbar" style={{ flex: 1, overflowY: "auto" }}>
+            <div style={{ flex: 1, minWidth: 0, minHeight: "100dvh", display: "flex", flexDirection: "column", backgroundColor: "#ffffff", position: "relative" }}>
+                <div className="hide-scrollbar" style={{ flex: 1, minWidth: 0 }}>
 
 
 
@@ -121,23 +126,25 @@ export default function EventDetails({ eventId }) {
 
 
                     <header
-                        className="sticky top-0 z-50 mb-5 flex h-[54px] items-center justify-between border-b border-black/[0.06] bg-white/80 px-4 backdrop-blur-xl"
+                        className="fixed inset-x-0 top-0 z-50 flex h-[54px] w-full items-center justify-between gap-2 border-b border-black/[0.06] bg-white/80 px-4 pt-[env(safe-area-inset-top)] backdrop-blur-xl sm:sticky sm:mb-5"
                         style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
                     >
                         {/* Left */}
                         <div
-                            className="flex items-center"
+                            className="flex min-w-0 flex-1 items-center"
                             style={{ display: "flex", flexDirection: "row", alignItems: "center" }}
                         >
                             <button
                                 onClick={() => router.back()}
-                                className="mr-6 flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-black/5"
+                                className="mr-3 flex h-9 w-9 shrink-0 items-center justify-center rounded-full transition hover:bg-black/5 sm:mr-6"
+                                type="button"
+                                aria-label="Go back"
                             >
                                 <ArrowLeft size={20} strokeWidth={2.2} />
                             </button>
 
-                            <div>
-                                <h1 className="truncate text-[20px] font-bold leading-5 text-black">
+                            <div className="min-w-0 flex-1">
+                                <h1 className="truncate text-[17px] font-bold leading-5 text-black sm:text-[20px]">
                                     {title}
                                 </h1>
 
@@ -148,7 +155,7 @@ export default function EventDetails({ eventId }) {
                         </div>
 
                         {/* Right */}
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex shrink-0 items-center gap-1.5">
                             {/* Add Members */}
                             {isTeamEvent && <div className="group relative">
                                 <button
@@ -168,23 +175,21 @@ export default function EventDetails({ eventId }) {
 
                         </div>
                     </header>
-
-
-
-
-                    <div className="px-[14px]">
+                    {/* Spacer for the fixed mobile header */}
+                    <div aria-hidden="true" className="h-[calc(54px+env(safe-area-inset-top)+16px)] sm:hidden" />
+                    <div className="sm:px-[14px]">
                         <div style={{ backgroundColor: "#f7f7f9", borderRadius: "28px", overflow: "visible", position: "relative" }}>
                             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "12px 14px 10px" }}>
-                                <div style={{ display: "flex", alignItems: "center", gap: "8px", backgroundColor: "#ebebed", borderRadius: "999px", padding: "6px 13px 6px 7px" }}>
+                                <div style={{ display: "flex", alignItems: "center", gap: "8px", backgroundColor: "#ebebed", borderRadius: "999px", padding: "6px 13px 6px 7px", maxWidth: "100%" }}>
                                     <div style={{ width: "20px", height: "20px", backgroundColor: "#1c1c1e", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
                                         <div className="w-[20px] h-[20px] rounded-full overflow-hidden bg-white flex items-center justify-center">
                                             {clubLogo && <img src={clubLogo} alt={`${clubName} logo`} className="w-full h-full object-cover rounded-full block" />}
                                         </div>
                                     </div>
-                                    <span style={{ fontSize: "12px", fontWeight: 500, color: "#1c1c1e" }}>{clubName}</span>
+                                    <span className="truncate" style={{ fontSize: "12px", fontWeight: 500, color: "#1c1c1e" }}>{clubName}</span>
                                 </div>
                             </div>
-                            <div style={{ margin: "0 10px", borderRadius: "20px", overflow: "hidden", height: "250px", border: "1px solid #e6e6e6" }}>
+                            <div style={{ margin: "0 10px", borderRadius: "20px", overflow: "hidden", height: "clamp(190px, 56vw, 250px)", border: "1px solid #e6e6e6" }}>
                                 {image && <img src={image} alt={title} style={{ width: "100%", height: "100%", objectFit: "cover" }} />}
                             </div>
                             <div style={{ display: "flex", justifyContent: "center", position: "relative", zIndex: 2 }}>
@@ -193,26 +198,27 @@ export default function EventDetails({ eventId }) {
                         </div>
                     </div>
 
-                    <div style={{ padding: "30px 14px 16px" }}>
-                        <h1 style={{ fontSize: "28px", fontWeight: 700, color: "#1c1c1e", lineHeight: 1.2, margin: 0 }}>{title}</h1>
-                        <div style={{ display: "flex", alignItems: "center", gap: "6px", marginTop: "8px" }}>
+                    <div className="event-details-text px-1 sm:px-[14px]" style={{ paddingTop: "30px", paddingBottom: "16px" }}>
+                        <h1 style={{ fontSize: "clamp(22px, 6.4vw, 28px)", fontWeight: 700, color: "#1c1c1e", lineHeight: 1.2, margin: 0 }}>{title}</h1>
+                        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "6px", marginTop: "8px" }}>
                             <span style={{ fontSize: "13px", color: "#888", fontWeight: 400 }}>By</span>
                             <span style={{ fontSize: "13px", color: "#1c1c1e", fontWeight: 500 }}>{clubName}</span>
                         </div>
                         <div style={{ marginTop: "22px" }}>
                             <h4 style={{ fontSize: "15px", fontWeight: 600, color: "#1c1c1e", margin: "0 0 8px" }}>About</h4>
-                            <p style={{ fontSize: "13px", color: "#8a8a8e", lineHeight: 1.65, margin: 0, fontWeight: 400 }}>{event.description || "No description available."}</p>
+                            <p style={{ fontSize: "13px", color: "#8a8a8e", lineHeight: 1.65, margin: 0, fontWeight: 400, whiteSpace: "pre-line" }}>{event.description || "No description available."}</p>
                         </div>
                         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginTop: "24px", marginBottom: "12px" }}>
                             <h4 style={{ fontSize: "15px", fontWeight: 600, color: "#1c1c1e", margin: 0 }}>More Information</h4>
                         </div>
-                        <div style={{ display: "flex", flexDirection: "column", gap: "8px", paddingBottom: "120px" }}>
-                            {information.map((point, index) => <div key={index} style={{ backgroundColor: "#f2f2f4", borderRadius: "999px", padding: "12px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" }}><span style={{ fontSize: "13px", fontWeight: 500, color: "#1c1c1e" }}>{point}</span></div>)}
+                        <div style={{ display: "flex", flexDirection: "column", gap: "8px", paddingBottom: "72px" }}>
+                            {information.map((point, index) => <div key={index} style={{ backgroundColor: "#f2f2f4", borderRadius: "22px", padding: "12px 18px", display: "flex", alignItems: "center", justifyContent: "space-between" }}><span style={{ fontSize: "13px", fontWeight: 500, color: "#1c1c1e" }}>{point}</span></div>)}
                         </div>
                     </div>
                 </div>
-                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, paddingTop: "64px", paddingLeft: "20px", paddingRight: "20px", paddingBottom: "22px", background: "linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.75) 28%, rgba(255,255,255,0.95) 55%, #ffffff 72%)", pointerEvents: "none" }}>
-                    <button onClick={() => router.push(`/FormPreview/${event._id}`)} style={{ width: "100%", backgroundColor: "#1c1c1e", color: "#ffffff", border: "none", borderRadius: "999px", padding: "17px", fontSize: "16px", fontWeight: 600, cursor: "pointer", pointerEvents: "auto" }}>Apply Now</button>
+                {/* Sticky to the bottom of this column, so it matches the column width on desktop and spans the screen on mobile. */}
+                <div style={{ position: "sticky", bottom: 0, zIndex: 40, width: "100%", marginTop: "-64px", paddingTop: "64px", paddingLeft: "20px", paddingRight: "20px", paddingBottom: "max(22px, env(safe-area-inset-bottom))", boxSizing: "border-box", background: "linear-gradient(to bottom, rgba(255,255,255,0) 0%, rgba(255,255,255,0.75) 28%, rgba(255,255,255,0.95) 55%, #ffffff 72%)", pointerEvents: "none" }}>
+                    <button type="button" onClick={() => router.push(`/FormPreview/${event._id}`)} style={{ width: "100%", backgroundColor: "#1c1c1e", color: "#ffffff", border: "none", borderRadius: "999px", padding: "17px", fontSize: "16px", fontWeight: 600, cursor: "pointer", pointerEvents: "auto" }}>Apply Now</button>
                 </div>
             </div>
         </div>

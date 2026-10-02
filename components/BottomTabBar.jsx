@@ -140,7 +140,15 @@ const BottomTabBar = () => {
   const shouldHideOnPostRoute =
     isMobile && pathname?.startsWith("/dashboard/post");
 
-  const shouldHide = hidden || shouldHideOnChatRoute || shouldHideOnPostRoute;
+  // Hide the tab bar while viewing event details on mobile
+  const shouldHideOnEventDetailsRoute =
+    isMobile && pathname?.startsWith("/dashboard/events/");
+
+  const shouldHide =
+    hidden ||
+    shouldHideOnChatRoute ||
+    shouldHideOnPostRoute ||
+    shouldHideOnEventDetailsRoute;
 
   return (
     <nav

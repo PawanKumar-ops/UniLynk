@@ -104,9 +104,12 @@
   .events-design-main,
   .events-design-feed {
     width: 100%;
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
   }
 
   .events-design-content {
-    padding: 0px 10px 60px;
+    padding: 0px 10px 0px;
   }
 }

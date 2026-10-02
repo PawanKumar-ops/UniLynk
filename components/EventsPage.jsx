@@ -435,6 +435,7 @@ export function EventsPage() {
 
   return (
     <DashboardEventsShell>
+      <div  className="pb-15">
       <TopBar />
       <style>{ticketStyles}</style>
       <div className="flex min-w-0 flex-col gap-5 sm:px-3.5 pb-6 sm:gap-8">
@@ -621,6 +622,7 @@ export function EventsPage() {
             </>
           )}
         </Modal>
+      </div>
       </div>
     </DashboardEventsShell>
   );
