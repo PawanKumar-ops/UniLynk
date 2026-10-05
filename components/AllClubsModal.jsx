@@ -97,7 +97,7 @@ export function AllClubsModal({ open, onClose }) {
     const handleOpenClub = (clubId) => {
         if (!clubId) return;
         onClose();
-        router.push(`/Club?clubId=${clubId}`);
+        router.push(`/dashboard/Club?clubId=${clubId}`);
     };
 
     return (
