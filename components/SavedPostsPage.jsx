@@ -6,6 +6,7 @@ import { ArrowLeft, Bookmark } from "lucide-react";
 import { DashboardEventsShell } from "@/components/DashboardEventsShell";
 import { PostCard } from "@/components/PostCard";
 import { loreleiAvatar } from "@/lib/avatar";
+import { Icon } from "@iconify/react";
 
 const formatPostTime = (date) => date ? new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(Math.round((new Date(date) - Date.now()) / 86_400_000), "day") : "";
 const getImageGridClass = (count) => count === 1 ? "x-single-image" : count === 2 ? "image-grid count-2" : count === 3 ? "image-grid count-3" : "image-grid count-4";
@@ -45,24 +46,24 @@ export function SavedPostsPage() {
           </button>
 
           <div>
-  <h1 className="truncate text-[20px] font-bold leading-5 text-black">
-    Saved posts
-  </h1>
+            <h1 className="truncate text-[20px] font-bold leading-5 text-black">
+              Saved posts
+            </h1>
 
-  <p className="mt-0.5 text-[13px] leading-4 text-[#536471]">
-    {loading
-      ? "Loading..."
-      : `${posts.length} ${posts.length === 1 ? "saved post" : "saved posts"}`}
-  </p>
-</div>
+            <p className="mt-0.5 text-[13px] leading-4 text-[#536471]">
+              {loading
+                ? "Loading..."
+                : `${posts.length} ${posts.length === 1 ? "saved post" : "saved posts"}`}
+            </p>
+          </div>
         </div>
       </header>
       <div className="mx-auto w-full max-w-3xl px-[14px] py-5">
         <div className="flex flex-col gap-4">
           {loading ? (
-            <p className="text-sm text-muted-foreground">
-              Loading saved posts...
-            </p>
+            <div className="flex min-h-[420px] items-center justify-center">
+              <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-200 border-t-black" />
+            </div>
           ) : posts.length ? (
             posts.map((post) => (
               <PostCard
@@ -78,9 +79,22 @@ export function SavedPostsPage() {
               />
             ))
           ) : (
-            <div className="rounded-2xl border border-border bg-card p-8 text-center text-sm text-muted-foreground">
-              <Bookmark className="mx-auto mb-3 size-6" />
-              No saved posts yet.
+            <div className="flex min-h-[420px] flex-col items-center justify-center px-4 text-center">
+              <div className="mb-6 flex h-[220px] w-[280px] max-w-[80vw] items-center justify-center">
+                <img
+                  src="/illuistrations/noSavedposts.svg"
+                  alt="No saved posts"
+                  className="h-full w-full object-contain"
+                />
+              </div>
+
+              <h3 className="text-[17px] font-bold tracking-[-0.01em]">
+                No Saved Posts Yet
+              </h3>
+
+              <p className="mt-1.5 max-w-[320px] text-[13.5px] leading-relaxed text-[#71717a]">
+                Posts you save will appear here. Save posts you want to come back to later.
+              </p>
             </div>
           )}
         </div>
