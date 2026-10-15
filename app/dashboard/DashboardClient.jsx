@@ -24,6 +24,7 @@ import { DashboardNotificationItem } from "@/components/DashboardNotificationIte
 import { PostCard } from "@/components/PostCard";
 import PollCard from "@/components/PollCard";
 import { loreleiAvatar } from "@/lib/avatar";
+import { formatPostTime } from "@/lib/formatPostTime";
 
 const DASHBOARD_SCROLL_STORAGE_KEY = "dashboard-feed-scroll-position";
 const DASHBOARD_OPEN_POST_STORAGE_KEY = "dashboard-feed-open-post-id";
@@ -178,26 +179,7 @@ const Loading = () => (
   </div>
 );
 
-const formatRelativeTime = (dateString) => {
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) return "";
-
-  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (seconds < 60) return "now";
-  const mins = Math.floor(seconds / 60);
-  if (mins < 60) return `${mins}m`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h`;
-  const days = Math.floor(hrs / 24);
-  if (days < 7) return `${days}d`;
-
-  const sameYear = date.getFullYear() === new Date().getFullYear();
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    ...(sameYear ? {} : { year: "numeric" }),
-  });
-};
+const formatRelativeTime = formatPostTime;
 
 const formatAuthorHandle = (email) => {
   if (typeof email !== "string") return "";

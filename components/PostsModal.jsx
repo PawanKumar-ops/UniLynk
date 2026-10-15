@@ -3,6 +3,7 @@ import { Bookmark, Heart, MessageCircle, MoreHorizontal, Share2, X } from "lucid
 import ReliableImage from "./ReliableImage";
 import "./PostsModal.css";
 import { profileAvatar } from "@/lib/avatar";
+import { formatPostTime } from "@/lib/formatPostTime";
 
 const ImageWithFallback = ({ src, alt, className = "" }) => (
     <ReliableImage
@@ -13,22 +14,6 @@ const ImageWithFallback = ({ src, alt, className = "" }) => (
         fallbackSrc={profileAvatar(null, alt)}
     />
 );
-
-const formatRelativeTime = (dateString) => {
-    const date = new Date(dateString);
-    const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-
-    if (seconds < 60) return "now";
-
-    const mins = Math.floor(seconds / 60);
-    if (mins < 60) return `${mins}m`;
-
-    const hrs = Math.floor(mins / 60);
-    if (hrs < 24) return `${hrs}h`;
-
-    const days = Math.floor(hrs / 24);
-    return `${days}d`;
-};
 
 function PostCard({ post }) {
     return (
@@ -51,7 +36,7 @@ function PostCard({ post }) {
                         </span>
 
                         <span className="pm-user-time">
-                            {formatRelativeTime(post.createdAt)}
+                            {formatPostTime(post.createdAt)}
                         </span>
                     </div>
                 </div>

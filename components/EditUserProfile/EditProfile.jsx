@@ -406,16 +406,12 @@ export default function EditProfile({ onClose, saveRef }) {
 
                       {/* Avatar */}
                       <div className="absolute inset-0 overflow-hidden rounded-full bg-neutral-100">
-                        {avatar ? (
-                          <ReliableImage
-                            src={avatar}
-                            fallbackSrc={profileAvatar("", email)}
-                            alt="Profile avatar"
-                            className="size-full object-cover"
-                          />
-                        ) : (
-                          <div className="size-full bg-neutral-200" />
-                        )}
+                        <ReliableImage
+                          src={avatar}
+                          fallbackSrc={profileAvatar(null, email)}
+                          alt="Profile avatar"
+                          className="size-full object-cover"
+                        />
                       </div>
 
                       {/* Camera overlay - clipped inside avatar */}

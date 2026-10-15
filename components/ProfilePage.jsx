@@ -20,6 +20,7 @@ import { ReportPostModal } from "@/components/ReportPostModal";
 import { DeleteModal } from "@/components/DeleteModal";
 import { ProfileSkeleton } from "./ProfileSkeleton";
 import { loreleiAvatar } from "@/lib/avatar";
+import { formatPostTime } from "@/lib/formatPostTime";
 
 function Button({ variant = "default", className = "", children, ...props }) {
   const base = "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 py-2 text-sm transition-colors disabled:pointer-events-none disabled:opacity-50";
@@ -46,7 +47,6 @@ const socialIconByPlatform = {
 };
 const normalizeEmail = (email) => typeof email === "string" ? email.trim().toLowerCase() : "";
 const socialUrl = (url) => /^https?:\/\//i.test(url || "") ? url : `https://${url}`;
-const formatPostTime = (date) => date ? new Intl.RelativeTimeFormat("en", { numeric: "auto" }).format(Math.round((new Date(date) - Date.now()) / 86_400_000), "day") : "";
 const getImageGridClass = (count) => count === 1 ? "x-single-image" : count === 2 ? "image-grid count-2" : count === 3 ? "image-grid count-3" : "image-grid count-4";
 const formatAuthorHandle = (email) => (email && typeof email === "string" ? `@${email.split("@")[0]}` : "");
 
