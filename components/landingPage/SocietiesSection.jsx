@@ -1,4 +1,5 @@
-import { motion } from 'framer-motion'
+import { useEffect, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Icon } from '@iconify/react'
 import { ArrowUpRight } from 'lucide-react'
 
@@ -50,28 +51,87 @@ function Marquee({ items, reverse }) {
   )
 }
 
-function Card({ s, i }) {
+const BLURBS = {
+  Tech: 'Build, ship and compete with the sharpest minds on campus.',
+  Creative: 'Make things people remember, from frames to pixels.',
+  Cultural: 'The stage, the mic and the soul of every fest.',
+  Business: 'Ideas, pitches and the founders of tomorrow.',
+  Sports: 'Squads, leagues and late-night tournaments.',
+  Service: 'Give back to the community around campus.',
+  Science: 'Curiosity-driven projects beyond the syllabus.',
+}
+
+const SLOTS = 4
+const TICK = 1300
+
+function Card({ s, idx }) {
   return (
-    <motion.a
-      href="#"
-      initial={{ opacity: 0, y: 16 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-40px' }}
-      transition={{ duration: 0.4, delay: (i % 5) * 0.05 }}
-      className="group relative flex flex-col rounded-2xl border border-black/[0.06] bg-white p-4 transition-all duration-300 hover:-translate-y-1 hover:border-[#ff3ea5]/40 hover:shadow-[0_12px_30px_-12px_rgba(255,62,165,0.35)] sm:p-5"
-    >
-      <div className="flex items-start justify-between">
-        <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#f4f3ef] transition-colors group-hover:bg-[#ff3ea5]/10 sm:h-12 sm:w-12">
-          <Icon icon={s.icon} width={24} height={24} />
-        </span>
-        <ArrowUpRight className="h-4 w-4 text-black/25 transition-all group-hover:rotate-45 group-hover:text-[#ff3ea5]" />
+    <div className="relative h-[230px] [perspective:1000px] sm:h-[260px]">
+      <AnimatePresence initial={false} mode="popLayout">
+        <motion.a
+          key={s.name}
+          href="#"
+          initial={{ rotateX: -90, opacity: 0 }}
+          animate={{ rotateX: 0, opacity: 1 }}
+          exit={{ rotateX: 90, opacity: 0 }}
+          transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+          style={{ transformOrigin: 'center center' }}
+          className="group absolute inset-0 flex flex-col overflow-hidden rounded-3xl border border-black/[0.06] bg-white p-5 transition-shadow hover:shadow-[0_20px_40px_-18px_rgba(255,62,165,0.45)] sm:p-6"
+        >
+          <span className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-[#ff3ea5]/10 blur-2xl" />
+          <div className="relative flex items-start justify-between">
+            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f4f3ef] sm:h-16 sm:w-16">
+              <Icon icon={s.icon} width={30} height={30} />
+            </span>
+            <span className="font-mono text-xs text-black/30">{String(idx + 1).padStart(2, '0')}</span>
+          </div>
+          <div className="relative mt-auto">
+            <span className="rounded-full bg-[#ff3ea5]/10 px-2.5 py-0.5 text-[11px] font-medium text-[#ff3ea5]">{s.tag}</span>
+            <h3 className="mt-2 text-lg font-semibold leading-tight text-[#3f0808] sm:text-xl">{s.name}</h3>
+            <p className="mt-1 line-clamp-2 hidden text-sm text-black/50 sm:block">{BLURBS[s.tag]}</p>
+            <div className="mt-3 flex items-center justify-between text-xs text-black/45">
+              <span className="flex items-center gap-1.5"><span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />{s.members} members</span>
+              <ArrowUpRight className="h-4 w-4 transition-all group-hover:rotate-45 group-hover:text-[#ff3ea5]" />
+            </div>
+          </div>
+        </motion.a>
+      </AnimatePresence>
+    </div>
+  )
+}
+
+function Showcase() {
+  const [state, setState] = useState({ slots: [0, 1, 2, 3], next: SLOTS, turn: 0 })
+  const [paused, setPaused] = useState(false)
+
+  useEffect(() => {
+    if (paused) return
+    const id = setInterval(() => {
+      setState(({ slots, next, turn }) => {
+        const copy = [...slots]
+        copy[turn % SLOTS] = next % SOCIETIES.length
+        return { slots: copy, next: next + 1, turn: turn + 1 }
+      })
+    }, TICK)
+    return () => clearInterval(id)
+  }, [paused])
+
+  const latest = (state.next - 1) % SOCIETIES.length
+
+  return (
+    <div className="mt-6" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+      <div className="grid grid-cols-2 gap-3 md:gap-4 lg:grid-cols-4">
+        {state.slots.map((idx, slot) => <Card key={slot} s={SOCIETIES[idx]} idx={idx} />)}
       </div>
-      <h3 className="mt-4 text-sm font-semibold leading-tight text-[#3f0808] sm:text-[15px]">{s.name}</h3>
-      <div className="mt-2 flex items-center justify-between text-xs text-black/45">
-        <span className="rounded-full bg-black/[0.04] px-2 py-0.5">{s.tag}</span>
-        <span>{s.members}</span>
+      <div className="mt-6 flex items-center justify-center gap-1.5">
+        {SOCIETIES.map((s, i) => (
+          <span
+            key={s.name}
+            className={`h-1.5 rounded-full transition-all duration-500 ${i === latest ? 'w-6 bg-[#ff3ea5]' : state.slots.includes(i) ? 'w-1.5 bg-[#3f0808]/50' : 'w-1.5 bg-black/15'}`}
+          />
+        ))}
       </div>
-    </motion.a>
+    </div>
   )
 }
 
@@ -99,12 +159,10 @@ export default function SocietiesSection() {
           </div>
         </div>
 
-        <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-5">
-          {SOCIETIES.map((s, i) => <Card key={s.name} s={s} i={i} />)}
-        </div>
+        <Showcase />
 
         <div className="mt-8 flex justify-center">
-          <a href="#" className="inline-flex items-center gap-2 rounded-full bg-[#0b0b0d] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#212125]">
+          <a href="#" className="inline-flex items-center gap-2 rounded-full bg-[#0b0b0d] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#ff3ea5]">
             Explore all societies <ArrowUpRight className="h-4 w-4" />
           </a>
         </div>
