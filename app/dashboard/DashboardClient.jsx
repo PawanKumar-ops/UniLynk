@@ -530,9 +530,9 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
     getNextPageParam: (lastPage) =>
       lastPage?.hasMore ? lastPage.nextCursor || undefined : undefined,
     enabled: !isThreadRoute && dashboardView === "feed",
-    staleTime: DASHBOARD_FEED_STALE_TIME,
+    staleTime: 0,
     gcTime: DASHBOARD_POSTS_GC_TIME,
-    refetchOnMount: false,
+    refetchOnMount: true,
   });
 
   const postQuery = useQuery({

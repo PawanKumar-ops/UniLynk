@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Bookmark, Heart, MessageCircle, MoreHorizontal, Share2, X } from "lucide-react";
 import ReliableImage from "./ReliableImage";
 import "./PostsModal.css";
-
+import { profileAvatar } from "@/lib/avatar";
 
 const ImageWithFallback = ({ src, alt, className = "" }) => (
     <ReliableImage
@@ -10,7 +10,7 @@ const ImageWithFallback = ({ src, alt, className = "" }) => (
         alt={alt}
         className={className}
         maxRetries={2}
-        fallbackSrc="/Profilepic.png"
+        fallbackSrc={profileAvatar(null, alt)}
     />
 );
 
@@ -30,21 +30,19 @@ const formatRelativeTime = (dateString) => {
     return `${days}d`;
 };
 
-const getInitials = (name = "") =>
-    name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase();
-
 function PostCard({ post }) {
     return (
         <article className="pm-card">
             <div className="pm-card-head">
                 <div className="pm-card-user">
                     <div className="pm-avatar">
-                        {getInitials(post.authorName)}
+                        <ReliableImage
+                            src={post.authorImage}
+                            alt={post.authorName || "User"}
+                            className="size-full object-cover"
+                            maxRetries={3}
+                            fallbackSrc={profileAvatar(null, post.authorEmail)}
+                        />
                     </div>
 
                     <div className="pm-user-meta">

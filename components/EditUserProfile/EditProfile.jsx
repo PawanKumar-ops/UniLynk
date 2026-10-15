@@ -128,7 +128,7 @@ export default function EditProfile({ onClose, saveRef }) {
           setEmail(data.user.email || "");
           setBranch(data.user.branch || "CSE");
           setYear(data.user.year || "First Year");
-          setAvatar(profileAvatar(data.user.img, data.user.email));
+          setAvatar(typeof data.user.img === "string" ? data.user.img.trim() : "");
           setBanner(data.user.banner || "/Background.jpg");
           setSocials(
             (data.user.socials || []).map((s) => ({

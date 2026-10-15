@@ -8,6 +8,7 @@ import PostLike from "@/models/postLike";
 import Club from "@/models/Club";
 import cloudinary from "@/lib/cloudinary";
 import { getLikeCount } from "@/lib/postLikeCache";
+import { profileAvatar } from "@/lib/avatar";
 
 const normalizeEmail = (email) => {
   if (typeof email !== "string") return "";
@@ -76,13 +77,6 @@ const deletePostMediaFromCloudinary = async (images = []) => {
   };
 };
 
-const buildAvatarFallback = (name) => {
-  const safeName = typeof name === "string" && name.trim() ? name.trim() : "UniLynk User";
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(
-    safeName
-  )}&background=random&color=fff&size=128&bold=true`;
-};
-
 const normalizePollForUser = (poll, userId) => {
   if (!poll || !Array.isArray(poll.options)) return undefined;
 
@@ -143,7 +137,10 @@ const resolvePostAuthorImage = async (post) => {
     ...post,
     authorId: user?._id?.toString?.() || "",
     authorEmail: email,
-    authorImage: liveUserImage || storedImage || buildAvatarFallback(post.authorName),
+    authorName: post.postAs === "club"
+      ? post.authorName
+      : user?.name?.trim() || post.authorName,
+    authorImage: liveUserImage || profileAvatar(null, email),
   };
 };
 

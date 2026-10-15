@@ -2,6 +2,26 @@ import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
 import Post from "@/models/post";
 import User from "@/models/user";
+import { profileAvatar } from "@/lib/avatar";
+
+const normalizeImage = (image) => {
+  if (typeof image !== "string") return "";
+  const value = image.trim();
+  return value && value !== "/Profilepic.png" ? value : "";
+};
+
+const hydratePostAuthors = (posts, usersByEmail) => posts.map((post) => {
+  const email = typeof post.authorEmail === "string" ? post.authorEmail.trim().toLowerCase() : "";
+  const author = usersByEmail.get(email);
+
+  return {
+    ...post,
+    authorId: author?._id?.toString?.() || post.authorId || "",
+    authorEmail: email,
+    authorName: author?.name?.trim() || post.authorName,
+    authorImage: normalizeImage(author?.img) || profileAvatar(null, email),
+  };
+});
 
 export async function GET(req) {
   try {
@@ -35,9 +55,26 @@ export async function GET(req) {
       .sort({ createdAt: -1 })
       .lean();
 
+    const allPosts = [...posts, ...savedPosts];
+    const authorEmails = [...new Set(
+      allPosts
+        .map((post) => typeof post.authorEmail === "string" ? post.authorEmail.trim().toLowerCase() : "")
+        .filter(Boolean)
+    )];
+    const authors = await User.find(
+      { email: { $in: authorEmails } },
+      { email: 1, name: 1, img: 1 }
+    ).lean();
+    const usersByEmail = new Map(
+      authors.map((author) => [author.email.trim().toLowerCase(), author])
+    );
+
+    const hydratedPosts = hydratePostAuthors(posts, usersByEmail);
+    const hydratedSavedPosts = hydratePostAuthors(savedPosts, usersByEmail);
+
     return Response.json({
-      posts,
-      savedPosts,
+      posts: hydratedPosts,
+      savedPosts: hydratedSavedPosts,
     });
   } catch (error) {
     console.error(error);

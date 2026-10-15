@@ -8,6 +8,7 @@ import PostLike from "@/models/postLike";
 import { getLikeCounts } from "@/lib/postLikeCache";
 import { parseLegacyPollContent } from "@/lib/polls";
 import { getHybridFeedPosts, decodeFeedCursor } from "@/lib/feedRanking";
+import { profileAvatar } from "@/lib/avatar";
 
 
 const DEFAULT_POST_LIMIT = 15;
@@ -62,13 +63,6 @@ const normalizeImage = (image) => {
   return cleaned;
 };
 
-const buildAvatarFallback = (name) => {
-  const safeName = typeof name === "string" && name.trim() ? name.trim() : "UniLynk User";
-  return `https://ui-avatars.com/api/?name=${encodeURIComponent(
-    safeName
-  )}&background=random&color=fff&size=128&bold=true`;
-};
-
 const resolvePostAuthorImages = async (posts) => {
   const emails = [...new Set(posts.map((post) => normalizeEmail(post.authorEmail)).filter(Boolean))];
   const namesRaw = [...new Set(posts.map((post) => (typeof post.authorName === "string" ? post.authorName.trim() : "")).filter(Boolean))];
@@ -105,7 +99,12 @@ const resolvePostAuthorImages = async (posts) => {
       ...post,
       authorId: matchedUser?._id?.toString?.() || "",
       authorEmail: email,
-      authorImage: post.postAs === "club" ? storedImage || buildAvatarFallback(post.authorName) : liveUserImage || storedImage || buildAvatarFallback(post.authorName),
+      authorName: post.postAs === "club"
+        ? post.authorName
+        : matchedUser?.name?.trim() || post.authorName,
+      authorImage: post.postAs === "club"
+        ? storedImage || profileAvatar(null, email)
+        : liveUserImage || profileAvatar(null, email),
     };
   });
 };
@@ -421,7 +420,7 @@ export async function POST(req) {
       safeAuthorImage = normalizeImage(dbUser?.img) || safeAuthorImage;
     }
 
-    safeAuthorImage = safeAuthorImage || buildAvatarFallback(safeAuthorName);
+    safeAuthorImage = safeAuthorImage || profileAvatar(null, safeAuthorEmail);
 
     const normalizedPostAs = postAs === "club" ? "club" : "user";
     const requestedClubId = typeof clubId === "string" ? clubId.trim() : "";

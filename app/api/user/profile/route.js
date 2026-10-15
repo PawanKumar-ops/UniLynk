@@ -56,8 +56,12 @@ export async function PATCH(req) {
       updatePayload.name = name.trim();
     }
 
-    if (typeof img === "string" && img.trim()) {
-      updatePayload.img = img.trim();
+    if (typeof img === "string") {
+      if (img.trim()) {
+        updatePayload.img = img.trim();
+      } else {
+        updatePayload.$unset = { img: 1 };
+      }
     }
 
     if (typeof banner === "string" && banner.trim()) {
