@@ -358,7 +358,7 @@ export default function EditProfile({ onClose, saveRef }) {
 
               {uploading && (
                 <div className="absolute inset-0 z-30 flex items-center justify-center bg-black/50 backdrop-blur-xs text-white gap-2 text-sm font-medium">
-                  <Loader2 className="size-5 animate-spin" /> Uploading to Cloudinary...
+                  <Loader2 className="size-5 animate-spin" /> Uploading...
                 </div>
               )}
 
