@@ -13,6 +13,7 @@ import SiteHeader from '@/components/landingPage/SiteHeader'
 import StartSimpleSection from '@/components/landingPage/StartSimpleSection'
 import TeamPlansSection from '@/components/landingPage/TeamPlansSection'
 import UseCasesSection from '@/components/landingPage/UseCasesSection'
+import SocietiesSection from '@/components/landingPage/SocietiesSection'
 import './index.css'
 
 function RegistrationSuccessModal() {
@@ -91,6 +92,7 @@ export default function App() {
     <main className="flex min-h-screen flex-col bg-[#f4f3ef]">
       <SiteHeader />
       <HeroSection />
+      <SocietiesSection />
       <CreativeSuiteSection />
       <StartSimpleSection />
       <TeamPlansSection />

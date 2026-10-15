@@ -96,6 +96,16 @@ export default function HeroSection() {
       <div className="relative mx-auto flex w-full max-w-screen-2xl flex-1 flex-col justify-end px-5 pb-8 pt-24 sm:px-10 lg:px-20 2xl:px-40">
         <div className="flex flex-1 flex-col justify-center gap-8 py-10 lg:flex-row lg:items-center lg:gap-12 lg:py-20">
           <div className="flex max-w-2xl flex-col gap-6">
+            <div className="flex items-center gap-3">
+              <span className="relative flex size-12 shrink-0 items-center justify-center p-1 sm:size-18">
+                <img src="./NITLOGO.webp" alt="NIT Kurukshetra logo" className="size-full object-contain" />
+              </span>
+              <span className="h-8 w-px bg-white/25" aria-hidden="true" />
+              <span className="flex flex-col leading-tight">
+                <span className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#ff3ea5]">Made for</span>
+                <span className="text-sm font-semibold text-white sm:text-base">NIT Kurukshetra</span>
+              </span>
+            </div>
             <a
               href="https://a16z.com/100-gen-ai-apps-6/"
               target="_blank"
