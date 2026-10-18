@@ -12,6 +12,9 @@ import { DashboardEventsShell } from "@/components/DashboardEventsShell";
 import EventCard from "@/components/EventCard";
 import { TopBar } from "./TopBarEvents";
 import { Icon } from "@iconify/react";
+import { useInfiniteQuery, keepPreviousData } from "@tanstack/react-query";
+
+const PAGE_SIZE = 10;
 
 const DEFAULT_EVENT_IMAGE =
   "https://images.unsplash.com/photo-1505373877841-8d25f7d46678?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=1080";
@@ -321,71 +324,70 @@ export function EventsPage() {
   const router = useRouter();
   const [active, setActive] = useState("All");
   const [details, setDetails] = useState(null);
-  const [events, setEvents] = useState([]);
-  const [appliedEvents, setAppliedEvents] = useState({});
-  const [loading, setLoading] = useState(true);
+  const loadMoreRef = useRef(null);
 
-  useEffect(() => {
-    let ignore = false;
+  const {
+    data,
+    isPending: loading,
+    isError,
+    refetch,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = useInfiniteQuery({
+    queryKey: ["events-feed", active],
+    queryFn: async ({ pageParam, signal }) => {
+      const params = new URLSearchParams({ limit: String(PAGE_SIZE) });
+      if (pageParam) params.set("cursor", pageParam);
+      if (active !== "All") params.set("genre", active);
+      const res = await fetch(`/api/forms/feed?${params}`, { signal });
+      if (!res.ok) throw new Error("Failed to fetch events");
+      return res.json();
+    },
+    initialPageParam: null,
+    getNextPageParam: (lastPage) => lastPage?.nextCursor ?? null,
+    staleTime: 5 * 60 * 1000, // reuse cached events for 5 minutes
+    gcTime: 30 * 60 * 1000,
+    placeholderData: keepPreviousData,
+  });
 
-    const fetchEvents = async () => {
-      try {
-        setLoading(true);
-        const res = await fetch("/api/forms/publics", { cache: "no-store" });
-        if (!res.ok) throw new Error("Failed to fetch events");
+  const events = useMemo(
+    () => data?.pages.flatMap((page) => page?.events || []) ?? [],
+    [data]
+  );
 
-        const data = await res.json();
-        const eventsData = Array.isArray(data) ? data : [];
-        if (ignore) return;
-
-        setEvents(eventsData);
-
-        const appliedMap = {};
-        await Promise.all(
-          eventsData.map(async (event) => {
-            const id = getEventId(event);
-            if (!id) return;
-            try {
-              const applyRes = await fetch(`/api/forms/check-applied?formId=${id}`, {
-                cache: "no-store",
-              });
-              const result = await applyRes.json();
-              appliedMap[id] = Boolean(result.applied);
-            } catch {
-              appliedMap[id] = false;
-            }
-          })
-        );
-
-        if (!ignore) setAppliedEvents(appliedMap);
-      } catch (error) {
-        console.error("Failed to fetch events:", error);
-        if (!ignore) {
-          setEvents([]);
-          setAppliedEvents({});
-        }
-      } finally {
-        if (!ignore) setLoading(false);
-      }
-    };
-
-    fetchEvents();
-    return () => {
-      ignore = true;
-    };
-  }, []);
-
-  const filters = useMemo(() => {
-    const genres = events
-      .map((event) => event.genre)
-      .filter((genre) => typeof genre === "string" && genre.trim());
-    return ["All", ...Array.from(new Set(genres))];
+  const appliedEvents = useMemo(() => {
+    const map = {};
+    events.forEach((event) => {
+      map[getEventId(event)] = Boolean(event.applied);
+    });
+    return map;
   }, [events]);
 
-  const list = useMemo(
-    () => (active === "All" ? events : events.filter((event) => event.genre === active)),
-    [active, events]
-  );
+  // Genre list comes from the first page of the unfiltered feed and is cached separately.
+  const firstPageGenres = data?.pages?.[0]?.genres;
+  const [genres, setGenres] = useState([]);
+  useEffect(() => {
+    if (active === "All" && Array.isArray(firstPageGenres)) setGenres(firstPageGenres);
+  }, [active, firstPageGenres]);
+
+  // Infinite scroll: load the next page when the sentinel enters the viewport.
+  useEffect(() => {
+    const node = loadMoreRef.current;
+    if (!node || !hasNextPage) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && !isFetchingNextPage) fetchNextPage();
+      },
+      { rootMargin: "400px" }
+    );
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage, events.length]);
+
+  const filters = useMemo(() => ["All", ...Array.from(new Set(genres))], [genres]);
+
+  const list = events;
 
   const featured = useMemo(() => {
     return [...events].sort((a, b) => {
@@ -524,7 +526,20 @@ export function EventsPage() {
           </div>
         )}
 
-        {!loading && list.length === 0 && (
+        {isError && list.length === 0 && (
+          <div className="flex flex-col items-center gap-3 rounded-2xl border border-[var(--border)] px-4 py-10 text-center">
+            <p className="text-sm text-[#71717a]">Couldn't load events. Check your connection and try again.</p>
+            <button
+              type="button"
+              onClick={() => refetch()}
+              className="rounded-full bg-[var(--primary)] px-4 py-2 text-sm text-[var(--primary-foreground)]"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {!loading && !isError && list.length === 0 && (
           <div className="flex min-h-[340px] flex-col sm:min-h-[420px] items-center justify-center px-4 text-center">
             <div className="mb-6 flex h-[170px] w-[220px] max-w-[80vw] sm:h-[220px] sm:w-[280px] items-center justify-center">
               <img
@@ -567,6 +582,26 @@ export function EventsPage() {
             );
           })}
         </div>
+
+        {hasNextPage && (
+          <div ref={loadMoreRef} className="grid min-w-0 grid-cols-1 gap-2.5 sm:gap-3">
+            {isFetchingNextPage ? (
+              Array.from({ length: 2 }).map((_, i) => (
+                <TicketFit key={i}>
+                  <TicketSkeleton />
+                </TicketFit>
+              ))
+            ) : (
+              <button
+                type="button"
+                onClick={() => fetchNextPage()}
+                className="mx-auto rounded-full border border-[var(--border)] px-4 py-2 text-sm transition-colors hover:bg-[var(--accent)]"
+              >
+                Load more events
+              </button>
+            )}
+          </div>
+        )}
 
         <Modal
           open={!!details}

@@ -55,6 +55,10 @@ const ClubSchema = new mongoose.Schema(
 );
 
 // Clear model cache in dev mode so updated schema takes effect immediately
+// Speeds up "clubs this user belongs to" lookups.
+ClubSchema.index({ "leaders.email": 1 });
+ClubSchema.index({ "members.email": 1 });
+
 if (mongoose.models && mongoose.models.Club) {
   delete mongoose.models.Club;
 }

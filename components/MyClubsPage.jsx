@@ -127,14 +127,14 @@ function NoClubsState({ onExplore, hasSuggestions }) {
           onClick={onExplore}
           className="inline-flex items-center gap-2 rounded-full bg-black px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-neutral-800 active:scale-95"
         >
-          <Search className="size-4" /> Explore clubs
+          <Icon icon="solar:magnifier-linear" className="size-4" /> Explore clubs
         </button>
         {hasSuggestions ? (
           <a
             href="#suggested-clubs"
             className="inline-flex items-center gap-2 rounded-full border border-neutral-200 px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-neutral-50"
           >
-            <Sparkles className="size-4" /> See suggestions
+            <Icon icon="solar:box-minimalistic-linear" className="size-4" /> See suggestions
           </a>
         ) : null}
       </div>

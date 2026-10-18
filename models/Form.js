@@ -66,6 +66,10 @@ const FormSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Indexes for the paginated events feed.
+FormSchema.index({ isPublished: 1, isPublic: 1, _id: -1 });
+FormSchema.index({ isPublished: 1, visibility: 1, clubId: 1, _id: -1 });
+
 delete mongoose.models.Form;
 delete mongoose.connection?.models?.Form;
 
