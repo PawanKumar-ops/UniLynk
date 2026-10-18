@@ -5,33 +5,36 @@ import { ArrowUpRight } from 'lucide-react'
 
 // Placeholder logos (real brands) — swap `icon` for actual club logos later.
 const SOCIETIES = [
-  { name: 'Coding Club', tag: 'Tech', icon: 'logos:github-icon', members: '420+' },
-  { name: 'Robotics Society', tag: 'Tech', icon: 'logos:tesla', members: '210+' },
-  { name: 'Design Collective', tag: 'Creative', icon: 'logos:figma', members: '180+' },
-  { name: 'Music Society', tag: 'Cultural', icon: 'logos:spotify-icon', members: '300+' },
-  { name: 'Film & Media', tag: 'Creative', icon: 'logos:youtube-icon', members: '160+' },
-  { name: 'AI / ML Club', tag: 'Tech', icon: 'logos:openai-icon', members: '350+' },
-  { name: 'E-Cell', tag: 'Business', icon: 'logos:stripe', members: '260+' },
-  { name: 'Photography Club', tag: 'Creative', icon: 'logos:instagram-icon', members: '240+' },
-  { name: 'Literary Society', tag: 'Cultural', icon: 'logos:medium-icon', members: '140+' },
-  { name: 'Dev Community', tag: 'Tech', icon: 'logos:google-icon', members: '500+' },
-  { name: 'Gaming Society', tag: 'Sports', icon: 'logos:discord-icon', members: '380+' },
-  { name: 'Cloud Club', tag: 'Tech', icon: 'logos:aws', members: '150+' },
-  { name: 'Dramatics', tag: 'Cultural', icon: 'logos:netflix-icon', members: '190+' },
-  { name: 'Social Outreach', tag: 'Service', icon: 'logos:slack-icon', members: '220+' },
-  { name: 'Astronomy Club', tag: 'Science', icon: 'logos:apple', members: '130+' },
+  { name: 'Aero Club', tag: 'Tech', image: '/societies/aero.png', members: '120' },
+  { name: 'Anant', tag: 'Tech', image: '/societies/anant.jpeg', members: '243' },
+  { name: 'Antariksh', tag: 'Science', image: '/societies/antariksh.png', members: '321' },
+  { name: 'Electroreck', tag: 'Tech', image: '/societies/electroreck.jpeg', members: '264' },
+  { name: 'EMR Club', tag: 'Tech', image: '/societies/emr.png', members: '245' },
+  { name: 'E-Cell', tag: 'Business', image: '/societies/icell.jpeg', members: '465' },
+  { name: 'Infrastructure Society', tag: 'Technical', image: '/societies/Infrastructure.png', members: '432' },
+  { name: 'MechSoc', tag: 'Tech', image: '/societies/mechsoc.jpeg', members: '245' },
+  { name: 'MExperts', tag: 'Technical', image: '/societies/mexperts.png', members: '346' },
+  { name: 'Microbus', tag: 'Tech', image: '/societies/microbus.jpeg', members: '521' },
+  { name: 'Technobyte', tag: 'Tech', image: '/societies/technobyte.png', members: '246' },
 ]
-
-const ROW_A = SOCIETIES.slice(0, 8)
-const ROW_B = SOCIETIES.slice(8)
+const ROW_A = SOCIETIES.slice(0, 6)
+const ROW_B = SOCIETIES.slice(6)
 
 function Chip({ s }) {
   return (
     <div className="flex shrink-0 items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] py-2 pl-2 pr-5">
-      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white">
-        <Icon icon={s.icon} width={20} height={20} />
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white p-1">
+        <img
+          src={s.image}
+          alt={`${s.name} logo`}
+          className="h-full w-full rounded-full object-contain"
+          loading="lazy"
+        />
       </span>
-      <span className="whitespace-nowrap text-sm font-medium text-white/80">{s.name}</span>
+
+      <span className="whitespace-nowrap text-sm font-medium text-white/80">
+        {s.name}
+      </span>
     </div>
   )
 }
@@ -52,13 +55,14 @@ function Marquee({ items, reverse }) {
 }
 
 const BLURBS = {
-  Tech: 'Build, ship and compete with the sharpest minds on campus.',
-  Creative: 'Make things people remember, from frames to pixels.',
-  Cultural: 'The stage, the mic and the soul of every fest.',
-  Business: 'Ideas, pitches and the founders of tomorrow.',
-  Sports: 'Squads, leagues and late-night tournaments.',
-  Service: 'Give back to the community around campus.',
-  Science: 'Curiosity-driven projects beyond the syllabus.',
+  Tech: 'Explore technology, build projects and develop practical skills.',
+  Creative: 'Bring creative ideas to life through collaboration.',
+  Cultural: 'Celebrate talent, culture and campus life.',
+  Business: 'Turn ideas into ventures and explore entrepreneurship.',
+  Sports: 'Build teamwork and compete with fellow students.',
+  Service: 'Contribute to the campus and wider community.',
+  Science: 'Explore scientific ideas and discover new possibilities.',
+  Technical: 'Develop engineering skills through projects and innovation.',
 }
 
 const SLOTS = 4
@@ -80,8 +84,13 @@ function Card({ s, idx }) {
         >
           <span className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-[#ff3ea5]/10 blur-2xl" />
           <div className="relative flex items-start justify-between">
-            <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#f4f3ef] sm:h-16 sm:w-16">
-              <Icon icon={s.icon} width={30} height={30} />
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-[#f4f3ef] p-2 sm:h-16 sm:w-16">
+              <img
+                src={s.image}
+                alt={`${s.name} logo`}
+                className="h-full w-full object-contain"
+                loading="lazy"
+              />
             </span>
             <span className="font-mono text-xs text-black/30">{String(idx + 1).padStart(2, '0')}</span>
           </div>
@@ -162,7 +171,7 @@ export default function SocietiesSection() {
         <Showcase />
 
         <div className="mt-8 flex justify-center">
-          <a href="#" className="inline-flex items-center gap-2 rounded-full bg-[#0b0b0d] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#ff3ea5]">
+          <a href="./dashboard" className="inline-flex items-center gap-2 rounded-full bg-[#0b0b0d] px-6 py-3 text-sm font-semibold text-white transition hover:bg-[#ff3ea5]">
             Explore all societies <ArrowUpRight className="h-4 w-4" />
           </a>
         </div>
