@@ -55,6 +55,93 @@ function ImageWithFallback({ src, alt = "", className = "", ...props }) {
   );
 }
 
+function initials(name = "") {
+  return name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join("") || "C";
+}
+
+function Shimmer({ className = "" }) {
+  return <div className={`animate-pulse rounded-full bg-neutral-200/80 ${className}`} />;
+}
+
+function ClubsLoading() {
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:gap-4" aria-busy="true" aria-label="Loading clubs">
+      {[0, 1].map((i) => (
+        <div key={i} className="w-full rounded-3xl border border-neutral-200 bg-white p-2" style={{ animationDelay: `${i * 120}ms` }}>
+          <div className="relative h-36 w-full overflow-hidden rounded-2xl bg-neutral-100">
+            <div className="absolute inset-0 -translate-x-full animate-[myclubs-shimmer_1.4s_infinite] bg-gradient-to-r from-transparent via-white/70 to-transparent" />
+            <Shimmer className="absolute left-3 top-3 h-5 w-16 bg-white/80" />
+          </div>
+          <div className="flex items-center gap-3 px-3 pb-3 pt-4">
+            <Shimmer className="h-12 w-12 shrink-0" />
+            <div className="flex-1 space-y-2">
+              <Shimmer className="h-3.5 w-2/5" />
+              <Shimmer className="h-3 w-1/4" />
+            </div>
+            <Shimmer className="h-9 w-16 shrink-0" />
+          </div>
+        </div>
+      ))}
+      <style>{`@keyframes myclubs-shimmer { 100% { transform: translateX(100%); } }`}</style>
+    </div>
+  );
+}
+
+function SuggestedLoading() {
+  return (
+    <div className="flex flex-col gap-3">
+      {[0, 1, 2].map((i) => (
+        <div key={i} className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white p-3 sm:gap-4">
+          <Shimmer className="size-14 shrink-0 sm:size-16" />
+          <div className="flex-1 space-y-2">
+            <Shimmer className="h-4 w-14" />
+            <Shimmer className="h-3.5 w-1/2" />
+            <Shimmer className="h-3 w-1/4" />
+          </div>
+          <Shimmer className="h-9 w-16 shrink-0" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function NoClubsState({ onExplore, hasSuggestions }) {
+  return (
+    <div className="relative overflow-hidden rounded-3xl border border-neutral-200 bg-white px-6 py-10 text-center sm:py-12">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-32" />
+
+      <div className="relative mx-auto mb-6 flex h-[220px] w-[280px] max-w-[80vw] items-center justify-center">
+        <img
+          src="/illuistrations/noClubs.svg"
+          alt="No clubs joined yet"
+          className="h-full w-full object-contain"
+        />
+      </div>
+
+      <h4 className="relative text-lg font-bold text-black">You haven't joined any clubs yet</h4>
+      <p className="relative mx-auto mt-1.5 max-w-sm text-sm text-[#536471]">
+        Clubs are where campus life happens. Find people who share your interests and get updates on their events.
+      </p>
+      <div className="relative mt-6 flex flex-wrap items-center justify-center gap-2">
+        <button
+          onClick={onExplore}
+          className="inline-flex items-center gap-2 rounded-full bg-black px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-neutral-800 active:scale-95"
+        >
+          <Search className="size-4" /> Explore clubs
+        </button>
+        {hasSuggestions ? (
+          <a
+            href="#suggested-clubs"
+            className="inline-flex items-center gap-2 rounded-full border border-neutral-200 px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-neutral-50"
+          >
+            <Sparkles className="size-4" /> See suggestions
+          </a>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 /* ---------- Page ---------- */
 
 export function MyClubsPage() {
@@ -224,7 +311,13 @@ export function MyClubsPage() {
             </div>
             <div className="min-w-0">
               <div className="text-sm text-[#717182]">You're a member of</div>
-              <div className="mt-0.5 text-[#0a0a0a]">{clubCards.length} campus clubs</div>
+              {loading ? (
+                <Shimmer className="mt-1.5 h-4 w-28" />
+              ) : (
+                <div className="mt-0.5 text-[#0a0a0a]">
+                  {clubCards.length} campus {clubCards.length === 1 ? "club" : "clubs"}
+                </div>
+              )}
             </div>
           </div>
           <div className="flex shrink-0 -space-x-3">
@@ -240,9 +333,12 @@ export function MyClubsPage() {
         <section className="flex flex-col gap-3">
           <h3 className="text-lg font-bold">Clubs you're part of</h3>
           {loading ? (
-            <div className="rounded-2xl border border-[rgba(0,0,0,0.1)] bg-white p-6 text-sm text-[#717182] shadow-sm">
-              Loading clubs...
-            </div>
+            <ClubsLoading />
+          ) : clubCards.length === 0 ? (
+            <NoClubsState
+              hasSuggestions={suggestedCards.length > 0}
+              onExplore={() => router.push("/dashboard/clubs")}
+            />
           ) : (
             <div className="grid grid-cols-1 gap-3 sm:gap-4">
               {clubCards.map((club) => (
@@ -310,37 +406,41 @@ export function MyClubsPage() {
         </section>
 
         {/* Suggested Clubs */}
-        <section className="flex flex-col gap-3">
-          <div className="flex items-center gap-2">
-            <h3 className="text-lg font-bold">Suggested for you</h3>
-          </div>
-          <div className="flex flex-col gap-3">
-            {suggestedCards.map((club) => (
-              <div
-                key={club.id}
-                className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white p-3 transition hover:border-neutral-300 hover:shadow-sm sm:gap-4"
-              >
-                <div className="size-14 shrink-0 overflow-hidden rounded-full border-1 border-[#EEEEEE] sm:size-16">
-                  <ImageWithFallback src={club.img} alt={club.name} className="size-full object-cover" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <Badge variant="secondary" className="mb-1 rounded-full">{club.category}</Badge>
-                  <div className="wrap-break-word text-[#0a0a0a]">{club.name}</div>
-                  <div className="flex items-center gap-1 text-sm text-[#717182]">
-                    <Star className="size-3.5" /> {club.members} members
+        {(loading || suggestedCards.length > 0) && (
+          <section id="suggested-clubs" className="flex scroll-mt-20 flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-bold">Suggested for you</h3>
+            </div>
+            {loading ? <SuggestedLoading /> : (
+              <div className="flex flex-col gap-3">
+                {suggestedCards.map((club) => (
+                  <div
+                    key={club.id}
+                    className="flex items-center gap-3 rounded-2xl border border-neutral-200 bg-white p-3 transition hover:border-neutral-300 hover:shadow-sm sm:gap-4"
+                  >
+                    <div className="size-14 shrink-0 overflow-hidden rounded-full border-1 border-[#EEEEEE] sm:size-16">
+                      <ImageWithFallback src={club.img} alt={club.name} className="size-full object-cover" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <Badge variant="secondary" className="mb-1 rounded-full">{club.category}</Badge>
+                      <div className="wrap-break-word text-[#0a0a0a]">{club.name}</div>
+                      <div className="flex items-center gap-1 text-sm text-[#717182]">
+                        <Star className="size-3.5" /> {club.members} members
+                      </div>
+                    </div>
+                    <Button
+                      variant="secondary"
+                      className="shrink-0 rounded-full px-3 sm:px-4"
+                      onClick={() => router.push(`./Club?clubId=${club.id}`)}
+                    >
+                      <span className="hidden sm:inline">Visit</span>
+                    </Button>
                   </div>
-                </div>
-                <Button
-                  variant="secondary"
-                  className="shrink-0 rounded-full px-3 sm:px-4"
-                  onClick={() => router.push(`./Club?clubId=${club.id}`)}
-                >
-                  <span className="hidden sm:inline">Visit</span>
-                </Button>
+                ))}
               </div>
-            ))}
-          </div>
-        </section>
+            )}
+          </section>
+        )}
       </div>
     </div>
   );
