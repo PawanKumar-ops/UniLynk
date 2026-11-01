@@ -90,7 +90,10 @@ export default function App({ formId: propFormId }) {
   const [publishOpen, setPublishOpen] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [isPublished, setIsPublished] = useState(false);
+  const [selectedClubId, setSelectedClubId] = useState(null);
+  const [selectedVisibility, setSelectedVisibility] = useState("public");
 
   /* points */
   const addPoint = () => {
@@ -179,6 +182,8 @@ export default function App({ formId: propFormId }) {
             setIsTeam(Boolean(draft.isTeam ?? draft.isTeamEvent));
             setTeamSize(String(draft.teamSize || "4"));
             setIsPublished(Boolean(draft.isPublished));
+            setSelectedClubId(draft.clubId || null);
+            setSelectedVisibility(draft.visibility === "members" ? "members" : "public");
             if (Array.isArray(draft.points) && draft.points.length > 0) {
               setPoints(draft.points.map((p) => typeof p === "string" ? { id: uid(), text: p } : p));
             } else if (Array.isArray(draft.moreInformation) && draft.moreInformation.length > 0) {
@@ -210,6 +215,8 @@ export default function App({ formId: propFormId }) {
           setIsTeam(Boolean(data.isTeam ?? data.isTeamEvent));
           setTeamSize(String(data.teamSize || "4"));
           setIsPublished(Boolean(data.isPublished));
+          setSelectedClubId(data.clubId?._id || data.clubId || null);
+          setSelectedVisibility(data.visibility === "members" ? "members" : "public");
 
           if (Array.isArray(data.points) && data.points.length > 0) {
             setPoints(data.points.map((p) => typeof p === "string" ? { id: uid(), text: p } : p));
@@ -262,34 +269,64 @@ export default function App({ formId: propFormId }) {
     saveDraft(draftData);
   }, [formId, name, description, banner, points, date, time, venue, isTeam, teamSize, questions]);
 
+  const getPayload = ({ clubId = selectedClubId, visibility = selectedVisibility, isPublished = true } = {}) => {
+    const cleanPoints = points.map((p) => p.text.trim()).filter(Boolean);
+    return {
+      name: name.trim(),
+      title: name.trim(),
+      description: description.trim(),
+      banner: banner || "",
+      image: banner || "",
+      points: cleanPoints,
+      moreInformation: cleanPoints,
+      date,
+      time,
+      venue: venue.trim(),
+      location: venue.trim(),
+      isTeam,
+      isTeamEvent: isTeam,
+      teamSize: Number(teamSize || 4),
+      questions,
+      clubId: clubId || null,
+      visibility: visibility || "public",
+      isPublic: visibility !== "members",
+      isPublished,
+    };
+  };
+
+  const saveForm = async (formData) => {
+    const response = await fetch("/api/forms/update", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ formId: formMongoId, formData }),
+    });
+    const result = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(result.error || "Failed to save event");
+    }
+    return result;
+  };
+
+  const handleSave = async () => {
+    if (formId?.startsWith("draft_") || !formMongoId) return;
+    try {
+      setIsSaving(true);
+      await saveForm(getPayload({ isPublished }));
+      alert("Event changes saved.");
+    } catch (err) {
+      console.error("Save event error:", err);
+      alert(err.message || "Failed to save event");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   /* publish action */
   const handlePublish = async ({ clubId, visibility }) => {
     try {
       setIsPublishing(true);
       const isDraft = formMongoId?.startsWith("draft_");
-      const cleanPoints = points.map((p) => p.text.trim()).filter(Boolean);
-
-      const payload = {
-        name: name.trim(),
-        title: name.trim(),
-        description: description.trim(),
-        banner,
-        image: banner,
-        points: cleanPoints,
-        moreInformation: cleanPoints,
-        date,
-        time,
-        venue: venue.trim(),
-        location: venue.trim(),
-        isTeam,
-        isTeamEvent: isTeam,
-        teamSize: Number(teamSize || 4),
-        questions,
-        clubId: clubId || null,
-        visibility: visibility || "everyone",
-        isPublic: visibility !== "members",
-        isPublished: true,
-      };
+      const payload = getPayload({ clubId, visibility, isPublished: true });
 
       let res;
       if (isDraft) {
@@ -299,14 +336,7 @@ export default function App({ formId: propFormId }) {
           body: JSON.stringify(payload),
         });
       } else {
-        await fetch("/api/forms/update", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            formId: formMongoId,
-            formData: payload,
-          }),
-        });
+        await saveForm(payload);
 
         res = await fetch("/api/forms/publish", {
           method: "POST",
@@ -319,7 +349,10 @@ export default function App({ formId: propFormId }) {
         });
       }
 
-      if (!res.ok) throw new Error("Publishing failed");
+      if (!res.ok) {
+        const result = await res.json().catch(() => ({}));
+        throw new Error(result.error || "Publishing failed");
+      }
       const publishedForm = await res.json();
 
       if (formId?.startsWith("draft_")) {
@@ -329,6 +362,8 @@ export default function App({ formId: propFormId }) {
       }
 
       setIsPublished(true);
+      setSelectedClubId(clubId || null);
+      setSelectedVisibility(visibility || "public");
       if (publishedForm?._id) setFormMongoId(publishedForm._id);
     } catch (err) {
       console.error(err);
@@ -576,9 +611,21 @@ export default function App({ formId: propFormId }) {
         {/* Bottom actions */}
         <div className="mt-10">
   <div className="flex w-full flex-row gap-2.5">
+    {formMongoId && !formMongoId.startsWith("draft_") && (
+      <button
+        onClick={handleSave}
+        disabled={isSaving || !canPreview}
+        className="inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-3 text-sm font-semibold transition-all duration-200 hover:bg-[#f6f6f7] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 sm:gap-2 sm:rounded-full sm:px-6 sm:py-3.5"
+        style={{ color: C.ink, borderColor: C.border }}
+      >
+        <Check className="h-4 w-4 shrink-0" />
+        <span className="truncate">{isSaving ? "Saving..." : "Save changes"}</span>
+      </button>
+    )}
+
     <button
       onClick={() => setPreviewOpen(true)}
-      disabled={canPreview}
+      disabled={!canPreview}
       className="inline-flex min-w-0 flex-1 items-center justify-center gap-1.5 rounded-xl border px-3 py-3 text-sm font-semibold transition-all duration-200 hover:bg-[#f6f6f7] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 sm:gap-2 sm:rounded-full sm:px-6 sm:py-3.5"
       style={{ color: C.ink, borderColor: C.border }}
     >
@@ -616,6 +663,8 @@ export default function App({ formId: propFormId }) {
           onPublish={handlePublish}
           isPublishing={isPublishing}
           published={isPublished}
+          initialClubId={selectedClubId}
+          initialVisibility={selectedVisibility}
         />
       )}
       {previewOpen && (
@@ -1150,12 +1199,12 @@ function OptionRow({
  *  Publish modal (drawer on mobile, dialog on desktop)
  * ============================================================= */
 
-function PublishModal({ eventName, onClose, onPublish, isPublishing, published }) {
+function PublishModal({ eventName, onClose, onPublish, isPublishing, published, initialClubId, initialVisibility }) {
   const router = useRouter();
   const [clubs, setClubs] = useState([]);
   const [club, setClub] = useState(null);
   const [clubOpen, setClubOpen] = useState(false);
-  const [audience, setAudience] = useState("public");
+  const [audience, setAudience] = useState(initialVisibility || "public");
 
   useEffect(() => {
     let ignore = false;
@@ -1173,7 +1222,7 @@ function PublishModal({ eventName, onClose, onPublish, isPublishing, published }
           : [];
         setClubs(fetchedClubs);
         if (fetchedClubs.length > 0) {
-          setClub(fetchedClubs[0]);
+          setClub(fetchedClubs.find((item) => item.id === initialClubId) || fetchedClubs[0]);
         }
       })
       .catch((err) => console.error("Fetch clubs error:", err));
@@ -1181,7 +1230,7 @@ function PublishModal({ eventName, onClose, onPublish, isPublishing, published }
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [initialClubId]);
 
   const handlePublishClick = () => {
     onPublish({ clubId: club?.id || null, visibility: audience });

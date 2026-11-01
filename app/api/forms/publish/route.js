@@ -27,7 +27,9 @@ export async function POST(req) {
       {
         isPublic: visibility !== "members",
         visibility: visibility === "members" ? "members" : "everyone",
-        clubId: clubId || null,
+        // Only change the club when one is supplied; callers that publish
+        // without a clubId must not detach the event from its club.
+        ...(clubId !== undefined ? { clubId: clubId || null } : {}),
         isPublished: true,
         publishedAt: new Date(),
       },

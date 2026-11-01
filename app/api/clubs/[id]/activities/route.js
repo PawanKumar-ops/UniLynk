@@ -2,6 +2,7 @@ import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
 import Club from "@/models/Club";
 import Form from "@/models/Form";
+import { isClubLeader } from "@/lib/clubLeadership";
 
 export async function POST(req, { params }) {
   const session = await auth();
@@ -23,11 +24,7 @@ export async function POST(req, { params }) {
     // Verify the user is a leader of this club. Some older club records may
     // contain incomplete leader entries, so normalize defensively instead of
     // assuming every embedded leader has an email.
-    const normalizeEmail = (email) => String(email || "").toLowerCase().trim();
-    const userEmail = normalizeEmail(session.user.email);
-    const isLeader = (club.leaders || []).some(
-      (leader) => normalizeEmail(leader?.email) === userEmail,
-    );
+    const isLeader = isClubLeader(club, session.user.email);
 
     if (!isLeader) {
       return Response.json(

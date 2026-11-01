@@ -13,14 +13,14 @@ export async function PUT(req) {
 
     const { formId, formData } = await req.json();
 
-    if (!formId) {
+    if (!formId || !formData || typeof formData !== "object") {
       return Response.json(
-        { error: "Missing formId" },
+        { error: "Missing formId or form data" },
         { status: 400 }
       );
     }
 
-    const title = (formData.name || formData.title || "").trim();
+    const title = String(formData.name || formData.title || "").trim();
     const pointsList = Array.isArray(formData.points)
       ? formData.points.map((p) => (typeof p === "string" ? p : p.text || "")).filter(Boolean)
       : Array.isArray(formData.moreInformation)
@@ -41,7 +41,7 @@ export async function PUT(req) {
     const normalizedFormData = {
       title,
       name: title,
-      description: formData.description || "",
+      description: String(formData.description || "").trim(),
       points: pointsList,
       moreInformation: pointsList,
       date: formData.date || "",
@@ -58,7 +58,10 @@ export async function PUT(req) {
         : {}),
       questions: questionsList,
       ...(formData.clubId !== undefined ? { clubId: formData.clubId } : {}),
-      ...(formData.visibility ? { visibility: formData.visibility } : {}),
+      ...(formData.visibility ? {
+        visibility: formData.visibility,
+        isPublic: formData.visibility !== "members",
+      } : {}),
       ...(formData.isPublished !== undefined ? { isPublished: Boolean(formData.isPublished) } : {}),
     };
 
@@ -87,4 +90,3 @@ export async function PUT(req) {
     );
   }
 }
-

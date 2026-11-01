@@ -350,7 +350,8 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
     if (!session?.user?.email) return undefined;
 
     let isMounted = true;
-    const refreshIntervalMs = 60 * 1000;
+    // Short interval so past-event prompts appear right when an event starts.
+    const refreshIntervalMs = 10 * 1000;
 
     const fetchJsonList = async (url) => {
       const response = await fetch(url, { cache: "no-store" });
@@ -422,9 +423,17 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
       refreshIntervalMs,
     );
 
+    const refreshOnFocus = () => {
+      if (document.visibilityState === "visible") fetchPendingNotifications();
+    };
+    window.addEventListener("focus", refreshOnFocus);
+    document.addEventListener("visibilitychange", refreshOnFocus);
+
     return () => {
       isMounted = false;
       window.clearInterval(intervalId);
+      window.removeEventListener("focus", refreshOnFocus);
+      document.removeEventListener("visibilitychange", refreshOnFocus);
     };
   }, [session?.user?.email]);
 
