@@ -1,14 +1,79 @@
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
 import Post from "@/models/post";
-import Comment from "@/models/comment";
 import User from "@/models/user";
-import mongoose from "mongoose";
-import PostLike from "@/models/postLike";
+import Comment from "@/models/comment";
 import Club from "@/models/Club";
-import cloudinary from "@/lib/cloudinary";
-import { getLikeCount } from "@/lib/postLikeCache";
+import PostLike from "@/models/postLike";
+import { getLikeCounts } from "@/lib/postLikeCache";
+import { parseLegacyPollContent } from "@/lib/polls";
+import { getHybridFeedPosts, decodeFeedCursor } from "@/lib/feedRanking";
 import { profileAvatar } from "@/lib/avatar";
+import { DOCUMENT_TYPES, MAX_DOCUMENT_BYTES, documentExtension } from "@/lib/documents";
+
+// Keep in sync with MAX_CHARS in components/Post-Fab.jsx.
+const MAX_POST_CHARS = 1000;
+
+
+const DEFAULT_POST_LIMIT = 15;
+const MAX_POST_LIMIT = 50;
+
+// Keep only documents uploaded to this app's Cloudinary account as raw files.
+const sanitizeDocuments = (documents) => {
+  if (!Array.isArray(documents)) return [];
+  const cloud = process.env.CLOUDINARY_CLOUD_NAME;
+  return documents
+    .filter((doc) => {
+      if (typeof doc?.url !== "string") return false;
+      try {
+        const parsed = new URL(doc.url.trim());
+        return parsed.protocol === "https:" && parsed.hostname === "res.cloudinary.com"
+          && Boolean(cloud) && parsed.pathname.startsWith(`/${cloud}/raw/upload/`);
+      } catch {
+        return false;
+      }
+    })
+    .map((doc) => {
+      const name = (typeof doc.name === "string" && doc.name.trim() ? doc.name.trim() : "Document").slice(0, 200);
+      const ext = documentExtension(name) || documentExtension(new URL(doc.url).pathname);
+      return {
+        url: doc.url.trim(),
+        name,
+        size: Math.min(Math.max(Number(doc.size) || 0, 0), MAX_DOCUMENT_BYTES),
+        ext,
+        mimeType: DOCUMENT_TYPES[ext]?.mime || "application/octet-stream",
+      };
+    })
+    .filter((doc) => DOCUMENT_TYPES[doc.ext])
+    .slice(0, 1);
+};
+
+const encodePostCursor = (post) => {
+  if (!post?.createdAt || !post?._id) return null;
+
+  return Buffer.from(
+    JSON.stringify({
+      createdAt: new Date(post.createdAt).toISOString(),
+      id: post._id.toString(),
+    }),
+  ).toString("base64url");
+};
+
+const decodePostCursor = (cursor) => {
+  if (typeof cursor !== "string" || !cursor.trim()) return null;
+
+  try {
+    const parsed = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8"));
+    const createdAt = new Date(parsed?.createdAt);
+    const id = typeof parsed?.id === "string" ? parsed.id.trim() : "";
+
+    if (Number.isNaN(createdAt.getTime()) || !/^[a-f\d]{24}$/i.test(id)) return null;
+
+    return { createdAt, id };
+  } catch {
+    return null;
+  }
+};
 
 const normalizeEmail = (email) => {
   if (typeof email !== "string") return "";
@@ -32,49 +97,98 @@ const normalizeImage = (image) => {
   return cleaned;
 };
 
+const resolvePostAuthorImages = async (posts) => {
+  const emails = [...new Set(posts.map((post) => normalizeEmail(post.authorEmail)).filter(Boolean))];
+  const namesRaw = [...new Set(posts.map((post) => (typeof post.authorName === "string" ? post.authorName.trim() : "")).filter(Boolean))];
 
-const extractCloudinaryPublicId = (url) => {
-  if (typeof url !== "string" || !url.includes("/upload/")) return "";
+  const users = await User.find(
+    {
+      $or: [
+        ...(emails.length ? [{ email: { $in: emails } }] : []),
+        ...(namesRaw.length ? [{ name: { $in: namesRaw } }] : []),
+      ],
+    },
+    { email: 1, name: 1, img: 1 }
+  ).lean();
 
-  try {
-    const pathname = new URL(url).pathname;
-    const uploadPath = pathname.split("/upload/")[1] || "";
-    const withoutVersion = uploadPath.replace(/^v\d+\//, "");
-    return withoutVersion.replace(/\.[^/.]+$/, "");
-  } catch {
-    const uploadPath = url.split("/upload/")[1] || "";
-    const withoutVersion = uploadPath.replace(/^v\d+\//, "");
-    return withoutVersion.replace(/\.[^/.?#]+([?#].*)?$/, "");
+  const userByEmail = new Map();
+  const userByName = new Map();
+
+  for (const user of users) {
+    const email = normalizeEmail(user.email);
+    const name = normalizeName(user.name);
+
+    if (email) userByEmail.set(email, user);
+    if (name && !userByName.has(name)) userByName.set(name, user);
   }
+
+  return posts.map((post) => {
+    const email = normalizeEmail(post.authorEmail);
+    const name = normalizeName(post.authorName);
+    const matchedUser = userByEmail.get(email) || userByName.get(name);
+    const liveUserImage = normalizeImage(matchedUser?.img);
+    const storedImage = normalizeImage(post.authorImage);
+
+    return {
+      ...post,
+      authorId: matchedUser?._id?.toString?.() || "",
+      authorEmail: email,
+      authorName: post.postAs === "club"
+        ? post.authorName
+        : matchedUser?.name?.trim() || post.authorName,
+      authorImage: post.postAs === "club"
+        ? storedImage || profileAvatar(null, email)
+        : liveUserImage || profileAvatar(null, email),
+    };
+  });
 };
 
-const deletePostMediaFromCloudinary = async (images = []) => {
-  const publicIds = [...new Set(
-    (Array.isArray(images) ? images : [])
-      .map(extractCloudinaryPublicId)
-      .filter(Boolean)
-  )];
 
-  if (!publicIds.length) return { deletedCount: 0, failedCount: 0 };
+const resolveLikeState = async (posts, userId) => {
+  if (!posts.length) return [];
 
-  const results = await Promise.allSettled(
-    publicIds.map((publicId) =>
-      cloudinary.uploader.destroy(publicId, { invalidate: true })
-    )
-  );
+  const postIds = posts.map((post) => post._id.toString());
+  const [likes, likeCountsById] = await Promise.all([
+    userId
+      ? PostLike.find({ postId: { $in: postIds }, userId }, { postId: 1 }).lean()
+      : [],
+    getLikeCounts(posts),
+  ]);
+  const likedPostIds = new Set(likes.map((like) => like.postId.toString()));
 
-  const failedResults = results.filter((result) => result.status === "rejected");
-  if (failedResults.length) {
-    console.error(
-      "POST MEDIA DELETE ERROR:",
-      failedResults.map((result) => result.reason)
-    );
+  return posts.map((post) => {
+    const postId = post._id.toString();
+    return {
+      ...post,
+      likeCount: likeCountsById.get(postId) ?? Number(post.likeCount || 0),
+      likedByCurrentUser: likedPostIds.has(postId),
+    };
+  });
+};
+
+const attachRecentComments = async (posts) => {
+  if (!posts.length) return [];
+
+  const postIds = posts.map((post) => post._id);
+  const comments = await Comment.find(
+    { postId: { $in: postIds } },
+    { postId: 1, _id: 1, content: 1, authorId: 1, authorName: 1, authorEmail: 1, authorImage: 1, images: 1, createdAt: 1, updatedAt: 1 }
+  )
+    .sort({ createdAt: 1, _id: 1 })
+    .lean();
+
+  const commentsByPostId = new Map();
+  for (const comment of comments) {
+    const key = comment.postId.toString();
+    const current = commentsByPostId.get(key) || [];
+    current.push(comment);
+    commentsByPostId.set(key, current);
   }
 
-  return {
-    deletedCount: results.length - failedResults.length,
-    failedCount: failedResults.length,
-  };
+  return posts.map((post) => ({
+    ...post,
+    comments: commentsByPostId.get(post._id.toString()) || [],
+  }));
 };
 
 const normalizePollForUser = (poll, userId) => {
@@ -96,173 +210,313 @@ const normalizePollForUser = (poll, userId) => {
   };
 };
 
-const normalizeCommentForClient = (comment) => ({
-  ...comment,
-  id: comment.id ?? comment._id?.toString?.() ?? String(comment._id || ""),
-  authorId: comment.authorId?.toString?.() ?? comment.authorId ?? null,
-});
+const normalizePosts = (posts, userId = null) =>
+  posts.map((post) => ({
+    ...post,
+    id: post.id ?? post._id?.toString?.() ?? String(post._id || ""),
+    // Always expose the exact Cloudinary video URLs saved by Post-Fab.
+    videos: Array.isArray(post.videos)
+      ? post.videos.filter((video) => typeof video === "string" && video.trim()).map((video) => video.trim())
+      : [],
+    comments: Array.isArray(post.comments)
+      ? post.comments.map((comment) => ({
+          ...comment,
+          id: comment.id ?? comment._id?.toString?.() ?? String(comment._id || ""),
+          authorId: comment.authorId?.toString?.() ?? comment.authorId ?? null,
+        }))
+      : [],
+    commentCount: Number(post.commentCount ?? (Array.isArray(post.comments) ? post.comments.length : 0)),
+    bookmarkCount: Number(post.bookmarkCount || 0),
+    poll: normalizePollForUser(post.poll, userId),
+  }));
 
-const normalizePostForClient = (post, userId = null) => ({
-  ...post,
-  id: post.id ?? post._id?.toString?.() ?? String(post._id || ""),
-  videos: Array.isArray(post.videos)
-    ? post.videos.filter((video) => typeof video === "string" && video.trim()).map((video) => video.trim())
-    : [],
-  comments: Array.isArray(post.comments) ? post.comments.map(normalizeCommentForClient) : [],
-  commentCount: Number(post.commentCount ?? (Array.isArray(post.comments) ? post.comments.length : 0)),
-  bookmarkCount: Number(post.bookmarkCount || 0),
-  poll: normalizePollForUser(post.poll, userId),
-});
+const markDeletePermissions = async (posts, sessionEmail) => {
+  if (!posts.length) return posts;
 
-const resolvePostAuthorImage = async (post) => {
-  const email = normalizeEmail(post.authorEmail);
-  const name = typeof post.authorName === "string" ? post.authorName.trim() : "";
-  const conditions = [
-    ...(email ? [{ email }] : []),
-    ...(name ? [{ name }] : []),
+  const normalizedSessionEmail = normalizeEmail(sessionEmail);
+  const clubIds = [
+    ...new Set(
+      posts
+        .filter((post) => post.postAs === "club" && post.clubId)
+        .map((post) => String(post.clubId))
+    ),
   ];
 
-  const user = conditions.length
-    ? await User.findOne({ $or: conditions }, { email: 1, name: 1, img: 1 }).lean()
-    : null;
+  const clubs = clubIds.length && normalizedSessionEmail
+    ? await Club.find(
+        { _id: { $in: clubIds } },
+        { leaders: 1 }
+      ).lean()
+    : [];
+  const leaderClubIds = new Set(
+    clubs
+      .filter((club) =>
+        (club.leaders || []).some(
+          (leader) => normalizeEmail(leader?.email) === normalizedSessionEmail
+        )
+      )
+      .map((club) => club._id.toString())
+  );
 
-  const userImageMatchesEmail = normalizeEmail(user?.email) === email;
-  const userImageMatchesName = normalizeName(user?.name) === normalizeName(name);
-  const liveUserImage = (userImageMatchesEmail || userImageMatchesName)
-    ? normalizeImage(user?.img)
-    : "";
-  const storedImage = normalizeImage(post.authorImage);
+  return posts.map((post) => {
+    const authorEmail = normalizeEmail(post.authorEmail);
+    const isAuthor = Boolean(normalizedSessionEmail && authorEmail === normalizedSessionEmail);
+    const isClubLeader = Boolean(
+      post.postAs === "club" &&
+      post.clubId &&
+      leaderClubIds.has(String(post.clubId))
+    );
 
-  return {
-    ...post,
-    authorId: user?._id?.toString?.() || "",
-    authorEmail: email,
-    authorName: post.postAs === "club"
-      ? post.authorName
-      : user?.name?.trim() || post.authorName,
-    authorImage: liveUserImage || profileAvatar(null, email),
-  };
+    return {
+      ...post,
+      canDeleteByCurrentUser: isAuthor || isClubLeader,
+    };
+  });
 };
 
-export async function GET(_req, { params }) {
+export async function GET(req) {
   try {
     await connectDB();
 
-    const { postId } = await params;
-    if (!postId) {
-      return Response.json({ error: "Post id is required" }, { status: 400 });
+    const { searchParams } = new URL(req.url);
+    const audience = searchParams.get("audience");
+    const clubId = searchParams.get("clubId");
+    const sort = searchParams.get("sort");
+    const cursor = decodePostCursor(searchParams.get("cursor"));
+    const requestedLimitParam = searchParams.get("limit");
+    const requestedLimit = Number(requestedLimitParam || DEFAULT_POST_LIMIT);
+    const limit = requestedLimitParam || cursor
+      ? Number.isFinite(requestedLimit) && requestedLimit > 0
+        ? Math.min(Math.floor(requestedLimit), MAX_POST_LIMIT)
+        : DEFAULT_POST_LIMIT
+      : 0;
+
+    const query = {
+      ...(clubId ? { clubId: clubId.trim() } : {}),
+      ...(
+      audience === "for-you" || audience === "clubs"
+        ? { visibility: audience }
+        : {}
+      ),
+    };
+
+    const sortQuery = sort === "top"
+      ? { likeCount: -1, createdAt: -1, _id: -1 }
+      : { createdAt: -1, _id: -1 };
+
+    let paginatedPosts;
+    let nextCursor;
+    let hasMore;
+
+    if (sort === "top") {
+      const cursor = decodePostCursor(searchParams.get("cursor"));
+      if (cursor) {
+        query.$or = [
+          { createdAt: { $lt: cursor.createdAt } },
+          { createdAt: cursor.createdAt, _id: { $lt: cursor.id } },
+        ];
+      }
+      let postsQuery = Post.find(query).sort(sortQuery);
+      if (limit) postsQuery = postsQuery.limit(limit + 1);
+
+      const posts = await postsQuery.lean();
+      hasMore = limit ? posts.length > limit : false;
+      paginatedPosts = hasMore ? posts.slice(0, limit) : posts;
+      nextCursor = hasMore ? encodePostCursor(paginatedPosts[paginatedPosts.length - 1]) : null;
+    } else {
+      const cursor = decodeFeedCursor(searchParams.get("cursor"));
+      const resolvedLimit = limit > 0 ? limit : DEFAULT_POST_LIMIT;
+      const result = await getHybridFeedPosts(query, resolvedLimit, cursor);
+      paginatedPosts = result.posts;
+      nextCursor = result.nextCursor;
+      hasMore = result.hasMore;
     }
 
-    if (!mongoose.isValidObjectId(postId)) {
-      return Response.json({ error: "Post not found" }, { status: 404 });
-    }
-
-    const post = await Post.findById(postId).lean();
-    if (!post) {
-      return Response.json({ error: "Post not found" }, { status: 404 });
-    }
+    const hydratedPosts = await resolvePostAuthorImages(paginatedPosts);
 
     const session = await auth();
     const sessionEmail = normalizeEmail(session?.user?.email);
     const user = sessionEmail
       ? await User.findOne({ email: sessionEmail }, { _id: 1, savedPosts: 1 }).lean()
       : null;
-    const userId = user?._id?.toString();
-    const hydratedPost = await resolvePostAuthorImage(post);
-    const postObjectId = hydratedPost._id.toString();
-    const [likeCount, likedPost, comments] = await Promise.all([
-      getLikeCount(postObjectId, Number(hydratedPost.likeCount || 0)),
-      userId ? PostLike.findOne({ postId: postObjectId, userId }, { _id: 1 }).lean() : null,
-      Comment.find({ postId: postObjectId }).sort({ createdAt: 1, _id: 1 }).lean(),
-    ]);
-    const savedPostIds = new Set(user?.savedPosts?.map((id) => id.toString()) || []);
-    const isAuthor = Boolean(sessionEmail && normalizeEmail(hydratedPost.authorEmail) === sessionEmail);
-    const isClubLeader = hydratedPost.postAs === "club" && hydratedPost.clubId && sessionEmail
-      ? Boolean(await Club.exists({ _id: hydratedPost.clubId, "leaders.email": sessionEmail }))
-      : false;
+
+    const postsWithPermissions = await markDeletePermissions(hydratedPosts, sessionEmail);
+    const postsWithComments = await attachRecentComments(postsWithPermissions);
+    const enrichedPosts = await resolveLikeState(postsWithComments, user?._id?.toString());
+    const savedPostIds = new Set(user?.savedPosts?.map(id => id.toString()) || []);
+    const enrichedPostsWithSave = enrichedPosts.map(post => ({
+      ...post,
+      savedByCurrentUser: savedPostIds.has(post._id.toString()),
+    }));
+    const normalizedPosts = normalizePosts(enrichedPostsWithSave, user?._id?.toString());
 
     return Response.json(
-      {
-        post: normalizePostForClient(
-          {
-            ...hydratedPost,
-            likeCount,
-            likedByCurrentUser: Boolean(likedPost),
-            savedByCurrentUser: savedPostIds.has(postObjectId),
-            canDeleteByCurrentUser: isAuthor || isClubLeader,
-            comments,
-          },
-          userId,
-        ),
-      },
+      { posts: normalizedPosts, nextCursor, hasMore },
       { status: 200 },
     );
   } catch (error) {
-    console.error("GET POST ERROR:", error);
-    return Response.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error("GET POSTS ERROR:", error);
+    return new Response("Internal Server Error", { status: 500 });
   }
 }
 
-export async function DELETE(_req, { params }) {
+export async function POST(req) {
   try {
+    const {
+      content,
+      audience,
+      authorName,
+      authorImage,
+      authorEmail,
+      images = [],
+      videos = [],
+      documents = [],
+      postAs = "user",
+      clubId = "",
+      poll,
+    } = await req.json();
+
+    const initialContent = typeof content === "string" ? content.trim() : "";
+    if (initialContent.length > MAX_POST_CHARS) {
+      return Response.json({ error: `Posts can be at most ${MAX_POST_CHARS} characters.` }, { status: 400 });
+    }
+    const legacyPoll = !poll ? parseLegacyPollContent(initialContent) : null;
+    const safeContent = legacyPoll?.content ?? initialContent;
+    const safeImages = Array.isArray(images)
+      ? images
+          .filter((image) => typeof image === "string" && image.trim())
+          .map((image) => image.trim())
+          .slice(0, 4)
+      : [];
+    const safeVideos = Array.isArray(videos)
+      ? videos
+          .filter((video) => typeof video === "string" && video.trim())
+          .map((video) => video.trim())
+          .slice(0, 1)
+      : [];
+    const safeDocuments = sanitizeDocuments(documents);
+
+    // Prevent mixing videos with images
+    if (safeVideos.length > 0 && safeImages.length > 0) {
+      return Response.json({ error: "Cannot mix videos with images. Choose one type of media." }, { status: 400 });
+    }
+
+    // Prevent polls with videos
+    if (safeVideos.length > 0 && poll) {
+      return Response.json({ error: "Polls cannot be used with videos." }, { status: 400 });
+    }
+
+    const normalizedPollOptions = Array.isArray(poll?.options)
+      ? poll.options
+          .map((option) => (typeof option === "string" ? option : option?.text))
+          .filter((option) => typeof option === "string" && option.trim())
+          .map((option) => option.trim())
+          .slice(0, 4)
+      : [];
+    const hasPoll = normalizedPollOptions.length >= 2;
+
+    if (!safeContent && safeImages.length === 0 && safeVideos.length === 0 && safeDocuments.length === 0 && !hasPoll) {
+      return new Response("Post content, image, video, document, or poll is required", { status: 400 });
+    }
+
+    if (poll && !hasPoll) {
+      return Response.json({ error: "Poll must include at least 2 options" }, { status: 400 });
+    }
+
+    const requestedPollDays = Number(poll?.durationDays || poll?.days);
+    const safePollDays = Number.isFinite(requestedPollDays)
+      ? Math.min(Math.max(Math.floor(requestedPollDays), 1), 7)
+      : 1;
+    const normalizedPoll = hasPoll
+      ? {
+          options: normalizedPollOptions.map((text, index) => ({
+            id: `option-${index + 1}`,
+            text,
+            votes: 0,
+          })),
+          totalVotes: 0,
+          endsAt: new Date(Date.now() + safePollDays * 24 * 60 * 60 * 1000),
+          votes: [],
+        }
+      : undefined;
+
+    const safeAudience = audience === "clubs" ? "clubs" : "for-you";
+
+
     await connectDB();
-
-    const { postId } = await params;
-    if (!postId) {
-      return Response.json({ error: "Post id is required" }, { status: 400 });
-    }
-
-    if (!mongoose.isValidObjectId(postId)) {
-      return Response.json({ error: "Post not found" }, { status: 404 });
-    }
 
     const session = await auth();
     const sessionEmail = normalizeEmail(session?.user?.email);
-    if (!sessionEmail) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
+
+    const safeAuthorEmail = normalizeEmail(authorEmail) || sessionEmail;
+    const safeAuthorName = authorName?.trim() || session?.user?.name?.trim() || "UniLynk User";
+
+    let safeAuthorImage = normalizeImage(authorImage) || normalizeImage(session?.user?.image);
+
+    let dbUser = null;
+    if (safeAuthorEmail) {
+      dbUser = await User.findOne({ email: safeAuthorEmail }, { img: 1, name: 1 }).lean();
+      safeAuthorImage = normalizeImage(dbUser?.img) || safeAuthorImage;
     }
 
-    const post = await Post.findById(postId, { authorEmail: 1, images: 1, videos: 1, postAs: 1, clubId: 1 }).lean();
-    if (!post) {
-      return Response.json({ error: "Post not found" }, { status: 404 });
+    safeAuthorImage = safeAuthorImage || profileAvatar(null, safeAuthorEmail);
+
+    const normalizedPostAs = postAs === "club" ? "club" : "user";
+    const requestedClubId = typeof clubId === "string" ? clubId.trim() : "";
+    let postAuthorName = safeAuthorName;
+    let postAuthorImage = safeAuthorImage;
+    let postClubId = "";
+    let postVisibility = [safeAudience];
+
+    if (normalizedPostAs === "club") {
+      if (!sessionEmail) {
+        return new Response("Unauthorized", { status: 401 });
+      }
+
+      const club = await Club.findOne(
+        { _id: requestedClubId, "leaders.email": sessionEmail },
+        { _id: 1, clubName: 1, logo: 1 }
+      ).lean();
+
+      if (!club) {
+        return new Response("You are not authorized to post as this club", { status: 403 });
+      }
+
+      postAuthorName = club.clubName || safeAuthorName;
+      postAuthorImage = normalizeImage(club.logo) || safeAuthorImage;
+      postClubId = club._id.toString();
+      postVisibility = ["for-you", "clubs"];
     }
 
-    const isAuthor = normalizeEmail(post.authorEmail) === sessionEmail;
-    const isClubLeader = post.postAs === "club" && post.clubId
-      ? Boolean(await Club.exists({ _id: post.clubId, "leaders.email": sessionEmail }))
-      : false;
+    const post = await Post.create({
+      content: safeContent,
+      audience: safeAudience,
+      visibility: postVisibility,
+      postAs: normalizedPostAs,
+      clubId: postClubId,
+      authorName: postAuthorName,
+      authorEmail: safeAuthorEmail,
+      authorImage: postAuthorImage,
+      images: safeImages,
+      videos: safeVideos,
+      documents: safeDocuments,
+      poll: normalizedPoll,
+    });
 
-    if (!isAuthor && !isClubLeader) {
-      return Response.json({ error: "You are not authorized to delete this post" }, { status: 403 });
-    }
+    const normalizedPost = {
+      ...post.toObject(),
+      id: post._id.toString(),
+      videos: safeVideos,
+      authorId: dbUser?._id?.toString?.() || "",
+      comments: [],
+      commentCount: 0,
+      canDeleteByCurrentUser: Boolean(sessionEmail),
+      poll: normalizePollForUser(post.poll, null),
+    };
 
-    const [imageResult, videoResult] = await Promise.all([
-      deletePostMediaFromCloudinary(post.images || []),
-      deletePostMediaFromCloudinary(post.videos || []),
-    ]);
-
-    await Promise.all([
-      Comment.deleteMany({ postId }),
-      PostLike.deleteMany({ postId }),
-      User.updateMany(
-        { savedPosts: post._id },
-        { $pull: { savedPosts: post._id } }
-      ),
-    ]);
-
-    await Post.deleteOne({ _id: post._id });
-
-    return Response.json(
-      {
-        ok: true,
-        deletedPostId: post._id.toString(),
-        cloudinaryDeletedCount: imageResult.deletedCount + videoResult.deletedCount,
-        cloudinaryFailedCount: imageResult.failedCount + videoResult.failedCount,
-      },
-      { status: 200 }
-    );
+    return Response.json({ post: normalizedPost }, { status: 201 });
   } catch (error) {
-    console.error("DELETE POST ERROR:", error);
-    return Response.json({ error: "Internal Server Error" }, { status: 500 });
+    console.error("CREATE POST ERROR:", error);
+    return new Response("Internal Server Error", { status: 500 });
   }
 }

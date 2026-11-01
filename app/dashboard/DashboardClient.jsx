@@ -1,6 +1,7 @@
 "use client";
 
 import ExpandablePostText from "@/components/ExpandablePostText";
+import PostDocument from "@/components/PostDocument";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import "./dashboard.css";
@@ -242,6 +243,19 @@ const likePost = async (postId, method) => {
   return fetch(`/api/posts/${postId}/like`, { method });
 };
 
+const readJsonResponse = async (response) => {
+  const text = await response.text();
+  if (!text.trim()) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { error: `Posts request failed with status ${response.status}` };
+  }
+};
+
 const fetchDashboardFeedPosts = async ({ audience, cursor, signal }) => {
   const params = new URLSearchParams({
     audience,
@@ -251,7 +265,7 @@ const fetchDashboardFeedPosts = async ({ audience, cursor, signal }) => {
   if (cursor) params.set("cursor", cursor);
 
   const res = await fetch(`/api/posts?${params.toString()}`, { signal });
-  const data = await res.json();
+  const data = await readJsonResponse(res);
 
   if (!res.ok) throw new Error(data?.error || "Failed to fetch posts");
 
@@ -267,7 +281,7 @@ const normalizeEmail = (email) =>
 
 const fetchDashboardPostById = async (postId) => {
   const res = await fetch(`/api/posts/${postId}`);
-  const data = await res.json();
+  const data = await readJsonResponse(res);
 
   if (!res.ok) throw new Error(data?.error || "Failed to fetch post");
 
@@ -1369,6 +1383,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
 
         <div className="post-content">
           <ExpandablePostText text={post.content} />
+          <PostDocument document={post.documents?.[0]} />
           {!!post.images?.length && (
             <div className="image-post">
               {post.images.length === 1 ? (

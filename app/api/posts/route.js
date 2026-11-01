@@ -9,6 +9,8 @@ import { getLikeCounts } from "@/lib/postLikeCache";
 import { parseLegacyPollContent } from "@/lib/polls";
 import { getHybridFeedPosts, decodeFeedCursor } from "@/lib/feedRanking";
 import { profileAvatar } from "@/lib/avatar";
+import { isOwnRawFileUrl } from "@/lib/cloudinary";
+import { DOCUMENT_TYPES, MAX_DOCUMENT_BYTES, documentExtension } from "@/lib/documents";
 
 // Keep in sync with MAX_CHARS in components/Post-Fab.jsx.
 const MAX_POST_CHARS = 1000;
@@ -16,6 +18,26 @@ const MAX_POST_CHARS = 1000;
 
 const DEFAULT_POST_LIMIT = 15;
 const MAX_POST_LIMIT = 50;
+
+// Keep only documents uploaded to this app's Cloudinary account as raw files.
+const sanitizeDocuments = (documents) => {
+  if (!Array.isArray(documents)) return [];
+  return documents
+    .filter((doc) => typeof doc?.url === "string" && isOwnRawFileUrl(doc.url))
+    .map((doc) => {
+      const name = (typeof doc.name === "string" && doc.name.trim() ? doc.name.trim() : "Document").slice(0, 200);
+      const ext = documentExtension(name) || documentExtension(new URL(doc.url).pathname);
+      return {
+        url: doc.url.trim(),
+        name,
+        size: Math.min(Math.max(Number(doc.size) || 0, 0), MAX_DOCUMENT_BYTES),
+        ext,
+        mimeType: DOCUMENT_TYPES[ext]?.mime || "application/octet-stream",
+      };
+    })
+    .filter((doc) => DOCUMENT_TYPES[doc.ext])
+    .slice(0, 1);
+};
 
 const encodePostCursor = (post) => {
   if (!post?.createdAt || !post?._id) return null;
@@ -339,6 +361,7 @@ export async function POST(req) {
       authorEmail,
       images = [],
       videos = [],
+      documents = [],
       postAs = "user",
       clubId = "",
       poll,
@@ -362,6 +385,10 @@ export async function POST(req) {
           .map((video) => video.trim())
           .slice(0, 1)
       : [];
+    const safeDocuments = sanitizeDocuments(documents);
+    if (Array.isArray(documents) && documents.length > 0 && safeDocuments.length === 0) {
+      return Response.json({ error: "The attached document could not be saved. Please upload it again." }, { status: 400 });
+    }
 
     // Prevent mixing videos with images
     if (safeVideos.length > 0 && safeImages.length > 0) {
@@ -382,8 +409,8 @@ export async function POST(req) {
       : [];
     const hasPoll = normalizedPollOptions.length >= 2;
 
-    if (!safeContent && safeImages.length === 0 && safeVideos.length === 0 && !hasPoll) {
-      return new Response("Post content, image, video, or poll is required", { status: 400 });
+    if (!safeContent && safeImages.length === 0 && safeVideos.length === 0 && safeDocuments.length === 0 && !hasPoll) {
+      return new Response("Post content, image, video, document, or poll is required", { status: 400 });
     }
 
     if (poll && !hasPoll) {
@@ -466,6 +493,7 @@ export async function POST(req) {
       authorImage: postAuthorImage,
       images: safeImages,
       videos: safeVideos,
+      documents: safeDocuments,
       poll: normalizedPoll,
     });
 

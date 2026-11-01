@@ -13,7 +13,10 @@ import {
   Film,
   Globe2,
   Trash2,
+  FileText,
 } from "lucide-react";
+import { DOCUMENT_ACCEPT, DOCUMENT_TYPES, MAX_DOCUMENT_BYTES, documentExtension, formatFileSize } from "@/lib/documents";
+import { DocumentBadge } from "@/components/PostDocument";
 import { Icon } from "@iconify/react";
 import ChatGiphyPicker from "@/components/shared/ChatGiphyPicker";
 import PostplusFab from "./PostplusFab";
@@ -66,6 +69,9 @@ export function PostFab({ audience = "for-you", onPosted }) {
   const [leadershipClubs, setLeadershipClubs] = useState([]);
   const [showPostAsDrawer, setShowPostAsDrawer] = useState(false);
   const fileRef = useRef(null);
+  const docRef = useRef(null);
+  // A single attached document ({ file, name, size, ext }), uploaded on submit.
+  const [attachedDoc, setAttachedDoc] = useState(null);
   const textareaRef = useRef(null);
   const emojiButtonRef = useRef(null);
   const gifButtonRef = useRef(null);
@@ -75,8 +81,9 @@ export function PostFab({ audience = "for-you", onPosted }) {
   const remaining = MAX_CHARS - text.length;
   const pollHasEnoughOptions = pollOptions.filter((p) => p.trim()).length >= 2;
   const hasMedia = media.length > 0;
+  const hasDoc = Boolean(attachedDoc);
   const canPost =
-    (text.trim().length > 0 || hasMedia || (showPoll && pollHasEnoughOptions)) &&
+    (text.trim().length > 0 || hasMedia || hasDoc || (showPoll && pollHasEnoughOptions)) &&
     remaining >= 0 &&
     !isUploading &&
     !isSubmitting;
@@ -181,6 +188,7 @@ export function PostFab({ audience = "for-you", onPosted }) {
     setShowGifPicker(false);
     setShowEmojiPicker(false);
     setShowPostAsDrawer(false);
+    setAttachedDoc(null);
   }, []);
 
   const close = useCallback(() => {
@@ -336,6 +344,31 @@ export function PostFab({ audience = "for-you", onPosted }) {
     };
   };
 
+  const onDocument = (file) => {
+    if (!file) return;
+    const ext = documentExtension(file.name);
+    if (!DOCUMENT_TYPES[ext]) {
+      alert("Please choose a PDF, Word, Excel, PowerPoint, CSV or text file.");
+      return;
+    }
+    if (file.size > MAX_DOCUMENT_BYTES) {
+      alert("Documents can be at most 10 MB.");
+      return;
+    }
+    setAttachedDoc({ file, name: file.name, size: file.size, ext });
+  };
+
+  const uploadDocument = async () => {
+    if (!attachedDoc?.file) return [];
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append("file", attachedDoc.file);
+    const res = await fetch("/api/posts/upload-document", { method: "POST", body: formData });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.document) throw new Error(data?.error || "Document upload failed");
+    return [data.document];
+  };
+
   const submitPost = async ({ postAs = "user", clubId = "" } = {}) => {
     if (!canPost) return;
 
@@ -343,6 +376,7 @@ export function PostFab({ audience = "for-you", onPosted }) {
     setShowPostAsDrawer(false);
     try {
       const { images, videos } = await uploadPendingMedia();
+      const documents = await uploadDocument();
       setIsUploading(false);
 
       const res = await fetch("/api/posts", {
@@ -353,6 +387,7 @@ export function PostFab({ audience = "for-you", onPosted }) {
           audience,
           images,
           videos,
+          documents,
           authorName: session?.user?.name,
           authorImage: session?.user?.image,
           authorEmail: session?.user?.email,
@@ -487,6 +522,27 @@ export function PostFab({ audience = "for-you", onPosted }) {
                       className="w-full resize-none border-0 bg-transparent text-[20px] leading-relaxed text-black placeholder:text-black/35 focus:outline-none focus:ring-0"
                     />
 
+                    {attachedDoc && (
+                      <div className="mt-2 flex items-center gap-3 rounded-2xl border border-black/10 bg-white p-3">
+                        <DocumentBadge ext={attachedDoc.ext} size={40} />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[14px] font-semibold text-black">{attachedDoc.name}</p>
+                          <p className="text-[12px] text-black/50">
+                            {DOCUMENT_TYPES[attachedDoc.ext]?.label || "File"} · {formatFileSize(attachedDoc.size)}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setAttachedDoc(null)}
+                          disabled={isUploading || isSubmitting}
+                          aria-label="Remove document"
+                          className="grid h-8 w-8 shrink-0 place-items-center rounded-full text-black/60 transition hover:bg-black/5 hover:text-black disabled:opacity-30"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+
                     {media.length > 0 && (
                       <div
                         className={`mt-2 grid gap-1.5 overflow-hidden rounded-2xl ring-1 ring-black/10 ${media.length === 1
@@ -617,7 +673,7 @@ export function PostFab({ audience = "for-you", onPosted }) {
                 <div className="flex items-center gap-0.5">
                   <ToolbarBtn
                     label="Image"
-                    disabled={media.length >= MAX_MEDIA || showPoll || isUploading || isSubmitting}
+                    disabled={media.length >= MAX_MEDIA || showPoll || hasDoc || isUploading || isSubmitting}
                     onClick={() => fileRef.current?.click()}
                   >
                     <ImageIcon className="h-[18px] w-[18px]" />
@@ -637,7 +693,7 @@ export function PostFab({ audience = "for-you", onPosted }) {
                   <button
                     type="button"
                     ref={gifButtonRef}
-                    disabled={media.length >= MAX_MEDIA || showPoll || isUploading || isSubmitting}
+                    disabled={media.length >= MAX_MEDIA || showPoll || hasDoc || isUploading || isSubmitting}
                     onClick={() => {
                       updatePickerPosition(gifButtonRef.current, true);
                       setShowGifPicker((value) => !value);
@@ -650,8 +706,26 @@ export function PostFab({ audience = "for-you", onPosted }) {
                   </button>
 
                   <ToolbarBtn
+                    label="Document"
+                    disabled={hasMedia || showPoll || hasDoc || isUploading || isSubmitting}
+                    onClick={() => docRef.current?.click()}
+                  >
+                    <FileText className="h-[18px] w-[18px]" />
+                  </ToolbarBtn>
+                  <input
+                    ref={docRef}
+                    type="file"
+                    accept={DOCUMENT_ACCEPT}
+                    hidden
+                    onChange={(e) => {
+                      onDocument(e.target.files?.[0]);
+                      e.target.value = "";
+                    }}
+                  />
+
+                  <ToolbarBtn
                     label="Poll"
-                    disabled={media.length > 0 || isUploading || isSubmitting || showPoll}
+                    disabled={media.length > 0 || hasDoc || isUploading || isSubmitting || showPoll}
                     onClick={() => setShowPoll((s) => !s)}
                     active={showPoll}
                   >

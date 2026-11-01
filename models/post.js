@@ -8,11 +8,14 @@ function hasTextOrImagesOrPoll(content) {
   const safeVideos = Array.isArray(this?.videos)
     ? this.videos.filter((video) => typeof video === "string" && video.trim())
     : [];
+  const safeDocuments = Array.isArray(this?.documents)
+    ? this.documents.filter((doc) => typeof doc?.url === "string" && doc.url.trim())
+    : [];
   const safePollOptions = Array.isArray(this?.poll?.options)
     ? this.poll.options.filter((option) => typeof option?.text === "string" && option.text.trim())
     : [];
 
-  return Boolean(safeContent) || safeImages.length > 0 || safeVideos.length > 0 || safePollOptions.length >= 2;
+  return Boolean(safeContent) || safeImages.length > 0 || safeVideos.length > 0 || safeDocuments.length > 0 || safePollOptions.length >= 2;
 }
 
 const PollOptionSchema = new mongoose.Schema(
@@ -144,6 +147,20 @@ const PostSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    // Attached files (PDF/Word/Excel/...), stored on Cloudinary as raw files.
+    documents: {
+      type: [
+        {
+          url: { type: String, required: true, trim: true },
+          name: { type: String, default: "Document", trim: true, maxlength: 200 },
+          size: { type: Number, default: 0, min: 0 },
+          ext: { type: String, default: "", trim: true, lowercase: true },
+          mimeType: { type: String, default: "" },
+          _id: false,
+        },
+      ],
+      default: [],
+    },
     commentCount: {
       type: Number,
       default: 0,
@@ -187,7 +204,7 @@ PostSchema.index({ trendingScore: -1, _id: -1 });
 // Recompile the model after schema additions in development. Without the videos
 // check, a hot-reloaded server can retain the old schema and silently discard
 // the Cloudinary video URLs received from Post-Fab.
-if (mongoose.models.Post && (!mongoose.models.Post.schema.path("poll") || !mongoose.models.Post.schema.path("videos") || !mongoose.models.Post.schema.path("trendingScore") || !mongoose.models.Post.schema.path("commentCount") || !mongoose.models.Post.schema.path("bookmarkCount"))) {
+if (mongoose.models.Post && (!mongoose.models.Post.schema.path("poll") || !mongoose.models.Post.schema.path("videos") || !mongoose.models.Post.schema.path("documents") || !mongoose.models.Post.schema.path("trendingScore") || !mongoose.models.Post.schema.path("commentCount") || !mongoose.models.Post.schema.path("bookmarkCount"))) {
   delete mongoose.models.Post;
 }
 
