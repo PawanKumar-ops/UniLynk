@@ -6,7 +6,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import EmojiPicker from "emoji-picker-react";
 import { MoreHorizontal, Plus, Smile, ArrowDown, ArrowLeft, CheckCircle2, Trash2, Undo2 } from "lucide-react";
 import { Icon } from "@iconify/react";
-import { PlusDropdown, ReactionPicker, MediaPreviewBar, CallModal, DotsMenu, BlockUserModal } from "@/components/chat/chat-ui";
+import { PlusDropdown, ReactionPicker, MediaPreviewBar, ChatDocumentCard, CallModal, DotsMenu, BlockUserModal } from "@/components/chat/chat-ui";
 import { BlockedModal } from "@/components/BlockedModal";
 import { DeleteMessageModal } from "@/components/DeleteMessageModal";
 import { ForwardMessageModal } from "@/components/ForwardMessageModal";
@@ -298,16 +298,21 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
 
     async function sendFile() {
         if (!pendingFile) return;
-        const isDoc = !pendingFile.type.startsWith("image") && !pendingFile.type.startsWith("video");
+        if (pendingFile.uploading || !pendingFile.upload) return;
+        const isDoc = !pendingFile.type?.startsWith("image") && !pendingFile.type?.startsWith("video");
+        const caption = text.trim();
         await send({ body: isDoc ? { text: pendingFile.name, messageType: "document", attachment: pendingFile.upload } : { text, messageType: "media", attachments: [pendingFile.upload] } });
+        // Documents carry the file name as their text, so send any caption as its own message.
+        if (isDoc && caption) await send({ body: { text: caption, messageType: "text" } });
     }
 
     async function uploadAndPreview(file) {
+        setPendingFile({ name: file.name, type: file.type || "", size: file.size, uploading: true });
         const form = new FormData(); form.append("file", file);
         const res = await fetch("/api/chat/upload", { method: "POST", body: form });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "Failed to upload file");
-        setPendingFile({ url: data.file.url, type: data.file.mimeType, name: data.file.fileName, upload: data.file });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || !data.file) { setPendingFile(null); throw new Error(data.error || "Failed to upload file"); }
+        setPendingFile({ size: data.file.size,  url: data.file.url, type: data.file.mimeType, name: data.file.fileName, upload: data.file });
     }
 
     async function react(msgId, emoji) {
@@ -411,7 +416,7 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
                             className="flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-[#f2f6fa]"
                         >
                             <Trash2 className="h-4 w-4 shrink-0 text-red-500" strokeWidth={2} />
-                        </button></div>}{m.deletedForEveryone ? <div className={cn("inline-flex rounded-2xl px-3.5 py-2 text-[15px] italic", mine ? "bg-[#1d9bf0] rounded-br-[7px] text-white" : "bg-[#f2f6fa] rounded-bl-[7px] text-[#62748e]")}>This message was deleted</div> : <>{m.media?.type === "image" && <img src={m.media.url} alt="" className="mb-1 max-h-80 rounded-2xl object-cover shadow-sm" />}{m.media?.type === "video" && <video src={m.media.url} controls className="mb-1 max-h-80 rounded-2xl" />}{m.media?.type === "gif" && <img src={m.media.url} alt="gif" className="mb-1 max-h-60 rounded-2xl" />}{m.messageType === "shared_post" && m.sharedPost?.id && <SharedPostCard post={m.sharedPost} mine={mine} time={m.time} read={Boolean(mine && m.readAt)} onOpen={() => router.push(`/dashboard/post/${encodeURIComponent(m.sharedPost.id)}`)} />}{m.text && m.messageType !== "gif" && !(m.messageType === "shared_post" && m.sharedPost?.id) && <button onClick={() => setActionOpen(actionOpen === m.id ? null : m.id)} className={cn("inline-flex items-end gap-2 rounded-2xl px-3.5 py-2 text-left text-[15px] animate-fade-in", mine ? "bg-[#1d9bf0] rounded-br-[7px] text-white" : "bg-[#f2f6fa] rounded-bl-[7px] text-[#62748e]")}><span className="whitespace-pre-wrap break-words">{m.text}</span><span className={cn("shrink-0 text-[11px]", mine ? "text-white/80" : "text-[#62748e]")}>{m.time}</span>{mine && m.readAt && <CheckCircle2 className="h-3 w-3 text-white/90" />}</button>}</>}{m.reactions?.length > 0 && (
+                        </button></div>}{m.deletedForEveryone ? <div className={cn("inline-flex rounded-2xl px-3.5 py-2 text-[15px] italic", mine ? "bg-[#1d9bf0] rounded-br-[7px] text-white" : "bg-[#f2f6fa] rounded-bl-[7px] text-[#62748e]")}>This message was deleted</div> : <>{m.media?.type === "image" && <img src={m.media.url} alt="" className="mb-1 max-h-80 rounded-2xl object-cover shadow-sm" />}{m.media?.type === "video" && <video src={m.media.url} controls className="mb-1 max-h-80 rounded-2xl" />}{m.media?.type === "gif" && <img src={m.media.url} alt="gif" className="mb-1 max-h-60 rounded-2xl" />}{m.messageType === "document" && m.attachment?.url && <ChatDocumentCard attachment={m.attachment} mine={mine} time={m.time} read={Boolean(mine && m.readAt)} />}{m.messageType === "shared_post" && m.sharedPost?.id && <SharedPostCard post={m.sharedPost} mine={mine} time={m.time} read={Boolean(mine && m.readAt)} onOpen={() => router.push(`/dashboard/post/${encodeURIComponent(m.sharedPost.id)}`)} />}{m.text && m.messageType !== "gif" && !(m.messageType === "document" && m.attachment?.url) && !(m.messageType === "shared_post" && m.sharedPost?.id) && <button onClick={() => setActionOpen(actionOpen === m.id ? null : m.id)} className={cn("inline-flex items-end gap-2 rounded-2xl px-3.5 py-2 text-left text-[15px] animate-fade-in", mine ? "bg-[#1d9bf0] rounded-br-[7px] text-white" : "bg-[#f2f6fa] rounded-bl-[7px] text-[#62748e]")}><span className="whitespace-pre-wrap break-words">{m.text}</span><span className={cn("shrink-0 text-[11px]", mine ? "text-white/80" : "text-[#62748e]")}>{m.time}</span>{mine && m.readAt && <CheckCircle2 className="h-3 w-3 text-white/90" />}</button>}</>}{m.reactions?.length > 0 && (
                             <div
                                 className={cn(
                                     "absolute -bottom-5 z-20 inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2 py-0.5 shadow-md",
@@ -523,7 +528,7 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
 
                     {text || pendingFile ? (
                         <button
-                            disabled={isConversationBlocked}
+                            disabled={isConversationBlocked || Boolean(pendingFile?.uploading)}
                             onClick={() => {
                                 if (!isConversationBlocked) {
                                     send().catch((err) => setError(err.message));

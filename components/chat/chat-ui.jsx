@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { X, Search, Smile, Image as ImageIcon, Video, FileIcon, Users, Megaphone, Check, Camera, Trash2, Sparkles, Ban } from "lucide-react";
+import { X, Search, Smile, Image as ImageIcon, Video, FileIcon, FileText, Users, Megaphone, Check, Camera, Trash2, Sparkles, Ban, Download, ExternalLink, Loader2, CheckCircle2 } from "lucide-react";
+import { DOCUMENT_ACCEPT, DOCUMENT_TYPES, documentExtension, documentFileUrl, documentViewUrl, formatFileSize } from "@/lib/documents";
+import { DocumentBadge } from "@/components/PostDocument";
 import { gifs, emojis, stickers } from "@/lib/mock-data";
 import { cn } from "@/lib/utils";
 import { loreleiAvatar } from "@/lib/avatar";
@@ -94,7 +96,7 @@ export function PlusDropdown({
   const items = [
     { icon: ImageIcon, label: "Photo", ref: imgRef, accept: "image/*" },
     { icon: Video, label: "Video", ref: vidRef, accept: "video/*" },
-    { icon: FileIcon, label: "File", ref: fileRef, accept: "*" },
+    { icon: FileText, label: "Document", ref: fileRef, accept: DOCUMENT_ACCEPT },
   ];
   return (
     <>
@@ -270,29 +272,97 @@ export function MediaPreviewBar({
   file,
   onRemove,
 }) {
-  const isImg = file.type.startsWith("image");
-  const isVid = file.type.startsWith("video");
+  const isImg = file.type?.startsWith("image");
+  const isVid = file.type?.startsWith("video");
+  const ext = documentExtension(file.name);
   return (
-    <div className="border-t bg-[#fff] p-3">
-      <div className="relative inline-block">
-        {isImg && (
+    <div className="border-t bg-[#fff] px-3 pt-3">
+      <div className="relative inline-block max-w-full">
+        {isImg && file.url && (
           <img src={file.url} alt={file.name} className="max-h-48 rounded-2xl object-cover" />
         )}
-        {isVid && (
+        {isVid && file.url && (
           <video src={file.url} controls className="max-h-48 rounded-2xl" />
         )}
-        {!isImg && !isVid && (
-          <div className="flex items-center gap-2 rounded-2xl border bg-[#f2f6fa] px-4 py-3 text-sm">
-            <FileIcon className="h-5 w-5" />
-            {file.name}
+        {(!isImg && !isVid) || !file.url ? (
+          <div className="flex w-[300px] max-w-[calc(100vw-3rem)] items-center gap-3 rounded-2xl border border-[#e5e7eb] bg-[#f7f9fa] p-2.5 pr-10">
+            {isImg || isVid ? (
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#1d9bf0]/10 text-[#1d9bf0]">
+                {isImg ? <ImageIcon className="h-5 w-5" /> : <Video className="h-5 w-5" />}
+              </span>
+            ) : (
+              <DocumentBadge ext={ext} size={40} />
+            )}
+            <span className="min-w-0 flex-1">
+              <span className="block truncate text-[14px] font-semibold text-[#0f1419]">{file.name}</span>
+              <span className="mt-0.5 flex items-center gap-1.5 text-[12px] text-[#62748e]">
+                {file.uploading ? (
+                  <><Loader2 className="h-3 w-3 animate-spin text-[#1d9bf0]" /> Uploading…</>
+                ) : (
+                  [DOCUMENT_TYPES[ext]?.label || (isImg ? "Photo" : isVid ? "Video" : "File"), file.size ? formatFileSize(file.size) : ""].filter(Boolean).join(" · ")
+                )}
+              </span>
+            </span>
           </div>
-        )}
+        ) : null}
         <button
           onClick={onRemove}
+          aria-label="Remove attachment"
           className="absolute -right-2 -top-2 rounded-full bg-[#000] p-1 text-[#fff] shadow"
         >
           <X className="h-4 w-4" />
         </button>
+      </div>
+    </div>
+  );
+}
+
+/** Document sent in a chat: file card with Open and Download actions. */
+export function ChatDocumentCard({ attachment, mine, time, read }) {
+  const doc = { url: attachment.url, name: attachment.fileName || "Document", size: attachment.size };
+  const ext = documentExtension(doc.name) || documentExtension(doc.url);
+  const details = [DOCUMENT_TYPES[ext]?.label || ext.toUpperCase() || "File", doc.size ? formatFileSize(doc.size) : ""].filter(Boolean).join(" · ");
+  return (
+    <div
+      className={cn(
+        "w-[290px] max-w-[78vw] overflow-hidden rounded-2xl border shadow-sm animate-fade-in sm:max-w-[320px]",
+        mine ? "rounded-br-[7px] border-[#1d9bf0] bg-[#1d9bf0] text-white" : "rounded-bl-[7px] border-[#e5e7eb] bg-white text-[#0f1419]"
+      )}
+    >
+      <a
+        href={documentViewUrl({ ...doc, ext })}
+        target="_blank"
+        rel="noopener noreferrer"
+        title={`Open ${doc.name}`}
+        className={cn("flex items-center gap-3 p-3 no-underline transition", mine ? "hover:bg-white/10" : "hover:bg-[#f7f9fa]")}
+      >
+        <span className={cn("rounded-xl", mine && "bg-white p-1")}>
+          <DocumentBadge ext={ext} size={mine ? 36 : 44} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="line-clamp-2 break-all text-[14px] font-semibold leading-snug">{doc.name}</span>
+          <span className={cn("mt-0.5 block text-[12px]", mine ? "text-white/80" : "text-[#62748e]")}>{details}</span>
+        </span>
+      </a>
+      <div className={cn("flex items-center border-t text-[13px] font-semibold", mine ? "border-white/20" : "border-[#eff3f4]")}>
+        <a
+          href={documentViewUrl({ ...doc, ext })}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={cn("flex flex-1 items-center justify-center gap-1.5 py-2 transition", mine ? "hover:bg-white/10" : "text-[#1d9bf0] hover:bg-[#f7f9fa]")}
+        >
+          <ExternalLink className="h-3.5 w-3.5" /> Open
+        </a>
+        <span className={cn("h-5 w-px", mine ? "bg-white/20" : "bg-[#eff3f4]")} />
+        <a
+          href={documentFileUrl(doc, { download: true })}
+          className={cn("flex flex-1 items-center justify-center gap-1.5 py-2 transition", mine ? "hover:bg-white/10" : "text-[#1d9bf0] hover:bg-[#f7f9fa]")}
+        >
+          <Download className="h-3.5 w-3.5" /> Download
+        </a>
+      </div>
+      <div className={cn("flex items-center justify-end gap-1 px-3 pb-1.5 text-[11px]", mine ? "text-white/80" : "text-[#62748e]")}>
+        {time}{read && <CheckCircle2 className="h-3 w-3" />}
       </div>
     </div>
   );
