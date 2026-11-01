@@ -9,6 +9,7 @@ export default function PastEventNotifiModal({ isOpen, onClose, event, onSuccess
   const [participants, setParticipants] = useState("");
   const [description, setDescription] = useState("");
   const [isPublishing, setIsPublishing] = useState(false);
+  const [savedInfo, setSavedInfo] = useState("");
 
   const eventName = event?.title || "Event Name";
   const maxDescriptionLength = 60;
@@ -21,22 +22,62 @@ export default function PastEventNotifiModal({ isOpen, onClose, event, onSuccess
       setParticipants("");
       setDescription("");
       setIsPublishing(false);
+      setSavedInfo("");
     }
   }, [isOpen, event]);
 
+  // If another leader already saved this event, say so before any work is done.
+  useEffect(() => {
+    if (!isOpen || !event?._id || !event?.clubId) return undefined;
+    let cancelled = false;
+    fetch(`/api/clubs/${event.clubId}/activities?formId=${encodeURIComponent(event._id)}`, { cache: "no-store" })
+      .then((res) => res.json().then((data) => ({ status: res.status, data })))
+      .then(({ status, data }) => {
+        if (!cancelled && status === 409 && data?.alreadySaved) setSavedInfo(data.message);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, event]);
+
   const handleImageUpload = (index, ev) => {
-    const file = ev.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImages((prev) => {
-          const next = [...prev];
-          next[index] = reader.result;
-          return next;
+    const files = Array.from(ev.target.files || [])
+      .filter((file) => file.type.startsWith("image/"))
+      .slice(0, 4);
+
+    if (files.length === 0) return;
+
+    ev.target.value = "";
+
+    Promise.all(
+      files.map(
+        (file) =>
+          new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          })
+      )
+    ).then((dataUrls) => {
+      setImages((prev) => {
+        const next = [...prev];
+        let slot = index;
+
+        dataUrls.forEach((dataUrl) => {
+          while (slot < next.length && next[slot] !== null) slot += 1;
+          if (slot < next.length) {
+            next[slot] = dataUrl;
+            slot += 1;
+          }
         });
-      };
-      reader.readAsDataURL(file);
-    }
+
+        return next;
+      });
+    }).catch((error) => {
+      console.error("IMAGE PREVIEW ERROR:", error);
+    });
   };
 
   const removeImage = (index) => {
@@ -49,7 +90,7 @@ export default function PastEventNotifiModal({ isOpen, onClose, event, onSuccess
 
   const filledImages = images.filter((i) => i !== null).length;
   const allImagesUploaded = filledImages === 4;
-  const canSubmit = allImagesUploaded && location && participants && description && !isPublishing;
+  const canSubmit = allImagesUploaded && location && participants && description && !isPublishing && !savedInfo;
 
   const fieldsComplete = [
     allImagesUploaded,
@@ -64,6 +105,14 @@ export default function PastEventNotifiModal({ isOpen, onClose, event, onSuccess
     setIsPublishing(true);
 
     try {
+      // Re-check right before uploading so a concurrent save is caught early.
+      const checkRes = await fetch(`/api/clubs/${event.clubId}/activities?formId=${encodeURIComponent(event._id)}`, { cache: "no-store" });
+      if (checkRes.status === 409) {
+        const checkData = await checkRes.json();
+        setSavedInfo(checkData.message || "This past activity has already been saved.");
+        return;
+      }
+
       const uploadedUrls = [];
       // Upload images one-by-one to avoid Vercel Hobby plan timeout (10s limit) and request size limits
       for (let i = 0; i < images.length; i++) {
@@ -111,6 +160,12 @@ export default function PastEventNotifiModal({ isOpen, onClose, event, onSuccess
           images: uploadedUrls,
         }),
       });
+
+      if (submitRes.status === 409) {
+        const submitData = await submitRes.json();
+        setSavedInfo(submitData.message || "This past activity has already been saved.");
+        return;
+      }
 
       if (!submitRes.ok) {
         const submitData = await submitRes.json();
@@ -254,12 +309,29 @@ export default function PastEventNotifiModal({ isOpen, onClose, event, onSuccess
                             setDescription(e.target.value);
                           }
                         }}
+                        onPaste={(e) => {
+                          e.preventDefault();
+                          const pastedText = e.clipboardData.getData("text");
+                          const input = e.currentTarget;
+                          const start = input.selectionStart ?? description.length;
+                          const end = input.selectionEnd ?? start;
+                          setDescription(
+                            `${description.slice(0, start)}${pastedText}${description.slice(end)}`
+                              .slice(0, maxDescriptionLength)
+                          );
+                        }}
                         placeholder="A gathering of builders and dreamers."
                         disabled={isPublishing}
                         className="w-full bg-transparent text-sm text-black placeholder:text-neutral-300 focus:outline-none py-1 disabled:opacity-50"
                       />
                     </Field>
                   </div>
+
+                  {savedInfo && (
+                    <div role="status" className="mx-6 mb-2 rounded-xl border border-neutral-200 bg-neutral-50 px-4 py-3 text-sm text-neutral-700">
+                      {savedInfo} No need to submit it again.
+                    </div>
+                  )}
 
                   {/* Footer */}
                   <div className="px-6 py-4 border-t border-neutral-100 flex items-center justify-between">
@@ -281,6 +353,14 @@ export default function PastEventNotifiModal({ isOpen, onClose, event, onSuccess
                       </span>
                     </div>
 
+                    {savedInfo ? (
+                      <button
+                        onClick={() => (onSuccess ? onSuccess() : onClose())}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-black text-white rounded-full text-sm font-medium hover:bg-neutral-800 transition-all"
+                      >
+                        Got it
+                      </button>
+                    ) : (
                     <button
                       onClick={handlePublish}
                       disabled={!canSubmit || isPublishing}
@@ -291,6 +371,7 @@ export default function PastEventNotifiModal({ isOpen, onClose, event, onSuccess
                         <ArrowRight className="w-3.5 h-3.5 transition-transform group-enabled:group-hover:translate-x-0.5" strokeWidth={2} />
                       )}
                     </button>
+                    )}
                   </div>
                 </div>
               </motion.div>
@@ -308,7 +389,7 @@ function ImageSlot({ image, onUpload, onRemove, disabled }) {
 
   return (
     <div className="relative group aspect-[16/9]">
-      <input type="file" accept="image/*" onChange={onUpload} className="hidden" id={id} disabled={disabled} />
+      <input type="file" accept="image/*" multiple onChange={onUpload} className="hidden" id={id} disabled={disabled} />
       <label
         htmlFor={id}
         className={`block w-full h-full rounded-[8px] overflow-hidden transition-all ${

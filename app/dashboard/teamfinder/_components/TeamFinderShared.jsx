@@ -5,6 +5,29 @@ import { useRouter } from 'next/navigation'
 import { Icon } from '@iconify/react'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 
+/**
+ * The event (form) the Team Finder was opened for, read from `?formId=`.
+ * `ready` is false until the URL has been read, so pages don't fetch
+ * unscoped data first.
+ */
+export function useTeamFinderFormId() {
+  const [state, setState] = useState({ formId: '', ready: false })
+  useEffect(() => {
+    setState({ formId: new URLSearchParams(window.location.search).get('formId') || '', ready: true })
+  }, [])
+  return state
+}
+
+/** Keeps the event scope on every Team Finder link. */
+export function teamFinderHref(path, formId) {
+  return formId ? `${path}?formId=${encodeURIComponent(formId)}` : path
+}
+
+/** Team Finder API URL, limited to one event when a formId is present. */
+export function teamFinderApi(formId) {
+  return teamFinderHref('/api/forms/team-finder', formId)
+}
+
 export function Avatar({ src, alt, size = 44 }) {
   return <span className="inline-block shrink-0 overflow-hidden rounded-full bg-[#f4f4f3] ring-1 ring-black/[0.06]" style={{ width: size, height: size }}><img src={src} alt={alt} className="h-full w-full object-cover" loading="lazy" /></span>
 }
@@ -64,27 +87,33 @@ export function MessageComposer({ recipient, label, placeholder, hint, cta, kind
   return <div><p className="mb-2.5 text-[12px] font-bold uppercase tracking-[0.09em] text-[#a1a1aa]">{label}</p><div className="rounded-3xl border border-[#e0e0de] bg-[#ffffff] p-2.5 transition-all focus-within:border-[#0a0a0a]/50 focus-within:shadow-[0_0_0_4px_rgba(10,10,10,0.05)]"><textarea value={value} onChange={(e) => setValue(e.target.value)} placeholder={placeholder} rows={3} className="w-full resize-none bg-transparent px-3 pt-2 text-[15px] leading-relaxed text-[#0a0a0a] outline-none placeholder:text-[#a1a1aa]" /><div className="flex items-center justify-between gap-3 pl-3 pr-1 pb-1"><span className="text-[12px] font-medium text-[#a1a1aa]">{hint}</span><button onClick={send} disabled={sending || !value.trim()} aria-busy={sending} className="inline-flex items-center gap-2 rounded-full bg-[#0a0a0a] px-5 py-2.5 text-[14px] font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-25">{sending && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/35 border-t-white" aria-hidden="true" />}{sending ? 'Sending...' : cta}</button></div></div><SuccessModal open={sent !== null} onClose={() => { setSent(null); setValue('') }} recipient={recipient} message={sent ?? ''} kind={kind} /></div>
 }
 
-export function FinishProfileModal({ open, onClose, onSaved }) {
-  const [formId, setFormId] = useState('')
+export function FinishProfileModal({ open, onClose, onSaved, eventFormId = '' }) {
+  const [formId, setFormId] = useState(eventFormId)
   const [events, setEvents] = useState([])
   const [description, setDescription] = useState('')
   const [saving, setSaving] = useState(false)
   useEffect(() => {
     if (!open) return
+    // Opened from an event: the profile is only for that event.
+    if (eventFormId) {
+      setFormId(eventFormId)
+      fetch(`/api/forms/${encodeURIComponent(eventFormId)}`, { cache: 'no-store' }).then((r) => r.json()).then((form) => setEvents(form && !form.error ? [form] : [])).catch(console.error)
+      return
+    }
     fetch('/api/forms/publics', { cache: 'no-store' }).then((r) => r.json()).then((forms) => { const teamEvents = (Array.isArray(forms) ? forms : []).filter((f) => f.isTeam || f.isTeamEvent); setEvents(teamEvents); setFormId((current) => current || String(teamEvents[0]?._id || teamEvents[0]?.id || '')) }).catch(console.error)
-  }, [open])
+  }, [open, eventFormId])
   const save = async () => {
     if (!formId || !description.trim()) return
     setSaving(true)
     try { const res = await fetch('/api/forms/team-finder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ formId, type: 'solo', description }) }); const data = await res.json().catch(() => ({})); if (!res.ok) throw new Error(data.error || 'Could not finish profile'); onSaved?.(); onClose(); setDescription('') } catch (e) { alert(e.message || 'Could not finish profile') } finally { setSaving(false) }
   }
   if (!open) return null
-  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-5 backdrop-blur-[3px]" onClick={onClose}><div className="w-full max-w-[430px] rounded-[28px] border border-[#eeeeed] bg-white p-6 shadow-[0_40px_80px_-24px_rgba(0,0,0,0.35)]" onClick={(e) => e.stopPropagation()}><h2 className="text-[21px] font-extrabold tracking-[-0.02em]">Finish TeamFinder profile</h2><p className="mt-1.5 text-[14px] leading-relaxed text-[#71717a]">Add the message shown on your seeker detail page.</p><select value={formId} onChange={(e) => setFormId(e.target.value)} className="mt-5 h-11 w-full rounded-2xl border border-[#e0e0de] px-3 text-[14px] outline-none">{events.map((event) => <option key={event._id || event.id} value={event._id || event.id}>{event.title || event.name || 'Team event'}</option>)}</select><textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={5} maxLength={500} placeholder="Tell teams what you can contribute, your interests, availability, and preferred role..." className="mt-3 w-full resize-none rounded-2xl border border-[#e0e0de] p-3 text-[14px] outline-none" /><div className="mt-5 flex gap-2"><button onClick={onClose} className="flex-1 rounded-full border border-[#e0e0de] py-3 text-[14px] font-semibold">Cancel</button><button onClick={save} disabled={saving || !formId || !description.trim()} className="flex-1 rounded-full bg-[#0a0a0a] py-3 text-[14px] font-semibold text-white disabled:opacity-30">{saving ? 'Saving...' : 'Save'}</button></div></div></div>
+  return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-5 backdrop-blur-[3px]" onClick={onClose}><div className="w-full max-w-[430px] rounded-[28px] border border-[#eeeeed] bg-white p-6 shadow-[0_40px_80px_-24px_rgba(0,0,0,0.35)]" onClick={(e) => e.stopPropagation()}><h2 className="text-[21px] font-extrabold tracking-[-0.02em]">Finish TeamFinder profile</h2><p className="mt-1.5 text-[14px] leading-relaxed text-[#71717a]">Add the message shown on your seeker detail page.</p>{eventFormId ? <div className="mt-5 flex h-11 w-full items-center rounded-2xl border border-[#e0e0de] bg-[#f6f6f5] px-3 text-[14px] font-medium text-[#0a0a0a]"><span className="truncate">{events[0]?.title || events[0]?.name || 'This event'}</span></div> : <select value={formId} onChange={(e) => setFormId(e.target.value)} className="mt-5 h-11 w-full rounded-2xl border border-[#e0e0de] px-3 text-[14px] outline-none">{events.map((event) => <option key={event._id || event.id} value={event._id || event.id}>{event.title || event.name || 'Team event'}</option>)}</select>}<textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={5} maxLength={500} placeholder="Tell teams what you can contribute, your interests, availability, and preferred role..." className="mt-3 w-full resize-none rounded-2xl border border-[#e0e0de] p-3 text-[14px] outline-none" /><div className="mt-5 flex gap-2"><button onClick={onClose} className="flex-1 rounded-full border border-[#e0e0de] py-3 text-[14px] font-semibold">Cancel</button><button onClick={save} disabled={saving || !formId || !description.trim()} className="flex-1 rounded-full bg-[#0a0a0a] py-3 text-[14px] font-semibold text-white disabled:opacity-30">{saving ? 'Saving...' : 'Save'}</button></div></div></div>
 }
 
-export function TeamsView({ teams, loading, onOpen, onFindMembers }) {
+export function TeamsView({ teams, loading, onOpen, onFindMembers, formId = '', onSaved }) {
   const [profileOpen, setProfileOpen] = useState(false)
-  return <div className="view-in"><PageHeader title="Join a Team" subtitle={`${teams.length} teams are looking for members`} action={<div className="flex items-center gap-1.5"><div className="group relative"><button onClick={() => setProfileOpen(true)} aria-label="Find members looking for a team" className="rounded-full flex items-center justify-center border h-9 w-9 border-[#e0e0de] bg-[#ffffff] text-[13px] font-semibold transition-colors hover:bg-[#f4f4f3]"><Icon icon="solar:clipboard-add-linear" className="text-[18px]" /><div className="pointer-events-none absolute right-1/2 top-full mt-2 translate-x-1/2 rounded-full bg-[#2c2f35] px-3 py-1.5 text-xs font-medium whitespace-nowrap text-white opacity-0 transition-all duration-200 group-hover:translate-y-1 group-hover:opacity-100">Finish Profile</div></button></div><button onClick={onFindMembers} aria-label="Find members looking for a team" className="inline-flex items-center gap-2 rounded-full border border-[#e0e0de] bg-[#ffffff] py-2 pl-3 pr-3.5 text-[13px] font-semibold transition-colors hover:bg-[#f4f4f3]"><Icon icon="solar:user-linear" className="text-[18px]" /><span className="hidden sm:inline">Find members</span></button></div>} /><FinishProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} /><div className="flex flex-col gap-3 sm:px-3.5 pb-1.5">{loading ? <p className="px-4 text-[13px] text-[#71717a]">Loading teams...</p> : teams.length === 0 ? <EmptyState image="/illuistrations/noTeam.svg" alt="No teams available" title="No teams yet">There are no teams looking for members right now. Check back later or create your Team.</EmptyState> : teams.map((team) => <TeamCard key={team.id} team={team} onOpen={() => onOpen(team.id)} />)}</div></div>
+  return <div className="view-in"><PageHeader title="Join a Team" subtitle={`${teams.length} teams are looking for members`} action={<div className="flex items-center gap-1.5"><div className="group relative"><button onClick={() => setProfileOpen(true)} aria-label="Find members looking for a team" className="rounded-full flex items-center justify-center border h-9 w-9 border-[#e0e0de] bg-[#ffffff] text-[13px] font-semibold transition-colors hover:bg-[#f4f4f3]"><Icon icon="solar:clipboard-add-linear" className="text-[18px]" /><div className="pointer-events-none absolute right-1/2 top-full mt-2 translate-x-1/2 rounded-full bg-[#2c2f35] px-3 py-1.5 text-xs font-medium whitespace-nowrap text-white opacity-0 transition-all duration-200 group-hover:translate-y-1 group-hover:opacity-100">Finish Profile</div></button></div><button onClick={onFindMembers} aria-label="Find members looking for a team" className="inline-flex items-center gap-2 rounded-full border border-[#e0e0de] bg-[#ffffff] py-2 pl-3 pr-3.5 text-[13px] font-semibold transition-colors hover:bg-[#f4f4f3]"><Icon icon="solar:user-linear" className="text-[18px]" /><span className="hidden sm:inline">Find members</span></button></div>} /><FinishProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} eventFormId={formId} onSaved={onSaved} /><div className="flex flex-col gap-3 sm:px-3.5 pb-1.5">{loading ? <p className="px-4 text-[13px] text-[#71717a]">Loading teams...</p> : teams.length === 0 ? <EmptyState image="/illuistrations/noTeam.svg" alt="No teams available" title="No teams yet">There are no teams looking for members right now. Check back later or create your Team.</EmptyState> : teams.map((team) => <TeamCard key={team.id} team={team} onOpen={() => onOpen(team.id)} />)}</div></div>
 }
 
 function EmptyState({ image, alt, title, children }) {

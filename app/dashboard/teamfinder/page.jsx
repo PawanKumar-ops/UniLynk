@@ -4,14 +4,18 @@ import { useEffect, useState } from 'react'
 import { DashboardEventsShell } from '@/components/DashboardEventsShell'
 import '@/app/dashboard/dashboard.css'
 import '@/components/events-pages.css'
-import { TeamsView } from './_components/TeamFinderShared'
+import { TeamsView, teamFinderApi, teamFinderHref, useTeamFinderFormId } from './_components/TeamFinderShared'
 
 export default function TeamFinderPage() {
   const [teams, setTeams] = useState([])
   const [loading, setLoading] = useState(true)
+  const [reloadKey, setReloadKey] = useState(0)
+  const { formId, ready } = useTeamFinderFormId()
 
   useEffect(() => {
-    fetch('/api/forms/team-finder', { cache: 'no-store' })
+    if (!ready) return
+    setLoading(true)
+    fetch(teamFinderApi(formId), { cache: 'no-store' })
       .then(async (res) => {
         const json = await res.json()
         if (!res.ok) throw new Error(json.error || 'Could not load Team Finder')
@@ -19,7 +23,7 @@ export default function TeamFinderPage() {
       })
       .catch((error) => { console.error(error); setTeams([]) })
       .finally(() => setLoading(false))
-  }, [])
+  }, [formId, ready, reloadKey])
 
-  return <DashboardEventsShell><main className="min-h-full w-full bg-[#ffffff] text-[#0a0a0a]"><TeamsView teams={teams} loading={loading} onOpen={(id) => { window.location.href = `/dashboard/teamfinder/team/${id}` }} onFindMembers={() => { window.location.href = '/dashboard/teamfinder/members' }} /></main></DashboardEventsShell>
+  return <DashboardEventsShell><main className="min-h-full w-full bg-[#ffffff] text-[#0a0a0a]"><TeamsView teams={teams} loading={loading} formId={formId} onSaved={() => setReloadKey((k) => k + 1)} onOpen={(id) => { window.location.href = teamFinderHref(`/dashboard/teamfinder/team/${id}`, formId) }} onFindMembers={() => { window.location.href = teamFinderHref('/dashboard/teamfinder/members', formId) }} /></main></DashboardEventsShell>
 }

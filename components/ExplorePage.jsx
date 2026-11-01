@@ -517,6 +517,64 @@ const MobileTrendingCarousel = ({ events, activeIndex }) => {
   );
 };
 
+function SearchResultsList({ query, loading, results, compact, onSelect }) {
+  const users = results.filter((item) => item.type === "user");
+  const clubs = results.filter((item) => item.type === "club");
+  const tooShort = query.trim().length < 2;
+
+  if (tooShort) {
+    return <div className="px-4 py-8 text-center text-neutral-500">Type at least 2 characters to search</div>;
+  }
+  if (loading && results.length === 0) {
+    return <div className="px-4 py-8 text-center text-neutral-500">Searching...</div>;
+  }
+  if (results.length === 0) {
+    return <div className="px-4 py-8 text-center text-neutral-500">No students or clubs found for "{query}"</div>;
+  }
+
+  const avatarSize = compact ? "h-11 w-11" : "h-12 w-12";
+  const renderItem = (item) => (
+    <li key={`${item.type}-${item.id}`}>
+      <button
+        type="button"
+        className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors hover:bg-neutral-50 active:bg-neutral-100"
+        onClick={() => onSelect(item)}
+      >
+        <div className={`${avatarSize} shrink-0 overflow-hidden bg-neutral-100 ring-2 ring-white shadow-sm ${item.type === "club" ? "rounded-xl" : "rounded-full"}`}>
+          {item.image ? (
+            <ImageWithFallback src={item.image} alt={item.name} className="h-full w-full object-cover" />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-neutral-700">{initials(item.name)}</div>
+          )}
+        </div>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <span className="truncate text-[15px] font-semibold text-neutral-900">{item.name}</span>
+          <span className="truncate text-[13px] text-neutral-500">
+            {item.type === "club"
+              ? `${item.category}${item.memberCount ? ` · ${item.memberCount} members` : ""}`
+              : item.email || "Student"}
+          </span>
+        </div>
+      </button>
+    </li>
+  );
+
+  const section = (title, items) =>
+    items.length > 0 && (
+      <div>
+        <p className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.08em] text-neutral-400">{title}</p>
+        <ul className="flex flex-col">{items.map(renderItem)}</ul>
+      </div>
+    );
+
+  return (
+    <div className={`flex flex-col gap-1 transition-opacity ${loading ? "opacity-60" : "opacity-100"}`}>
+      {section("People", users)}
+      {section("Clubs", clubs)}
+    </div>
+  );
+}
+
 export function ExplorePage({ onBack }) {
   const { data: session } = useSession();
   const [query, setQuery] = useState("");
@@ -645,9 +703,22 @@ export function ExplorePage({ onBack }) {
     return () => controller.abort();
   }, [loadSuggestedUsers]);
 
+  // Per-session cache of search results keyed by normalized query, so
+  // retyping or backspacing to an earlier query is instant.
+  const searchCacheRef = useRef(new Map());
+
   useEffect(() => {
-    if (!query.trim()) {
+    const normalized = query.trim().replace(/\s+/g, " ").toLowerCase();
+    if (normalized.length < 2) {
       setResults([]);
+      setSearchLoading(false);
+      return;
+    }
+
+    const cached = searchCacheRef.current.get(normalized);
+    if (cached) {
+      setResults(cached);
+      setSearchLoading(false);
       return;
     }
 
@@ -656,17 +727,21 @@ export function ExplorePage({ onBack }) {
 
     const timer = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/users/search?q=${encodeURIComponent(query)}`, {
+        const res = await fetch(`/api/users/search?q=${encodeURIComponent(normalized)}&limit=6`, {
           signal: controller.signal,
         });
         const data = await res.json();
-        setResults((data.results || []).filter((item) => item.type === "user"));
+        const next = [...(data.users || []), ...(data.clubs || [])];
+        const cache = searchCacheRef.current;
+        cache.set(normalized, next);
+        if (cache.size > 50) cache.delete(cache.keys().next().value);
+        setResults(next);
       } catch (err) {
         if (err.name !== "AbortError") setResults([]);
       } finally {
-        setSearchLoading(false);
+        if (!controller.signal.aborted) setSearchLoading(false);
       }
-    }, 300);
+    }, 180);
 
     return () => {
       controller.abort();
@@ -1484,38 +1559,17 @@ export function ExplorePage({ onBack }) {
 
           {showSearchResults && (
             <div className="absolute top-[calc(100%+10px)] left-1/2 z-30 w-[calc(100vw-1.5rem)] max-w-[calc(100vw-1.5rem)] -translate-x-1/2 max-h-[calc(100dvh-90px)] overflow-y-auto rounded-2xl border border-neutral-200/80 bg-white p-2 shadow-[0_10px_40px_rgb(0,0,0,0.12)]">
-              {searchLoading ? (
-                <div className="px-4 py-8 text-center text-neutral-500">Searching users...</div>
-              ) : results.length === 0 ? (
-                <div className="px-4 py-8 text-center text-neutral-500">No users found for "{query}"</div>
-              ) : (
-                <ul className="flex flex-col">
-                  {results.map((user) => (
-                    <li key={user.id}>
-                      <button
-                        type="button"
-                        className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-colors active:bg-neutral-100 hover:bg-neutral-50"
-                        onClick={() => {
-                          setIsDropdownOpen(false);
-                          router.push(`/dashboard/search/id=${user.id}`);
-                        }}
-                      >
-                        <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-neutral-100 ring-2 ring-white shadow-sm">
-                          {user.image ? (
-                            <ImageWithFallback src={user.image} alt={user.name} className="h-full w-full object-cover" />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-neutral-700">{initials(user.name)}</div>
-                          )}
-                        </div>
-                        <div className="flex min-w-0 flex-1 flex-col">
-                          <span className="truncate text-[15px] font-semibold text-neutral-900">{user.name}</span>
-                          <span className="truncate text-[13px] text-neutral-500">{user.email || `@${user.username || "user"}`}</span>
-                        </div>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <SearchResultsList
+                query={query}
+                loading={searchLoading}
+                results={results}
+                compact={true}
+                onSelect={(item) => {
+                  setIsDropdownOpen(false);
+                  setIsMobileSearchActive(false);
+                  router.push(item.type === "club" ? `/dashboard/Club?clubId=${item.id}` : `/dashboard/search/id=${item.id}`);
+                }}
+              />
             </div>
           )}
         </div>
@@ -1573,50 +1627,17 @@ export function ExplorePage({ onBack }) {
             <div
               className="absolute top-[calc(100%+8px)] left-0 z-30 w-[calc(100vw-2rem)] max-h-[min(520px,calc(100dvh-72px))] overflow-y-auto overflow-hidden rounded-2xl border border-neutral-200/80 bg-white p-2 shadow-[0_8px_30px_rgb(0,0,0,0.06)] md:w-[484px] md:max-h-[520px]"
             >
-              {searchLoading ? (
-                <div className="px-4 py-8 text-center text-neutral-500">
-                  Searching users...
-                </div>
-              ) : results.length === 0 ? (
-                <div className="px-4 py-8 text-center text-neutral-500">
-                  No users found for "{query}"
-                </div>
-              ) : (
-                <ul className="flex flex-col">
-                  {results.map((user) => (
-                    <li key={user.id}>
-                      <button
-                        type="button"
-                        className="flex w-full items-center gap-4 rounded-xl px-3 py-3 text-left transition-colors hover:bg-neutral-50"
-                        onClick={() => {
-                          setIsDropdownOpen(false);
-                          router.push(`/dashboard/search/id=${user.id}`);
-                        }}
-                      >
-                        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-full bg-neutral-100 ring-2 ring-white shadow-sm">
-                          {user.image ? (
-                            <ImageWithFallback
-                              src={user.image}
-                              alt={user.name}
-                              className="h-full w-full object-cover"
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center text-neutral-700">
-                              {initials(user.name)}
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex min-w-0 flex-1 flex-col">
-                          <span className="truncate text-neutral-900">{user.name}</span>
-                          <span className="truncate text-neutral-500">
-                            {user.email || `@${user.username || "user"}`}
-                          </span>
-                        </div>
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <SearchResultsList
+                query={query}
+                loading={searchLoading}
+                results={results}
+                compact={false}
+                onSelect={(item) => {
+                  setIsDropdownOpen(false);
+                  setIsMobileSearchActive(false);
+                  router.push(item.type === "club" ? `/dashboard/Club?clubId=${item.id}` : `/dashboard/search/id=${item.id}`);
+                }}
+              />
             </div>
           )}
         </div>

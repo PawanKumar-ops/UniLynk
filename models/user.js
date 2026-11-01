@@ -54,6 +54,9 @@ const UserSchema = new mongoose.Schema({
 });
 
 UserSchema.index({ savedPosts: 1 });
+// Search indexes: case-insensitive name prefix, plus roll-number prefix.
+UserSchema.index({ name: 1 }, { collation: { locale: "en", strength: 2 } });
+UserSchema.index({ rollNumber: 1 });
 
 export default mongoose.models.User ||
   mongoose.model("User", UserSchema);

@@ -9,6 +9,8 @@ const ActivitySchema = new mongoose.Schema(
     participants: { type: Number, default: 0 },
     images: { type: [String], default: [] },
     formId: { type: mongoose.Schema.Types.ObjectId, ref: "Form", default: null },
+    addedBy: { type: String, default: "" },
+    addedAt: { type: Date, default: null },
   },
   { _id: false }
 );
@@ -58,6 +60,8 @@ const ClubSchema = new mongoose.Schema(
 // Speeds up "clubs this user belongs to" lookups.
 ClubSchema.index({ "leaders.email": 1 });
 ClubSchema.index({ "members.email": 1 });
+// Case-insensitive club-name prefix search (used by Explore search).
+ClubSchema.index({ clubName: 1 }, { collation: { locale: "en", strength: 2 } });
 
 if (mongoose.models && mongoose.models.Club) {
   delete mongoose.models.Club;

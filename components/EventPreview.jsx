@@ -931,6 +931,7 @@ function TeamPicker({ team, setTeam, maxSize = 4, onClose }) {
 
   useEffect(() => {
     let ignore = false;
+    const controller = new AbortController();
     const fetchUsers = async () => {
       const trimmedQuery = query.trim();
       if (trimmedQuery.length < 2) {
@@ -940,13 +941,15 @@ function TeamPicker({ team, setTeam, maxSize = 4, onClose }) {
       }
       setFetching(true);
       try {
-        const res = await fetch(`/api/users/search?scope=team&q=${encodeURIComponent(trimmedQuery)}&limit=5`);
+        const res = await fetch(`/api/users/search?scope=team&q=${encodeURIComponent(trimmedQuery)}&limit=5`, {
+          signal: controller.signal,
+        });
         if (res.ok) {
           const data = await res.json();
           if (!ignore && Array.isArray(data?.users)) {
             const formatted = data.users.map((u) => ({
-              id: u.id,
-              roll: u.rollNumber || u._id,
+              id: String(u.id || u._id || ""),
+              roll: String(u.rollNumber || u._id || u.id || ""),
               name: u.name || "Student",
               branch: u.branch || "General",
               year: u.year || "Student",
@@ -954,9 +957,14 @@ function TeamPicker({ team, setTeam, maxSize = 4, onClose }) {
             }));
             setMongoUsers(formatted);
           }
+        } else if (!ignore) {
+          setMongoUsers([]);
         }
       } catch (err) {
-        console.error("Failed to fetch MongoDB users:", err);
+        if (err.name !== "AbortError") {
+          console.error("Failed to fetch MongoDB users:", err);
+          if (!ignore) setMongoUsers([]);
+        }
       } finally {
         if (!ignore) setFetching(false);
       }
@@ -965,6 +973,7 @@ function TeamPicker({ team, setTeam, maxSize = 4, onClose }) {
     fetchUsers();
     return () => {
       ignore = true;
+      controller.abort();
     };
   }, [query]);
 
@@ -974,7 +983,11 @@ function TeamPicker({ team, setTeam, maxSize = 4, onClose }) {
     return mongoUsers
       .filter(
         (u) =>
-          !team.some((t) => t.roll === u.roll) &&
+          !team.some(
+            (t) =>
+              String(t.id || "") === String(u.id || "") ||
+              String(t.roll || "").toLowerCase() === String(u.roll || "").toLowerCase()
+          ) &&
           ((u.roll && String(u.roll).toLowerCase().includes(q)) ||
             (u.name && u.name.toLowerCase().includes(q)))
       )
@@ -983,7 +996,15 @@ function TeamPicker({ team, setTeam, maxSize = 4, onClose }) {
 
   const add = (u) => {
     if (team.length >= maxSize) return;
-    setTeam((prev) => (prev.some((t) => t.id === u.id || t.roll === u.roll) ? prev : [...prev, u]));
+    setTeam((prev) =>
+      prev.some(
+        (t) =>
+          String(t.id || "") === String(u.id || "") ||
+          String(t.roll || "").toLowerCase() === String(u.roll || "").toLowerCase()
+      )
+        ? prev
+        : [...prev, u]
+    );
     setQuery("");
   };
 

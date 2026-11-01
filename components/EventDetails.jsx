@@ -170,7 +170,7 @@ export default function EventDetails({ eventId }) {
                             {/* Add Members */}
                             {isTeamEvent && <div className="group relative">
                                 <button
-                                    onClick={() => router.push("/dashboard/teamfinder")}
+                                    onClick={() => router.push(`/dashboard/teamfinder?formId=${encodeURIComponent(event?._id || eventId)}`)}
                                     className="flex h-9 w-9 items-center justify-center rounded-full transition hover:bg-black/5"
                                 >
                                     <Icon

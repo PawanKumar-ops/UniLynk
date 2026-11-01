@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { auth } from "@/auth";
 import { connectDB } from "@/lib/mongodb";
 import Form from "@/models/Form";
@@ -89,7 +90,11 @@ export async function GET(req) {
     const formId = searchParams.get("formId");
     await connectDB();
     const query = { "teamFinder.type": { $in: ["solo", "team"] } };
-    if (formId) query.formId = formId;
+    if (formId) {
+      // An invalid id must return nothing, never every event's teams.
+      if (!mongoose.isValidObjectId(formId)) return Response.json({ solo: [], teams: [] });
+      query.formId = formId;
+    }
     const responses = await ResponseModel.find(query).sort({ "teamFinder.addedAt": -1, submittedAt: -1 }).lean();
     const formIds = [...new Set(responses.map((r) => String(r.formId)))];
     const forms = await Form.find({ _id: { $in: formIds }, $or: [{ isTeam: true }, { isTeamEvent: true }] }).select("title name description teamSize").lean();
