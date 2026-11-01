@@ -59,6 +59,55 @@ function toChatMessage(msg, currentUserId) {
 }
 
 const fallbackAvatar = (seed) => `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(seed || "User")}`;
+
+/** Post shared into a chat: compact preview card that opens the post. */
+function SharedPostCard({ post, mine, time, read, onOpen }) {
+    const images = Array.isArray(post.images) ? post.images.filter(Boolean) : [];
+    const shown = images.slice(0, 4);
+    const extra = images.length - shown.length;
+    return (
+        <button
+            type="button"
+            onClick={onOpen}
+            aria-label={`Open post by ${post.authorName || "UniLynk User"}`}
+            className={cn(
+                "group block w-[280px] max-w-full overflow-hidden rounded-2xl border border-[#e5e7eb] bg-white text-left shadow-sm transition hover:border-[#1d9bf0]/40 hover:shadow-md animate-fade-in focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#1d9bf0]/40",
+                mine ? "rounded-br-[7px]" : "rounded-bl-[7px]"
+            )}
+        >
+            <div className="flex items-center gap-2 px-3 pt-3">
+                <img
+                    src={post.authorImage || fallbackAvatar(post.authorName)}
+                    alt=""
+                    className="h-7 w-7 shrink-0 rounded-full border bg-[#f2f6fa] object-cover"
+                    onError={(e) => { e.currentTarget.src = fallbackAvatar(post.authorName); }}
+                />
+                <span className="min-w-0 flex-1 truncate text-sm font-bold text-[#0f1419]">{post.authorName || "UniLynk User"}</span>
+                <span className="shrink-0 rounded-full bg-[#f2f6fa] px-2 py-0.5 text-[11px] font-semibold text-[#62748e]">Post</span>
+            </div>
+            {post.content && (
+                <p className="line-clamp-3 whitespace-pre-wrap break-words px-3 pt-2 text-[14px] leading-snug text-[#0f1419]">{post.content}</p>
+            )}
+            {shown.length > 0 && (
+                <div className={cn("mx-3 mt-2.5 grid gap-0.5 overflow-hidden rounded-xl border border-[#e5e7eb]", shown.length > 1 ? "grid-cols-2" : "grid-cols-1")}>
+                    {shown.map((src, i) => (
+                        <div key={src + i} className={cn("relative overflow-hidden bg-[#f2f6fa]", shown.length === 1 ? "aspect-[16/10]" : shown.length === 3 && i === 0 ? "row-span-2 aspect-auto" : "aspect-square")}>
+                            <img src={src} alt="" loading="lazy" className="h-full w-full object-cover transition duration-300 group-hover:scale-[1.02]" />
+                            {extra > 0 && i === shown.length - 1 && (
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/45 text-sm font-bold text-white">+{extra}</div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            )}
+            <div className="mt-2.5 flex items-center justify-between border-t border-[#eff3f4] px-3 py-2">
+                <span className="text-[13px] font-semibold text-[#1d9bf0] group-hover:underline">View post</span>
+                <span className="flex items-center gap-1 text-[11px] text-[#62748e]">{time}{read && <CheckCircle2 className="h-3 w-3 text-[#1d9bf0]" />}</span>
+            </div>
+        </button>
+    );
+}
+
 const quickTime = (date) => new Date(date || Date.now()).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
 export default function ChatConversation({ id, communityId, groupId, requestMode = false, onRequestBlock, onBack }) {
@@ -78,6 +127,11 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
     const [call, setCall] = useState(null);
     const [pendingFile, setPendingFile] = useState(null);
     const [loading, setLoading] = useState(true);
+    // True once contacts/communities have loaded; until then the header is unknown, not missing.
+    const [bootstrapped, setBootstrapped] = useState(false);
+    // Profile for a chat partner who is not (yet) in the contacts list.
+    const [fallbackUser, setFallbackUser] = useState(null);
+    const [fallbackStatus, setFallbackStatus] = useState("idle");
     const [blockedUsers, setBlockedUsers] = useState([]);
     const [blockedBy, setBlockedBy] = useState([]);
     const [showBlockUserModal, setShowBlockUserModal] = useState(false);
@@ -128,8 +182,44 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
             }
             if (communityRes.ok) setCommunities(communityData.communities || []);
         }
-        bootstrap().catch((err) => setError(err.message));
+        bootstrap().catch((err) => setError(err.message)).finally(() => setBootstrapped(true));
     }, []);
+
+    // A chat opened from a profile/search may be with someone outside the
+    // contacts list; fetch their profile instead of reporting "not found".
+    useEffect(() => {
+        if (!bootstrapped || isCommunityRoute || !id || activeUser) {
+            setFallbackStatus("idle");
+            return undefined;
+        }
+        if (fallbackUser?.id === id) return undefined;
+        let cancelled = false;
+        setFallbackStatus("loading");
+        fetch(`/api/users/${encodeURIComponent(id)}`, { cache: "no-store" })
+            .then(async (res) => {
+                const data = await res.json().catch(() => ({}));
+                if (cancelled) return;
+                if (!res.ok || !data.user) { setFallbackUser(null); setFallbackStatus("missing"); return; }
+                const u = data.user;
+                setFallbackUser({ id: String(u._id || id), name: u.name || u.email?.split("@")[0] || "User", email: u.email || "", image: u.img || "" });
+                setFallbackStatus("done");
+            })
+            .catch(() => { if (!cancelled) setFallbackStatus("missing"); });
+        return () => { cancelled = true; };
+    }, [bootstrapped, isCommunityRoute, id, activeUser, fallbackUser?.id]);
+
+    // A just-created group isn't in the list loaded at startup; refresh once.
+    const refreshedForGroupRef = useRef("");
+    useEffect(() => {
+        if (!bootstrapped || !isCommunityRoute || !groupId) return;
+        const known = communities.find((c) => c.id === communityId)?.groups?.some((g) => g.id === groupId);
+        if (known || refreshedForGroupRef.current === groupId) return;
+        refreshedForGroupRef.current = groupId;
+        fetch("/api/communities", { cache: "no-store" })
+            .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
+            .then(({ ok, data }) => { if (ok) setCommunities(data.communities || []); })
+            .catch(() => {});
+    }, [bootstrapped, isCommunityRoute, communityId, groupId, communities]);
 
     useEffect(() => {
         const hasConversation = isCommunityRoute ? communityId && groupId : id;
@@ -137,6 +227,7 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
         let cancelled = false;
         async function load() {
             setLoading(true);
+            setMessages([]);
             const url = isCommunityRoute ? `/api/communities/${communityId}/groups/${groupId}/messages` : `/api/chat/messages?userId=${id}`;
             const res = await fetch(url, { cache: "no-store" });
             const data = await res.json();
@@ -144,8 +235,8 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
             if (!cancelled) {
                 setMessages((data.messages || []).map((m) => toChatMessage(m, currentUserId)));
                 setRequestInfo(data.request || null);
+                setLoading(false);
             }
-            setLoading(false);
             if (!isCommunityRoute) fetch("/api/chat/messages", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "mark-read", otherUserId: id }) });
         }
         load().catch((err) => { if (!cancelled) { setError(err.message); setLoading(false); } });
@@ -182,7 +273,8 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
         return () => { mounted = false; if (channel) { channel.unbind_all(); channel.unsubscribe(); } };
     }, [currentUserId, id, isCommunityRoute, communityId, groupId]);
 
-    const user = activeUser ? { id: activeUser.id, name: activeUser.name, handle: activeUser.email?.split("@")[0] || "user", avatar: activeUser.image || loreleiAvatar(activeUser.email), verified: false, followers: 0, joined: "recently" } : null;
+    const partner = activeUser || (fallbackUser?.id === id ? fallbackUser : null);
+    const user = partner ? { id: partner.id, name: partner.name, handle: partner.email?.split("@")[0] || "user", avatar: partner.image || loreleiAvatar(partner.email), verified: false, followers: 0, joined: "recently" } : null;
     const community = communities.find((c) => c.id === communityId);
     const group = community?.groups?.find((g) => g.id === groupId);
     const header = isCommunityRoute ? { name: group?.name || community?.name || "Community", handle: community?.name || "community", avatar: community?.image || "/Defaultclublogo.svg" } : user;
@@ -272,6 +364,8 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
     const recipients = [...users.filter((u) => u.id !== currentUserId).map((u) => ({ id: u.id, name: u.name, subtitle: u.email, avatarUrl: u.image, kind: "dm" })), ...communities.flatMap((c) => (c.groups || []).map((g) => ({ id: `group:${c.id}:${g.id}`, communityId: c.id, groupId: g.id, name: g.name, communityName: c.name, subtitle: `${c.name} community`, avatarUrl: c.image, kind: "community" })))];
     const isSentPendingRequest = !isCommunityRoute && requestInfo?.status === "pending" && requestInfo?.requesterId === currentUserId;
 
+    const resolvingHeader = !bootstrapped || (!isCommunityRoute && !partner && fallbackStatus !== "missing");
+    if (resolvingHeader) return <ConversationSkeleton />;
     if (!header) return <div className="flex flex-1 items-center justify-center text-[#62748e]">Conversation not found</div>;
 
     return <>
@@ -317,7 +411,7 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
                             className="flex h-7 w-7 items-center justify-center rounded-full transition-colors hover:bg-[#f2f6fa]"
                         >
                             <Trash2 className="h-4 w-4 shrink-0 text-red-500" strokeWidth={2} />
-                        </button></div>}{m.deletedForEveryone ? <div className={cn("inline-flex rounded-2xl px-3.5 py-2 text-[15px] italic", mine ? "bg-[#1d9bf0] rounded-br-[7px] text-white" : "bg-[#f2f6fa] rounded-bl-[7px] text-[#62748e]")}>This message was deleted</div> : <>{m.media?.type === "image" && <img src={m.media.url} alt="" className="mb-1 max-h-80 rounded-2xl object-cover shadow-sm" />}{m.media?.type === "video" && <video src={m.media.url} controls className="mb-1 max-h-80 rounded-2xl" />}{m.media?.type === "gif" && <img src={m.media.url} alt="gif" className="mb-1 max-h-60 rounded-2xl" />}{m.text && m.messageType !== "gif" && <button onClick={() => setActionOpen(actionOpen === m.id ? null : m.id)} className={cn("inline-flex items-end gap-2 rounded-2xl px-3.5 py-2 text-left text-[15px] animate-fade-in", mine ? "bg-[#1d9bf0] rounded-br-[7px] text-white" : "bg-[#f2f6fa] rounded-bl-[7px] text-[#62748e]")}><span className="whitespace-pre-wrap break-words">{m.text}</span><span className={cn("shrink-0 text-[11px]", mine ? "text-white/80" : "text-[#62748e]")}>{m.time}</span>{mine && m.readAt && <CheckCircle2 className="h-3 w-3 text-white/90" />}</button>}</>}{m.reactions?.length > 0 && (
+                        </button></div>}{m.deletedForEveryone ? <div className={cn("inline-flex rounded-2xl px-3.5 py-2 text-[15px] italic", mine ? "bg-[#1d9bf0] rounded-br-[7px] text-white" : "bg-[#f2f6fa] rounded-bl-[7px] text-[#62748e]")}>This message was deleted</div> : <>{m.media?.type === "image" && <img src={m.media.url} alt="" className="mb-1 max-h-80 rounded-2xl object-cover shadow-sm" />}{m.media?.type === "video" && <video src={m.media.url} controls className="mb-1 max-h-80 rounded-2xl" />}{m.media?.type === "gif" && <img src={m.media.url} alt="gif" className="mb-1 max-h-60 rounded-2xl" />}{m.messageType === "shared_post" && m.sharedPost?.id && <SharedPostCard post={m.sharedPost} mine={mine} time={m.time} read={Boolean(mine && m.readAt)} onOpen={() => router.push(`/dashboard/post/${encodeURIComponent(m.sharedPost.id)}`)} />}{m.text && m.messageType !== "gif" && !(m.messageType === "shared_post" && m.sharedPost?.id) && <button onClick={() => setActionOpen(actionOpen === m.id ? null : m.id)} className={cn("inline-flex items-end gap-2 rounded-2xl px-3.5 py-2 text-left text-[15px] animate-fade-in", mine ? "bg-[#1d9bf0] rounded-br-[7px] text-white" : "bg-[#f2f6fa] rounded-bl-[7px] text-[#62748e]")}><span className="whitespace-pre-wrap break-words">{m.text}</span><span className={cn("shrink-0 text-[11px]", mine ? "text-white/80" : "text-[#62748e]")}>{m.time}</span>{mine && m.readAt && <CheckCircle2 className="h-3 w-3 text-white/90" />}</button>}</>}{m.reactions?.length > 0 && (
                             <div
                                 className={cn(
                                     "absolute -bottom-5 z-20 inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-2 py-0.5 shadow-md",
@@ -351,7 +445,7 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
         )}
 
         {!requestMode && (
-            <div className="border-t bg-[#fff] p-3">
+            <div className="relative border-t bg-[#fff] p-3">
                 <div className="flex items-end gap-2 rounded-3xl bg-[#f2f6fa] px-3 py-2">
                     <div className="relative">
                         <button
@@ -448,7 +542,7 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
                     ) : null}
 
                     {picker === "emoji" && (
-                        <div className="absolute bottom-20 left-14 z-50 rounded-2xl border bg-white shadow-2xl">
+                        <div className="absolute bottom-full left-3 z-50 mb-2 w-[340px] max-w-[calc(100%-1.5rem)] overflow-hidden rounded-2xl border bg-white shadow-2xl">
                             <EmojiPicker
                                 onEmojiClick={(emojiData) => {
                                     if (emojiData?.emoji) {
@@ -456,7 +550,7 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
                                     }
                                     setPicker(null);
                                 }}
-                                width={340}
+                                width="100%"
                                 height={380}
                                 lazyLoadEmojis
                             />
@@ -464,7 +558,7 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
                     )}
 
                     {picker === "gif" && (
-                        <div className="absolute bottom-20 left-14 z-50 h-[420px] w-[360px] overflow-hidden rounded-2xl border bg-white shadow-2xl">
+                        <div className="absolute bottom-full left-3 z-50 mb-2 h-[420px] max-h-[60vh] w-[360px] max-w-[calc(100%-1.5rem)] overflow-hidden rounded-2xl border bg-white shadow-2xl">
                             <ChatGiphyPicker
                                 width={340}
                                 columns={2}
@@ -541,4 +635,16 @@ export default function ChatConversation({ id, communityId, groupId, requestMode
             userName={activeUser?.name}
         />
     </>;
+}
+
+/** Loading placeholder shaped like the conversation header, intro and messages. */
+function ConversationSkeleton() {
+    return <div className="flex flex-1 min-h-0 flex-col" aria-busy="true" aria-label="Loading conversation">
+        <div className="flex items-center justify-between border-b px-4 py-2.5">
+            <div className="flex items-center gap-2"><div className="h-9 w-9 animate-pulse rounded-full bg-[#f2f6fa]" /><div className="h-4 w-32 animate-pulse rounded-full bg-[#f2f6fa]" /></div>
+            <div className="h-10 w-10 animate-pulse rounded-full bg-[#f2f6fa]" />
+        </div>
+        <div className="flex flex-col items-center gap-2 px-6 py-8"><div className="h-20 w-20 animate-pulse rounded-full bg-[#f2f6fa]" /><div className="h-4 w-36 animate-pulse rounded-full bg-[#f2f6fa]" /><div className="h-3 w-24 animate-pulse rounded-full bg-[#f2f6fa]" /></div>
+        <div className="flex-1 space-y-4 px-4 py-6">{[1, 2, 3].map((i) => <div key={i} className={i % 2 ? "flex justify-end" : "flex justify-start"}><div className="h-10 w-40 animate-pulse rounded-2xl bg-[#f2f6fa]" /></div>)}</div>
+    </div>;
 }

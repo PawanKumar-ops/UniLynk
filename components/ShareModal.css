@@ -116,15 +116,29 @@
 }
 
 .share-modal-top-users {
-  height: 100%;
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  padding-right: 4px;
+  /* Scroll long contact lists inside the panel instead of overflowing it. */
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  margin: 0 -10px;
+  padding: 6px 10px 10px;
+  scrollbar-width: none;
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 18px), transparent 100%);
+  mask-image: linear-gradient(to bottom, transparent 0, #000 12px, #000 calc(100% - 18px), transparent 100%);
+}
+
+.share-modal-top-users::-webkit-scrollbar {
+  display: none;
 }
 
 .share-modal-top-user {
   display: flex;
+  flex-shrink: 0;
   justify-content: center;
 }
 
@@ -235,11 +249,20 @@
   transform: translateY(0);
 }
 
+/* In-list copy is for screen readers only; the visible tooltip is rendered in
+   a portal (.share-modal-floating-tooltip) so the scrolling list can't clip it. */
 .share-modal-top-user-tooltip {
-  position: absolute;
-  left: 50%;
-  top: calc(100% + 2px);
-  transform: translate(-50%, 8px);
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.share-modal-floating-tooltip {
+  position: fixed;
+  transform: translate(-50%, 0);
   min-width: max-content;
   max-width: 180px;
   padding: 8px 10px;
@@ -250,14 +273,18 @@
   line-height: 1.4;
   text-align: center;
   box-shadow: 0 14px 30px rgba(15, 23, 42, 0.24);
-  opacity: 0;
   pointer-events: none;
-  transition: opacity 0.2s ease, transform 0.2s ease;
-  z-index: 2;
+  z-index: 10000;
   word-break: break-word;
+  animation: shareTooltipIn 0.2s ease;
 }
 
-.share-modal-top-user-tooltip::before {
+@keyframes shareTooltipIn {
+  from { opacity: 0; transform: translate(-50%, 8px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.share-modal-floating-tooltip::before {
   content: '';
   position: absolute;
   top: -5px;
@@ -268,11 +295,7 @@
   transform: translateX(-50%) rotate(45deg);
 }
 
-.share-modal-top-user-hover-card:hover .share-modal-top-user-tooltip,
-.share-modal-top-user-hover-card:focus-within .share-modal-top-user-tooltip {
-  opacity: 1;
-  transform: translate(-50%, 0);
-}
+
 
 /* Modal Header */
 .share-modal-header {
@@ -706,7 +729,9 @@
     overflow-y: hidden;
     scroll-snap-type: x proximity;
     scrollbar-width: none;
-    -webkit-overflow-scrolling: touch;
+    -webkit-overflow-scrolling: touch;    margin: 0;
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 
   .share-modal-top-users::-webkit-scrollbar {
@@ -744,7 +769,8 @@
   }
 
   /* Hover tooltips don't make sense on touch */
-  .share-modal-top-user-tooltip {
+  .share-modal-top-user-tooltip,
+  .share-modal-floating-tooltip {
     display: none;
   }
 

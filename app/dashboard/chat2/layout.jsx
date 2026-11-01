@@ -257,6 +257,26 @@ function useDarkMode() {
     return isDark;
 }
 
+/** Placeholder rows shaped like conversation list items. */
+function SidebarSkeleton() {
+    return (
+        <div aria-busy="true" aria-label="Loading conversations">
+            {[0, 1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex items-center gap-3 border-l-2 border-transparent px-4 py-3">
+                    <div className="h-12 w-12 shrink-0 animate-pulse rounded-full bg-[#f2f6fa]" />
+                    <div className="min-w-0 flex-1 space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                            <div className="h-3.5 animate-pulse rounded-full bg-[#f2f6fa]" style={{ width: `${45 + ((i * 13) % 30)}%` }} />
+                            <div className="h-3 w-8 animate-pulse rounded-full bg-[#f2f6fa]" />
+                        </div>
+                        <div className="h-3 animate-pulse rounded-full bg-[#f2f6fa]" style={{ width: `${60 + ((i * 17) % 30)}%` }} />
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
 export default function MessagesLayout({ children }) {
     const [tab, setTab] = useState("chat");
     const [filter, setFilter] = useState("all");
@@ -272,6 +292,8 @@ export default function MessagesLayout({ children }) {
     const [requestCount, setRequestCount] = useState(0);
     const [currentUserId, setCurrentUserId] = useState("");
     const [newGroup, setNewGroup] = useState(false);
+    // Distinguishes "still fetching" from "genuinely empty" in the sidebar.
+    const [sidebarLoading, setSidebarLoading] = useState(true);
 
     const router = useRouter();
     const params = useParams();
@@ -304,7 +326,7 @@ export default function MessagesLayout({ children }) {
     }, []);
 
     useEffect(() => {
-        loadSidebarData().catch(console.error);
+        loadSidebarData().catch(console.error).finally(() => setSidebarLoading(false));
         loadRequestCount().catch(console.error);
     }, [loadSidebarData, loadRequestCount]);
 
@@ -351,24 +373,29 @@ export default function MessagesLayout({ children }) {
         return community.groups || [];
     };
 
-    const handleCreateGroup = (group) => {
-        if (!openCommunity) return;
-
-        const normalizedGroup = {
-            id: `${(group?.name || "group").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "group"}-${Date.now()}`,
-            name: group?.name || "New group",
-            image: group?.image || null,
-            color: group?.image ? null : "#1d9bf0",
-            gradient: null,
-            cover: group?.image || null,
-            preview: "Group created · say hi 👋",
-            time: "now",
-            members: 1,
-            messages: [],
-            description: group?.name || "New group",
-        };
-
-        setCommunities((prev) => prev.map((community) => community.id === openCommunity.id ? { ...community, groups: [...(community.groups || []), normalizedGroup] } : community));
+    const handleCreateGroup = async (group) => {
+        if (!openCommunity?.canCreateGroups) return;
+        const communityId = openCommunity.id;
+        try {
+            const res = await fetch(`/api/communities/${encodeURIComponent(communityId)}/groups`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name: group?.name || "", image: group?.image || "" }),
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok || !data.group) throw new Error(data.error || "Could not create the group");
+            const created = data.group;
+            const addGroup = (community) => community.id === communityId
+                ? { ...community, groups: [...(community.groups || []).filter((g) => g.id !== created.id), created] }
+                : community;
+            // The open community is a copy, so update it as well as the list.
+            setCommunities((prev) => prev.map(addGroup));
+            setOpenCommunity((current) => (current ? addGroup(current) : current));
+            router.push(`/dashboard/chat2/group/${communityId}/${created.id}`);
+        } catch (error) {
+            console.error("CREATE GROUP ERROR:", error);
+            window.alert(error.message || "Could not create the group");
+        }
     };
 
     const groups = openCommunity ? (openCommunity.groups || []).filter((g) => !q || g.name.toLowerCase().includes(q.toLowerCase())) : [];
@@ -458,8 +485,8 @@ export default function MessagesLayout({ children }) {
                             </div>
                         </div>
 
-                        {/* Add Group button */}
-                        <div className="px-3 pb-1">
+                        {/* Add Group button (club leadership only) */}
+                        {openCommunity.canCreateGroups && <div className="px-3 pb-1">
                             <button
                                 onClick={() => setNewGroup(true)}
                                 className="flex w-full items-center gap-3 rounded-2xl border border-dashed px-4 py-3 text-left transition hover:bg-[#f7f9fc]"
@@ -469,7 +496,7 @@ export default function MessagesLayout({ children }) {
                                 </span>
                                 <span className="font-bold text-[#1d9bf0]">Add Group</span>
                             </button>
-                        </div>
+                        </div>}
 
                         {/* Groups list (WhatsApp-style, chat-row UI) */}
                         <div className="flex-1 min-h-0 overflow-y-auto pb-4 md:pb-0">
@@ -688,7 +715,8 @@ export default function MessagesLayout({ children }) {
                                             </Link>
                                         );
                                     })}
-                                    {filtered.length === 0 && (
+                                    {sidebarLoading && chatConversations.length === 0 && <SidebarSkeleton />}
+                                    {!sidebarLoading && filtered.length === 0 && (
                                         <div className="p-10 text-center text-sm text-[#62748e]">
                                             No conversations
                                         </div>
@@ -696,6 +724,7 @@ export default function MessagesLayout({ children }) {
                                 </>
                             ) : (
                                 <>
+                                    {sidebarLoading && communities.length === 0 && <SidebarSkeleton />}
                                     {communities
                                         .filter((c) => !q || c.name.toLowerCase().includes(q.toLowerCase()))
                                         .map((c) => (

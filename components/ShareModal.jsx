@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { X, MessageCircle, Link as LinkIcon, Check, Search } from 'lucide-react';
 import ReliableImage from './ReliableImage';
 import './ShareModal.css';
@@ -40,9 +41,23 @@ const ShareModal = ({ isOpen, onClose, post }) => {
   const [searchedContacts, setSearchedContacts] = React.useState([]);
   const [loadingSearchedContacts, setLoadingSearchedContacts] = React.useState(false);
   const [baseOrigin, setBaseOrigin] = React.useState('');
+  // Email tooltip for the hovered contact, positioned against the viewport.
+  const [hoverTip, setHoverTip] = React.useState(null);
+  const showTip = (event, text) => {
+    const card = event.currentTarget.closest('.share-modal-top-user-hover-card') || event.currentTarget;
+    const avatar = card.querySelector('.share-modal-user-trigger-wrap') || card;
+    const rect = avatar.getBoundingClientRect();
+    setHoverTip({ text, x: rect.left + rect.width / 2, y: rect.bottom + 10 });
+  };
+  const hideTip = () => setHoverTip(null);
+  // Club community groups the user can post in; shared like any contact.
+  const [groupTargets, setGroupTargets] = React.useState([]);
+  // Every target ever shown, so selections survive changing search results.
+  const targetsByIdRef = React.useRef(new Map());
 
   React.useEffect(() => {
     if (!isOpen) {
+      setHoverTip(null);
       setCopied(false);
       setChatMessage('');
       setSelectedContactIds([]);
@@ -53,6 +68,8 @@ const ShareModal = ({ isOpen, onClose, post }) => {
       setLoadingTopContacts(false);
       setSearchedContacts([]);
       setLoadingSearchedContacts(false);
+      setGroupTargets([]);
+      targetsByIdRef.current = new Map();
       return undefined;
     }
 
@@ -91,6 +108,41 @@ const ShareModal = ({ isOpen, onClose, post }) => {
     };
 
     loadTopContacts();
+
+    const loadGroupTargets = async () => {
+      try {
+        const response = await fetch('/api/communities', { cache: 'no-store', signal: controller.signal });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to load communities');
+        const targets = [];
+        (Array.isArray(data.communities) ? data.communities : []).forEach((community) => {
+          if (!community?.isMember) return;
+          (community.groups || []).forEach((group) => {
+            // Announcement groups only accept posts from community admins.
+            if (group.isAnnouncement && !community.isAdmin) return;
+            targets.push({
+              id: `group:${community.id}:${group.id}`,
+              kind: 'group',
+              communityId: community.id,
+              groupId: group.id,
+              name: group.name || community.name,
+              // Shown in the tooltip where users show their email.
+              email: group.name && group.name !== community.name ? community.name : 'Club group',
+              image: group.image || community.image || '',
+              searchText: `${group.name || ''} ${community.name || ''} ${community.clubName || ''}`.toLowerCase(),
+            });
+          });
+        });
+        setGroupTargets(targets);
+      } catch (error) {
+        if (error.name !== 'AbortError') {
+          console.error('COMMUNITY GROUPS LOAD ERROR:', error);
+          setGroupTargets([]);
+        }
+      }
+    };
+
+    loadGroupTargets();
 
     return () => controller.abort();
   }, [isOpen]);
@@ -204,19 +256,26 @@ const ShareModal = ({ isOpen, onClose, post }) => {
       setChatShareSuccess('');
 
       const responses = await Promise.all(
-        selectedContactIds.map(async (receiverId) => {
-          const response = await fetch('/api/chat/messages', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
+        selectedContactIds.map(async (targetId) => {
+          const target = targetsByIdRef.current.get(targetId);
+          const message = {
+            text: post?.content || '',
+            messageType: 'shared_post',
+            sharedPost: sharePayload,
+          };
+          const isGroup = target?.kind === 'group';
+          const response = await fetch(
+            isGroup
+              ? `/api/communities/${encodeURIComponent(target.communityId)}/groups/${encodeURIComponent(target.groupId)}/messages`
+              : '/api/chat/messages',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify(isGroup ? message : { receiverId: targetId, ...message }),
             },
-            body: JSON.stringify({
-              receiverId,
-              text: post?.content || '',
-              messageType: 'shared_post',
-              sharedPost: sharePayload,
-            }),
-          });
+          );
 
           const data = await response.json();
 
@@ -268,9 +327,20 @@ const ShareModal = ({ isOpen, onClose, post }) => {
       }
     : null;
   const hasSearchQuery = chatMessage.trim().length > 0;
-  const quickPanelContacts = hasSearchQuery ? searchedContacts : topContacts;
-  const quickPanelLoading = hasSearchQuery ? loadingSearchedContacts : loadingTopContacts;
-  const quickPanelEmptyLabel = hasSearchQuery ? 'No users found' : 'Search users';
+  const normalizedQuery = chatMessage.trim().toLowerCase();
+  // Groups are filtered locally, so they appear instantly while users are searched.
+  const matchingGroups = hasSearchQuery
+    ? groupTargets.filter((group) => group.searchText.includes(normalizedQuery))
+    : groupTargets;
+  const quickPanelContacts = [
+    ...(hasSearchQuery ? searchedContacts : topContacts),
+    ...matchingGroups.slice(0, QUICK_CONTACT_LIMIT),
+  ];
+  quickPanelContacts.forEach((contact) => {
+    if (contact?.id) targetsByIdRef.current.set(contact.id, contact);
+  });
+  const quickPanelLoading = (hasSearchQuery ? loadingSearchedContacts : loadingTopContacts) && quickPanelContacts.length === 0;
+  const quickPanelEmptyLabel = hasSearchQuery ? 'No users or groups found' : 'Search users or groups';
   const showQuickPanelEmpty = !quickPanelLoading && quickPanelContacts.length === 0;
 
   return (
@@ -418,12 +488,18 @@ const ShareModal = ({ isOpen, onClose, post }) => {
           </div>
         </div>
 
+        {hoverTip && typeof document !== 'undefined' && createPortal(
+          <span className="share-modal-floating-tooltip" role="presentation" style={{ left: hoverTip.x, top: hoverTip.y }}>
+            {hoverTip.text}
+          </span>,
+          document.body,
+        )}
         <aside className="share-modal-side-box" aria-label="Top contacts quick panel">
           <div className="share-modal-side-box-content">
             <span className="share-modal-side-box-label">Quick panel</span>
 
             {quickPanelContacts.length > 0 ? (
-              <div className="share-modal-top-users" role="list">
+              <div className="share-modal-top-users" role="list" onScroll={hideTip}>
                 {quickPanelContacts.map((contact, index) => {
                   const contactId = contact?.id || contact?.email || `contact-${index}`;
                   const email = contact?.email || 'No email available';
@@ -433,7 +509,13 @@ const ShareModal = ({ isOpen, onClose, post }) => {
 
                   return (
                     <div key={contactId} className="share-modal-top-user" role="listitem">
-                      <div className="share-modal-top-user-hover-card">
+                      <div
+                        className="share-modal-top-user-hover-card"
+                        onMouseEnter={(event) => showTip(event, email)}
+                        onMouseLeave={hideTip}
+                        onFocus={(event) => showTip(event, email)}
+                        onBlur={hideTip}
+                      >
                         <div className="share-modal-user-trigger-wrap">
                           <button
                             type="button"
