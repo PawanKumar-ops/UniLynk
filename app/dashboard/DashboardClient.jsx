@@ -1,5 +1,6 @@
 "use client";
 
+import ExpandablePostText from "@/components/ExpandablePostText";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import "./dashboard.css";
@@ -1367,7 +1368,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
         </div>
 
         <div className="post-content">
-          {post.content}
+          <ExpandablePostText text={post.content} />
           {!!post.images?.length && (
             <div className="image-post">
               {post.images.length === 1 ? (

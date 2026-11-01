@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Bookmark, Heart, MessageCircle, MoreHorizontal, Share2, X } from "lucide-react";
 import ReliableImage from "./ReliableImage";
+import ExpandablePostText from "./ExpandablePostText";
 import "./PostsModal.css";
 import { profileAvatar } from "@/lib/avatar";
 import { formatPostTime } from "@/lib/formatPostTime";
@@ -47,7 +48,9 @@ function PostCard({ post }) {
             </div>
 
             {post.content && (
-                <p className="pm-card-text">{post.content}</p>
+                <div className="pm-card-text">
+                    <ExpandablePostText text={post.content} />
+                </div>
             )}
 
             {!!post.images?.length && (

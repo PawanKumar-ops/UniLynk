@@ -22,7 +22,8 @@ import "./Post.css"
 
 const PlusIcon = Plus;
 const MAX_MEDIA = 4;
-const MAX_CHARS = 280;
+// Keep in sync with MAX_POST_CHARS in app/api/posts/route.js.
+const MAX_CHARS = 1000;
 
 const FLOATING_PANEL_STYLE = {
   position: "fixed",
@@ -444,10 +445,10 @@ export function PostFab({ audience = "for-you", onPosted }) {
 
           <div className="post-fab-panel-shell z-[130]">
             <div
-              className="post-fab-panel relative max-h-[90vh] overflow-hidden rounded-3xl bg-white text-black shadow-[0_30px_80px_-20px_rgba(0,0,0,0.35)] ring-1 ring-black/10"
+              className="post-fab-panel relative flex max-h-[min(90vh,calc(100dvh-56px))] flex-col overflow-hidden rounded-3xl bg-white text-black shadow-[0_30px_80px_-20px_rgba(0,0,0,0.35)] ring-1 ring-black/10"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between border-b border-black/5 px-5 py-3">
+              <div className="flex shrink-0 items-center justify-between border-b border-black/5 px-5 py-3">
                 <button
                   type="button"
                   onClick={close}
@@ -462,7 +463,7 @@ export function PostFab({ audience = "for-you", onPosted }) {
                 <div className="h-9 w-9" />
               </div>
 
-              <div className="max-h-[calc(90vh-64px)] overflow-y-auto px-5 pt-4 pb-3">
+              <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pt-4 pb-3">
                 <div className="flex gap-3">
                   {session?.user?.image ? (
                     <div className="h-10 w-10 shrink-0 rounded-full overflow-hidden ring-1 ring-black/10">
@@ -612,7 +613,7 @@ export function PostFab({ audience = "for-you", onPosted }) {
                 </div>
               </div>
 
-              <div className="relative flex items-center justify-between gap-3 border-t border-black/5 bg-white px-5 py-3">
+              <div className="relative flex shrink-0 items-center justify-between gap-3 border-t border-black/5 bg-white px-5 py-3">
                 <div className="flex items-center gap-0.5">
                   <ToolbarBtn
                     label="Image"

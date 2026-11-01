@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import ExpandablePostText from "@/components/ExpandablePostText";
 import {
   Search,
   UserPlus,
@@ -1244,7 +1245,7 @@ export function ExplorePage({ onBack }) {
         </div>
 
         <div className="post-content">
-          {post.content}
+          <ExpandablePostText text={post.content} />
           {!!post.images?.length && (
             <div className="image-post">
               {post.images.length === 1 ? (

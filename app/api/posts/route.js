@@ -10,6 +10,9 @@ import { parseLegacyPollContent } from "@/lib/polls";
 import { getHybridFeedPosts, decodeFeedCursor } from "@/lib/feedRanking";
 import { profileAvatar } from "@/lib/avatar";
 
+// Keep in sync with MAX_CHARS in components/Post-Fab.jsx.
+const MAX_POST_CHARS = 1000;
+
 
 const DEFAULT_POST_LIMIT = 15;
 const MAX_POST_LIMIT = 50;
@@ -341,7 +344,10 @@ export async function POST(req) {
       poll,
     } = await req.json();
 
-    const initialContent = content?.trim() || "";
+    const initialContent = typeof content === "string" ? content.trim() : "";
+    if (initialContent.length > MAX_POST_CHARS) {
+      return Response.json({ error: `Posts can be at most ${MAX_POST_CHARS} characters.` }, { status: 400 });
+    }
     const legacyPoll = !poll ? parseLegacyPollContent(initialContent) : null;
     const safeContent = legacyPoll?.content ?? initialContent;
     const safeImages = Array.isArray(images)
