@@ -74,6 +74,9 @@ export async function POST(req) {
     if (form.isTeam || form.isTeamEvent) {
       const teamCapacity = Math.max(1, Number(form.teamSize) || 4);
       safeAnswers.team = await validateTeam(answers?.team || [], Math.max(0, teamCapacity - 1));
+      const teamName = String(answers?.teamName || "").trim().slice(0, 80);
+      if (safeAnswers.team.length > 0 && !teamName) throw new Error("Please enter a team name");
+      if (teamName) safeAnswers.teamName = teamName;
     }
 
     const existing = await FormResponse.findOne({ formId, userEmail }).select("_id isSubmitted submittedAt").lean();
@@ -100,7 +103,7 @@ export async function POST(req) {
           const hasAddedMembers = (safeAnswers.team || []).length > 0;
           const teamFinder = uniqueMembers.length < max
             ? (hasAddedMembers
-              ? { type: "team", profile: { name: leadName, email: userEmail }, team: { name: `${leadName}'s Team`, lead: leadName, members: uniqueMembers, needed: max - uniqueMembers.length, total: max, lookingFor: [] }, addedAt: new Date() }
+              ? { type: "team", profile: { name: leadName, email: userEmail }, team: { name: safeAnswers.teamName || `${leadName}'s Team`, lead: leadName, members: uniqueMembers, needed: max - uniqueMembers.length, total: max, lookingFor: [] }, addedAt: new Date() }
               : { type: "solo", profile: { userId: String(user?._id || ""), name: leadName, email: userEmail, branch: user?.branch || "General", year: user?.year || "Student", avatar: profileAvatar(user?.img, userEmail), skills: user?.skills || [], description: "" }, addedAt: new Date() })
             : undefined;
           if (teamFinder) await FormResponse.updateOne({ _id: response._id }, { $set: { teamFinder } });

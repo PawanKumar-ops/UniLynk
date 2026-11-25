@@ -47,7 +47,10 @@ const buildRegisteredTeams = (responses, form, usersByEmail) => {
 
       if (!registration || registration.mode === "solo") return null;
 
-      const registeredMembers = normalizeMembers(registration.members, usersByEmail);
+      const acceptedMembers = response.teamFinderRequest?.status === "accepted" && response.teamFinderRequest?.kind === "team"
+        ? (responses.find((candidate) => String(candidate._id) === String(response.teamFinderRequest.targetId))?.teamFinder?.team?.members || []).filter((member) => normalizeEmail(member?.email) !== normalizeEmail(response.userEmail))
+        : [];
+      const registeredMembers = normalizeMembers([...(registration.members || []), ...acceptedMembers], usersByEmail);
       const owner = usersByEmail.get(normalizeEmail(response.userEmail));
       const lead = normalizeMember({
         id: owner?._id?.toString(),
@@ -94,6 +97,9 @@ const buildAdminTeams = (form) => (form?.adminTeams || []).map((team) => ({
 }));
 
 const buildTeamFinderAnalytics = (responses, usersByEmail) => {
+  const acceptedRequesterEmails = new Set(responses
+    .filter((response) => response.teamFinderRequest?.status === "accepted")
+    .map((response) => normalizeEmail(response.userEmail)));
   const finderResponses = responses.filter((response) =>
     ["solo", "team"].includes(response.teamFinder?.type)
   );
@@ -126,7 +132,7 @@ const buildTeamFinderAnalytics = (responses, usersByEmail) => {
     .filter((team) => team.needed > 0);
 
   const soloStudents = finderResponses
-    .filter((response) => response.teamFinder?.type === "solo")
+    .filter((response) => response.teamFinder?.type === "solo" && !acceptedRequesterEmails.has(normalizeEmail(response.userEmail)))
     .map((response) => {
       const profile = response.teamFinder?.profile || {};
       const email = normalizeEmail(profile.email || response.userEmail);
@@ -152,9 +158,13 @@ const buildTeamFinderAnalytics = (responses, usersByEmail) => {
 
 const buildUnclassifiedSoloStudents = (responses, form, usersByEmail, excludedEmails = new Set()) => {
   if (!form?.isTeam && !form?.isTeamEvent) return [];
+  const acceptedRequesterEmails = new Set(responses
+    .filter((response) => response.teamFinderRequest?.status === "accepted")
+    .map((response) => normalizeEmail(response.userEmail)));
   return responses
     .filter((response) => (response.isSubmitted || response.submittedAt) &&
       !excludedEmails.has(normalizeEmail(response.userEmail)) &&
+      !acceptedRequesterEmails.has(normalizeEmail(response.userEmail)) &&
       !response.teamFinder &&
       !response.answers?.[TEAM_REGISTRATION_ANSWER_ID] &&
       !(Array.isArray(response.answers?.team) && response.answers.team.length > 0))

@@ -73,73 +73,211 @@ export async function PATCH(req, context) {
     if (!requesterEmail) {
       return Response.json({ error: "Requester email missing" }, { status: 400 });
     }
+    if (requestNotification.targetKind === "users" && recipientEmail === requesterEmail) {
+      return Response.json({ error: "The invite recipient must accept their own invite." }, { status: 403 });
+    }
 
     const accepted = action === "accept";
     let targetResponse = null;
+    // Join requests explicitly target a team response. Other requests are
+    // member invitations; do not infer this from the recipient's profile.
+    const memberInvite = requestNotification.targetKind === "users";
 
     if (accepted) {
-      const requesterUser = await User.findOne(
-        { email: requesterEmail },
-        { name: 1, email: 1, year: 1, branch: 1, rollNumber: 1, img: 1 },
-      ).lean();
-      const newMember = memberFromUser(requesterUser, requesterEmail);
-      const targetQuery = requestNotification.targetResponseId
-        ? { _id: requestNotification.targetResponseId }
-        : {
+      let requesterTeam = null;
+      if (memberInvite) {
+        requesterTeam = await ResponseModel.findOne({
+          formId: requestNotification.formId,
+          userEmail: requesterEmail,
+          "teamFinder.type": "team",
+        });
+        if (!requesterTeam) {
+          const teamLead = await User.findOne({ email: requesterEmail }, { name: 1, email: 1, year: 1, branch: 1, rollNumber: 1, img: 1 }).lean();
+          const lead = memberFromUser(teamLead, requesterEmail);
+          const capacity = 4;
+          requesterTeam = await ResponseModel.findOneAndUpdate(
+            { formId: requestNotification.formId, userEmail: requesterEmail },
+            {
+              $set: {
+                teamFinder: {
+                  type: "team",
+                  profile: { name: lead.name, email: requesterEmail },
+                  team: {
+                    name: requestNotification.teamName || `${lead.name}'s Team`,
+                    lead: lead.name,
+                    members: [lead],
+                    total: capacity,
+                    needed: capacity - 1,
+                    lookingFor: [],
+                  },
+                  addedAt: new Date(),
+                },
+              },
+              $setOnInsert: { answers: {}, isSubmitted: false, submittedAt: null },
+            },
+            { upsert: true, new: true, runValidators: true },
+          );
+        }
+        targetResponse = requesterTeam;
+      }
+
+      let requesterUser = null;
+      if (!memberInvite) {
+        requesterUser = await User.findOne(
+          { email: requesterEmail },
+          { name: 1, email: 1, year: 1, branch: 1, rollNumber: 1, img: 1 },
+        ).lean();
+      }
+      if (!memberInvite && requestNotification.targetResponseId) {
+        targetResponse = await ResponseModel.findOne({
+          _id: requestNotification.targetResponseId,
+          formId: requestNotification.formId,
+          userEmail: recipientEmail,
+          "teamFinder.type": "team",
+        });
+      }
+      // Resolve by the lead's event response when an older notification has a
+      // missing, stale, or incorrect targetResponseId.
+      if (!targetResponse && !memberInvite && !requestNotification.targetKind) {
+        targetResponse = await ResponseModel.findOne({
+          formId: requestNotification.formId,
+          userEmail: recipientEmail,
+          "teamFinder.type": "team",
+        });
+      }
+
+      // Older deployments stored only the response ID on the notification. If
+      // it points to the lead's event response, convert that response into the
+      // TeamFinder team without requiring a new registration.
+      if (!targetResponse && !memberInvite && !requestNotification.targetKind) {
+        const leadUser = await User.findOne({ email: recipientEmail }, { name: 1, email: 1, year: 1, branch: 1, img: 1, rollNumber: 1 }).lean();
+        const lead = memberFromUser(leadUser, recipientEmail);
+        const formResponse = await ResponseModel.findOne({ formId: requestNotification.formId, userEmail: recipientEmail });
+        const existingTeamMembers = Array.isArray(formResponse?.teamFinder?.team?.members) ? formResponse.teamFinder.team.members : [];
+        const registeredMembers = Array.isArray(formResponse?.answers?.team) ? formResponse.answers.team : [];
+        const capacity = Math.max(1, Number(formResponse?.teamFinder?.team?.total) || 4);
+        const members = [lead, ...existingTeamMembers.filter((member) => normalizeEmail(member?.email) !== recipientEmail)];
+        for (const member of registeredMembers) {
+          if (!members.some((existing) => normalizeEmail(existing?.email) === normalizeEmail(member?.email))) members.push(member);
+        }
+        const teamDocument = formResponse || new ResponseModel({
+          formId: requestNotification.formId,
+          userEmail: recipientEmail,
+          answers: {},
+          isSubmitted: false,
+          submittedAt: null,
+        });
+        teamDocument.set("teamFinder", {
+          type: "team",
+          profile: { name: lead.name, email: recipientEmail },
+          team: {
+            name: teamDocument.answers?.teamName || requestNotification.teamName || `${lead.name}'s Team`,
+            lead: lead.name,
+            members,
+            total: capacity,
+            needed: Math.max(capacity - members.length, 0),
+            lookingFor: [],
+          },
+          addedAt: new Date(),
+        });
+        targetResponse = teamDocument;
+      }
+      if (!targetResponse && requestNotification.targetKind === "team") {
+        const registrationLead = await User.findOne({ email: recipientEmail }, { name: 1, email: 1, year: 1, branch: 1, rollNumber: 1, img: 1 }).lean();
+        const leadMember = memberFromUser(registrationLead, recipientEmail);
+        const capacity = 4;
+        const teamResponse = await ResponseModel.findOneAndUpdate(
+          { formId: requestNotification.formId, userEmail: recipientEmail },
+          {
+            $set: {
+              teamFinder: {
+                type: "team",
+                profile: { name: leadMember.name, email: recipientEmail },
+                team: {
+                  name: requestNotification.teamName || `${leadMember.name}'s Team`,
+                  lead: leadMember.name,
+                  members: [leadMember],
+                  total: capacity,
+                  needed: capacity - 1,
+                  lookingFor: [],
+                },
+                addedAt: new Date(),
+              },
+            },
+            $setOnInsert: { answers: {}, isSubmitted: false, submittedAt: null },
+          },
+          { upsert: true, new: true, runValidators: true },
+        );
+        if (teamResponse) {
+          targetResponse = teamResponse;
+        } else {
+          targetResponse = new ResponseModel({
             formId: requestNotification.formId,
             userEmail: recipientEmail,
-            "teamFinder.type": "team",
-          };
-
-      targetResponse = await ResponseModel.findOne(targetQuery);
-
+            answers: {},
+            isSubmitted: false,
+            submittedAt: null,
+            teamFinder: {
+              type: "team",
+              profile: { name: leadMember.name, email: recipientEmail },
+              team: { name: requestNotification.teamName || `${leadMember.name}'s Team`, lead: leadMember.name, members: [leadMember], total: capacity, needed: capacity - 1, lookingFor: [] },
+              addedAt: new Date(),
+            },
+          });
+        }
+      }
       if (!targetResponse) {
-        return Response.json({ error: "Team registration not found" }, { status: 404 });
+        return Response.json({ error: "Team registration not found for this request type" }, { status: 404 });
       }
 
       const teamMembers = Array.isArray(targetResponse.teamFinder?.team?.members)
         ? targetResponse.teamFinder.team.members
         : [];
-      const alreadyInTeam = teamMembers.some(
-        (member) => normalizeEmail(member?.email) === requesterEmail,
-      );
+      const acceptedUserEmail = memberInvite ? recipientEmail : requesterEmail;
+      const acceptedUser = requesterTeam
+        ? await User.findOne({ email: recipientEmail }, { name: 1, email: 1, year: 1, branch: 1, rollNumber: 1, img: 1 }).lean()
+        : requesterUser;
+      const acceptedMember = memberFromUser(acceptedUser, acceptedUserEmail);
+      const alreadyInTeam = teamMembers.some((member) => normalizeEmail(member?.email) === acceptedUserEmail);
+      const total = Math.max(1, Number(targetResponse.teamFinder?.team?.total) || 4);
 
       if (!alreadyInTeam) {
-        teamMembers.push(newMember);
+        if (teamMembers.length >= total) {
+          return Response.json({ error: "This team is already full" }, { status: 409 });
+        }
+        teamMembers.push(acceptedMember);
       }
 
-      const total = Number(targetResponse.teamFinder?.team?.total) || teamMembers.length;
       targetResponse.set("teamFinder.team.members", teamMembers);
       targetResponse.set("teamFinder.team.needed", Math.max(total - teamMembers.length, 0));
 
-      const registration = targetResponse.answers?.teamRegistration;
-      if (registration && Array.isArray(registration.members)) {
-        const registrationMembers = registration.members;
-        if (!registrationMembers.some((member) => normalizeEmail(member?.email) === requesterEmail)) {
-          registrationMembers.push(newMember);
-          targetResponse.set("answers.teamRegistration.members", registrationMembers);
-        }
+      // EventAnalytics reads registered team rosters from answers.teamRegistration.
+      // Keep that roster aligned with TeamFinder when a request is accepted.
+      const registration = targetResponse.answers?.teamRegistration || {};
+      const registrationMembers = Array.isArray(registration.members) ? registration.members : [];
+      if (!registrationMembers.some((member) => normalizeEmail(member?.email) === acceptedUserEmail)) {
+        registrationMembers.push(acceptedMember);
       }
+      targetResponse.set("answers.teamRegistration", {
+        ...registration,
+        teamName: registration.teamName || targetResponse.teamFinder?.team?.name || "",
+        members: registrationMembers,
+      });
 
       await targetResponse.save();
 
-      await ResponseModel.findOneAndUpdate(
-        { formId: requestNotification.formId, userEmail: requesterEmail },
-        {
-          $set: {
-            teamFinderRequest: {
-              kind: "team",
-              targetId: targetResponse._id.toString(),
-              sentAt: requestNotification.createdAt,
-              status: "accepted",
-              decidedAt: new Date(),
-            },
-          },
-          $unset: { teamFinder: "" },
-          $setOnInsert: { answers: {}, isSubmitted: false, submittedAt: null },
-        },
-        { upsert: true, new: true, runValidators: true },
-      );
+      const acceptedRequester = await ResponseModel.findOne({ formId: requestNotification.formId, userEmail: requesterEmail });
+      if (acceptedRequester) {
+        acceptedRequester.set("teamFinderRequest", {
+          kind: "team",
+          targetId: targetResponse._id.toString(),
+          sentAt: requestNotification.createdAt,
+          status: "accepted",
+          decidedAt: new Date(),
+        });
+        acceptedRequester.set("teamFinder", undefined);
+        await acceptedRequester.save();
+      }
     } else {
       await ResponseModel.findOneAndUpdate(
         { formId: requestNotification.formId, userEmail: requesterEmail },
@@ -167,7 +305,7 @@ export async function PATCH(req, context) {
       body,
       formId: requestNotification.formId,
       formTitle: requestNotification.formTitle,
-      targetKind: requestNotification.targetKind,
+      targetKind: requestNotification.targetKind || (memberInvite ? "users" : "team"),
       teamName: requestNotification.teamName,
     });
 

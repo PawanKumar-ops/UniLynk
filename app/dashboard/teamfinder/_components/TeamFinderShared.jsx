@@ -73,10 +73,30 @@ export function MessageComposer({ recipient, label, placeholder, hint, cta, kind
   const [value, setValue] = useState('')
   const [sent, setSent] = useState(null)
   const [sending, setSending] = useState(false)
+  const [teamPrompt, setTeamPrompt] = useState(false)
+  const [creatingTeam, setCreatingTeam] = useState(false)
+  const [teamName, setTeamName] = useState('')
+  const [teamError, setTeamError] = useState('')
+  const [teamModalMode, setTeamModalMode] = useState('create')
+  const [eventApplied, setEventApplied] = useState(false)
   const send = async () => {
     if (!value.trim() || !formId || !target || sending) return
     setSending(true)
     try {
+      if (kind === 'invite') {
+        const statusResponse = await fetch(`/api/forms/team-finder?formId=${encodeURIComponent(formId)}`, { cache: 'no-store' })
+        const statusData = await statusResponse.json().catch(() => ({}))
+        const ownTeam = (statusData.teams || []).find((team) => String(team.leadEmail || '').toLowerCase() === String(statusData.viewerEmail || '').toLowerCase())
+        if (!ownTeam) {
+          const registrationResponse = await fetch(`/api/forms/check-applied?formId=${encodeURIComponent(formId)}`, { cache: 'no-store' })
+          const registrationData = await registrationResponse.json().catch(() => ({}))
+          const hasApplied = Boolean(registrationData?.applied)
+          setEventApplied(hasApplied)
+          setTeamModalMode(hasApplied ? 'create' : 'apply')
+          setTeamPrompt(true)
+          return
+        }
+      }
       const res = await fetch('/api/team-finder/requests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ formId, target, message: value.trim() }) })
       if (!res.ok) { const data = await res.json().catch(() => ({})); alert(data.error || 'Could not send request'); return }
       setSent(value.trim())
@@ -84,7 +104,25 @@ export function MessageComposer({ recipient, label, placeholder, hint, cta, kind
       setSending(false)
     }
   }
-  return <div><p className="mb-2.5 text-[12px] font-bold uppercase tracking-[0.09em] text-[#a1a1aa]">{label}</p><div className="rounded-3xl border border-[#e0e0de] bg-[#ffffff] p-2.5 transition-all focus-within:border-[#0a0a0a]/50 focus-within:shadow-[0_0_0_4px_rgba(10,10,10,0.05)]"><textarea value={value} onChange={(e) => setValue(e.target.value)} placeholder={placeholder} rows={3} className="w-full resize-none bg-transparent px-3 pt-2 text-[15px] leading-relaxed text-[#0a0a0a] outline-none placeholder:text-[#a1a1aa]" /><div className="flex items-center justify-between gap-3 pl-3 pr-1 pb-1"><span className="text-[12px] font-medium text-[#a1a1aa]">{hint}</span><button onClick={send} disabled={sending || !value.trim()} aria-busy={sending} className="inline-flex items-center gap-2 rounded-full bg-[#0a0a0a] px-5 py-2.5 text-[14px] font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-25">{sending && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/35 border-t-white" aria-hidden="true" />}{sending ? 'Sending...' : cta}</button></div></div><SuccessModal open={sent !== null} onClose={() => { setSent(null); setValue('') }} recipient={recipient} message={sent ?? ''} kind={kind} /></div>
+  const createTeamAndInvite = async () => {
+    setCreatingTeam(true); setTeamError('')
+    try {
+      if (!eventApplied) {
+        const eventPath = `/FormPreview/${encodeURIComponent(formId)}`
+        window.location.href = eventPath
+        return
+      }
+      const createRes = await fetch('/api/forms/team-finder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ formId, type: 'team', teamRegistration: { teamName: teamName.trim() } }) })
+      const createData = await createRes.json().catch(() => ({}))
+      if (!createRes.ok) throw new Error(createData.error || 'Could not create your team')
+      const sendRes = await fetch('/api/team-finder/requests', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ formId, target, message: value.trim() }) })
+      const sendData = await sendRes.json().catch(() => ({}))
+      if (!sendRes.ok) throw new Error(sendData.error || 'Could not send invite')
+      setTeamPrompt(false); setSent(value.trim())
+    } catch (error) { setTeamError(error.message || 'Could not create your team') }
+    finally { setCreatingTeam(false) }
+  }
+  return <div><p className="mb-2.5 text-[12px] font-bold uppercase tracking-[0.09em] text-[#a1a1aa]">{label}</p><div className="rounded-3xl border border-[#e0e0de] bg-[#ffffff] p-2.5 transition-all focus-within:border-[#0a0a0a]/50 focus-within:shadow-[0_0_0_4px_rgba(10,10,10,0.05)]"><textarea value={value} onChange={(e) => setValue(e.target.value)} placeholder={placeholder} rows={3} className="w-full resize-none bg-transparent px-3 pt-2 text-[15px] leading-relaxed text-[#0a0a0a] outline-none placeholder:text-[#a1a1aa]" /><div className="flex flex-col gap-2 pl-3 pr-1 pb-1 sm:flex-row sm:items-center sm:justify-between"><span className="text-[12px] font-medium text-[#a1a1aa]">{hint}</span><button onClick={send} disabled={sending || !value.trim()} aria-busy={sending} className="inline-flex items-center justify-center gap-2 rounded-full bg-[#0a0a0a] px-5 py-2.5 text-[14px] font-semibold text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-25">{sending && <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/35 border-t-white" aria-hidden="true" />}{sending ? 'Sending...' : cta}</button></div></div><SuccessModal open={sent !== null} onClose={() => { setSent(null); setValue('') }} recipient={recipient} message={sent ?? ''} kind={kind} />{teamPrompt && <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/45 p-0 backdrop-blur-sm sm:items-center sm:p-4" onClick={() => setTeamPrompt(false)}><div role="dialog" aria-modal="true" className="w-full max-h-[92dvh] overflow-y-auto rounded-t-[28px] bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:max-w-[440px] sm:rounded-[28px] sm:p-6" onClick={(e) => e.stopPropagation()}><div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-neutral-200 sm:hidden"/><h2 className="text-xl font-extrabold">{teamModalMode === 'apply' ? 'Apply to this event first' : 'Create your team'}</h2><p className="mt-2 text-sm leading-relaxed text-neutral-600">{teamModalMode === 'apply' ? 'You need to apply to this event before inviting members. Continue to the event form, submit your application, then return here to create your team.' : 'You’ve already applied to this event. Create a team to receive members when they accept your invite.'}</p>{teamModalMode === 'create' && <><label className="mt-5 block text-sm font-semibold" htmlFor="team-finder-team-name">Team name</label><input id="team-finder-team-name" value={teamName} onChange={(e) => setTeamName(e.target.value)} maxLength={80} placeholder="e.g. Project Nova" className="mt-2 h-12 w-full rounded-2xl border border-neutral-200 px-4 text-base outline-none focus:border-neutral-500"/></>}{teamError && <p role="alert" className="mt-3 text-sm text-red-600">{teamError}</p>}<div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row"><button onClick={() => setTeamPrompt(false)} className="min-h-12 flex-1 rounded-full border border-neutral-200 px-4 text-sm font-semibold">Cancel</button><button onClick={createTeamAndInvite} disabled={creatingTeam || (teamModalMode === 'create' && !teamName.trim())} className="min-h-12 flex-1 rounded-full bg-black px-4 text-sm font-semibold text-white disabled:opacity-50">{teamModalMode === 'apply' ? 'Go to event application' : creatingTeam ? 'Creating team…' : 'Create team and send invite'}</button></div></div></div>}</div>
 }
 
 export function FinishProfileModal({ open, onClose, onSaved, eventFormId = '' }) {

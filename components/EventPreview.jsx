@@ -125,6 +125,7 @@ export default function EventPreview({ formId: propFormId, initialData, response
 
   const [team, setTeam] = useState([]);
   const [teamOpen, setTeamOpen] = useState(false);
+  const [teamName, setTeamName] = useState("");
 
   const [answers, setAnswers] = useState({});
   const [filesByQuestion, setFilesByQuestion] = useState({});
@@ -267,6 +268,7 @@ export default function EventPreview({ formId: propFormId, initialData, response
       const payloadAnswers = { ...answers };
       if (isTeamEvent) {
         payloadAnswers.team = team;
+        payloadAnswers.teamName = team.length > 0 ? teamName.trim() : "";
       }
 
       const res = await fetch("/api/forms/submit", {
@@ -487,7 +489,7 @@ export default function EventPreview({ formId: propFormId, initialData, response
         {isTeamEvent && !readOnly && (
           <div className="mt-6">
             {!teamOpen && team.length === 0 ? (
-              <div className="rounded-2xl p-4" style={{ background: C.accent }}>
+              <div className="rounded-2xl p-4 sm:p-5" style={{ background: C.accent }}>
                 <div className="text-[15px] font-bold" style={{ color: C.primaryFg }}>
                   Build Your Team
                 </div>
@@ -495,7 +497,7 @@ export default function EventPreview({ formId: propFormId, initialData, response
                   {maxTeamSize} members
                 </div>
                 <button
-                  onClick={() => setTeamOpen(true)}
+                  onClick={() => { setTeamName(""); setTeamOpen(true); }}
                   className="mt-4 w-full inline-flex items-center justify-center gap-1.5 rounded-full py-2.5 text-[13px] font-semibold transition active:scale-[0.99] hover:opacity-90"
                   style={{ background: C.bg, color: C.text }}
                 >
@@ -504,7 +506,9 @@ export default function EventPreview({ formId: propFormId, initialData, response
                 </button>
               </div>
             ) : (
-              <TeamPicker
+              <TeamSetup
+                teamName={teamName}
+                setTeamName={setTeamName}
                 team={team}
                 setTeam={setTeam}
                 maxSize={Math.max(0, maxTeamSize - 1)}
@@ -921,7 +925,7 @@ function Dropdown({ value, onChange, options, placeholder }) {
 
 /* ---------- Team picker with MongoDB Real User Fetching & Team Capacity Limit ---------- */
 
-function TeamPicker({ team, setTeam, maxSize = 4, onClose }) {
+function TeamSetup({ teamName, setTeamName, team, setTeam, maxSize = 4, onClose }) {
   const [query, setQuery] = useState("");
   const [focused, setFocused] = useState(false);
   const [mongoUsers, setMongoUsers] = useState([]);
@@ -1011,7 +1015,7 @@ function TeamPicker({ team, setTeam, maxSize = 4, onClose }) {
   const remove = (roll) => setTeam((prev) => prev.filter((t) => t.roll !== roll));
 
   return (
-    <div className="rounded-2xl p-4" style={{ background: C.bg, border: `1px solid ${C.border}` }}>
+    <div className="rounded-2xl p-4 sm:p-5" style={{ background: C.bg, border: `1px solid ${C.border}` }}>
       <div className="flex items-center justify-between">
         <div>
           <div className="text-[15px] font-bold" style={{ color: C.text }}>
@@ -1030,6 +1034,11 @@ function TeamPicker({ team, setTeam, maxSize = 4, onClose }) {
         >
           <X className="h-4 w-4" style={{ color: C.subtext }} />
         </button>
+      </div>
+
+      <div className="mt-4">
+        <label htmlFor="event-team-name" className="mb-1.5 block text-[13px] font-semibold" style={{ color: C.text }}>Team name</label>
+        <input id="event-team-name" value={teamName} onChange={(e) => setTeamName(e.target.value)} maxLength={80} placeholder="e.g. Project Nova" className="h-11 w-full rounded-xl px-3 text-[14px] outline-none" style={{ color: C.text, background: C.bg, border: `1px solid ${C.border}` }} />
       </div>
 
       {/* Search */}
