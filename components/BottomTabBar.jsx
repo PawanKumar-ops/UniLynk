@@ -4,12 +4,22 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { loreleiAvatar } from "@/lib/avatar";
 import { Icon } from "@iconify/react";
+import { dashboardFeedQueryKey, prefetchDashboardFeed } from "@/lib/dashboardFeedQuery";
 
 const BottomTabBar = () => {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const queryClient = useQueryClient();
+
+  const beginHomeNavigation = () => {
+    const cachedFeed = queryClient.getQueryData(dashboardFeedQueryKey("for-you"));
+    if (pathname !== "/dashboard" && !cachedFeed?.pages?.length) {
+      window.dispatchEvent(new Event("dashboard-home-navigation-start"));
+    }
+  };
 
   const [hidden, setHidden] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -171,6 +181,10 @@ const BottomTabBar = () => {
             <Link
               key={href}
               href={href}
+              onMouseEnter={href === "/dashboard" ? () => prefetchDashboardFeed(queryClient) : undefined}
+              onFocus={href === "/dashboard" ? () => prefetchDashboardFeed(queryClient) : undefined}
+              onTouchStart={href === "/dashboard" ? () => prefetchDashboardFeed(queryClient) : undefined}
+              onClick={href === "/dashboard" ? beginHomeNavigation : undefined}
               aria-label={label}
               className="relative flex h-[46px] w-[46px] shrink-0 items-center justify-center outline-none transition-all duration-200 active:scale-[0.94]"
             >

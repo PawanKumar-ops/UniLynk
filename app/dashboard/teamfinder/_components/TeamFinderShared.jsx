@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Icon } from '@iconify/react'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
@@ -23,9 +23,102 @@ export function teamFinderHref(path, formId) {
   return formId ? `${path}?formId=${encodeURIComponent(formId)}` : path
 }
 
-/** Team Finder API URL, limited to one event when a formId is present. */
-export function teamFinderApi(formId) {
-  return teamFinderHref('/api/forms/team-finder', formId)
+export function useInfiniteTeamFinder({ formId, kind, ready, reloadKey = 0 }) {
+  const [items, setItems] = useState([])
+  const [cursor, setCursor] = useState(null)
+  const [hasMore, setHasMore] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [error, setError] = useState('')
+  const sentinelRef = useRef(null)
+  const inFlightRef = useRef(false)
+  const requestRef = useRef(null)
+
+  const fetchPage = useCallback(async (nextCursor, append, signal) => {
+    const params = new URLSearchParams({ kind, limit: '10' })
+    if (formId) params.set('formId', formId)
+    if (nextCursor) params.set('cursor', nextCursor)
+    const response = await fetch(`/api/forms/team-finder?${params}`, { cache: 'no-store', signal })
+    const data = await response.json()
+    if (!response.ok) throw new Error(data.error || 'Could not load Team Finder')
+    setItems((current) => {
+      const combined = append ? [...current, ...(data.items || [])] : (data.items || [])
+      const unique = new Map(combined.map((item) => [item.id, item]))
+      return [...unique.values()]
+    })
+    setCursor(data.nextCursor || null)
+    setHasMore(Boolean(data.hasMore && data.nextCursor))
+    setError('')
+  }, [formId, kind])
+
+  useEffect(() => {
+    if (!ready) return
+    requestRef.current?.abort()
+    const controller = new AbortController()
+    requestRef.current = controller
+    inFlightRef.current = false
+    setItems([])
+    setCursor(null)
+    setHasMore(false)
+    setError('')
+    setLoading(true)
+    setLoadingMore(false)
+    fetchPage(null, false, controller.signal)
+      .catch((loadError) => {
+        if (loadError.name !== 'AbortError') setError(loadError.message || 'Could not load results')
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false)
+      })
+    return () => {
+      controller.abort()
+      requestRef.current?.abort()
+    }
+  }, [fetchPage, ready, reloadKey])
+
+  const loadMore = useCallback(async () => {
+    if (!ready || !hasMore || loadingMore || inFlightRef.current || !cursor) return
+    inFlightRef.current = true
+    setLoadingMore(true)
+    const controller = new AbortController()
+    requestRef.current = controller
+    try {
+      await fetchPage(cursor, true, controller.signal)
+    } catch (loadError) {
+      if (loadError.name !== 'AbortError') setError(loadError.message || 'Could not load more results')
+    } finally {
+      inFlightRef.current = false
+      setLoadingMore(false)
+    }
+  }, [cursor, fetchPage, hasMore, loadingMore, ready])
+
+  const retry = useCallback(async () => {
+    if (items.length > 0 && cursor) return loadMore()
+    requestRef.current?.abort()
+    const controller = new AbortController()
+    requestRef.current = controller
+    setLoading(true)
+    setError('')
+    try {
+      await fetchPage(null, false, controller.signal)
+    } catch (loadError) {
+      if (loadError.name !== 'AbortError') setError(loadError.message || 'Could not load results')
+    } finally {
+      if (!controller.signal.aborted) setLoading(false)
+    }
+  }, [cursor, fetchPage, items.length, loadMore])
+
+  useEffect(() => {
+    const node = sentinelRef.current
+    if (!node || !hasMore || loading || loadingMore || error || typeof IntersectionObserver === 'undefined') return
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) loadMore()
+    }, { rootMargin: '300px 0px' })
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [error, hasMore, loadMore, loading, loadingMore])
+
+  return { items, loading, loadingMore, error, hasMore, loadMore, retry, sentinelRef }
 }
 
 export function Avatar({ src, alt, size = 44 }) {
@@ -111,9 +204,17 @@ export function FinishProfileModal({ open, onClose, onSaved, eventFormId = '' })
   return <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-5 backdrop-blur-[3px]" onClick={onClose}><div className="w-full max-w-[430px] rounded-[28px] border border-[#eeeeed] bg-white p-6 shadow-[0_40px_80px_-24px_rgba(0,0,0,0.35)]" onClick={(e) => e.stopPropagation()}><h2 className="text-[21px] font-extrabold tracking-[-0.02em]">Finish TeamFinder profile</h2><p className="mt-1.5 text-[14px] leading-relaxed text-[#71717a]">Add the message shown on your seeker detail page.</p>{eventFormId ? <div className="mt-5 flex h-11 w-full items-center rounded-2xl border border-[#e0e0de] bg-[#f6f6f5] px-3 text-[14px] font-medium text-[#0a0a0a]"><span className="truncate">{events[0]?.title || events[0]?.name || 'This event'}</span></div> : <select value={formId} onChange={(e) => setFormId(e.target.value)} className="mt-5 h-11 w-full rounded-2xl border border-[#e0e0de] px-3 text-[14px] outline-none">{events.map((event) => <option key={event._id || event.id} value={event._id || event.id}>{event.title || event.name || 'Team event'}</option>)}</select>}<textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={5} maxLength={500} placeholder="Tell teams what you can contribute, your interests, availability, and preferred role..." className="mt-3 w-full resize-none rounded-2xl border border-[#e0e0de] p-3 text-[14px] outline-none" /><div className="mt-5 flex gap-2"><button onClick={onClose} className="flex-1 rounded-full border border-[#e0e0de] py-3 text-[14px] font-semibold">Cancel</button><button onClick={save} disabled={saving || !formId || !description.trim()} className="flex-1 rounded-full bg-[#0a0a0a] py-3 text-[14px] font-semibold text-white disabled:opacity-30">{saving ? 'Saving...' : 'Save'}</button></div></div></div>
 }
 
-export function TeamsView({ teams, loading, onOpen, onFindMembers, formId = '', onSaved }) {
+export function TeamsView({ teams, loading, loadingMore, error, hasMore, sentinelRef, onRetry, onOpen, onFindMembers, formId = '', onSaved }) {
   const [profileOpen, setProfileOpen] = useState(false)
-  return <div className="view-in"><PageHeader title="Join a Team" subtitle={`${teams.length} teams are looking for members`} action={<div className="flex items-center gap-1.5"><div className="group relative"><button onClick={() => setProfileOpen(true)} aria-label="Find members looking for a team" className="rounded-full flex items-center justify-center border h-9 w-9 border-[#e0e0de] bg-[#ffffff] text-[13px] font-semibold transition-colors hover:bg-[#f4f4f3]"><Icon icon="solar:clipboard-add-linear" className="text-[18px]" /><div className="pointer-events-none absolute right-1/2 top-full mt-2 translate-x-1/2 rounded-full bg-[#2c2f35] px-3 py-1.5 text-xs font-medium whitespace-nowrap text-white opacity-0 transition-all duration-200 group-hover:translate-y-1 group-hover:opacity-100">Finish Profile</div></button></div><button onClick={onFindMembers} aria-label="Find members looking for a team" className="inline-flex items-center gap-2 rounded-full border border-[#e0e0de] bg-[#ffffff] py-2 pl-3 pr-3.5 text-[13px] font-semibold transition-colors hover:bg-[#f4f4f3]"><Icon icon="solar:user-linear" className="text-[18px]" /><span className="hidden sm:inline">Find members</span></button></div>} /><FinishProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} eventFormId={formId} onSaved={onSaved} /><div className="flex flex-col gap-3 sm:px-3.5 pb-1.5">{loading ? <p className="px-4 text-[13px] text-[#71717a]">Loading teams...</p> : teams.length === 0 ? <EmptyState image="/illuistrations/noTeam.svg" alt="No teams available" title="No teams yet">There are no teams looking for members right now. Check back later or create your Team.</EmptyState> : teams.map((team) => <TeamCard key={team.id} team={team} onOpen={() => onOpen(team.id)} />)}</div></div>
+  return <div className="view-in"><PageHeader title="Join a Team" subtitle={`${teams.length}${hasMore ? '+' : ''} teams loaded`} action={<div className="flex items-center gap-1.5"><div className="group relative"><button onClick={() => setProfileOpen(true)} aria-label="Find members looking for a team" className="rounded-full flex items-center justify-center border h-9 w-9 border-[#e0e0de] bg-[#ffffff] text-[13px] font-semibold transition-colors hover:bg-[#f4f4f3]"><Icon icon="solar:clipboard-add-linear" className="text-[18px]" /><div className="pointer-events-none absolute right-1/2 top-full mt-2 translate-x-1/2 rounded-full bg-[#2c2f35] px-3 py-1.5 text-xs font-medium whitespace-nowrap text-white opacity-0 transition-all duration-200 group-hover:translate-y-1 group-hover:opacity-100">Finish Profile</div></button></div><button onClick={onFindMembers} aria-label="Find members looking for a team" className="inline-flex items-center gap-2 rounded-full border border-[#e0e0de] bg-[#ffffff] py-2 pl-3 pr-3.5 text-[13px] font-semibold transition-colors hover:bg-[#f4f4f3]"><Icon icon="solar:user-linear" className="text-[18px]" /><span className="hidden sm:inline">Find members</span></button></div>} /><FinishProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} eventFormId={formId} onSaved={onSaved} /><div className="flex flex-col gap-3 sm:px-3.5 pb-1.5">{loading ? <p className="px-4 text-[13px] text-[#71717a]">Loading teams...</p> : error && teams.length === 0 ? <RetryState error={error} onRetry={onRetry} /> : teams.length === 0 ? <EmptyState image="/illuistrations/noTeam.svg" alt="No teams available" title="No teams yet">There are no teams looking for members right now. Check back later or create your Team.</EmptyState> : teams.map((team) => <TeamCard key={team.id} team={team} onOpen={() => onOpen(team.id)} />)}{!loading && teams.length > 0 && <PaginationFooter loadingMore={loadingMore} error={error} hasMore={hasMore} sentinelRef={sentinelRef} onRetry={onRetry} />}</div></div>
+}
+
+function RetryState({ error, onRetry }) {
+  return <div className="px-4 py-8 text-center text-[13px] text-[#71717a]"><p>{error}</p><button onClick={onRetry} className="mt-3 rounded-full border border-[#e0e0de] px-4 py-2 font-semibold text-[#0a0a0a]">Retry</button></div>
+}
+
+function PaginationFooter({ loadingMore, error, hasMore, sentinelRef, onRetry }) {
+  return <div className="flex min-h-12 items-center justify-center py-3 text-[13px] text-[#71717a]">{error ? <div className="flex items-center gap-3"><span>{error}</span><button onClick={onRetry} className="font-semibold text-[#0a0a0a] underline">Retry</button></div> : loadingMore ? <span className="flex items-center gap-2"><span className="h-4 w-4 animate-spin rounded-full border-2 border-black/15 border-t-black" />Loading more...</span> : hasMore ? <span ref={sentinelRef} className="h-1 w-full" aria-hidden="true" /> : <span>All results loaded</span>}</div>
 }
 
 function EmptyState({ image, alt, title, children }) {
@@ -129,8 +230,8 @@ export function TeamDetailView({ team }) {
   return <div className="view-in"><PageHeader title={team.name} /><div className="flex flex-col gap-3 sm:px-3.5 pb-1.5"><section className="rounded-[28px] border border-[#eeeeed] bg-[#ffffff] p-7"><div className="flex items-center gap-2.5"><Label><span className="inline-flex items-center gap-1.5 text-[12.5px] font-semibold text-[#71717a]">{team.needed} {team.needed === 1 ? 'spot' : 'spots'} left</span></Label></div><div className="mt-5 flex items-start gap-4"><Monogram name={team.name} size={60} /><div className="min-w-0 pt-0.5"><h2 className="text-[27px] font-extrabold leading-none tracking-[-0.03em]">{team.name}</h2><p className="mt-2.5 text-[15px] leading-snug text-[#71717a]">{team.eventTitle}</p></div></div><div className="mt-6 flex items-center gap-3 border-t border-[#eeeeed] pt-5"><AvatarStack members={team.members} /><span className="text-[13.5px] font-medium text-[#71717a]">{team.members.length} members onboard · led by {team.lead.split(' ')[0]}</span></div></section><div className="mt-8 flex items-baseline justify-between"><h3 className="text-[15px] font-bold tracking-[-0.01em]">Team members</h3><span className="text-[13px] font-medium text-[#71717a]">{team.members.length} people</span></div><ul className="mt-3 flex flex-col divide-y divide-[#eeeeed] overflow-hidden rounded-[22px] border border-[#eeeeed]">{team.members.map((member) => <li key={member.id} onClick={() => member.userId && router.push(`/dashboard/Userprofile?userId=${encodeURIComponent(member.userId)}`)} className="flex cursor-pointer items-center gap-3.5 px-4 py-3.5 transition-colors hover:bg-[#f6f6f5]"><Avatar src={member.avatar} alt={member.name} size={46} /><div className="min-w-0 flex-1"><p className="truncate text-[15px] font-semibold">{member.name}</p><p className="truncate text-[13px] text-[#71717a]">{member.branch} · {member.year}</p></div>{member.role && <Label>{member.role}</Label>}</li>)}</ul><div className="mt-8"><MessageComposer recipient={team.lead} kind="request" cta="Send request" label="Introduce yourself" placeholder={`Hi ${team.lead.split(' ')[0]}, I'd love to join ${team.name}. Here's what I can bring to the team…`} hint="Shared with the team lead." formId={team.formId} target={{ kind: 'team', teamId: team.id }} /></div></div></div>
 }
 
-export function SeekersView({ seekers, onOpen }) {
-  return <div className="view-in"><PageHeader title="Find Members" subtitle={`${seekers.length} students are looking for a team`} /><div className="flex flex-col gap-3 sm:px-3.5 pb-1.5">{seekers.length === 0 ? <EmptyState image="/illuistrations/noMember.svg" alt="No members found" title="No members found">No students are looking for a team right now. Check back later to find members for your team.</EmptyState> : seekers.map((seeker) => <button key={seeker.id} onClick={() => onOpen(seeker.id)} className="group flex items-center gap-4 rounded-[22px] border border-neutral-200 hover:border-neutral-300 hover:shadow-sm transition cursor-pointer bg-[#ffffff] p-4 text-left"><Avatar src={seeker.avatar} alt={seeker.name} size={52} /><div className="min-w-0 flex-1"><p className="truncate text-[15.5px] font-bold tracking-[-0.01em]">{seeker.name}</p><p className="truncate text-[13px] text-[#71717a]">{seeker.branch} · {seeker.year}</p><p className="mt-1.5 line-clamp-1 text-[13.5px] text-[#0a0a0a]/70">{seeker.headline}</p></div><ArrowRight size={18} className="shrink-0 text-[#a1a1aa] transition-all group-hover:translate-x-0.5 group-hover:text-[#0a0a0a]" /></button>)}</div></div>
+export function SeekersView({ seekers, loading, loadingMore, error, hasMore, sentinelRef, onRetry, onOpen }) {
+  return <div className="view-in"><PageHeader title="Find Members" subtitle={`${seekers.length}${hasMore ? '+' : ''} students loaded`} /><div className="flex flex-col gap-3 sm:px-3.5 pb-1.5">{loading ? <p className="px-4 text-[13px] text-[#71717a]">Loading members...</p> : error && seekers.length === 0 ? <RetryState error={error} onRetry={onRetry} /> : seekers.length === 0 ? <EmptyState image="/illuistrations/noMember.svg" alt="No members found" title="No members found">No students are looking for a team right now. Check back later to find members for your team.</EmptyState> : seekers.map((seeker) => <button key={seeker.id} onClick={() => onOpen(seeker.id)} className="group flex items-center gap-4 rounded-[22px] border border-neutral-200 hover:border-neutral-300 hover:shadow-sm transition cursor-pointer bg-[#ffffff] p-4 text-left"><Avatar src={seeker.avatar} alt={seeker.name} size={52} /><div className="min-w-0 flex-1"><p className="truncate text-[15.5px] font-bold tracking-[-0.01em]">{seeker.name}</p><p className="truncate text-[13px] text-[#71717a]">{seeker.branch} · {seeker.year}</p><p className="mt-1.5 line-clamp-1 text-[13.5px] text-[#0a0a0a]/70">{seeker.headline}</p></div><ArrowRight size={18} className="shrink-0 text-[#a1a1aa] transition-all group-hover:translate-x-0.5 group-hover:text-[#0a0a0a]" /></button>)}{!loading && seekers.length > 0 && <PaginationFooter loadingMore={loadingMore} error={error} hasMore={hasMore} sentinelRef={sentinelRef} onRetry={onRetry} />}</div></div>
 }
 
 export function SeekerDetailView({ seeker }) {

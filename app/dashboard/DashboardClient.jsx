@@ -3,6 +3,7 @@
 import ExpandablePostText from "@/components/ExpandablePostText";
 import PostDocument from "@/components/PostDocument";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import "./dashboard.css";
 import { ArrowLeft, EllipsisVertical, ArrowRight, X as XIcon } from "lucide-react";
@@ -16,7 +17,6 @@ import { ReportPostModal } from "@/components/ReportPostModal";
 import { DeleteModal } from "@/components/DeleteModal";
 import PastEventNotifiModal from "@/components/PastEventNotifiModal";
 import RequestModal from "@/components/TeamRequest";
-import { ExplorePage } from "@/components/ExplorePage";
 import { AnimatePresence, motion } from "framer-motion";
 import { Bell, BookOpen } from "lucide-react";
 import { Icon } from "@iconify/react";
@@ -27,22 +27,25 @@ import { PostCard } from "@/components/PostCard";
 import PollCard from "@/components/PollCard";
 import { loreleiAvatar } from "@/lib/avatar";
 import { formatPostTime } from "@/lib/formatPostTime";
+import DashboardHomeLoading from "@/components/DashboardHomeLoading";
+import {
+  DASHBOARD_FEED_STALE_TIME,
+  DASHBOARD_POSTS_GC_TIME,
+  dashboardFeedQueryKey,
+  fetchDashboardFeedPage,
+} from "@/lib/dashboardFeedQuery";
+
+const ExplorePage = dynamic(
+  () => import("@/components/ExplorePage").then((module) => module.ExplorePage),
+  { loading: () => null },
+);
 
 const DASHBOARD_SCROLL_STORAGE_KEY = "dashboard-feed-scroll-position";
 const DASHBOARD_OPEN_POST_STORAGE_KEY = "dashboard-feed-open-post-id";
 const DASHBOARD_OPENED_FROM_FEED_STORAGE_KEY = "dashboard-post-opened-from-feed";
 
 const DASHBOARD_POSTS_QUERY_ROOT = ["dashboard", "posts"];
-const DASHBOARD_FEED_STALE_TIME = 30 * 60 * 1000;
 const DASHBOARD_POST_STALE_TIME = 30 * 60 * 1000;
-const DASHBOARD_POSTS_GC_TIME = 30 * 60 * 1000;
-const DASHBOARD_FEED_PAGE_SIZE = 15;
-
-const dashboardFeedQueryKey = (audience) => [
-  ...DASHBOARD_POSTS_QUERY_ROOT,
-  "feed",
-  audience,
-];
 const dashboardPostQueryKey = (postId) => [
   ...DASHBOARD_POSTS_QUERY_ROOT,
   "detail",
@@ -172,14 +175,7 @@ const ImageLightbox = ({ images, initialIndex, onClose }) => {
 };
 
 
-const Loading = () => (
-  <div className="userpostsloadani">
-    <div className="relative w-12 h-12">
-      <div className="absolute inset-0 rounded-full border-3 border-gray-200"></div>
-      <div className="absolute inset-0 rounded-full border-3 border-black border-t-transparent animate-spin"></div>
-    </div>
-  </div>
-);
+const Loading = () => <DashboardHomeLoading />;
 
 const formatRelativeTime = formatPostTime;
 
@@ -257,18 +253,7 @@ const readJsonResponse = async (response) => {
 };
 
 const fetchDashboardFeedPosts = async ({ audience, cursor, signal }) => {
-  const params = new URLSearchParams({
-    audience,
-    limit: String(DASHBOARD_FEED_PAGE_SIZE),
-  });
-
-  if (cursor) params.set("cursor", cursor);
-
-  const res = await fetch(`/api/posts?${params.toString()}`, { signal });
-  const data = await readJsonResponse(res);
-
-  if (!res.ok) throw new Error(data?.error || "Failed to fetch posts");
-
+  const data = await fetchDashboardFeedPage({ audience, cursor, signal });
   return {
     posts: (data.posts || []).map(normalizePost).filter(Boolean),
     nextCursor: data.nextCursor || null,
@@ -536,7 +521,7 @@ export default function DashboardClient({ postId: routePostId = null } = {}) {
     getNextPageParam: (lastPage) =>
       lastPage?.hasMore ? lastPage.nextCursor || undefined : undefined,
     enabled: !isThreadRoute && dashboardView === "feed",
-    staleTime: 0,
+    staleTime: DASHBOARD_FEED_STALE_TIME,
     gcTime: DASHBOARD_POSTS_GC_TIME,
     refetchOnMount: true,
   });

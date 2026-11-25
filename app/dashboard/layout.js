@@ -1,9 +1,11 @@
 "use client"
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
+import { usePathname } from 'next/navigation'
 import Sidebar from '@/components/Sidebar'
 import BottomTabBar from '@/components/BottomTabBar'
 import DesktopNoticeModal from '@/components/DesktopNoticeModal'
+import DashboardHomeLoading from '@/components/DashboardHomeLoading'
 import './DashboardLayout.css'
 
 const DESKTOP_NOTICE_STORAGE_KEY = 'unilynk-desktop-notice-next-display-at';
@@ -14,12 +16,37 @@ const MOBILE_AND_TABLET_QUERY = '(max-width: 1024px)';
 const DashboardLayout = ({ children }) => {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [desktopNoticeOpen, setDesktopNoticeOpen] = useState(false);
+  const [homeNavigationPending, setHomeNavigationPending] = useState(false);
+  const homeNavigationTimer = useRef(null);
+  const pathname = usePathname();
 
   useEffect(() => {
     const handler = () => setMobileSidebarOpen(true);
     window.addEventListener('open-mobile-sidebar', handler);
     return () => window.removeEventListener('open-mobile-sidebar', handler);
   }, []);
+
+  useEffect(() => {
+    const startHomeNavigation = () => {
+      setHomeNavigationPending(true);
+      window.clearTimeout(homeNavigationTimer.current);
+      homeNavigationTimer.current = window.setTimeout(() => {
+        setHomeNavigationPending(false);
+      }, 15000);
+    };
+    window.addEventListener('dashboard-home-navigation-start', startHomeNavigation);
+    return () => {
+      window.removeEventListener('dashboard-home-navigation-start', startHomeNavigation);
+      window.clearTimeout(homeNavigationTimer.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (pathname === '/dashboard') {
+      setHomeNavigationPending(false);
+      window.clearTimeout(homeNavigationTimer.current);
+    }
+  }, [pathname]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia(MOBILE_AND_TABLET_QUERY);
@@ -65,6 +92,12 @@ const DashboardLayout = ({ children }) => {
       <main className="dashboard-main">
         {children}
       </main>
+      {homeNavigationPending && (
+        <div className="dashboard-home-nav-loading" aria-live="polite">
+          <div className="dashboard-home-nav-toggle" aria-hidden="true"><span /></div>
+          <div className="dashboard-home-nav-feed"><DashboardHomeLoading /></div>
+        </div>
+      )}
 
       {/* Mobile-only bottom navigation (X / Twitter style) */}
       <BottomTabBar />

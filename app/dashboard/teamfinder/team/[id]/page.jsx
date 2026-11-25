@@ -5,7 +5,7 @@ import { useParams } from 'next/navigation'
 import { DashboardEventsShell } from '@/components/DashboardEventsShell'
 import '@/app/dashboard/dashboard.css'
 import '@/components/events-pages.css'
-import { TeamDetailView, teamFinderApi, useTeamFinderFormId } from '../../_components/TeamFinderShared'
+import { TeamDetailView, useTeamFinderFormId } from '../../_components/TeamFinderShared'
 
 export default function TeamDetailPage() {
   const { id } = useParams()
@@ -15,9 +15,11 @@ export default function TeamDetailPage() {
 
   useEffect(() => {
     if (!id || !ready) return
-    fetch(teamFinderApi(formId), { cache: 'no-store' })
+    const params = new URLSearchParams({ kind: 'team', id: String(id), limit: '1' })
+    if (formId) params.set('formId', formId)
+    fetch(`/api/forms/team-finder?${params}`, { cache: 'no-store' })
       .then((res) => res.json())
-      .then((json) => setTeam((json.teams || []).find((item) => item.id === id) || null))
+      .then((json) => setTeam(json.items?.[0] || null))
       .catch(console.error)
   }, [id, formId, ready])
 
