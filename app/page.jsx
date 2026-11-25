@@ -1,6 +1,8 @@
 "use client"
 
 import { useEffect, useState, Suspense } from 'react'
+import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { useSearchParams } from 'next/navigation'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Check, X } from 'lucide-react'
@@ -88,6 +90,13 @@ function RegistrationSuccessModal() {
 }
 
 export default function App() {
+  const router = useRouter()
+  const { status } = useSession()
+
+  useEffect(() => {
+    if (status === 'authenticated') router.replace('/redirect-handler')
+  }, [router, status])
+
   return (
     <main className="flex min-h-screen flex-col bg-[#f4f3ef]">
       <SiteHeader />

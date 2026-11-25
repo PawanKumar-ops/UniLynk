@@ -11,6 +11,24 @@ const emailNorm = (v = "") => norm(v).toLowerCase();
 const hasText = (v) => norm(v).length > 0;
 const memberFilled = (m = {}) => Object.values(m || {}).some(hasText);
 const fallbackName = (email = "") => email.split("@")[0] || "Participant";
+const DEFAULT_PAGE_SIZE = 10;
+const MAX_PAGE_SIZE = 50;
+
+function encodeCursor(item) {
+  return Buffer.from(JSON.stringify({ addedAt: item.teamFinder?.addedAt, id: String(item._id) })).toString("base64url");
+}
+
+function decodeCursor(value) {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8"));
+    const addedAt = new Date(parsed.addedAt);
+    if (!mongoose.isValidObjectId(parsed.id) || Number.isNaN(addedAt.getTime())) return undefined;
+    return { addedAt, id: new mongoose.Types.ObjectId(parsed.id) };
+  } catch {
+    return undefined;
+  }
+}
 
 const hydrateMembers = async (members = []) => {
   const emails = [...new Set(members.map((m) => emailNorm(m.email)).filter(Boolean))];
@@ -88,26 +106,56 @@ export async function GET(req) {
   try {
     const { searchParams } = new URL(req.url);
     const formId = searchParams.get("formId");
+    const itemId = searchParams.get("id");
+    const kind = searchParams.get("kind") === "solo" ? "solo" : "team";
+    const requestedLimit = Number(searchParams.get("limit") || DEFAULT_PAGE_SIZE);
+    if (!Number.isInteger(requestedLimit) || requestedLimit < 1) {
+      return Response.json({ error: "limit must be a positive integer" }, { status: 400 });
+    }
+    const limit = Math.min(requestedLimit, MAX_PAGE_SIZE);
+    const cursor = decodeCursor(searchParams.get("cursor"));
+    if (cursor === undefined) return Response.json({ error: "Invalid pagination cursor" }, { status: 400 });
+
     await connectDB();
-    const query = { "teamFinder.type": { $in: ["solo", "team"] } };
+    const formQuery = { $or: [{ isTeam: true }, { isTeamEvent: true }] };
     if (formId) {
       // An invalid id must return nothing, never every event's teams.
-      if (!mongoose.isValidObjectId(formId)) return Response.json({ solo: [], teams: [] });
-      query.formId = formId;
+      if (!mongoose.isValidObjectId(formId)) return Response.json({ items: [], nextCursor: null, hasMore: false });
+      formQuery._id = formId;
     }
-    const responses = await ResponseModel.find(query).sort({ "teamFinder.addedAt": -1, submittedAt: -1 }).lean();
-    const formIds = [...new Set(responses.map((r) => String(r.formId)))];
-    const forms = await Form.find({ _id: { $in: formIds }, $or: [{ isTeam: true }, { isTeamEvent: true }] }).select("title name description teamSize").lean();
+    const forms = await Form.find(formQuery).select("title name description teamSize").lean();
     const byId = new Map(forms.map((f) => [String(f._id), f]));
-    const userEmails = [...new Set(responses.map((r) => emailNorm(r.userEmail || r.teamFinder?.profile?.email || "")).filter(Boolean))];
+    if (!forms.length) return Response.json({ items: [], nextCursor: null, hasMore: false });
+
+    const query = {
+      formId: { $in: [...byId.keys()] },
+      "teamFinder.type": kind,
+    };
+    if (itemId) {
+      if (!mongoose.isValidObjectId(itemId)) return Response.json({ items: [], nextCursor: null, hasMore: false });
+      query._id = itemId;
+    }
+    if (cursor) {
+      query.$or = [
+        { "teamFinder.addedAt": { $lt: cursor.addedAt } },
+        { "teamFinder.addedAt": cursor.addedAt, _id: { $lt: cursor.id } },
+      ];
+    }
+    const responses = await ResponseModel.find(query)
+      .select("_id formId userEmail answers.team teamFinder.type teamFinder.profile teamFinder.team teamFinder.addedAt")
+      .sort({ "teamFinder.addedAt": -1, _id: -1 })
+      .limit(limit + 1)
+      .lean();
+    const hasMore = responses.length > limit;
+    const page = hasMore ? responses.slice(0, limit) : responses;
+    const userEmails = [...new Set(page.map((r) => emailNorm(r.userEmail || r.teamFinder?.profile?.email || "")).filter(Boolean))];
     const users = userEmails.length ? await User.find({ email: { $in: userEmails } }).select("_id name email branch year img skills").lean() : [];
     const byUserEmail = new Map(users.map((u) => [emailNorm(u.email), u]));
-    const scoped = responses.filter((r) => byId.has(String(r.formId)));
+    const items = page.map((response) => serialize(response, byId.get(String(response.formId)), byUserEmail.get(emailNorm(response.userEmail || response.teamFinder?.profile?.email || ""))));
     return Response.json({
-      solo: scoped.filter((r) => r.teamFinder?.type === "solo").map((r) => serialize(r, byId.get(String(r.formId)), byUserEmail.get(emailNorm(r.userEmail || r.teamFinder?.profile?.email || ""))),
-      ),
-      teams: scoped.filter((r) => r.teamFinder?.type === "team").map((r) => serialize(r, byId.get(String(r.formId)), byUserEmail.get(emailNorm(r.userEmail || r.teamFinder?.profile?.email || ""))),
-      ),
+      items,
+      nextCursor: hasMore ? encodeCursor(page[page.length - 1]) : null,
+      hasMore,
     });
   } catch (e) { console.error(e); return Response.json({ error: e.message }, { status: 500 }); }
 }
