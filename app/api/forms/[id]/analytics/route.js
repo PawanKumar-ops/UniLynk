@@ -100,6 +100,10 @@ const buildTeamFinderAnalytics = (responses, usersByEmail) => {
   const acceptedRequesterEmails = new Set(responses
     .filter((response) => response.teamFinderRequest?.status === "accepted")
     .map((response) => normalizeEmail(response.userEmail)));
+  const assignedMemberEmails = new Set(responses.flatMap((response) =>
+    (response.teamFinder?.type === "team" ? response.teamFinder.team?.members || [] : [])
+      .map((member) => normalizeEmail(member?.email)).filter(Boolean)
+  ));
   const finderResponses = responses.filter((response) =>
     ["solo", "team"].includes(response.teamFinder?.type)
   );
@@ -132,7 +136,9 @@ const buildTeamFinderAnalytics = (responses, usersByEmail) => {
     .filter((team) => team.needed > 0);
 
   const soloStudents = finderResponses
-    .filter((response) => response.teamFinder?.type === "solo" && !acceptedRequesterEmails.has(normalizeEmail(response.userEmail)))
+    .filter((response) => response.teamFinder?.type === "solo" &&
+      !acceptedRequesterEmails.has(normalizeEmail(response.userEmail)) &&
+      !assignedMemberEmails.has(normalizeEmail(response.userEmail)))
     .map((response) => {
       const profile = response.teamFinder?.profile || {};
       const email = normalizeEmail(profile.email || response.userEmail);
@@ -161,10 +167,15 @@ const buildUnclassifiedSoloStudents = (responses, form, usersByEmail, excludedEm
   const acceptedRequesterEmails = new Set(responses
     .filter((response) => response.teamFinderRequest?.status === "accepted")
     .map((response) => normalizeEmail(response.userEmail)));
+  const assignedMemberEmails = new Set(responses.flatMap((response) => [
+    ...(response.teamFinder?.type === "team" ? response.teamFinder.team?.members || [] : []),
+    ...(Array.isArray(response.answers?.teamRegistration?.members) ? response.answers.teamRegistration.members : []),
+  ].map((member) => normalizeEmail(member?.email)).filter(Boolean)));
   return responses
     .filter((response) => (response.isSubmitted || response.submittedAt) &&
       !excludedEmails.has(normalizeEmail(response.userEmail)) &&
       !acceptedRequesterEmails.has(normalizeEmail(response.userEmail)) &&
+      !assignedMemberEmails.has(normalizeEmail(response.userEmail)) &&
       !response.teamFinder &&
       !response.answers?.[TEAM_REGISTRATION_ANSWER_ID] &&
       !(Array.isArray(response.answers?.team) && response.answers.team.length > 0))

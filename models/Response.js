@@ -83,5 +83,9 @@ ResponseSchema.index(
   { unique: true }
 );
 
+// Team Finder pages filter by event and listing type, then walk newest-first.
+ResponseSchema.index({ formId: 1, "teamFinder.type": 1, "teamFinder.addedAt": -1, _id: -1 });
+ResponseSchema.index({ "teamFinder.type": 1, "teamFinder.addedAt": -1, _id: -1, formId: 1 });
+
 export default mongoose.models.Response ||
 mongoose.model("Response", ResponseSchema);

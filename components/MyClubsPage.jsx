@@ -270,7 +270,7 @@ export function MyClubsPage() {
 
           <div>
             <h1 className="truncate text-[20px] font-bold leading-5 text-black">
-              Clubs
+              Societies
             </h1>
 
             <p className="mt-0.5 text-[13px] leading-4 text-[#536471]">
@@ -315,7 +315,7 @@ export function MyClubsPage() {
                 <Shimmer className="mt-1.5 h-4 w-28" />
               ) : (
                 <div className="mt-0.5 text-[#0a0a0a]">
-                  {clubCards.length} campus {clubCards.length === 1 ? "club" : "clubs"}
+                  {clubCards.length} campus {clubCards.length === 1 ? "society" : "societies"}
                 </div>
               )}
             </div>

@@ -6,21 +6,31 @@ import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { useState, useMemo, useEffect } from "react";
 import { usePathname } from 'next/navigation';
+import { useQueryClient } from '@tanstack/react-query';
 import { SignOutModal } from "./SignOutModal";
 import { X, LogOut } from 'lucide-react'
 import ReliableImage from './ReliableImage';
 import FeedbackModal from './FeedbackModal';
 import { Icon } from "@iconify/react";
 import { profileAvatar } from "@/lib/avatar";
+import { dashboardFeedQueryKey, prefetchDashboardFeed } from "@/lib/dashboardFeedQuery";
 
 const Sidebar = ({ isOpen = false, onClose }) => {
   const { data: session, status } = useSession()
+  const queryClient = useQueryClient()
   const [settings, setSettings] = useState(true);
   const [showSignOutModal, setSignoutModal] = useState(false)
   const [showFeedbackModal, setShowFeedbackModal] = useState(false)
   const [userProfile, setUserProfile] = useState(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const pathname = usePathname();
+
+  const beginHomeNavigation = () => {
+    const cachedFeed = queryClient.getQueryData(dashboardFeedQueryKey("for-you"));
+    if (pathname !== "/dashboard" && !cachedFeed?.pages?.length) {
+      window.dispatchEvent(new Event("dashboard-home-navigation-start"));
+    }
+  };
 
   const isActive = (path) => {
     if (path === "/dashboard") {
@@ -81,7 +91,7 @@ const Sidebar = ({ isOpen = false, onClose }) => {
     },
     {
       href: "/dashboard/my-clubs",
-      label: "My Clubs",
+      label: "My Societies",
       icon: "solar:user-linear",
       activeIcon: "solar:user-bold",
     },
@@ -147,10 +157,19 @@ const Sidebar = ({ isOpen = false, onClose }) => {
                     const active = isActive(href);
 
                     return (
-                      <Link key={href} href={href}>
+                      <Link
+                        key={href}
+                        href={href}
+                        onMouseEnter={href === "/dashboard" ? () => prefetchDashboardFeed(queryClient) : undefined}
+                        onFocus={href === "/dashboard" ? () => prefetchDashboardFeed(queryClient) : undefined}
+                        onTouchStart={href === "/dashboard" ? () => prefetchDashboardFeed(queryClient) : undefined}
+                      >
                         <button
                           className={`dashbutton ${active ? "active" : ""}`}
-                          onClick={onClose}
+                          onClick={() => {
+                            if (href === "/dashboard") beginHomeNavigation();
+                            onClose?.();
+                          }}
                         >
                           <Icon
                             icon={active ? activeIcon : icon}

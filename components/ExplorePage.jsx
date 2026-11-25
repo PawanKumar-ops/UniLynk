@@ -1703,7 +1703,7 @@ export function ExplorePage({ onBack }) {
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
 
-              <h3 className="text-[1.125rem] font-bold">Suggested Clubs</h3>
+              <h3 className="text-[1.125rem] font-bold">Suggested Societies</h3>
             </div>
             <button
               type="button"

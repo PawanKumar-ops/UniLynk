@@ -471,14 +471,14 @@ export default function App() {
     const handleCredentialsLogin = async () => {
         setLoading(true)
         showStatus('', '')
-        const result = await signIn('credentials', { email, password, redirect: false, callbackUrl: '/Onboarding' })
+        const result = await signIn('credentials', { email, password, redirect: false, callbackUrl: '/redirect-handler' })
         setLoading(false)
         if (result?.error) {
             showStatus('error', 'Invalid email or password.')
             return
         }
         showStatus('success', 'Login successful. Redirecting...')
-        router.push('/Onboarding')
+        router.replace('/redirect-handler')
     }
 
     const handleVerifyCode = async () => {
@@ -508,10 +508,10 @@ export default function App() {
             })
             const registerData = await registerRes.json()
             if (!registerRes.ok) throw new Error(registerData.error || 'Unable to create account.')
-            const loginResult = await signIn('credentials', { email, password, redirect: false, callbackUrl: '/Onboarding' })
+            const loginResult = await signIn('credentials', { email, password, redirect: false, callbackUrl: '/redirect-handler' })
             if (loginResult?.error) throw new Error('Account created, but automatic login failed. Please log in.')
             showStatus('success', 'Account created. Redirecting...')
-            router.push('/Onboarding')
+            router.replace('/redirect-handler')
         } catch (error) {
             showStatus('error', error.message)
         } finally {
@@ -536,13 +536,13 @@ export default function App() {
             if (!res.ok) throw new Error(data.error || 'Unable to reset password.')
             setPassword(newPassword)
             showStatus('success', 'Password reset. Redirecting...')
-            const loginResult = await signIn('credentials', { email, password: newPassword, redirect: false, callbackUrl: '/Onboarding' })
+            const loginResult = await signIn('credentials', { email, password: newPassword, redirect: false, callbackUrl: '/redirect-handler' })
             if (loginResult?.error) {
                 goto('log-in-password')
                 showStatus('success', 'Password reset. Please log in with your new password.')
                 return
             }
-            router.push('/Onboarding')
+            router.replace('/redirect-handler')
         } catch (error) {
             showStatus('error', error.message)
         } finally {
@@ -611,10 +611,10 @@ export default function App() {
                                         variant="outline"
                                         icon={<Icon icon="selfhst:google" />}
                                         label="Continue with Google"
-                                        onClick={() => signIn('google', { callbackUrl: '/Onboarding' })}
+                                        onClick={() => signIn('google', { callbackUrl: '/redirect-handler' })}
                                         disabled={loading}
                                     />
-                                    <SocialButton icon={<Icon icon="selfhst:github-dark" />} label="Continue with Github" onClick={() => signIn('github', { callbackUrl: '/Onboarding' })} disabled={loading} />
+                                    <SocialButton icon={<Icon icon="selfhst:github-dark" />} label="Continue with Github" onClick={() => signIn('github', { callbackUrl: '/redirect-handler' })} disabled={loading} />
                                 </div>
 
                                 <div className="flex w-full items-center gap-2 text-xs font-medium text-[#5b5f66]">
@@ -788,10 +788,10 @@ export default function App() {
                                         variant="outline"
                                         icon={<Icon icon="selfhst:google" />}
                                         label="Continue with Google"
-                                        onClick={() => signIn('google', { callbackUrl: '/Onboarding' })}
+                                        onClick={() => signIn('google', { callbackUrl: '/redirect-handler' })}
                                         disabled={loading}
                                     />
-                                    <SocialButton icon={<Icon icon="selfhst:github-dark" />} label="Continue with Github" onClick={() => signIn('github', { callbackUrl: '/Onboarding' })} disabled={loading} />
+                                    <SocialButton icon={<Icon icon="selfhst:github-dark" />} label="Continue with Github" onClick={() => signIn('github', { callbackUrl: '/redirect-handler' })} disabled={loading} />
                                 </div>
 
                                 <div className="flex w-full items-center gap-2 text-xs font-medium text-[#5b5f66]">

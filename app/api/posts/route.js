@@ -270,6 +270,10 @@ export async function GET(req) {
     await connectDB();
 
     const { searchParams } = new URL(req.url);
+    const sessionPromise = auth().then(
+      (session) => ({ session }),
+      (error) => ({ error }),
+    );
     const audience = searchParams.get("audience");
     const clubId = searchParams.get("clubId");
     const sort = searchParams.get("sort");
@@ -323,17 +327,33 @@ export async function GET(req) {
       hasMore = result.hasMore;
     }
 
-    const hydratedPosts = await resolvePostAuthorImages(paginatedPosts);
-
-    const session = await auth();
+    const sessionResult = await sessionPromise;
+    if (sessionResult.error) throw sessionResult.error;
+    const session = sessionResult.session;
     const sessionEmail = normalizeEmail(session?.user?.email);
-    const user = sessionEmail
-      ? await User.findOne({ email: sessionEmail }, { _id: 1, savedPosts: 1 }).lean()
-      : null;
+    const [hydratedPosts, user] = await Promise.all([
+      resolvePostAuthorImages(paginatedPosts),
+      sessionEmail
+        ? User.findOne({ email: sessionEmail }, { _id: 1, savedPosts: 1 }).lean()
+        : Promise.resolve(null),
+    ]);
 
-    const postsWithPermissions = await markDeletePermissions(hydratedPosts, sessionEmail);
-    const postsWithComments = await attachRecentComments(postsWithPermissions);
-    const enrichedPosts = await resolveLikeState(postsWithComments, user?._id?.toString());
+    const [postsWithPermissions, postsWithComments, postsWithLikes] = await Promise.all([
+      markDeletePermissions(hydratedPosts, sessionEmail),
+      attachRecentComments(hydratedPosts),
+      resolveLikeState(hydratedPosts, user?._id?.toString()),
+    ]);
+    const commentsByPostId = new Map(postsWithComments.map((post) => [post._id.toString(), post.comments]));
+    const likesByPostId = new Map(postsWithLikes.map((post) => [post._id.toString(), post]));
+    const enrichedPosts = postsWithPermissions.map((post) => {
+      const likeState = likesByPostId.get(post._id.toString());
+      return {
+        ...post,
+        comments: commentsByPostId.get(post._id.toString()) || [],
+        likeCount: likeState?.likeCount ?? Number(post.likeCount || 0),
+        likedByCurrentUser: Boolean(likeState?.likedByCurrentUser),
+      };
+    });
     const savedPostIds = new Set(user?.savedPosts?.map(id => id.toString()) || []);
     const enrichedPostsWithSave = enrichedPosts.map(post => ({
       ...post,
