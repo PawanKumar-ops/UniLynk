@@ -22,8 +22,18 @@ export async function GET(req) {
     const teamFinderComplete = Boolean(
       response?.teamFinder?.type || response?.teamFinderRequest?.kind === "team"
     );
+    const registration = applied ? response?.answers?.teamRegistration : null;
+    const teamName = response?.teamFinder?.type === "team"
+      ? response.teamFinder.team?.name || response.answers?.teamName || response.answers?.teamRegistration?.teamName || ""
+      : registration?.teamName || response?.answers?.teamName || "";
+    const hasTeam = Boolean(
+      response?.teamFinder?.type === "team" ||
+      (applied && (teamName ||
+        (Array.isArray(response?.answers?.team) && response.answers.team.some((member) => Object.values(member || {}).some((value) => String(value || "").trim()))) ||
+        (Array.isArray(registration?.members) && registration.members.length)))
+    );
 
-    return Response.json({ applied, teamFinderComplete });
+    return Response.json({ applied, teamFinderComplete, hasTeam, teamName });
 
   } catch (error) {
     console.error(error);

@@ -40,7 +40,7 @@ const buildTeamFinder = async ({ form, response, sessionUser }) => {
   const userEmail = emailNorm(response.userEmail || sessionUser?.email);
   const user = await User.findOne({ email: userEmail }).select("_id name email branch year img skills").lean();
   const max = Math.max(1, Number(form.teamSize) || 4);
-  const rawMembers = Array.isArray(response.answers?.team) ? response.answers.team : [];
+  const rawMembers = Array.isArray(response.answers?.teamRegistration?.members) ? response.answers.teamRegistration.members : Array.isArray(response.answers?.team) ? response.answers.team : [];
   const members = await hydrateMembers(rawMembers);
   const leadName = user?.name || sessionUser?.name || fallbackName(userEmail);
   const leadMember = { id: String(user?._id || response._id), userId: user?._id ? String(user._id) : "", name: leadName, email: userEmail, branch: user?.branch || "General", year: user?.year || "Student", avatar: profileAvatar(user?.img, userEmail), role: "Team Lead", skills: user?.skills || [] };
@@ -57,7 +57,7 @@ const buildRegisteredOpenTeam = async ({ form, response, usersByEmail }) => {
   const leadUser = usersByEmail.get(leadEmail) || null;
   const leadName = leadUser?.name || fallbackName(leadEmail);
   const teamFinderMembers = Array.isArray(response.teamFinder?.team?.members) ? response.teamFinder.team.members : [];
-  const submittedMembers = Array.isArray(response.answers?.team) ? response.answers.team.filter(memberFilled) : [];
+  const submittedMembers = Array.isArray(response.answers?.teamRegistration?.members) ? response.answers.teamRegistration.members.filter(memberFilled) : Array.isArray(response.answers?.team) ? response.answers.team.filter(memberFilled) : [];
   const rawMembers = [
     { id: leadUser?._id ? String(leadUser._id) : String(response._id), userId: leadUser?._id ? String(leadUser._id) : "", name: leadName, email: leadEmail, branch: leadUser?.branch || "General", year: leadUser?.year || "Student", avatar: profileAvatar(leadUser?.img, leadEmail), role: "Team Lead" },
     ...teamFinderMembers,
@@ -73,7 +73,7 @@ const buildRegisteredOpenTeam = async ({ form, response, usersByEmail }) => {
     id: String(response._id),
     formId: String(response.formId),
     eventTitle: form.title || form.name || "Event",
-    name: String(response.answers?.teamName || `${leadName}'s Team`).trim(),
+    name: String(response.answers?.teamRegistration?.teamName || response.answers?.teamName || `${leadName}'s Team`).trim(),
     lead: leadName,
     leadEmail,
     needed,
@@ -148,9 +148,10 @@ export async function GET(req) {
       formId: { $in: [...byId.keys()] },
       isSubmitted: true,
     };
+    if (formId) eventResponseQuery.formId = formId;
     if (itemId) eventResponseQuery._id = itemId;
     const eventResponses = await ResponseModel.find(eventResponseQuery)
-      .select("_id formId userEmail isSubmitted submittedAt answers.team answers.teamName teamFinder.type teamFinder.profile teamFinder.team teamFinder.addedAt teamFinderRequest.status")
+      .select("_id formId userEmail isSubmitted submittedAt answers.team answers.teamName answers.teamRegistration teamFinder.type teamFinder.profile teamFinder.team teamFinder.addedAt teamFinderRequest.status teamFinderRequest.targetId")
       .sort({ submittedAt: -1, _id: -1 }).lean();
     const userEmails = [...new Set([...responses, ...eventResponses].map((r) => emailNorm(r.userEmail || r.teamFinder?.profile?.email || "")).filter(Boolean))];
     const users = userEmails.length ? await User.find({ email: { $in: userEmails } }).select("_id name email branch year img skills").lean() : [];
@@ -161,7 +162,11 @@ export async function GET(req) {
       .map((response) => `${String(response.formId)}:${emailNorm(response.userEmail)}`));
     const teamResponseByOwner = new Map(scoped.filter((r) => r.teamFinder?.type === "team").map((r) => [`${String(r.formId)}:${emailNorm(r.userEmail)}`, r]));
     const assignedMemberEmails = new Set(scoped.flatMap((response) =>
-      (response.teamFinder?.type === "team" ? response.teamFinder.team?.members || [] : [])
+      [
+        ...(response.teamFinder?.type === "team" ? response.teamFinder.team?.members || [] : []),
+        ...(Array.isArray(response.answers?.team) ? response.answers.team : []),
+        ...(Array.isArray(response.answers?.teamRegistration?.members) ? response.answers.teamRegistration.members : []),
+      ]
         .map((member) => `${String(response.formId)}:${emailNorm(member?.email)}`).filter((key) => !key.endsWith(":"))
     ));
     const applicantEmails = [...new Set(eventResponses.map((response) => emailNorm(response.userEmail)).filter(Boolean))];
@@ -169,20 +174,50 @@ export async function GET(req) {
     const applicantUsersByEmail = new Map(applicantUsers.map((user) => [emailNorm(user.email), user]));
     const eventFormsWithResponses = eventResponses.map((response) => ({ response, form: byId.get(String(response.formId)) }));
     const registeredOpenTeams = await Promise.all(eventFormsWithResponses.map(async ({ response, form }) => {
-      if (response.teamFinderRequest?.status === "accepted") return null;
       const existingTeam = teamResponseByOwner.get(`${String(response.formId)}:${emailNorm(response.userEmail)}`);
       const hasTeamFinderTeam = existingTeam?.teamFinder?.type === "team";
-      const hasFormTeam = Array.isArray(response.answers?.team) && response.answers.team.some(memberFilled);
-      const hasFormTeamName = Boolean(String(response.answers?.teamName || "").trim());
+      const hasFormTeam = (Array.isArray(response.answers?.team) && response.answers.team.some(memberFilled)) || (Array.isArray(response.answers?.teamRegistration?.members) && response.answers.teamRegistration.members.some(memberFilled));
+      const hasFormTeamName = Boolean(String(response.answers?.teamName || response.answers?.teamRegistration?.teamName || "").trim());
       if (!hasTeamFinderTeam && !hasFormTeam && !hasFormTeamName) return null;
       return buildRegisteredOpenTeam({ form, response: { ...response, teamFinder: existingTeam?.teamFinder || response.teamFinder }, usersByEmail: applicantUsersByEmail });
     }));
     const registeredTeamById = new Map(registeredOpenTeams.filter(Boolean).map((team) => [team.id, team]));
+    const acceptedMembersByTeamId = new Map();
+    const acceptedTargetByRequester = new Map();
+    const acceptedRequesters = eventResponses.filter((response) => response.teamFinderRequest?.status === "accepted");
+    const teamOwnerEmailsByForm = new Map();
+    for (const response of [...scoped, ...eventResponses]) {
+      if (response.teamFinder?.type === "team") {
+        const key = String(response.formId);
+        const emails = teamOwnerEmailsByForm.get(key) || new Set();
+        emails.add(emailNorm(response.userEmail));
+        teamOwnerEmailsByForm.set(key, emails);
+      }
+    }
+    for (const accepted of acceptedRequesters) {
+      const ownerTeam = teamResponseByOwner.get(`${String(accepted.formId)}:${emailNorm(accepted.userEmail)}`);
+      const targetId = accepted.teamFinderRequest?.targetId;
+      if (targetId && mongoose.isValidObjectId(targetId)) {
+        const targetTeam = scoped.find((candidate) => String(candidate._id) === String(targetId) && candidate.teamFinder?.type === "team");
+        if (targetTeam) acceptedTargetByRequester.set(`${String(accepted.formId)}:${emailNorm(accepted.userEmail)}`, targetTeam);
+      }
+      if (!ownerTeam) {
+        if (!targetId && !teamOwnerEmailsByForm.get(String(accepted.formId))?.has(emailNorm(accepted.userEmail))) {
+          const registeredTeam = [...registeredTeamById.values()].find((team) => team.formId === String(accepted.formId));
+          if (registeredTeam) acceptedTargetByRequester.set(`${String(accepted.formId)}:${emailNorm(accepted.userEmail)}`, { _id: registeredTeam.id, formId: registeredTeam.formId });
+        }
+        continue;
+      }
+      const member = await hydrateMembers([{ email: accepted.userEmail }]);
+      const bucket = acceptedMembersByTeamId.get(String(ownerTeam._id)) || [];
+      if (member.length && !bucket.some((item) => emailNorm(item.email) === emailNorm(accepted.userEmail))) bucket.push(member[0]);
+      acceptedMembersByTeamId.set(String(ownerTeam._id), bucket);
+    }
     const solo = eventFormsWithResponses
         .filter(({ response }) => !acceptedRequesterEmails.has(`${String(response.formId)}:${emailNorm(response.userEmail)}`))
         .filter(({ response }) => !assignedMemberEmails.has(`${String(response.formId)}:${emailNorm(response.userEmail)}`))
         .filter(({ response }) => !teamResponseByOwner.has(`${String(response.formId)}:${emailNorm(response.userEmail)}`))
-        .filter(({ response }) => !(Array.isArray(response.answers?.team) && response.answers.team.some(memberFilled)) && !String(response.answers?.teamName || "").trim())
+        .filter(({ response }) => !(Array.isArray(response.answers?.team) && response.answers.team.some(memberFilled)) && !(Array.isArray(response.answers?.teamRegistration?.members) && response.answers.teamRegistration.members.some(memberFilled)) && !String(response.answers?.teamName || response.answers?.teamRegistration?.teamName || "").trim())
         .map(({ response, form }) => serialize({ ...response, teamFinder: response.teamFinder?.type === "solo" ? response.teamFinder : { type: "solo", profile: { name: applicantUsersByEmail.get(emailNorm(response.userEmail))?.name || fallbackName(response.userEmail), email: response.userEmail } } }, form, applicantUsersByEmail.get(emailNorm(response.userEmail))));
     const teamsById = new Map(registeredTeamById);
     for (const response of scoped.filter((candidate) => candidate.teamFinder?.type === "team")) {
@@ -192,15 +227,34 @@ export async function GET(req) {
         byUserEmail.get(emailNorm(response.userEmail || response.teamFinder?.profile?.email || "")),
       );
       const members = Array.isArray(serializedTeam.members) ? serializedTeam.members : [];
-      const capacity = Math.max(1, Number(serializedTeam.total) || members.length || 1);
-      const needed = Number.isFinite(Number(serializedTeam.needed))
-        ? Number(serializedTeam.needed)
-        : Math.max(capacity - members.length, 0);
+      const capacity = Math.max(1, Number(serializedTeam.total) || Number(byId.get(String(response.formId))?.teamSize) || members.length || 1);
+      // The persisted `needed` value can be stale (especially on older teams).
+      // Derive availability from the actual roster so incomplete teams remain visible.
+      const needed = Math.max(capacity - members.length, 0);
       if (needed > 0 && members.length < capacity && !teamsById.has(serializedTeam.id)) {
         teamsById.set(serializedTeam.id, { ...serializedTeam, needed, total: capacity });
+      } else if (needed > 0 && members.length < capacity && teamsById.has(serializedTeam.id)) {
+        teamsById.set(serializedTeam.id, { ...teamsById.get(serializedTeam.id), needed, total: capacity });
       }
     }
     const teams = [...teamsById.values()];
+    for (const [requesterKey, targetTeam] of acceptedTargetByRequester) {
+      const team = teams.find((candidate) => String(candidate.id) === String(targetTeam._id));
+      const requester = eventResponses.find((candidate) => `${String(candidate.formId)}:${emailNorm(candidate.userEmail)}` === requesterKey);
+      const requesterEmail = requesterKey.slice(requesterKey.indexOf(":") + 1);
+      solo.splice(0, solo.length, ...solo.filter((student) => !(emailNorm(student.email) === requesterEmail && String(student.formId) === String(targetTeam.formId || ""))));
+      if (!team || !requester) continue;
+      const [member] = await hydrateMembers([{ email: requester.userEmail }]);
+      if (member && !team.members.some((existing) => emailNorm(existing.email) === emailNorm(member.email))) team.members.push(member);
+      team.needed = Math.max(0, Number(team.total) - team.members.length);
+    }
+    for (const team of teams) {
+      const acceptedMembers = acceptedMembersByTeamId.get(String(team.id)) || [];
+      for (const member of acceptedMembers) {
+        if (!team.members.some((existing) => emailNorm(existing.email) === emailNorm(member.email))) team.members.push(member);
+      }
+      team.needed = Math.max(0, Number(team.total) - team.members.length);
+    }
     return Response.json({
       viewerEmail,
       items: kind === "solo" ? solo : teams,
@@ -227,10 +281,10 @@ export async function POST(req) {
     let teamFinder;
     if (type === "team") {
       const total = Math.max(1, Number(form.teamSize) || 4);
-      const registeredMembers = await hydrateMembers(submittedRegistration.answers?.team || []);
+      const registeredMembers = await hydrateMembers(submittedRegistration.answers?.teamRegistration?.members || submittedRegistration.answers?.team || []);
       const lead = { id: user?._id ? String(user._id) : "", name: user?.name || fallbackName(userEmail), email: userEmail, branch: user?.branch || "", year: user?.year || "", avatar: profileAvatar(user?.img, userEmail), role: "Team Lead" };
       const members = [lead, ...registeredMembers.filter((member) => emailNorm(member.email) !== userEmail)];
-      const teamName = teamRegistration?.teamName?.trim() || submittedRegistration.answers?.teamName || `${user?.name || fallbackName(userEmail)}'s Team`;
+      const teamName = teamRegistration?.teamName?.trim() || submittedRegistration.answers?.teamRegistration?.teamName || submittedRegistration.answers?.teamName || `${user?.name || fallbackName(userEmail)}'s Team`;
       if (members.length >= total) return Response.json({ error: "Your registered team is already full" }, { status: 409 });
       teamFinder = { type: "team", profile: { name: user?.name || fallbackName(userEmail), email: userEmail, description }, team: { name: teamName, lead: user?.name || fallbackName(userEmail), members, needed: Math.max(total - members.length, 0), total, lookingFor: [] }, addedAt: new Date() };
     }

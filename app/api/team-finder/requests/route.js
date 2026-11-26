@@ -22,24 +22,24 @@ const normalizeEmail = (email = "") => String(email).toLowerCase().trim();
 const getDisplayName = (user, email) =>
   user?.name?.trim() || email.split("@")[0] || "A UniLynk member";
 
-const getMailConfigError = () => {
-  const host = process.env.SMTP_HOST || (process.env.EMAIL || process.env.SMTP_USER ? "smtp.gmail.com" : "");
-  const user = process.env.SMTP_USER || process.env.EMAIL;
-  const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
-  if (!host || !user || !pass) return "Email delivery is not configured. Add SMTP_HOST, SMTP_USER, and SMTP_PASS.";
-  return "Could not send the notification email. Check the SMTP settings and try again.";
-};
-
-const getTransporter = () =>
-  nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: Number(process.env.SMTP_PORT || 465),
-    secure: String(process.env.SMTP_SECURE || "true") !== "false",
+const getTransporter = () => {
+  const host = process.env.SMTP_HOST || process.env.EMAIL_HOST || "smtp.gmail.com";
+  const port = Number(process.env.SMTP_PORT || process.env.EMAIL_PORT || 587);
+  const secureValue = process.env.SMTP_SECURE ?? process.env.EMAIL_SECURE;
+  const secure = secureValue == null ? port === 465 : String(secureValue).toLowerCase() === "true";
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure,
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
     auth: {
       user: process.env.SMTP_USER || process.env.EMAIL,
-      pass: process.env.SMTP_PASS || process.env.EMAIL_PASS,
+      pass: String(process.env.SMTP_PASS || process.env.EMAIL_PASS || "").replace(/\s+/g, ""),
     },
   });
+};
 
 const getRecipientFromSoloResponse = (response) => ({
   name: response.teamFinder?.profile?.name || response.userEmail.split("@")[0],
@@ -257,15 +257,25 @@ export async function POST(req) {
         );
       }
 
-      const [senderTeam, senderRegistration] = await Promise.all([
-        ResponseModel.findOne({ formId, userEmail: senderEmail, "teamFinder.type": "team" }).lean(),
-        ResponseModel.findOne({ formId, userEmail: senderEmail, isSubmitted: true }).select("_id").lean(),
+      let [senderTeam, senderRegistration] = await Promise.all([
+        ResponseModel.findOne({ formId, userEmail: senderEmail, "teamFinder.type": "team" }),
+        ResponseModel.findOne({ formId, userEmail: senderEmail, isSubmitted: true }),
       ]);
       if (!senderRegistration) {
         return Response.json({ error: "Apply to this event before inviting members" }, { status: 409 });
       }
       if (!senderTeam) {
-        return Response.json({ error: "Create a team in TeamFinder before inviting members" }, { status: 409 });
+        const submittedMembers = senderRegistration.answers?.teamRegistration?.members || senderRegistration.answers?.team || [];
+        const members = await Promise.all([senderEmail, ...submittedMembers.map((member) => normalizeEmail(member?.email)).filter(Boolean)].map(async (email, index) => {
+          const user = await User.findOne({ email }).select("_id name email branch year img skills rollNumber").lean();
+          return { id: user?._id ? String(user._id) : "", userId: user?._id ? String(user._id) : "", name: user?.name || email.split("@")[0], email, branch: user?.branch || "General", year: user?.year || "Student", avatar: user?.img || null, role: index === 0 ? "Team Lead" : "Member", skills: user?.skills || [] };
+        }));
+        const teamName = senderRegistration.answers?.teamRegistration?.teamName || senderRegistration.answers?.teamName || `${senderName}'s Team`;
+        senderTeam = await ResponseModel.findOneAndUpdate(
+          { _id: senderRegistration._id },
+          { $set: { teamFinder: { type: "team", profile: { name: senderName, email: senderEmail }, team: { name: teamName, lead: senderName, members, needed: Math.max(0, (Number(form.teamSize) || 4) - members.length), total: Number(form.teamSize) || 4, lookingFor: [] }, addedAt: new Date() } } },
+          { new: true, runValidators: true },
+        );
       }
       const capacity = Math.max(1, Number(form.teamSize) || 4);
       const currentMembers = senderTeam.teamFinder?.team?.members || [];
@@ -334,15 +344,6 @@ export async function POST(req) {
 
     const senderId = sender?._id;
 
-    let transporter;
-    try {
-      transporter = getTransporter();
-      await transporter.verify();
-    } catch (emailError) {
-      console.error("TEAM FINDER SMTP VERIFICATION ERROR:", emailError);
-      return Response.json({ error: getMailConfigError() }, { status: 503 });
-    }
-
     const createdNotifications = await Notification.insertMany(
       recipients.map((recipient) => ({
         recipientEmail: recipient.email,
@@ -361,7 +362,9 @@ export async function POST(req) {
       })),
     );
 
+    let emailDelivered = false;
     try {
+      const transporter = getTransporter();
       const fromAddress =
         process.env.EMAIL_FROM ||
         `"UniLynk" <${process.env.SMTP_USER || process.env.EMAIL}>`;
@@ -387,14 +390,9 @@ export async function POST(req) {
           });
         }),
       );
+      emailDelivered = true;
     } catch (emailError) {
       console.error("TEAM FINDER EMAIL DELIVERY ERROR:", emailError);
-      await Notification.deleteMany({
-        _id: {
-          $in: createdNotifications.map((notification) => notification._id),
-        },
-      });
-      throw emailError;
     }
 
     if (targetKind === "team") {
@@ -415,7 +413,7 @@ export async function POST(req) {
       );
     }
 
-    return Response.json({ success: true, delivered: recipients.length });
+    return Response.json({ success: true, delivered: recipients.length, emailDelivered });
   } catch (error) {
     console.error("TEAM FINDER REQUEST ERROR:", error);
     return Response.json(

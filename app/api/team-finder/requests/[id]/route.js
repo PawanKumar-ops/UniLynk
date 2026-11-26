@@ -8,16 +8,23 @@ import User from "@/models/user";
 
 const normalizeEmail = (email = "") => String(email || "").toLowerCase().trim();
 
-const getTransporter = () =>
-  nodemailer.createTransport({
-    host: process.env.SMTP_HOST || "smtp.gmail.com",
-    port: Number(process.env.SMTP_PORT || 465),
-    secure: String(process.env.SMTP_SECURE || "true") !== "false",
+const getTransporter = () => {
+  const host = process.env.SMTP_HOST || process.env.EMAIL_HOST || "smtp.gmail.com";
+  const port = Number(process.env.SMTP_PORT || process.env.EMAIL_PORT || 587);
+  const secureValue = process.env.SMTP_SECURE ?? process.env.EMAIL_SECURE;
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure: secureValue == null ? port === 465 : String(secureValue).toLowerCase() === "true",
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
     auth: {
       user: process.env.SMTP_USER || process.env.EMAIL,
-      pass: process.env.SMTP_PASS || process.env.EMAIL_PASS,
+      pass: String(process.env.SMTP_PASS || process.env.EMAIL_PASS || "").replace(/\s+/g, ""),
     },
   });
+};
 
 const memberFromUser = (user, fallbackEmail) => ({
   name: user?.name || fallbackEmail.split("@")[0] || "Participant",
@@ -263,10 +270,21 @@ export async function PATCH(req, context) {
         teamName: registration.teamName || targetResponse.teamFinder?.team?.name || "",
         members: registrationMembers,
       });
+      // Registration based teams store their roster directly in answers.team.
+      // Keep it in sync so analytics and the solo member list see accepted joiners.
+      const legacyMembers = Array.isArray(targetResponse.answers?.team) ? targetResponse.answers.team : [];
+      if (!legacyMembers.some((member) => normalizeEmail(member?.email) === acceptedUserEmail)) {
+        legacyMembers.push(acceptedMember);
+      }
+      targetResponse.set("answers.team", legacyMembers);
 
       await targetResponse.save();
 
-      const acceptedRequester = await ResponseModel.findOne({ formId: requestNotification.formId, userEmail: requesterEmail });
+      // For member invites, the recipient joins the sender's team. For join
+      // requests, the sender joins the recipient's team. Mark the joined user
+      // as accepted so their solo listing is removed in either direction.
+      const joinedUserEmail = memberInvite ? recipientEmail : requesterEmail;
+      const acceptedRequester = await ResponseModel.findOne({ formId: requestNotification.formId, userEmail: joinedUserEmail });
       if (acceptedRequester) {
         acceptedRequester.set("teamFinderRequest", {
           kind: "team",
@@ -316,9 +334,13 @@ export async function PATCH(req, context) {
       teamName: requestNotification.teamName,
     });
 
-    const transporter = getTransporter();
-    const from = process.env.EMAIL_FROM || `"UniLynk" <${process.env.SMTP_USER || process.env.EMAIL}>`;
-    await transporter.sendMail({ from, to: requesterEmail, subject, text, html });
+    try {
+      const transporter = getTransporter();
+      const from = process.env.EMAIL_FROM || `"UniLynk" <${process.env.SMTP_USER || process.env.EMAIL}>`;
+      await transporter.sendMail({ from, to: requesterEmail, subject, text, html });
+    } catch (emailError) {
+      console.error("TEAM FINDER DECISION EMAIL ERROR:", emailError);
+    }
 
     await Notification.deleteOne({ _id: requestNotification._id });
 

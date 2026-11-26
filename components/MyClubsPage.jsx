@@ -331,7 +331,7 @@ export function MyClubsPage() {
 
         {/* My Clubs */}
         <section className="flex flex-col gap-3">
-          <h3 className="text-lg font-bold">Clubs you're part of</h3>
+          <h3 className="text-lg font-bold">Societies you're part of</h3>
           {loading ? (
             <ClubsLoading />
           ) : clubCards.length === 0 ? (

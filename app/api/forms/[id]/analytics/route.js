@@ -42,7 +42,7 @@ const buildRegisteredTeams = (responses, form, usersByEmail) => {
     .map((response) => {
       const registration = response.answers?.[TEAM_REGISTRATION_ANSWER_ID] ||
         (Array.isArray(response.answers?.team) && response.answers.team.length > 0
-          ? { members: response.answers.team }
+          ? { teamName: response.answers?.teamName, members: response.answers.team }
           : null);
 
       if (!registration || registration.mode === "solo") return null;
@@ -50,7 +50,7 @@ const buildRegisteredTeams = (responses, form, usersByEmail) => {
       const acceptedMembers = response.teamFinderRequest?.status === "accepted" && response.teamFinderRequest?.kind === "team"
         ? (responses.find((candidate) => String(candidate._id) === String(response.teamFinderRequest.targetId))?.teamFinder?.team?.members || []).filter((member) => normalizeEmail(member?.email) !== normalizeEmail(response.userEmail))
         : [];
-      const registeredMembers = normalizeMembers([...(registration.members || []), ...acceptedMembers], usersByEmail);
+      const registeredMembers = normalizeMembers([...(registration.members || []), ...(Array.isArray(response.answers?.team) ? response.answers.team : []), ...acceptedMembers], usersByEmail);
       const owner = usersByEmail.get(normalizeEmail(response.userEmail));
       const lead = normalizeMember({
         id: owner?._id?.toString(),
@@ -70,7 +70,7 @@ const buildRegisteredTeams = (responses, form, usersByEmail) => {
       return {
         _id: id,
         id,
-        name: registration.teamName?.trim() || `${teamLead.name || response.userEmail.split("@")[0]}'s Team`,
+        name: (registration.teamName || response.answers?.teamName)?.trim() || `${teamLead.name || response.userEmail.split("@")[0]}'s Team`,
         total: capacity,
         capacity,
         status: members.length >= capacity ? "complete" : "incomplete",
